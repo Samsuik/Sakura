@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Wed, 6 Oct 2021 17:25:27 +0100
+Subject: [PATCH] Optimise New Liquid Level
+
+
+diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+index e21f4c5aff3a8e97101f6efc1349fbecf326b5ea..6d59f8b68d644cb43939bcdf5239fa1caf54ed47 100644
+--- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+@@ -137,7 +137,7 @@ public abstract class FlowingFluid extends Fluid {
+             BlockState iblockdata = world.getBlockState(fluidPos);
+             BlockPos blockposition1 = fluidPos.below();
+             BlockState iblockdata1 = world.getBlockState(blockposition1);
+-            FluidState fluid1 = this.getNewLiquid(world, blockposition1, iblockdata1);
++            FluidState fluid1 = this.getLiquid(world, blockposition1, iblockdata1, fluidPos, iblockdata); // Sakura - optimise liquid level
+ 
+             if (this.canSpreadTo(world, fluidPos, iblockdata, Direction.DOWN, blockposition1, iblockdata1, world.getFluidState(blockposition1), fluid1.getType())) {
+                 // CraftBukkit start
+@@ -197,6 +197,25 @@ public abstract class FlowingFluid extends Fluid {
+     }
+ 
+     protected FluidState getNewLiquid(Level world, BlockPos pos, BlockState state) {
++        // Sakura start - optimise liquid level
++        BlockPos blockposition2 = pos.above();
++        BlockState iblockdata3 = world.getBlockState(blockposition2);
++
++        return getLiquid(world, pos, state, blockposition2, iblockdata3);
++    }
++
++    // SANITY: world, pos, state, above pos, above state
++    protected FluidState getLiquid(Level world, BlockPos pos, BlockState state, BlockPos blockposition2, BlockState iblockdata3) {
++        FluidState fluid2 = iblockdata3.getFluidState();
++
++        if (!fluid2.isEmpty() && fluid2.getType().isSame(this) && this.canPassThroughWall(Direction.UP, world, pos, state, blockposition2, iblockdata3)) {
++            return this.getFlowing(8, true);
++        } else {
++            return this.getLiquidFromSurroundings(world, pos, state);
++        }
++    }
++
++    protected FluidState getLiquidFromSurroundings(Level world, BlockPos pos, BlockState state) {
+         int i = 0;
+         int j = 0;
+         Iterator iterator = Direction.Plane.HORIZONTAL.iterator();
+@@ -227,17 +246,10 @@ public abstract class FlowingFluid extends Fluid {
+             }
+         }
+ 
+-        BlockPos blockposition2 = pos.above();
+-        BlockState iblockdata3 = world.getBlockState(blockposition2);
+-        FluidState fluid2 = iblockdata3.getFluidState();
++        int k = i - this.getDropOff(world);
+ 
+-        if (!fluid2.isEmpty() && fluid2.getType().isSame(this) && this.canPassThroughWall(Direction.UP, world, pos, state, blockposition2, iblockdata3)) {
+-            return this.getFlowing(8, true);
+-        } else {
+-            int k = i - this.getDropOff(world);
+-
+-            return k <= 0 ? Fluids.EMPTY.defaultFluidState() : this.getFlowing(k, false);
+-        }
++        return k <= 0 ? Fluids.EMPTY.defaultFluidState() : this.getFlowing(k, false);
++        // Sakura end
+     }
+ 
+     private boolean canPassThroughWall(Direction face, BlockGetter world, BlockPos pos, BlockState state, BlockPos fromPos, BlockState fromState) {

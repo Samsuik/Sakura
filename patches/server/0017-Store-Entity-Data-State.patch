@@ -1,0 +1,104 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Wed, 16 Aug 2023 22:34:49 +0100
+Subject: [PATCH] Store Entity Data/State
+
+
+diff --git a/src/main/java/me/samsuik/sakura/entity/EntityState.java b/src/main/java/me/samsuik/sakura/entity/EntityState.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c9f2c5ae57878283e8c8bc3847fe63b98f4e8d10
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/entity/EntityState.java
+@@ -0,0 +1,41 @@
++package me.samsuik.sakura.entity;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.Vec3;
++
++import java.util.Optional;
++
++public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed, Optional<BlockPos> supportingPos, boolean onGround, float fallDistance) {
++
++    public static EntityState of(Entity entity) {
++        return new EntityState(entity.position(), entity.getDeltaMovement(), entity.getBoundingBox(), entity.stuckSpeedMultiplier(), entity.mainSupportingBlockPos, entity.onGround(), entity.fallDistance);
++    }
++
++    public void apply(Entity entity) {
++        entity.setPos(position);
++        entity.setDeltaMovement(momentum);
++        entity.setBoundingBox(bb);
++        // null here is only safe for our use case (tnt and sand)
++        //noinspection DataFlowIssue
++        entity.makeStuckInBlock(null, stuckSpeed);
++        entity.onGround = onGround;
++        entity.mainSupportingBlockPos = supportingPos;
++        entity.fallDistance = fallDistance;
++    }
++
++    public void position(Entity entity) {
++        entity.setPos(position);
++        entity.setBoundingBox(bb);
++    }
++
++    public boolean isCurrentState(Entity entity) {
++        return entity.position().equals(position)
++            && entity.getDeltaMovement().equals(momentum);
++            // 1.14+ versions seem to correct morphed bounding boxes after a gametick.
++            // If there are any related issues uncomment this line of code.
++            // && entity.getBoundingBox().equals(bb);
++    }
++
++}
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 217eba9f4860cf1e67d307ba8cdb99430c7469f8..7e906ad87ae48942445b6ad1fa22ab9442c8943e 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -531,6 +531,34 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     // Paper end - make end portalling safe
+     public boolean isPrimedTNT; // Sakura
+     public boolean isFallingBlock; // Sakura
++    // Sakura start - entity state (from start of tick)
++    private @Nullable me.samsuik.sakura.entity.EntityState entityState = null;
++
++    public Vec3 stuckSpeedMultiplier() {
++        return stuckSpeedMultiplier;
++    }
++
++    public void storeEntityState() {
++        entityState = me.samsuik.sakura.entity.EntityState.of(this);
++    }
++
++    public @Nullable me.samsuik.sakura.entity.EntityState entityState() {
++        return entityState;
++    }
++
++    public boolean compareState(Entity to) {
++        return to.entityState() != null && to.entityState().isCurrentState(this);
++    }
++
++    public long getPackedOrigin() {
++        var v = getOriginVector();
++        if (v == null) return Long.MIN_VALUE;
++        // Note: vector#getBlockN may not be 100% exact
++        // If there's any future issues at let's say 0.999999...
++        // giving an incorrect position change it to Mth instead.
++        return BlockPos.asLong(v.getBlockX(), v.getBlockY(), v.getBlockZ());
++    }
++    // Sakura end
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index a29d41bf162c923e3b3b15e7500e0c8693908866..6d9a15a1c1faff57103757b6ff71f38e4713ef71 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -1325,6 +1325,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+ 
+     public <T extends Entity> void guardEntityTick(Consumer<T> tickConsumer, T entity) {
+         try {
++            entity.storeEntityState(); // Sakura - store entity state
+             tickConsumer.accept(entity);
+             MinecraftServer.getServer().executeMidTickTasks(); // Paper - execute chunk tasks mid tick
+         } catch (Throwable throwable) {

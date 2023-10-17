@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Fri, 13 Oct 2023 20:02:04 +0100
+Subject: [PATCH] isPushedByFluid API
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 01c5279084a8f84dcaf8d0d51a3305dc04476944..f8faa10e12f5e67fc89ccac831895c70d6333536 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -658,6 +658,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         discard();
+     }
+     // Sakura end
++    public boolean pushedByFluid; // Sakura
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+@@ -4154,7 +4155,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     }
+ 
+     public boolean isPushedByFluid() {
+-        return true;
++        return pushedByFluid; // Sakura
+     }
+ 
+     public static double getViewScale() {
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index 315d8260e196709ed9084272aa640f11e327c0a8..f8dc36e73389035995b67ac04ce14886526888fc 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -548,6 +548,18 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+         return this.entity.isInWater();
+     }
+ 
++    // Sakura start
++    @Override
++    public boolean isPushedByFluid() {
++        return getHandle().isPushedByFluid();
++    }
++
++    @Override
++    public void setPushedByFluid(boolean push) {
++        getHandle().pushedByFluid = push;
++    }
++    // Sakura end
++
+     @Override
+     public World getWorld() {
+         return this.entity.level().getWorld();

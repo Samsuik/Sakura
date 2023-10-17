@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 3 Aug 2023 12:54:52 +0100
+Subject: [PATCH] Use Optimised TrackedEntityMap
+
+
+diff --git a/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java b/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java
+index 8f4ac8acd2e0752e7a615d152b8047d790947b9f..1394adbe98a24f74fc7892e1b39ab1502fe082c1 100644
+--- a/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java
++++ b/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java
+@@ -17,8 +17,9 @@ public class TrackedEntityChunkMap extends Int2ObjectOpenHashMap<ChunkMap.Tracke
+ 
+     @Override
+     public ChunkMap.TrackedEntity remove(int k) {
+-        entityList.remove(k);
+-        return super.remove(k);
++        var v = super.remove(k);
++        entityList.remove(v);
++        return v;
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 45f0e7ef92c32dc51b81c0cc9f1d1a2fbab02599..e3ee8b66dfabb643c2b0d47bef20af4d8680e008 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -214,7 +214,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         // Paper - rewrite chunk system
+         this.tickingGenerated = new AtomicInteger();
+         this.playerMap = new PlayerMap();
+-        this.entityMap = new Int2ObjectOpenHashMap();
++        this.entityMap = new me.samsuik.sakura.utils.collections.TrackedEntityChunkMap(); // Sakura - optimised tracked entity map
+         this.chunkTypeCache = new Long2ByteOpenHashMap();
+         this.chunkSaveCooldowns = new Long2LongOpenHashMap();
+         this.unloadQueue = Queues.newConcurrentLinkedQueue();

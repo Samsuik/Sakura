@@ -1,0 +1,135 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 12 Jan 2023 22:59:28 +0000
+Subject: [PATCH] Player GUI API
+
+
+diff --git a/src/main/java/me/samsuik/sakura/player/gui/ItemIcon.java b/src/main/java/me/samsuik/sakura/player/gui/ItemIcon.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc0645aa27e6e96922f26242e71fef5d6c06fcfd
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/player/gui/ItemIcon.java
+@@ -0,0 +1,9 @@
++package me.samsuik.sakura.player.gui;
++
++import org.bukkit.entity.Player;
++import org.bukkit.inventory.ItemStack;
++
++import java.util.function.Consumer;
++import java.util.function.Function;
++
++public record ItemIcon(Function<Player, ItemStack> itemUpdate, Consumer<Player> onClick, int slot) {}
+diff --git a/src/main/java/me/samsuik/sakura/player/gui/PlayerGUI.java b/src/main/java/me/samsuik/sakura/player/gui/PlayerGUI.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..55d914153ca3f6458ee52223665516d5735a7c34
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/player/gui/PlayerGUI.java
+@@ -0,0 +1,108 @@
++package me.samsuik.sakura.player.gui;
++
++import org.bukkit.entity.Player;
++import org.bukkit.event.EventPriority;
++import org.bukkit.event.inventory.InventoryClickEvent;
++import org.bukkit.inventory.Inventory;
++import org.bukkit.inventory.InventoryHolder;
++import org.bukkit.plugin.EventExecutor;
++import org.bukkit.plugin.RegisteredListener;
++import org.jetbrains.annotations.ApiStatus;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.function.BiFunction;
++import java.util.function.Consumer;
++
++public abstract class PlayerGUI {
++
++    private static final List<PlayerGUI> REGISTERED_GUIS = new ArrayList<>();
++    protected static final Consumer<Player> NOTHING = (p) -> {};
++
++    private final Map<Integer, ItemIcon> iconMap = new HashMap<>();
++    private final Holder holder = new Holder();
++    private final BiFunction<Player, Holder, Inventory> base;
++    private boolean registered = false;
++
++    public PlayerGUI(BiFunction<Player, Holder, Inventory> base) {
++        this.base = base;
++    }
++
++    protected void registerIcon(ItemIcon icon) {
++        iconMap.put(icon.slot(), icon);
++    }
++
++    protected abstract void register();
++
++    public void unregister() {
++        REGISTERED_GUIS.remove(this);
++        registered = false;
++    }
++
++    @ApiStatus.Internal
++    public static void onWindowClick(InventoryClickEvent event) {
++        for (PlayerGUI ui : REGISTERED_GUIS) {
++            var inventory = event.getClickedInventory();
++
++            if (inventory != null && inventory.getHolder() == ui.holder) {
++                ui.handleSlotClick(event, inventory);
++            }
++        }
++    }
++
++    private void handleSlotClick(InventoryClickEvent event, Inventory inventory) {
++        event.setCancelled(true);
++
++        var player = (Player) event.getWhoClicked();
++        var slot = event.getSlot();
++        var icon = iconMap.get(slot);
++
++        if (icon != null) {
++            icon.onClick()
++                .andThen((p) -> updateIcon(player, icon, inventory))
++                .accept(player);
++        }
++    }
++
++    private void updateIcon(Player player, ItemIcon icon, Inventory inventory) {
++        var item = icon.itemUpdate().apply(player);
++        inventory.setItem(icon.slot(), item);
++    }
++
++    public void showTo(Player player) {
++        player.openInventory(createInventory(player));
++    }
++
++    private Inventory createInventory(Player player) {
++        if (!registered) {
++            registerUI();
++        }
++
++        var inventory = base.apply(player, holder);
++
++        for (var icon : iconMap.values()) {
++            updateIcon(player, icon, inventory);
++        }
++
++        return inventory;
++    }
++
++    private void registerUI() {
++        register();
++        REGISTERED_GUIS.add(this);
++        registered = true;
++    }
++
++    protected static class Holder implements InventoryHolder {
++        private Holder() {}
++
++        @Override
++        public @NotNull Inventory getInventory() {
++            return null;
++        }
++    }
++
++}

@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sat, 11 Sep 2021 19:19:41 +0100
+Subject: [PATCH] Load Chunks on Movement
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 514c34e25b6e42fa591ccbcd134149e64235b899..c35ca0785ecc268fb7e20dee56d42bdadca41ee6 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -397,6 +397,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     public org.bukkit.projectiles.ProjectileSource projectileSource; // For projectiles only
+     public boolean lastDamageCancelled; // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Keep track if the event was canceled
+     public boolean persistentInvisibility = false;
++    public boolean loadChunks = false; // Sakura - load chunks
+     public BlockPos lastLavaContact;
+     // Spigot start
+     public final org.spigotmc.ActivationRange.ActivationType activationType = org.spigotmc.ActivationRange.initializeEntityActivationType(this);
+@@ -1457,7 +1458,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+ 
+         io.papermc.paper.util.CollisionUtil.getCollisions(
+                 world, this, collisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
+-                (0),
++                (0) | (loadChunks ? io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_LOAD_CHUNKS : 0), // Sakura
+                 null, null
+         );
+ 
+@@ -4800,7 +4801,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+ 
+     @Override
+     public boolean isAlwaysTicking() {
+-        return false;
++        return loadChunks; // Sakura - always tick in chunks
+     }
+ 
+     public boolean mayInteract(Level world, BlockPos pos) {
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index 240a762b91a3c570583ee65bfe55b9677c4f63be..2e0f38ffad09b6afbea74205b89beb774e779545 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -74,6 +74,7 @@ public class FallingBlockEntity extends Entity {
+         this.dropItem = true;
+         this.fallDamageMax = 40;
+         this.isFallingBlock = true; // Sakura
++        this.loadChunks = world.sakuraConfig().cannons.sand.loadsChunks; // Sakura - load chunks
+     }
+ 
+     public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index 5b4e1d56f63935c5b6506dc94d174e8efebd260f..4c328a511ff6c0e6b73ef9701c82373e02c12830 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -32,6 +32,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         super(type, world);
+         this.blocksBuilding = true;
+         this.isPrimedTNT = true; // Sakura
++        this.loadChunks = world.sakuraConfig().cannons.tnt.loadsChunks; // Sakura - load chunks
+     }
+ 
+     public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {

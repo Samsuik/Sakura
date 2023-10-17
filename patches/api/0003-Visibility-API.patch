@@ -1,0 +1,174 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Tue, 21 Sep 2021 23:55:45 +0100
+Subject: [PATCH] Visibility API
+
+
+diff --git a/src/main/java/me/samsuik/sakura/player/visibility/Visibility.java b/src/main/java/me/samsuik/sakura/player/visibility/Visibility.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8d9a5ffe7dfe00ff2d3deb6bc94b5dc53af15cd4
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/player/visibility/Visibility.java
+@@ -0,0 +1,142 @@
++package me.samsuik.sakura.player.visibility;
++
++import java.util.EnumSet;
++import java.util.Locale;
++
++public class Visibility {
++
++    private final EnumSet<Setting> settings = EnumSet.noneOf(Setting.class);
++
++    /**
++     * Checks if the provided setting has been modified.
++     *
++     * @param setting provided
++     * @return the setting has been modified
++     */
++    public boolean isToggled(Setting setting) {
++        return settings.contains(setting);
++    }
++
++    /**
++     * Checks if the provided setting is enabled.
++     *
++     * @param setting provided
++     * @return the setting is enabled
++     */
++    public boolean isEnabled(Setting setting) {
++        return setting.defaultValue != isToggled(setting);
++    }
++
++    /**
++     * Checks if the provided setting is disabled.
++     *
++     * @param setting provided
++     * @return the setting is disabled
++     */
++    public boolean isDisabled(Setting setting) {
++        return !isEnabled(setting);
++    }
++
++    /**
++     * Toggles the provided settings state.
++     * [ true -> false, false -> true ]
++     * NOTE: the default value can vary.
++     *
++     * @param setting provided
++     */
++    public void toggle(Setting setting) {
++        if (settings.contains(setting)) {
++            settings.remove(setting);
++        } else {
++            settings.add(setting);
++        }
++    }
++
++    /**
++     * Toggles the provided settings state if it matches the modified state.
++     *
++     * @param setting provided
++     * @param modified fun
++     */
++    public void toggle(Setting setting, boolean modified) {
++        if (isToggled(setting) == modified) {
++            toggle(setting);
++        }
++    }
++
++    /**
++     * Sets the provided settings state.
++     *
++     * @param setting provided
++     * @param enable whether to enable this setting
++     */
++    public void set(Setting setting, boolean enable) {
++        if (isEnabled(setting) && !enable || isDisabled(setting) && enable) {
++            toggle(setting);
++        }
++    }
++
++    /**
++     * Toggles all settings based on the logic below.
++     * IF: settings are untouched or have been modified
++     *   THEN: disable all settings
++     * IF: all settings are disabled
++     *   THEN: enable all settings
++     */
++    public void toggleAll() {
++        var toggled  = true; // true == all toggled
++
++        // If something is enabled set state to true
++        for (var setting : Setting.values()) {
++            toggled &= isToggled(setting);
++        }
++
++        // apply the opposite of the state so that it toggles
++        for (var setting : Setting.values()) {
++            toggle(setting, toggled);
++        }
++    }
++
++    /**
++     * Whether the settings have been modified.
++     * This is exposed to allow for quick return optimisations.
++     *
++     * @return settings have been modified
++     */
++    public boolean isModified() {
++        return !settings.isEmpty();
++    }
++
++    public enum Setting {
++        TNT_VISIBILITY("TNT Visibility", true),
++        SAND_VISIBILITY("Sand Visibility", true),
++        MINIMAL("Minimal TNT/Sand", false),
++        FLASHING_TNT("Flashing TNT", true),
++        EXPLOSIONS("Explosion Particles", true),
++        ENCHANTMENT_GLINT("Enchantment Glint", true),
++        SPAWNERS("Spawner Visibility", true),
++        REDSTONE("Redstone Animations", true),
++        PISTONS("Piston Animations", true);
++
++        private final String friendlyName;
++        private final boolean defaultValue;
++
++        Setting(String friendlyName, boolean defaultValue) {
++            this.friendlyName = friendlyName;
++            this.defaultValue = defaultValue;
++        }
++
++        public boolean getDefault() {
++            return defaultValue;
++        }
++
++        public String friendlyName() {
++            return friendlyName;
++        }
++
++        public String basicName() {
++            return name().replace("_", "").toLowerCase(Locale.ROOT);
++        }
++    }
++
++}
+diff --git a/src/main/java/org/bukkit/entity/Player.java b/src/main/java/org/bukkit/entity/Player.java
+index 20fa1024f9ad8f478a347be5c554b5e45b398a1c..b6d299b2fa9bb30d0a3b8735417dfa9be897d355 100644
+--- a/src/main/java/org/bukkit/entity/Player.java
++++ b/src/main/java/org/bukkit/entity/Player.java
+@@ -53,6 +53,15 @@ import org.jetbrains.annotations.Nullable;
+  */
+ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginMessageRecipient, net.kyori.adventure.identity.Identified, net.kyori.adventure.bossbar.BossBarViewer, com.destroystokyo.paper.network.NetworkClient { // Paper
+ 
++    // Sakura start
++    /**
++     * Visibility API for FPS settings.
++     *
++     * @return visibility api
++     */
++    me.samsuik.sakura.player.visibility.Visibility getVisibility();
++    // Sakura end
++
+     // Paper start
+     @Override
+     default net.kyori.adventure.identity.@NotNull Identity identity() {

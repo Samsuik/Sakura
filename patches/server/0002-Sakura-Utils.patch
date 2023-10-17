@@ -1,0 +1,167 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Tue, 23 May 2023 23:07:20 +0100
+Subject: [PATCH] Sakura Utils
+
+
+diff --git a/src/main/java/me/samsuik/sakura/utils/collections/OrderedComparatorList.java b/src/main/java/me/samsuik/sakura/utils/collections/OrderedComparatorList.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ff4909a2ba8f451a7c6aa55ee98e33c88dd69e5e
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/utils/collections/OrderedComparatorList.java
+@@ -0,0 +1,51 @@
++package me.samsuik.sakura.utils.collections;
++
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
++
++import java.util.Arrays;
++import java.util.Comparator;
++
++public class OrderedComparatorList<T> extends ObjectArrayList<T> {
++
++    private final Comparator<T> comparator;
++    private boolean binarySearch = true;
++
++    public OrderedComparatorList(int capacity, Comparator<T> comparator) {
++        super(capacity);
++        this.comparator = Comparator.nullsLast(comparator);
++    }
++
++    public OrderedComparatorList(Comparator<T> comparator) {
++        this(DEFAULT_INITIAL_CAPACITY, comparator);
++    }
++
++    private void validateBounds(int index, T t, boolean up) {
++        if (index != 0 && comparator.compare(get(index - 1), t) > 0) {
++            binarySearch = false;
++        } else if (up && index < size() - 1 && comparator.compare(get(index + 1), t) < 0) {
++            binarySearch = false;
++        }
++    }
++
++    @Override
++    public boolean add(T t) {
++        validateBounds(size(), t, false);
++        return super.add(t);
++    }
++
++    @Override
++    public void add(int index, T t) {
++        validateBounds(index, t, true);
++        super.add(index, t);
++    }
++
++    @Override
++    public int indexOf(final Object k) {
++        if (binarySearch) {
++            return Math.max(Arrays.binarySearch(a, (T) k, comparator), -1);
++        } else {
++            return super.indexOf(k);
++        }
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java b/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8f4ac8acd2e0752e7a615d152b8047d790947b9f
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java
+@@ -0,0 +1,29 @@
++package me.samsuik.sakura.utils.collections;
++
++import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
++import it.unimi.dsi.fastutil.objects.ObjectCollection;
++import net.minecraft.server.level.ChunkMap;
++
++public class TrackedEntityChunkMap extends Int2ObjectOpenHashMap<ChunkMap.TrackedEntity> {
++
++    private final ObjectArrayList<ChunkMap.TrackedEntity> entityList = new UnorderedIndexedList<>();
++
++    @Override
++    public ChunkMap.TrackedEntity put(int k, ChunkMap.TrackedEntity trackedEntity) {
++        entityList.add(trackedEntity);
++        return super.put(k, trackedEntity);
++    }
++
++    @Override
++    public ChunkMap.TrackedEntity remove(int k) {
++        entityList.remove(k);
++        return super.remove(k);
++    }
++
++    @Override
++    public ObjectCollection<ChunkMap.TrackedEntity> values() {
++        return entityList;
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/utils/collections/UnorderedIndexedList.java b/src/main/java/me/samsuik/sakura/utils/collections/UnorderedIndexedList.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7bdd93f1078dde97233a9096d0b7738dae061ae4
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/utils/collections/UnorderedIndexedList.java
+@@ -0,0 +1,63 @@
++package me.samsuik.sakura.utils.collections;
++
++import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
++
++public class UnorderedIndexedList<T> extends ObjectArrayList<T> {
++
++    private final Int2IntOpenHashMap elementToIndex = new Int2IntOpenHashMap();
++
++    {
++        elementToIndex.defaultReturnValue(-1);
++    }
++
++    public UnorderedIndexedList(int capacity) {
++        super(capacity);
++    }
++
++    public UnorderedIndexedList() {
++        super();
++    }
++
++    @Override
++    public boolean add(final T t) {
++        elementToIndex.put(t.hashCode(), size());
++        return super.add(t);
++    }
++
++    @Override
++    public T remove(final int index) {
++        final int tail = size() - 1;
++        final T at = a[index];
++
++        if (index != tail) {
++            final T tailObj = a[tail];
++            if (tailObj != null)
++            elementToIndex.put(tailObj.hashCode(), index);
++            a[index] = tailObj;
++        }
++
++        if (at != null)
++        elementToIndex.remove(at.hashCode());
++        a[tail] = null;
++        size--;
++        return at;
++    }
++
++    @Override
++    public void clear() {
++        elementToIndex.clear();
++        super.clear();
++    }
++
++    @Override
++    public int indexOf(final Object k) {
++        return elementToIndex.get(k.hashCode());
++    }
++
++    @Override
++    public void add(final int index, final T t) {
++        throw new UnsupportedOperationException();
++    }
++
++}

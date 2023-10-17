@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 5 Oct 2023 14:34:30 +0100
+Subject: [PATCH] Merge Cannon Entities
+
+
+diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeLevel.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeLevel.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..16e68720eaf2eeedb2ba9bb906c21a16fc818e89
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeLevel.java
+@@ -0,0 +1,65 @@
++package me.samsuik.sakura.entity.merge;
++
++import java.util.Locale;
++
++public enum MergeLevel {
++    /**
++     * Disabled.
++     */
++    NONE(-1),
++    /**
++     * Merge entities with the same OOE, properties and position.
++     * This is safe for all use cases and won't cause breakage.
++     */
++    STRICT(1),
++    /**
++     * Merge entities with the same properties and position.
++     * If the entities are known to have merged in the past
++     * this will be able to merge them together regardless of OOE.
++     */
++    NON_STRICT(2),
++    /**
++     * This will make sure of Non-Strict as a base, once the cannon
++     * has past the "on spawn" merge threshold it will be deemed safe
++     * for on spawn merging. This will merge all entities together on
++     * spawn that have merged together in the past.
++     */
++    SPAWN(3);
++
++    private final int level;
++
++    MergeLevel(int level) {
++        this.level = level;
++    }
++
++    public boolean atLeast(MergeLevel level) {
++        return getLevel() >= level.getLevel();
++    }
++
++    public int getLevel() {
++        return level;
++    }
++
++    public static MergeLevel from(int of) {
++        for (MergeLevel t : values()) {
++            if (t.getLevel() == of) {
++                return t;
++            }
++        }
++
++        return NONE;
++    }
++
++    public static MergeLevel from(String string) {
++        try {
++            return from(Integer.parseInt(string));
++        } catch (NumberFormatException ignored) {}
++
++        try {
++            var name = string.toUpperCase(Locale.ROOT);
++            return valueOf(name);
++        } catch (IllegalArgumentException ignored) {}
++
++        return NONE;
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/entity/merge/Mergeable.java b/src/main/java/me/samsuik/sakura/entity/merge/Mergeable.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c241a3a359cad1d7c2cdb690649e0cacc491508b
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/entity/merge/Mergeable.java
+@@ -0,0 +1,13 @@
++package me.samsuik.sakura.entity.merge;
++
++import org.jetbrains.annotations.NotNull;
++
++public interface Mergeable {
++    @NotNull MergeLevel getMergeLevel();
++
++    void setMergeLevel(@NotNull MergeLevel level);
++
++    int getStacked();
++
++    void setStacked(int stacked);
++}
+diff --git a/src/main/java/org/bukkit/entity/FallingBlock.java b/src/main/java/org/bukkit/entity/FallingBlock.java
+index 95e75f5a4ccdedd3b26f8639f37de9450ed63d6b..be52a64e73e7880c6a28d8a6912923973b7cb13b 100644
+--- a/src/main/java/org/bukkit/entity/FallingBlock.java
++++ b/src/main/java/org/bukkit/entity/FallingBlock.java
+@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
+ /**
+  * Represents a falling block
+  */
+-public interface FallingBlock extends Entity {
++public interface FallingBlock extends Entity, me.samsuik.sakura.entity.merge.Mergeable { // Sakura
+ 
+     /**
+      * Get the Material of the falling block
+diff --git a/src/main/java/org/bukkit/entity/TNTPrimed.java b/src/main/java/org/bukkit/entity/TNTPrimed.java
+index 0813bd913c8fdb2001963ce3e82c07c2af105418..0bc227b6ba953c778ac950ec40f99276c77e880c 100644
+--- a/src/main/java/org/bukkit/entity/TNTPrimed.java
++++ b/src/main/java/org/bukkit/entity/TNTPrimed.java
+@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
+ /**
+  * Represents a Primed TNT.
+  */
+-public interface TNTPrimed extends Explosive {
++public interface TNTPrimed extends Explosive, me.samsuik.sakura.entity.merge.Mergeable { // Sakura
+ 
+     /**
+      * Set the number of ticks until the TNT blows up after being primed.
