@@ -612,14 +612,13 @@ index 4bc68b3145f42f5a432e1e897b3f41606735afd1..dc02ae364afe4b1226d224d54e563cef
          this.isIteratingOverLevels = false; // Paper
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 04afadf047b84492dddd5ecc39e116ca74189545..fdc2a130c22bb63fc2a84b4f1be0889f78fd40d4 100644
+index 04afadf047b84492dddd5ecc39e116ca74189545..a806fd9132628c4f949f64dd80208ab40329ece6 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1935,7 +1935,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
-         if (!explosion.interactsWithBlocks()) {
+@@ -1936,6 +1936,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
              explosion.clearToBlow();
          }
--
+ 
 +        // Sakura start
 +        notifyPlayersOfExplosion(x, y, z, power, explosion);
 +        return explosion;
@@ -629,7 +628,7 @@ index 04afadf047b84492dddd5ecc39e116ca74189545..fdc2a130c22bb63fc2a84b4f1be0889f
          Iterator iterator = this.players.iterator();
  
          while (iterator.hasNext()) {
-@@ -1946,7 +1951,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1946,7 +1952,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              }
          }
  
@@ -659,7 +658,7 @@ index 02ef6ca32f3de52e921fdcf3f0f572ce7afef318..919680a42a8362859cd87fb3d87e8ee8
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 1b335111bd9eb90bbda87225b740768705f26193..545b8dc248d3d57396f548e57898e009876cc150 100644
+index 1b335111bd9eb90bbda87225b740768705f26193..68c8e3d58478f52a05ed71236986103533459604 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -56,12 +56,14 @@ public class Explosion {
@@ -721,15 +720,6 @@ index 1b335111bd9eb90bbda87225b740768705f26193..545b8dc248d3d57396f548e57898e009
                                                           final long key, final boolean calculateResistance) {
          ExplosionBlockCache ret = this.blockCache.get(key);
          if (ret != null) {
-@@ -281,7 +289,7 @@ public class Explosion {
-                     }
-                 }
- 
--                if (!collision.isEmpty() && collision.clipDirect(from, to, currPos)) { // Sakura
-+                if (!collision.isEmpty() && collision.clip(from, to, currPos) != null) { // Sakura
-                     return true;
-                 }
-             }
 @@ -313,7 +321,8 @@ public class Explosion {
          }
      }
