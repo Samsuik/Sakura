@@ -30,32 +30,38 @@ index f78b5fd3c3347d28da58777bff88903d2eb140f6..5999909827ede80c14becb058cde3189
       * Gets the name of this server implementation.
       *
 diff --git a/src/main/java/org/bukkit/command/defaults/VersionCommand.java b/src/main/java/org/bukkit/command/defaults/VersionCommand.java
-index fd5d9881abfd930bb883120f018f76dc78b62b14..0cf55a5a4afc8d2eccd781a613b407c857cfe13d 100644
+index fd5d9881abfd930bb883120f018f76dc78b62b14..5fdafa08fb8932333cacd1a6ddb701e96f89bec2 100644
 --- a/src/main/java/org/bukkit/command/defaults/VersionCommand.java
 +++ b/src/main/java/org/bukkit/command/defaults/VersionCommand.java
-@@ -17,6 +17,15 @@ import java.util.HashSet;
- import java.util.List;
- import java.util.Set;
- import java.util.concurrent.locks.ReentrantLock;
-+
-+import io.papermc.paper.util.JarManifests;
-+import net.kyori.adventure.text.Component;
-+import net.kyori.adventure.text.event.ClickEvent;
+@@ -32,6 +32,11 @@ import net.kyori.adventure.text.event.ClickEvent;
+ import net.kyori.adventure.text.format.TextDecoration;
+ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+ // Paper end - version command 2.0
++// Sakura start
 +import net.kyori.adventure.text.event.HoverEvent;
-+import net.kyori.adventure.text.format.NamedTextColor;
 +import net.kyori.adventure.text.minimessage.MiniMessage;
-+import net.kyori.adventure.text.minimessage.tag.Tag;
-+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
- import org.bukkit.Bukkit;
- import org.bukkit.ChatColor;
- import org.bukkit.command.CommandSender;
-@@ -49,17 +58,29 @@ public class VersionCommand extends BukkitCommand {
-         this.description = "Gets the version of this server including any plugins in use";
-         this.usageMessage = "/version [plugin name]";
-         this.setPermission("bukkit.command.version");
--        this.setAliases(Arrays.asList("ver", "about"));
-+        this.setAliases(Arrays.asList("ver", "about", "sver")); // Sakura
++import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
++// Sakura end
+ 
+ public class VersionCommand extends BukkitCommand {
+     private VersionFetcher versionFetcher; // Paper - version command 2.0
+@@ -43,6 +48,15 @@ public class VersionCommand extends BukkitCommand {
+         return versionFetcher;
      }
+ 
++    // Sakura start
++    private static final String VERSION_MESSAGE = """
++                <dark_purple>.
++                <dark_purple>| <white>This server is running <gradient:red:light_purple>Sakura</gradient>
++                <dark_purple>| <white>Commit<dark_gray>: \\<<commit>> <gray>targeting </gray>(<yellow>MC</yellow>: <gray><version></gray>)
++                <dark_purple>| <white>Github<dark_gray>: \\<<yellow><click:open_url:'https://github.com/Samsuik/Sakura'>link</click></yellow>>
++                <dark_purple>'""";
++    // Sakura end
++
+     public VersionCommand(@NotNull String name) {
+         super(name);
+ 
+@@ -54,12 +68,18 @@ public class VersionCommand extends BukkitCommand {
  
      @Override
      public boolean execute(@NotNull CommandSender sender, @NotNull String currentAlias, @NotNull String[] args) {
@@ -67,16 +73,10 @@ index fd5d9881abfd930bb883120f018f76dc78b62b14..0cf55a5a4afc8d2eccd781a613b407c8
 -            sendVersion(sender);
 -        } else {
 +            // Sakura start
-+            sender.sendMessage(MiniMessage.miniMessage().deserialize("""
-+                <dark_purple>.
-+                | <white>This server is running <phase>Sakura</white>
-+                | <white>Commit<dark_gray>: \\<<commit>> <gray>targeting </gray>(<yellow>MC</yellow>: <gray><version></gray>)</white>
-+                | <white>Github<dark_gray>: \\<<yellow><click:open_url:'https://github.com/Samsuik/Sakura'>link</click></yellow>></white>
-+                '""",
-+                TagResolver.resolver("phase", Tag.preProcessParsed("<gradient:light_purple:red:0.5>")),
-+                TagResolver.resolver("commit", Tag.selfClosingInserting(Component.text("hover", NamedTextColor.YELLOW)
-+                    .hoverEvent(HoverEvent.showText(Component.text(Bukkit.getGitInformation()))))),
-+                TagResolver.resolver("version", Tag.preProcessParsed(Bukkit.getMinecraftVersion()))
++            sender.sendMessage(MiniMessage.miniMessage().deserialize(VERSION_MESSAGE,
++                Placeholder.component("commit", Component.text("hover", NamedTextColor.YELLOW)
++                    .hoverEvent(HoverEvent.showText(Component.text(Bukkit.getGitInformation())))),
++                Placeholder.unparsed("version", Bukkit.getMinecraftVersion())
 +            ));
 +        } else if (testPermission(sender)) {
 +            // Sakura end
