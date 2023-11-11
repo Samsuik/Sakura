@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise Fast Movement
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 31e9e180ecddefc99d0984e793682f40258af3fb..f036b547908e5f8d1a89c32d21a35fcc778198ae 100644
+index 31e9e180ecddefc99d0984e793682f40258af3fb..0129dd8e0cdaf73726abb96bdc8e72db40dbe0a7 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1165,6 +1165,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
@@ -38,8 +38,8 @@ index 31e9e180ecddefc99d0984e793682f40258af3fb..f036b547908e5f8d1a89c32d21a35fcc
 +            double d0 = vec3d1.lengthSqr();
 +
 +            if (d0 > 1.0E-7D) {
-+                // We might be able to get away with the addition of the falling block special case here and the 2.5f limit.
-+                // Falling blocks only use fall distance for damaging entities when they land such as anvils.
++                // NOTE: if there are any blocks in the future that rely on fall distance make sure this is correct.
++                // The only block I am aware of is powdered snow that has a special case for falling blocks.
 +                if (this.fallDistance != 0.0F && d0 >= 1.0D && !isFallingBlock) {
 +                    BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
 +
