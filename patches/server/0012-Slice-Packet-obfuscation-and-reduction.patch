@@ -19,7 +19,7 @@ The current packets modified/obfuscated are the following:
     # with packets instead of every single player within tracking distance
 
 diff --git a/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java b/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java
-index 5dfb35117c285e0b202dc9c088ad5848beb8d054..e24dd4c7108a014533e5731ad2dafc51a55ebf6d 100644
+index a043c382c37058032548a5192e17f5f816abe5a6..8e84afc92bef8192320dfe405609bf06ff0f9e15 100644
 --- a/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java
 +++ b/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java
 @@ -39,6 +39,7 @@ public class SynchedEntityData {
@@ -103,7 +103,7 @@ index 5dfb35117c285e0b202dc9c088ad5848beb8d054..e24dd4c7108a014533e5731ad2dafc51
      @Nullable
      public List<SynchedEntityData.DataValue<?>> getNonDefaultValues() {
          List<SynchedEntityData.DataValue<?>> list = null;
-@@ -336,11 +382,14 @@ public class SynchedEntityData {
+@@ -339,11 +385,14 @@ public class SynchedEntityData {
          T value;
          private final T initialValue;
          private boolean dirty;
@@ -118,7 +118,7 @@ index 5dfb35117c285e0b202dc9c088ad5848beb8d054..e24dd4c7108a014533e5731ad2dafc51
          }
  
          public EntityDataAccessor<T> getAccessor() {
-@@ -367,6 +416,35 @@ public class SynchedEntityData {
+@@ -370,6 +419,35 @@ public class SynchedEntityData {
              return this.initialValue.equals(this.value);
          }
  
@@ -203,10 +203,10 @@ index 83c4639c2bdca4dc4281d9f5eca104af3063bfa5..f7d8aaededd39ce52a9d0105f66fd759
  
          if (this.entity instanceof LivingEntity) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index c35ca0785ecc268fb7e20dee56d42bdadca41ee6..217eba9f4860cf1e67d307ba8cdb99430c7469f8 100644
+index 1297012df74a2c955c4f0c87697f802a70ad16f3..f9df441564c7021677f270b481976ba04357af10 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -3321,7 +3321,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -3333,7 +3333,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
              this.entityData.markDirty(Entity.DATA_AIR_SUPPLY_ID);
              return;
          }
@@ -215,7 +215,7 @@ index c35ca0785ecc268fb7e20dee56d42bdadca41ee6..217eba9f4860cf1e67d307ba8cdb9943
          // CraftBukkit end
      }
  
-@@ -3330,7 +3330,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -3342,7 +3342,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      }
  
      public void setTicksFrozen(int frozenTicks) {
@@ -251,7 +251,7 @@ index 4c328a511ff6c0e6b73ef9701c82373e02c12830..fbeb52a49b791f992af19c7d69ba44b8
  
      public int getFuse() {
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index d58b4c0dbe651b5068212e5f14dce3164ee520f5..c69660c3c49e6d21e8d31dbe16906bd152b61d3f 100644
+index 481c3e321cfc0f20bb1c4c6942b8bdbd23c06339..8858aa55d32bda0d16ad602a5de557791c779208 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
 +++ b/src/main/java/net/minecraft/world/entity/player/Player.java
 @@ -649,7 +649,7 @@ public abstract class Player extends LivingEntity {
@@ -277,15 +277,15 @@ index 5c07da62c82bc70138f6cb5007629d6974be69ac..974563607f6731e5c352fd03663d069e
  
      private int getBubbleTime() {
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 9ac026a464f8b5db5fe7543b71cd5bcaa3f65f70..fab6b511319a9891277fd001cfa06a6c802c45bc 100644
+index 50d2a2b658fd9ddfcc4b25fa2196493d4dbd8664..2a6de1d3475ac557fac0027a9746f7a5c608b5e5 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -2606,7 +2606,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -2596,7 +2596,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
                  this.sendHealthUpdate();
              }
          }
 -        this.getHandle().getEntityData().set(net.minecraft.world.entity.LivingEntity.DATA_HEALTH_ID, (float) this.getScaledHealth());
 +        this.getHandle().getEntityData().set(net.minecraft.world.entity.LivingEntity.DATA_HEALTH_ID, (float) this.getScaledHealth(), isDead() ? 0f : 20f); // Slice
  
-         this.getHandle().maxHealthCache = getMaxHealth();
+         this.getHandle().maxHealthCache = this.getMaxHealth();
      }

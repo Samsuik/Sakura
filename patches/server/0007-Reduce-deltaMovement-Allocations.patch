@@ -5,10 +5,10 @@ Subject: [PATCH] Reduce deltaMovement Allocations
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 0ebeac99c589ca70c26fa7db55f0c8f9a0e5fcd1..514c34e25b6e42fa591ccbcd134149e64235b899 100644
+index 9d0c8b665bea9da560800b5f7ee1299280201022..a52530dbcd8a3e48a26f13fb246e8183ee560b07 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1196,7 +1196,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -1229,7 +1229,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
                  this.tryCheckInsideBlocks();
                  float f = this.getBlockSpeedFactor();
  
@@ -17,7 +17,7 @@ index 0ebeac99c589ca70c26fa7db55f0c8f9a0e5fcd1..514c34e25b6e42fa591ccbcd134149e6
                  // Paper start - remove expensive streams from here
                  boolean noneMatch = true;
                  AABB fireSearchBox = this.getBoundingBox().deflate(1.0E-6D);
-@@ -2016,6 +2016,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -2049,6 +2049,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      public void moveTo(double x, double y, double z, float yaw, float pitch) {
          // Paper - cancel entity velocity if teleported
          if (!preserveMotion) {
@@ -25,7 +25,7 @@ index 0ebeac99c589ca70c26fa7db55f0c8f9a0e5fcd1..514c34e25b6e42fa591ccbcd134149e6
              this.deltaMovement = Vec3.ZERO;
          } else {
              this.preserveMotion = false;
-@@ -3389,29 +3390,33 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -3401,29 +3402,33 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      }
  
      public void onAboveBubbleCol(boolean drag) {
@@ -67,7 +67,7 @@ index 0ebeac99c589ca70c26fa7db55f0c8f9a0e5fcd1..514c34e25b6e42fa591ccbcd134149e6
          this.resetFallDistance();
      }
  
-@@ -4385,16 +4390,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4397,16 +4402,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
                      vec3d = vec3d.normalize();
                  }
  
@@ -90,7 +90,7 @@ index 0ebeac99c589ca70c26fa7db55f0c8f9a0e5fcd1..514c34e25b6e42fa591ccbcd134149e6
              }
  
              this.fluidHeight.put(tag, d1);
-@@ -4465,11 +4473,53 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4477,11 +4485,53 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
          return this.chunkPosition;
      }
  
@@ -144,7 +144,7 @@ index 0ebeac99c589ca70c26fa7db55f0c8f9a0e5fcd1..514c34e25b6e42fa591ccbcd134149e6
          synchronized (this.posLock) { // Paper
          this.deltaMovement = velocity;
          } // Paper
-@@ -4480,7 +4530,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4492,7 +4542,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      }
  
      public void setDeltaMovement(double x, double y, double z) {
@@ -158,7 +158,7 @@ index 0ebeac99c589ca70c26fa7db55f0c8f9a0e5fcd1..514c34e25b6e42fa591ccbcd134149e6
  
      public final int getBlockX() {
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index d5560231aa398d56d1de06b19946bfcfe003df00..240a762b91a3c570583ee65bfe55b9677c4f63be 100644
+index c85d2e98311406ead180ace803aabc17cd05066a..e2f34595a535582d2722f68dc88b777704ef641a 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -145,7 +145,7 @@ public class FallingBlockEntity extends Entity {
