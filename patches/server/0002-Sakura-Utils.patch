@@ -99,10 +99,10 @@ index 0000000000000000000000000000000000000000..00fe34d827c01d8772fa9506de75ced7
 +}
 diff --git a/src/main/java/me/samsuik/sakura/utils/collections/UnorderedIndexedList.java b/src/main/java/me/samsuik/sakura/utils/collections/UnorderedIndexedList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7bdd93f1078dde97233a9096d0b7738dae061ae4
+index 0000000000000000000000000000000000000000..be4f5b4999c85fc6765e37cc9af0a87292327dbf
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/collections/UnorderedIndexedList.java
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,65 @@
 +package me.samsuik.sakura.utils.collections;
 +
 +import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -138,14 +138,14 @@ index 0000000000000000000000000000000000000000..7bdd93f1078dde97233a9096d0b7738d
 +        if (index != tail) {
 +            final T tailObj = a[tail];
 +            if (tailObj != null)
-+            elementToIndex.put(tailObj.hashCode(), index);
++                elementToIndex.put(tailObj.hashCode(), index);
 +            a[index] = tailObj;
 +        }
 +
 +        if (at != null)
-+        elementToIndex.remove(at.hashCode());
++            elementToIndex.remove(at.hashCode());
 +        a[tail] = null;
-+        size--;
++        size = tail;
 +        return at;
 +    }
 +
@@ -157,6 +157,8 @@ index 0000000000000000000000000000000000000000..7bdd93f1078dde97233a9096d0b7738d
 +
 +    @Override
 +    public int indexOf(final Object k) {
++        if (k == null) return -1;
++        // entities uses their id as a hashcode
 +        return elementToIndex.get(k.hashCode());
 +    }
 +
