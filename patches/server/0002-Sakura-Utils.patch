@@ -63,10 +63,10 @@ index 0000000000000000000000000000000000000000..ff4909a2ba8f451a7c6aa55ee98e33c8
 +}
 diff --git a/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java b/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..00fe34d827c01d8772fa9506de75ced7d16e5d48
+index 0000000000000000000000000000000000000000..e31998ac50b8bda8687d07b0022c0e039fa2e774
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,34 @@
 +package me.samsuik.sakura.utils.collections;
 +
 +import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -80,15 +80,19 @@ index 0000000000000000000000000000000000000000..00fe34d827c01d8772fa9506de75ced7
 +
 +    @Override
 +    public ChunkMap.TrackedEntity put(int k, ChunkMap.TrackedEntity trackedEntity) {
++        ChunkMap.TrackedEntity tracked = super.put(k, trackedEntity);
++        // bad plugins may replace entries
++        if (tracked != null)
++            entityList.remove(trackedEntity);
 +        entityList.add(trackedEntity);
-+        return super.put(k, trackedEntity);
++        return tracked;
 +    }
 +
 +    @Override
 +    public ChunkMap.TrackedEntity remove(int k) {
-+        ChunkMap.TrackedEntity v = super.remove(k);
-+        entityList.remove(v);
-+        return v;
++        ChunkMap.TrackedEntity tracked = super.remove(k);
++        entityList.remove(tracked);
++        return tracked;
 +    }
 +
 +    @Override
