@@ -142,7 +142,7 @@ index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfca
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..34514f41cf20284b449e8ed6b5f96c2d07c62053
+index 0000000000000000000000000000000000000000..2749e740d043ecaf8cca78c4527a8aab51548611
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 @@ -0,0 +1,383 @@
@@ -229,7 +229,7 @@ index 0000000000000000000000000000000000000000..34514f41cf20284b449e8ed6b5f96c2d
 +                long key = BlockPos.asLong(blockX, blockY, blockZ);
 +                ExplosionBlockCache center = getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
 +
-+                if (interactsWithBlocks() && isDestructibleBlock(center.blockState) && !isProtectedRegion()) {
++                if (interactsWithBlocks() && isDestructibleBlock(center.blockState) && isRegionUnprotected()) {
 +                    searchForBlocks(blockCache);
 +                }
 +            }
@@ -658,7 +658,7 @@ index 02ef6ca32f3de52e921fdcf3f0f572ce7afef318..919680a42a8362859cd87fb3d87e8ee8
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 1b335111bd9eb90bbda87225b740768705f26193..68c8e3d58478f52a05ed71236986103533459604 100644
+index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce0457ea2abb5 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -56,12 +56,14 @@ public class Explosion {
@@ -791,7 +791,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..68c8e3d58478f52a05ed712369861035
 +        return Math.max(blockRes, fluidRes) <= power;
 +    }
 +
-+    protected boolean isProtectedRegion() {
++    protected boolean isRegionUnprotected() {
 +        // check if there is a plugin cancelling or clearing the block list.
 +        // for our use case on factions and cannon servers this is a relatively
 +        // sane optimisation, this may not be the case for other servers.
@@ -804,7 +804,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..68c8e3d58478f52a05ed712369861035
 +            return !event.isCancelled() && !event.blockList().isEmpty();
 +        }
 +
-+        return false;
++        return true;
 +    }
 +    // Sakura end
  
@@ -824,7 +824,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..68c8e3d58478f52a05ed712369861035
 +        long key = BlockPos.asLong(blockX, blockY, blockZ);
 +        ExplosionBlockCache center = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
 +
-+        if (interactsWithBlocks() && isDestructibleBlock(center.blockState) && !isProtectedRegion()) {
++        if (interactsWithBlocks() && isDestructibleBlock(center.blockState) && isRegionUnprotected()) {
 +            searchForBlocks(blockCache);
 +        }
 +
