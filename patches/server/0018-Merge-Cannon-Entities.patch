@@ -6,10 +6,10 @@ Subject: [PATCH] Merge Cannon Entities
 
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..794547b36f0780b4dd300fc162cd9b7018c38edb
+index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d33681b356aa3
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java
-@@ -0,0 +1,155 @@
+@@ -0,0 +1,138 @@
 +package me.samsuik.sakura.entity.merge;
 +
 +import it.unimi.dsi.fastutil.HashCommon;
@@ -17,6 +17,7 @@ index 0000000000000000000000000000000000000000..794547b36f0780b4dd300fc162cd9b70
 +import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 +import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 +import it.unimi.dsi.fastutil.longs.LongSet;
++import me.samsuik.sakura.utils.objects.Expiry;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.world.entity.Entity;
 +
@@ -146,24 +147,6 @@ index 0000000000000000000000000000000000000000..794547b36f0780b4dd300fc162cd9b70
 +        }
 +    }
 +
-+    private static class Expiry {
-+        private long expireAt;
-+        private final int inc;
-+
-+        Expiry(long tick, int inc) {
-+            expireAt = tick + inc;
-+            this.inc = inc;
-+        }
-+
-+        void refresh(long tick) {
-+            expireAt = tick + inc;
-+        }
-+
-+        boolean isExpired(long tick) {
-+            return tick >= expireAt;
-+        }
-+    }
-+
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
 index d559fb2adbebd47d8be75c9dd3477edfca142790..a520e0dbbe2b5baaeba32020d217b5f08870044b 100644
@@ -206,7 +189,7 @@ index f3da674ae3a38a6c7af488580a685eb4c1523e0c..6beee8db675d737dc492065f0f12b617
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index b1e8cc0da8d6754946ca05745256ea0b144757cb..22c43e5a12c254da2d427af28012adfb39f0ce7f 100644
+index 9118ebf8c0f2fc4cb8fb438426ef49cbdf9acc52..639712fe3e81703791b87622ae598c11b274802f 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -562,6 +562,105 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
@@ -360,7 +343,7 @@ index b1e8cc0da8d6754946ca05745256ea0b144757cb..22c43e5a12c254da2d427af28012adfb
          if (this.removalReason == null) {
              this.removalReason = reason;
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 354e210a52e5ce7b1b8cf75ce132e59c02f664ab..f9d2ec92e46f7f0ca2a6c93b90d9a5afa2047658 100644
+index 24586ae4833b5bf3596b0921273f712c14f1be9c..45e042dc8b875b08f5f09955258913a256371b54 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -132,6 +132,58 @@ public class FallingBlockEntity extends Entity {
