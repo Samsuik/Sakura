@@ -592,19 +592,21 @@ index 0000000000000000000000000000000000000000..37f41089a2fb7ad11ceda07cf5de0fc8
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4e106a2bd35ff0250813b7a6f8224e7968c27722
+index 0000000000000000000000000000000000000000..311da21470ee8943b40da73c997af6625c5aa303
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,93 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.mojang.logging.LogUtils;
 +import io.papermc.paper.configuration.Configuration;
 +import io.papermc.paper.configuration.ConfigurationPart;
 +import io.papermc.paper.configuration.PaperConfigurations;
++import io.papermc.paper.configuration.type.number.IntOr;
 +import me.samsuik.sakura.entity.merge.MergeLevel;
 +import net.minecraft.resources.ResourceLocation;
 +import org.slf4j.Logger;
++import org.spongepowered.configurate.objectmapping.meta.Comment;
 +import org.spongepowered.configurate.objectmapping.meta.Setting;
 +
 +@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic", "RedundantSuppression"})
@@ -656,6 +658,33 @@ index 0000000000000000000000000000000000000000..4e106a2bd35ff0250813b7a6f8224e79
 +            public enum TNTSpread {
 +                ALL, Y, NONE;
 +            }
++        }
++    }
++
++    public Players players;
++    public class Players extends ConfigurationPart {
++        public Knockback knockback = new Knockback();
++        public class Knockback extends ConfigurationPart {
++            public double knockbackVertical = 0.4;
++            public double knockbackVerticalLimit = 0.4;
++            @Comment("In vanilla the vertical limit will only work when the entity is on the ground")
++            public boolean verticalLimitRequireGround = true;
++            public double knockbackHorizontal = 0.4;
++            @Comment("Knockback caused by sweeping edge")
++            public double sweepingEdgeKnockback = 0.4;
++
++            public Sprinting sprinting = new Sprinting();
++            public class Sprinting extends ConfigurationPart {
++                public boolean requireFullAttack = true;
++                public double extraKnockback = 1.0;
++                @Comment("Delay between extra knockback hits in milliseconds")
++                public IntOr.Default knockbackDelay = IntOr.Default.USE_DEFAULT;
++            }
++
++            @Comment("Knockback resistance attribute modifier")
++            public double knockBackResistanceMod = 1.0;
++            @Comment("Received by attacking a shielded enemy")
++            public double shieldHitKnockback = 0.5;
 +        }
 +    }
 +
