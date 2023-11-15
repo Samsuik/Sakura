@@ -203,7 +203,7 @@ index 83c4639c2bdca4dc4281d9f5eca104af3063bfa5..f7d8aaededd39ce52a9d0105f66fd759
  
          if (this.entity instanceof LivingEntity) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 1297012df74a2c955c4f0c87697f802a70ad16f3..f9df441564c7021677f270b481976ba04357af10 100644
+index 1297012df74a2c955c4f0c87697f802a70ad16f3..a6c42038cba6b272a472a2b6c78cf741ff8228fd 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -3333,7 +3333,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
@@ -215,28 +215,19 @@ index 1297012df74a2c955c4f0c87697f802a70ad16f3..f9df441564c7021677f270b481976ba0
          // CraftBukkit end
      }
  
-@@ -3342,7 +3342,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index 354e210a52e5ce7b1b8cf75ce132e59c02f664ab..24586ae4833b5bf3596b0921273f712c14f1be9c 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -110,7 +110,7 @@ public class FallingBlockEntity extends Entity {
      }
  
-     public void setTicksFrozen(int frozenTicks) {
--        this.entityData.set(Entity.DATA_TICKS_FROZEN, frozenTicks);
-+        this.entityData.set(Entity.DATA_TICKS_FROZEN, (frozenTicks / 10) * 10); // Slice
+     public void setStartPos(BlockPos pos) {
+-        this.entityData.set(FallingBlockEntity.DATA_START_POS, pos);
++        this.entityData.set(FallingBlockEntity.DATA_START_POS, pos, BlockPos.ZERO); // Slice
      }
  
-     public float getPercentFrozen() {
-diff --git a/src/main/java/net/minecraft/world/entity/animal/Bee.java b/src/main/java/net/minecraft/world/entity/animal/Bee.java
-index 9a7956befc346e1b58f064213800fd099a052fc6..6a794d672621d31f4fc7b3c44907fe3976420ca1 100644
---- a/src/main/java/net/minecraft/world/entity/animal/Bee.java
-+++ b/src/main/java/net/minecraft/world/entity/animal/Bee.java
-@@ -427,7 +427,7 @@ public class Bee extends Animal implements NeutralMob, FlyingAnimal {
- 
-     @Override
-     public void setRemainingPersistentAngerTime(int angerTime) {
--        this.entityData.set(Bee.DATA_REMAINING_ANGER_TIME, angerTime);
-+        this.entityData.set(Bee.DATA_REMAINING_ANGER_TIME, angerTime, (angerTime / 20) * 20); // Slice
-     }
- 
-     @Nullable
+     public BlockPos getStartPos() {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 index 4c328a511ff6c0e6b73ef9701c82373e02c12830..fbeb52a49b791f992af19c7d69ba44b820541b09 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
@@ -263,29 +254,3 @@ index 481c3e321cfc0f20bb1c4c6942b8bdbd23c06339..8858aa55d32bda0d16ad602a5de55779
      }
  
      public void startAutoSpinAttack(int riptideTicks) {
-diff --git a/src/main/java/net/minecraft/world/entity/vehicle/Boat.java b/src/main/java/net/minecraft/world/entity/vehicle/Boat.java
-index 5c07da62c82bc70138f6cb5007629d6974be69ac..974563607f6731e5c352fd03663d069ea888b7ef 100644
---- a/src/main/java/net/minecraft/world/entity/vehicle/Boat.java
-+++ b/src/main/java/net/minecraft/world/entity/vehicle/Boat.java
-@@ -973,7 +973,7 @@ public class Boat extends Entity implements VariantHolder<Boat.Type> {
-     }
- 
-     private void setBubbleTime(int wobbleTicks) {
--        this.entityData.set(Boat.DATA_ID_BUBBLE_TIME, wobbleTicks);
-+        this.entityData.set(Boat.DATA_ID_BUBBLE_TIME, wobbleTicks, (wobbleTicks / 5) * 5); // Slice
-     }
- 
-     private int getBubbleTime() {
-diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 50d2a2b658fd9ddfcc4b25fa2196493d4dbd8664..2a6de1d3475ac557fac0027a9746f7a5c608b5e5 100644
---- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-+++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -2596,7 +2596,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
-                 this.sendHealthUpdate();
-             }
-         }
--        this.getHandle().getEntityData().set(net.minecraft.world.entity.LivingEntity.DATA_HEALTH_ID, (float) this.getScaledHealth());
-+        this.getHandle().getEntityData().set(net.minecraft.world.entity.LivingEntity.DATA_HEALTH_ID, (float) this.getScaledHealth(), isDead() ? 0f : 20f); // Slice
- 
-         this.getHandle().maxHealthCache = this.getMaxHealth();
-     }
