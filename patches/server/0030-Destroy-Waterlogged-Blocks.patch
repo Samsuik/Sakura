@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 16 Nov 2023 00:59:04 +0000
+Subject: [PATCH] Destroy Waterlogged Blocks
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index b2f42287db6d107c7e8adabd98f007e6b9c7d42b..793b41e52ff024f2bd1085876f275ffb36ec94c1 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -196,6 +196,12 @@ public class Explosion {
+             BlockState blockState = chunk.getBlockStateFinal(x, y, z);
+             FluidState fluidState = blockState.getFluidState();
+ 
++            // Sakura start
++            if (this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks) {
++                fluidState = Blocks.AIR.defaultBlockState().getFluidState();
++            }
++            // Sakura end
++
+             Optional<Float> resistance = !calculateResistance ? Optional.empty() : this.damageCalculator.getBlockExplosionResistance((Explosion)(Object)this, this.level, pos, blockState, fluidState);
+ 
+             // Sakura start - durable materials
