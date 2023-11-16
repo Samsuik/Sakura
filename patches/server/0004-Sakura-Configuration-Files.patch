@@ -597,10 +597,10 @@ index 0000000000000000000000000000000000000000..ebaa184d795dd57e97c4663f731e1284
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..14b9617b7da433283def16bb6f98d2abfe99bf8a
+index 0000000000000000000000000000000000000000..429c5477d10d0d3743fa5cf5e36cb6ce29731dba
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,125 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.mojang.logging.LogUtils;
@@ -614,6 +614,7 @@ index 0000000000000000000000000000000000000000..14b9617b7da433283def16bb6f98d2ab
 +import me.samsuik.sakura.explosion.durable.DurableMaterial;
 +import net.minecraft.Util;
 +import net.minecraft.resources.ResourceLocation;
++import net.minecraft.world.entity.item.FallingBlockEntity;
 +import net.minecraft.world.level.block.Block;
 +import net.minecraft.world.level.block.Blocks;
 +import org.slf4j.Logger;
@@ -654,6 +655,16 @@ index 0000000000000000000000000000000000000000..14b9617b7da433283def16bb6f98d2ab
 +        public class Sand extends ConfigurationPart {
 +            public boolean loadsChunks;
 +            public boolean despawnInsideMovingPistons = true;
++
++            @NestedSetting({"prevent-stacking", "against-border"})
++            public boolean preventAgainstBorder = false;
++            @NestedSetting({"prevent-stacking", "world-height"})
++            public boolean preventAtWorldHeight = false;
++
++            public boolean isFallingBlockInBounds(FallingBlockEntity entity) {
++                return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isCollidingWithBorderEdge(entity.level().getWorldBorder(), entity.getBoundingBox()))
++                    && (!preventAtWorldHeight || entity.blockPosition().getY() < entity.level().getMaxBuildHeight() - 1);
++            }
 +        }
 +
 +        public Explosion explosion = new Explosion();
