@@ -124,26 +124,28 @@ index a8008c7550488be34b51f4280f5569170b1ebd1d..82a68c0039feea8519477d6542a6e339
      public String getDescriptionId() {
          return this.getOrCreateDescriptionId();
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index e5a0ba896ae2c1e21514e1156f9ce0457ea2abb5..b2f42287db6d107c7e8adabd98f007e6b9c7d42b 100644
+index e5a0ba896ae2c1e21514e1156f9ce0457ea2abb5..5de198c444b4d169d2f7c1031933da1ff9e1323e 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -198,6 +198,15 @@ public class Explosion {
+@@ -198,6 +198,17 @@ public class Explosion {
  
              Optional<Float> resistance = !calculateResistance ? Optional.empty() : this.damageCalculator.getBlockExplosionResistance((Explosion)(Object)this, this.level, pos, blockState, fluidState);
  
 +            // Sakura start - durable materials
-+            Block block = blockState.getBlock();
-+            me.samsuik.sakura.explosion.durable.DurableMaterial material = level.sakuraConfig().cannons.explosion.durableMaterials.get(block);
++            if (calculateResistance) {
++                Block block = blockState.getBlock();
++                me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.sakuraConfig().cannons.explosion.durableMaterials.get(block);
 +
-+            if (material != null && material.resistance() >= 0.0f) {
-+                resistance = Optional.of(material.resistance());
++                if (material != null && material.resistance() >= 0.0f) {
++                    resistance = Optional.of(material.resistance());
++                }
 +            }
 +            // Sakura end
 +
              ret = new ExplosionBlockCache(
                      key, pos, blockState, fluidState,
                      (resistance.orElse(ZERO_RESISTANCE).floatValue() + 0.3f) * 0.3f,
-@@ -791,6 +800,14 @@ public class Explosion {
+@@ -791,6 +802,14 @@ public class Explosion {
                  BlockPos blockposition = (BlockPos) objectlistiterator.next();
                  BlockState iblockdata = this.level.getBlockState(blockposition);
                  Block block = iblockdata.getBlock();
@@ -159,15 +161,14 @@ index e5a0ba896ae2c1e21514e1156f9ce0457ea2abb5..b2f42287db6d107c7e8adabd98f007e6
                  if (block instanceof net.minecraft.world.level.block.TntBlock) {
                      Entity sourceEntity = this.source == null ? null : this.source;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index a17ea99a4de4f69ca95a67f9a9b977b49148a261..0c61c0565dac31835be9054a21b1dae6fdf77466 100644
+index a17ea99a4de4f69ca95a67f9a9b977b49148a261..1de55269a2abcdacb4c47afdfba72d6a26c22a01 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -229,7 +229,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -229,6 +229,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      // Sakura end
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura
      public final me.samsuik.sakura.explosion.DensityCache densityCache = new me.samsuik.sakura.explosion.DensityCache();
--
 +    public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager();
+ 
      // Sakura start - limited get entities
      public void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
-         ((ServerLevel)this).getEntityLookup().getLimitedEntities(except, box, into, predicate, limit, search);
