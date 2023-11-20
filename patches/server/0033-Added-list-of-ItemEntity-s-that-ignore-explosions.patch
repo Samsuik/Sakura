@@ -4,25 +4,8 @@ Date: Fri, 17 Nov 2023 20:09:03 +0100
 Subject: [PATCH] Added list of ItemEntity's that ignore explosions
 
 
-diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 50259042ebafe520342bdb1a4b7e6b9138b8acbd..ce082ea8e401ac37c32f6418ecc41a51e235e1aa 100644
---- a/src/main/java/net/minecraft/world/entity/Entity.java
-+++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -4411,6 +4411,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
-         return InteractionResult.PASS;
-     }
- 
-+    // Sakura start - getter to get level in ItemEntity.java
-+    public Level getLevel() {
-+        return this.level();
-+    }
-+    // Sakura end
-+
-     public boolean ignoreExplosion() {
-         return false;
-     }
 diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
-index eb0351aa12eebcefab1d1d14641fc3c60cbbcab8..8de45df6ef105b03dd44df6347076f52ac7fb74d 100644
+index eb0351aa12eebcefab1d1d14641fc3c60cbbcab8..a99947282c6ec30712b244a24970eb6c995357cf 100644
 --- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
 @@ -559,6 +559,17 @@ public class ItemEntity extends Entity implements TraceableEntity {
@@ -32,7 +15,7 @@ index eb0351aa12eebcefab1d1d14641fc3c60cbbcab8..8de45df6ef105b03dd44df6347076f52
 +    // Sakura start
 +    @Override
 +    public boolean ignoreExplosion() {
-+        if(this.getLevel().sakuraConfig().items.explosionProof.explosionResistentItems.contains((this.getItem().getItem()))) {
++        if(this.level().sakuraConfig().items.explosionProof.explosionResistentItems.contains((this.getItem().getItem()))) {
 +            return true;
 +        } else {
 +            return super.ignoreExplosion();
