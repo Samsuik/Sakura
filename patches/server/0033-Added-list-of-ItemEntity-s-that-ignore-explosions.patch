@@ -4,8 +4,39 @@ Date: Fri, 17 Nov 2023 20:09:03 +0100
 Subject: [PATCH] Added list of ItemEntity's that ignore explosions
 
 
+diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+index 9e936a8842b0ad49fcf9a643c175584d3909cf3b..b108d1e253d4d7cff1183f51628df68845a758ed 100644
+--- a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
++++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+@@ -125,18 +125,19 @@ public class WorldConfiguration extends ConfigurationPart {
+             public double shieldHitKnockback = 0.5;
+         }
+     }
+-    public Items items;
+-    public class Items extends ConfigurationPart {
+-        public ExplosionProof explosionProof = new ExplosionProof();
+-        public class ExplosionProof extends ConfigurationPart {
+-            public List<Item> explosionResistentItems = List.of(SPAWNER);
+-        }
+-    }
+ 
+     public Entity entity;
+     public class Entity extends ConfigurationPart {
+         @Comment("Only modify if you know what you're doing")
+         public boolean disableMobAi = false;
++
++        public Items items = new Items();
++        public class Items extends ConfigurationPart {
++            public ExplosionProof explosionProof = new ExplosionProof();
++            public class ExplosionProof extends ConfigurationPart {
++                public List<Item> explosionResistentItems = List.of(SPAWNER);
++            }
++        }
+     }
+ 
+ }
 diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
-index eb0351aa12eebcefab1d1d14641fc3c60cbbcab8..a99947282c6ec30712b244a24970eb6c995357cf 100644
+index eb0351aa12eebcefab1d1d14641fc3c60cbbcab8..76f64c0ebb3f85c94eae7cf1ed86da002e82f7f3 100644
 --- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
 @@ -559,6 +559,17 @@ public class ItemEntity extends Entity implements TraceableEntity {
@@ -15,7 +46,7 @@ index eb0351aa12eebcefab1d1d14641fc3c60cbbcab8..a99947282c6ec30712b244a24970eb6c
 +    // Sakura start
 +    @Override
 +    public boolean ignoreExplosion() {
-+        if(this.level().sakuraConfig().items.explosionProof.explosionResistentItems.contains((this.getItem().getItem()))) {
++        if(this.level().sakuraConfig().entity.items.explosionProof.explosionResistentItems.contains((this.getItem().getItem()))) {
 +            return true;
 +        } else {
 +            return super.ignoreExplosion();
