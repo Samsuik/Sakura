@@ -612,7 +612,7 @@ index a520e0dbbe2b5baaeba32020d217b5f08870044b..805396ad55b551080e5796cbbc493fe1
          this.isIteratingOverLevels = false; // Paper
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 6beee8db675d737dc492065f0f12b617c5426694..b3183257c3642e481f86cc56caa14bfbf5ca6ed8 100644
+index fd25999781d99526b1bc1677aaa3ff742b216ac5..239a8ec823876c2a53b68068340b79959b478148 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1937,6 +1937,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -658,7 +658,7 @@ index 02ef6ca32f3de52e921fdcf3f0f572ce7afef318..919680a42a8362859cd87fb3d87e8ee8
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce0457ea2abb5 100644
+index 1b335111bd9eb90bbda87225b740768705f26193..11ce5591f5f7eb487323e2c828218af2461fca09 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -56,12 +56,14 @@ public class Explosion {
@@ -743,7 +743,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce045
                          ++missedRays;
                      }
                  }
-@@ -361,6 +374,66 @@ public class Explosion {
+@@ -361,12 +374,72 @@ public class Explosion {
          return (float)missedRays / (float)totalRays;
      }
      // Paper end - optimise collisions
@@ -810,7 +810,27 @@ index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce045
  
      private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
          return (ExplosionDamageCalculator) (entity == null ? Explosion.EXPLOSION_DAMAGE_CALCULATOR : new EntityBasedExplosionDamageCalculator(entity));
-@@ -407,7 +480,29 @@ public class Explosion {
+     }
+ 
+-    public static float getSeenPercent(Vec3 source, Entity entity) {
++    protected float getSeenPercent(Vec3 source, Entity entity, me.samsuik.sakura.explosion.DensityCache.Density data) { // Sakura - protected
+         AABB axisalignedbb = entity.getBoundingBox();
+         double d0 = 1.0D / ((axisalignedbb.maxX - axisalignedbb.minX) * 2.0D + 1.0D);
+         double d1 = 1.0D / ((axisalignedbb.maxY - axisalignedbb.minY) * 2.0D + 1.0D);
+@@ -386,7 +459,11 @@ public class Explosion {
+                         double d10 = Mth.lerp(d7, axisalignedbb.minZ, axisalignedbb.maxZ);
+                         Vec3 vec3d1 = new Vec3(d8 + d3, d9, d10 + d4);
+ 
+-                        if (entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
++                        // Sakura start
++                        if (data != null && data.isExpandable() && data.has(vec3d1)) {
++                            i += (int) data.density();
++                        } else if (entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
++                            // Sakura end
+                             ++i;
+                         }
+ 
+@@ -407,7 +484,29 @@ public class Explosion {
              return;
          }
          // CraftBukkit end
@@ -840,7 +860,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce045
          Set<BlockPos> set = Sets.newHashSet();
          boolean flag = true;
  
-@@ -415,14 +510,7 @@ public class Explosion {
+@@ -415,14 +514,7 @@ public class Explosion {
          int j;
  
          // Paper start - optimise explosions
@@ -856,7 +876,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce045
          // use initial cache value that is most likely to be used: the source position
          final ExplosionBlockCache initialCache;
          {
-@@ -521,10 +609,15 @@ public class Explosion {
+@@ -521,10 +613,15 @@ public class Explosion {
          }
  
          this.toBlow.addAll(set);
@@ -874,7 +894,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce045
          int l = Mth.floor(this.y - (double) f2 - 1.0D);
          int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
          int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
-@@ -574,7 +667,7 @@ public class Explosion {
+@@ -574,7 +671,7 @@ public class Explosion {
                                  // Calculate damage separately for each EntityComplexPart
                                  double d7part;
                                  if (list.contains(entityComplexPart) && (d7part = Math.sqrt(entityComplexPart.distanceToSqr(vec3d)) / f2) <= 1.0D) {
@@ -883,7 +903,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce045
                                      entityComplexPart.hurt(this.getDamageSource(), (float) ((int) ((d13part * d13part + d13part) / 2.0D * 7.0D * (double) f2 + 1.0D)));
                                  }
                              }
-@@ -617,9 +710,7 @@ public class Explosion {
+@@ -617,9 +714,7 @@ public class Explosion {
              }
          }
  
@@ -894,7 +914,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce045
  
      }
  
-@@ -683,6 +774,12 @@ public class Explosion {
+@@ -683,6 +778,12 @@ public class Explosion {
                  this.toBlow.add(coords);
              }
  
@@ -907,7 +927,7 @@ index 1b335111bd9eb90bbda87225b740768705f26193..e5a0ba896ae2c1e21514e1156f9ce045
              if (cancelled) {
                  this.wasCanceled = true;
                  return;
-@@ -850,15 +947,22 @@ public class Explosion {
+@@ -850,15 +951,22 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions

@@ -371,10 +371,10 @@ index 0000000000000000000000000000000000000000..911c81920bda503577ed63c9ea4505cc
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5fc23a0b579d7cbe03baf5324bef887ad3dcaa25
+index 0000000000000000000000000000000000000000..41d471089530d12119a93d76ff1a2fb40a06cdb6
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
-@@ -0,0 +1,231 @@
+@@ -0,0 +1,233 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.google.common.collect.Table;
@@ -400,6 +400,7 @@ index 0000000000000000000000000000000000000000..5fc23a0b579d7cbe03baf5324bef887a
 +import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 +import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
 +import me.samsuik.sakura.configuration.mapping.InnerClassFieldDiscoverer;
++import me.samsuik.sakura.configuration.serializer.PhysicsVersionSerializer;
 +import net.minecraft.core.RegistryAccess;
 +import net.minecraft.core.registries.Registries;
 +import net.minecraft.resources.ResourceLocation;
@@ -538,6 +539,7 @@ index 0000000000000000000000000000000000000000..5fc23a0b579d7cbe03baf5324bef887a
 +                    .register(Duration.SERIALIZER)
 +                    .register(DurationOrDisabled.SERIALIZER)
 +                    .register(NbtPathSerializer.SERIALIZER)
++                    .register(new PhysicsVersionSerializer())
 +                    .register(new RegistryValueSerializer<>(new TypeToken<EntityType<?>>() {}, access, Registries.ENTITY_TYPE, true))
 +                    .register(new RegistryValueSerializer<>(Item.class, access, Registries.ITEM, true))
 +                    .register(new RegistryValueSerializer<>(Block.class, access, Registries.BLOCK, true))
@@ -608,10 +610,10 @@ index 0000000000000000000000000000000000000000..5fc23a0b579d7cbe03baf5324bef887a
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4e62a5fbd2e1e674abfe4afb763118b7b0127b67
+index 0000000000000000000000000000000000000000..027ab22474e56477453ef7402e04ec1c9116e379
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
-@@ -0,0 +1,139 @@
+@@ -0,0 +1,142 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.mojang.logging.LogUtils;
@@ -623,6 +625,7 @@ index 0000000000000000000000000000000000000000..4e62a5fbd2e1e674abfe4afb763118b7
 +import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 +import me.samsuik.sakura.entity.merge.MergeLevel;
 +import me.samsuik.sakura.explosion.durable.DurableMaterial;
++import me.samsuik.sakura.physics.PhysicsVersion;
 +import net.minecraft.Util;
 +import net.minecraft.resources.ResourceLocation;
 +import net.minecraft.world.entity.item.FallingBlockEntity;
@@ -699,6 +702,7 @@ index 0000000000000000000000000000000000000000..4e62a5fbd2e1e674abfe4afb763118b7
 +            public TNTSpread tntSpread = TNTSpread.ALL;
 +            public boolean tntFlowsInWater = true;
 +            public boolean fallingBlockParity = false;
++            public PhysicsVersion physicsVersion = PhysicsVersion.LATEST;
 +
 +            public enum TNTSpread {
 +                ALL, Y, NONE;
@@ -743,6 +747,7 @@ index 0000000000000000000000000000000000000000..4e62a5fbd2e1e674abfe4afb763118b7
 +    public class Entity extends ConfigurationPart {
 +        @Comment("Only modify if you know what you're doing")
 +        public boolean disableMobAi = false;
++        public boolean waterSensitivity = true;
 +
 +        public Items items = new Items();
 +        public class Items extends ConfigurationPart {
@@ -811,6 +816,49 @@ index 0000000000000000000000000000000000000000..96080117b5ac9dea6b9eeb7489dc0c87
 +    public static FieldDiscoverer<?> globalConfig() {
 +        return new InnerClassFieldDiscoverer(Collections.emptyMap());
 +    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/serializer/PhysicsVersionSerializer.java b/src/main/java/me/samsuik/sakura/configuration/serializer/PhysicsVersionSerializer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1368db166f5720f52ebab7a180ee7a04b7e761fa
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/serializer/PhysicsVersionSerializer.java
+@@ -0,0 +1,37 @@
++package me.samsuik.sakura.configuration.serializer;
++
++import me.samsuik.sakura.physics.PhysicsVersion;
++import org.spongepowered.configurate.serialize.ScalarSerializer;
++import org.spongepowered.configurate.serialize.SerializationException;
++
++import java.lang.reflect.Type;
++import java.util.Locale;
++import java.util.function.Predicate;
++
++public final class PhysicsVersionSerializer extends ScalarSerializer<PhysicsVersion> {
++
++    public PhysicsVersionSerializer() {
++        super(PhysicsVersion.class);
++    }
++
++    @Override
++    public PhysicsVersion deserialize(Type type, Object obj) throws SerializationException {
++        if (obj instanceof String string) {
++            PhysicsVersion version = PhysicsVersion.of(string);
++
++            if (version == null) {
++                throw new SerializationException("%s (%s) unsupported version".formatted(obj, type));
++            }
++
++            return version;
++        } else {
++            throw new SerializationException("%s (%s) is not a string".formatted(obj, type));
++        }
++    }
++
++    @Override
++    protected Object serialize(PhysicsVersion item, Predicate<Class<?>> typeSupported) {
++        return item.getFriendlyName().toLowerCase(Locale.ROOT);
++    }
++
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
 new file mode 100644

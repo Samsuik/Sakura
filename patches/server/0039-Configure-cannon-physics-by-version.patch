@@ -1,0 +1,1025 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Tue, 21 Nov 2023 17:03:08 +0000
+Subject: [PATCH] Configure cannon physics by version
+
+
+diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
+index ae2eede559bd9fe7e500ce180f2ac102a95d3856..7ced5ae768cbea9ee0a7bab2365fbaef1a37d9bd 100644
+--- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
++++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
+@@ -1495,6 +1495,14 @@ public final class CollisionUtil {
+     public static Vec3 performCollisions(final Vec3 moveVector, AABB axisalignedbb,
+                                          final List<VoxelShape> voxels,
+                                          final List<AABB> aabbs) {
++        // Sakura start
++        return performCollisions(moveVector, axisalignedbb, voxels, aabbs, null);
++    }
++    public static Vec3 performCollisions(final Vec3 moveVector, AABB axisalignedbb,
++                                         final List<VoxelShape> voxels,
++                                         final List<AABB> aabbs,
++                                         final me.samsuik.sakura.physics.PhysicsVersion physics) {
++        // Sakura end
+         if (voxels.isEmpty()) {
+             // fast track only AABBs
+             return performAABBCollisions(moveVector, axisalignedbb, aabbs);
+@@ -1512,7 +1520,10 @@ public final class CollisionUtil {
+             }
+         }
+ 
+-        final boolean xSmaller = Math.abs(x) < Math.abs(z);
++        // Sakura start - physics version api
++        final boolean xSmaller = physics == null || physics.afterOrEqual(1_14_0) ? Math.abs(x) < Math.abs(z)
++            : physics.is(1_7_0) && Math.abs(x) > Math.abs(z);
++        // Sakura end
+ 
+         if (xSmaller && z != 0.0) {
+             z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
+diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
+index 2749e740d043ecaf8cca78c4527a8aab51548611..abcb601f3cfcf6a353d5929c6c4c2f36e89a5106 100644
+--- a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
++++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
+@@ -236,10 +236,17 @@ public class SakuraExplosion extends Explosion {
+             if (distanceFromBottom > 1.0) continue;
+ 
+             double x = entity.getX() - pos.x;
+-            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - pos.y;
++            double y = entity.getEyeY() - pos.y; // Sakura - remove tnt special case
+             double z = entity.getZ() - pos.z;
+             double distance = Math.sqrt(x * x + y * y + z * z);
+ 
++            // Sakura start
++            if (this.physics.before(1_17_0)) {
++                distanceFromBottom  = (float) distanceFromBottom;
++                distance = (float) distance;
++            }
++            // Sakura end
++
+             if (distance == 0.0D) continue;
+ 
+             x /= distance;
+@@ -284,10 +291,17 @@ public class SakuraExplosion extends Explosion {
+ 
+         if (distanceFromBottom <= 1.0) {
+             double x = entity.getX() - pos.x;
+-            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - pos.y;
++            double y = entity.getEyeY() - pos.y; // Sakura - remove tnt special case
+             double z = entity.getZ() - pos.z;
+             double distance = Math.sqrt(x * x + y * y + z * z);
+ 
++            // Sakura start
++            if (this.physics.before(1_17_0)) {
++                distanceFromBottom  = (float) distanceFromBottom;
++                distance = (float) distance;
++            }
++            // Sakura end
++
+             if (distance != 0.0D) {
+                 x /= distance;
+                 y /= distance;
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 50259042ebafe520342bdb1a4b7e6b9138b8acbd..adf8be12b754c3d9b16ef4a7c675dd2c05cc6eae 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -377,7 +377,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     private final double[] pistonDeltas;
+     private long pistonDeltasGameTime;
+     private EntityDimensions dimensions;
+-    private float eyeHeight;
++    protected float eyeHeight; // Sakura - physics version
+     public boolean isInPowderSnow;
+     public boolean wasInPowderSnow;
+     public boolean wasOnFire;
+@@ -662,6 +662,13 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     }
+     // Sakura end
+     public boolean pushedByFluid; // Sakura
++    // Sakura start - physics version
++    protected me.samsuik.sakura.physics.PhysicsVersion physics = me.samsuik.sakura.physics.PhysicsVersion.LATEST;
++
++    public me.samsuik.sakura.physics.PhysicsVersion physics() {
++        return this.physics;
++    }
++    // Sakura end
+ 
+     public boolean isLegacyTrackingEntity = false;
+ 
+@@ -1144,7 +1151,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     }
+ 
+     protected void checkSupportingBlock(boolean onGround, @Nullable Vec3 movement) {
+-        if (onGround) {
++        if (onGround && this.physics.afterOrEqual(1_20_0)) { // Sakura - physics version
+             AABB axisalignedbb = this.getBoundingBox();
+             AABB axisalignedbb1 = new AABB(axisalignedbb.minX, axisalignedbb.minY - 1.0E-6D, axisalignedbb.minZ, axisalignedbb.maxX, axisalignedbb.minY, axisalignedbb.maxZ);
+             Optional<BlockPos> optional = this.level.findSupportingBlock(this, axisalignedbb1);
+@@ -1206,7 +1213,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         if (this.noPhysics) {
+             this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
+         } else {
+-            if (movementType == MoverType.PISTON) {  // Paper
++            if (movementType == MoverType.PISTON && this.physics.afterOrEqual(1_11_0)) { // Sakura  - physics version api  // Paper
+                 movement = this.limitPistonMovement(movement);
+                 if (movement.equals(Vec3.ZERO)) {
+                     return;
+@@ -1224,10 +1231,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+             Vec3 vec3d1 = this.collideScan(movement);
+             double d0 = vec3d1.lengthSqr();
+ 
+-            if (d0 > 1.0E-7D) {
++            if (d0 > 1.0E-7D || this.physics.before(1_14_0)) { // Sakura - physics version api
+                 // NOTE: if there are any blocks in the future that rely on fall distance make sure this is correct.
+                 // The only block I am aware of is powdered snow that has a special case for falling blocks.
+-                if (this.fallDistance != 0.0F && d0 >= 1.0D && !isFallingBlock) {
++                if (this.fallDistance != 0.0F && d0 >= 1.0D && !isFallingBlock && this.physics.afterOrEqual(1_18_2)) { // Sakura - physics version api
+                     BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
+ 
+                     if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
+@@ -1263,6 +1270,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+                 if (this.horizontalCollision) {
+                     Vec3 vec3d2 = this.getDeltaMovement();
+ 
++                    // Sakura start - physics version api
++                    if (flag && flag1 && this.physics.isWithin(1_14_0, 1_18_1)) {
++                        flag = false;
++                    }
++                    // Sakura end
++
+                     this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
+                 }
+ 
+@@ -1303,7 +1316,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+             this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
+         } else {
+             this.wasOnFire = this.isOnFire();
+-            if (movementType == MoverType.PISTON) {
++            if (movementType == MoverType.PISTON && this.physics.afterOrEqual(1_11_0)) { // Sakura  - physics version api
+                 this.activatedTick = Math.max(this.activatedTick, MinecraftServer.currentTick + 20); // Paper
+                 this.activatedImmunityTick = Math.max(this.activatedImmunityTick, MinecraftServer.currentTick + 20);   // Paper
+                 movement = this.limitPistonMovement(movement);
+@@ -1330,8 +1343,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+             Vec3 vec3d1 = this.collide(movement);
+             double d0 = vec3d1.lengthSqr();
+ 
+-            if (d0 > 1.0E-7D) {
+-                if (this.fallDistance != 0.0F && d0 >= 1.0D) {
++            if (d0 > 1.0E-7D || this.physics.before(1_14_0)) { // Sakura - physics version api
++                if (this.fallDistance != 0.0F && d0 >= 1.0D && this.physics.afterOrEqual(1_18_2)) { // Sakura - physics version api
+                     BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
+ 
+                     if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
+@@ -1367,6 +1380,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+                 if (this.horizontalCollision) {
+                     Vec3 vec3d2 = this.getDeltaMovement();
+ 
++                    // Sakura start - physics version api
++                    if (flag && flag1 && this.physics.isWithin(1_14_0, 1_18_1)) {
++                        flag = false;
++                    }
++                    // Sakura end
++
+                     this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
+                 }
+ 
+@@ -1690,7 +1709,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         double y = movement.y;
+         double z = movement.z;
+ 
+-        final boolean xSmaller = Math.abs(x) < Math.abs(z);
++        // Sakura start - physics version api
++        final boolean xSmaller = this.physics == null || this.physics.afterOrEqual(1_14_0) ? Math.abs(x) < Math.abs(z)
++            : this.physics.is(1_7_0) && Math.abs(x) > Math.abs(z);
++        // Sakura end
+ 
+         if (y != 0.0) {
+             y = scanY(currBoundingBox, y, voxelList, bbList);
+@@ -1814,7 +1836,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+             return movement;
+         }
+ 
+-        final Vec3 limitedMoveVector = io.papermc.paper.util.CollisionUtil.performCollisions(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
++        final Vec3 limitedMoveVector = io.papermc.paper.util.CollisionUtil.performCollisions(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB, this.physics); // Sakura - physics version api
+ 
+         if (stepHeight > 0.0
+                 && (onGround || (limitedMoveVector.y != movement.y && movement.y < 0.0))
+@@ -1930,8 +1952,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+ 
+     protected void checkInsideBlocks() {
+         AABB axisalignedbb = this.getBoundingBox();
+-        BlockPos blockposition = BlockPos.containing(axisalignedbb.minX + 1.0E-7D, axisalignedbb.minY + 1.0E-7D, axisalignedbb.minZ + 1.0E-7D);
+-        BlockPos blockposition1 = BlockPos.containing(axisalignedbb.maxX - 1.0E-7D, axisalignedbb.maxY - 1.0E-7D, axisalignedbb.maxZ - 1.0E-7D);
++        // Sakura start - physics version
++        double offset = this.physics.afterOrEqual(1_19_3) ? 1.0E-7D : 0.001D;
++        BlockPos blockposition = BlockPos.containing(axisalignedbb.minX + offset, axisalignedbb.minY + offset, axisalignedbb.minZ + offset);
++        BlockPos blockposition1 = BlockPos.containing(axisalignedbb.maxX - offset, axisalignedbb.maxY - offset, axisalignedbb.maxZ - offset);
++        // Sakura end
+ 
+         if (this.level().hasChunksAt(blockposition, blockposition1)) {
+             BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index bf52aafe542ca735181e461d1f9cbc39b8d88220..5c95760eabf0139cce8e614a429cd6b883ad9560 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -77,6 +77,8 @@ public class FallingBlockEntity extends Entity {
+         this.isFallingBlock = true; // Sakura
+         this.loadChunks = world.sakuraConfig().cannons.sand.loadsChunks; // Sakura - load chunks
+         this.heightParity = world.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura
++        this.physics = world.sakuraConfig().cannons.mechanics.physicsVersion; // Sakura
++        this.eyeHeight = this.physics.isLegacy() ? 0.49f : this.eyeHeight; // Sakura
+     }
+ 
+     public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
+@@ -101,7 +103,11 @@ public class FallingBlockEntity extends Entity {
+         FallingBlockEntity entityfallingblock = new FallingBlockEntity(world, (double) blockposition.getX() + 0.5D, (double) blockposition.getY(), (double) blockposition.getZ() + 0.5D, iblockdata.hasProperty(BlockStateProperties.WATERLOGGED) ? (BlockState) iblockdata.setValue(BlockStateProperties.WATERLOGGED, false) : iblockdata);
+         if (!CraftEventFactory.callEntityChangeBlockEvent(entityfallingblock, blockposition, iblockdata.getFluidState().createLegacyBlock())) return entityfallingblock; // CraftBukkit
+ 
+-        world.setBlock(blockposition, iblockdata.getFluidState().createLegacyBlock(), 3);
++        // Sakura start - physics version api
++        if (entityfallingblock.physics.afterOrEqual(1_18_2)) {
++            world.setBlock(blockposition, iblockdata.getFluidState().createLegacyBlock(), 3);
++        }
++        // Sakura end
+         world.addFreshEntity(entityfallingblock, spawnReason); // CraftBukkit
+         return entityfallingblock;
+     }
+@@ -191,6 +197,36 @@ public class FallingBlockEntity extends Entity {
+         return heightParity ? getY() : super.getEyeY();
+     }
+     // Sakura end
++    // Sakura start - physics version api
++    @Override
++    public double distanceToSqr(Vec3 vector) {
++        if (!this.physics.isLegacy())
++            return super.distanceToSqr(vector);
++        double x = this.getX() - vector.x;
++        double y = this.getEyeY() - vector.y;
++        double z = this.getZ() - vector.z;
++        return x * x + y * y + z * z;
++    }
++
++    private void removeBlockOnFall(Block block) {
++        BlockPos blockposition = this.blockPosition();
++        // Paper start - fix cancelling block falling causing client desync
++        if (!this.level().getBlockState(blockposition).is(block) || !CraftEventFactory.callEntityChangeBlockEvent(this, blockposition, Blocks.AIR.defaultBlockState())) {
++            if (this.level().getBlockState(blockposition).is(block)) { //if listener didn't update the block
++                ((ServerLevel) level()).getChunkSource().blockChanged(blockposition);
++            }
++            this.discard();
++        } else {
++            this.level().removeBlock(blockposition, false);
++        }
++        // Paper end - fix cancelling block falling causing client desync
++    }
++
++    // Why was this special cased for sand in the first place?
++    private static boolean isInAir(BlockState state) {
++        return state.is(Blocks.FIRE) || state.is(Blocks.AIR) || !state.getFluidState().isEmpty() || state.is(Blocks.WATER) || state.is(Blocks.LAVA);
++    }
++    // Sakura end
+ 
+     @Override
+     public void tick() {
+@@ -204,9 +240,16 @@ public class FallingBlockEntity extends Entity {
+         } else {
+             Block block = this.blockState.getBlock();
+ 
++            // Sakura start - physics version api
++            if (this.time == 0 && this.physics.before(1_18_2)) {
++                this.removeBlockOnFall(block);
++            }
++
+             ++this.time;
+             if (!this.isNoGravity()) {
+-                this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
++                double gravity = this.physics.before(1_14_0) ? 0.04F : 0.04D;
++                this.addDeltaMovement(0.0D, -gravity, 0.0D); // Sakura - reduce movement allocations
++                // Sakura end
+             }
+ 
+             this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura
+@@ -227,6 +270,11 @@ public class FallingBlockEntity extends Entity {
+                 return;
+             }
+             // Paper end
++            // Sakura start - physics version api
++            if (this.physics.before(1_12_0)) {
++                this.scaleDeltaMovement(0.98F);
++            }
++            // Sakura end
+             if (!this.level().isClientSide) {
+                 BlockPos blockposition = this.blockPosition();
+                 boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
+@@ -253,7 +301,20 @@ public class FallingBlockEntity extends Entity {
+                 } else {
+                     BlockState iblockdata = this.level().getBlockState(blockposition);
+ 
+-                    this.multiplyDeltaMovement(0.7D, -0.5D, 0.7D); // Sakura - reduce movement allocations
++                    // Sakura start - physics version api
++                    if (!flag1 && this.physics.isWithin(1_9_0, 1_12_0)) {
++                        BlockPos pos = BlockPos.containing(this.getX(), this.getY() - 0.001f, this.getZ());
++                        BlockState state = this.level().getBlockState(pos);
++                        this.onGround = !isInAir(state); // this is how it's implemented between 1.9 and 1.12
++
++                        if (!this.onGround) {
++                            iblockdata = Blocks.MOVING_PISTON.defaultBlockState(); // prevent it turning into a solid
++                        }
++                    }
++
++                    double friction = this.physics.before(1_14_0) ? 0.7F : 0.7D;
++                    this.multiplyDeltaMovement(friction, -0.5D, friction); // Sakura - reduce movement allocations
++                    // Sakura end
+                     if (!iblockdata.is(Blocks.MOVING_PISTON)) {
+                         if (!this.cancelDrop) {
+                             boolean flag2 = iblockdata.canBeReplaced((BlockPlaceContext) (new DirectionalPlaceContext(this.level(), blockposition, Direction.DOWN, ItemStack.EMPTY, Direction.UP)));
+@@ -321,7 +382,12 @@ public class FallingBlockEntity extends Entity {
+                 }
+             }
+ 
+-            this.scaleDeltaMovement(0.98D); // Sakura - reduce movement allocations
++            // Sakura start - physics version api
++            if (physics.afterOrEqual(1_12_0)) {
++                double drag = physics.before(1_14_0) ? 0.98F : 0.98D;
++                this.scaleDeltaMovement(drag); // Sakura - reduce movement allocations
++            }
++            // Sakura end
+         }
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index f25b15949f100b01e44a23832bc900d84f6cf1f1..42cdfb68d63e0144753253d92a56bbf93048de63 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -33,6 +33,8 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         this.blocksBuilding = true;
+         this.isPrimedTNT = true; // Sakura
+         this.loadChunks = world.sakuraConfig().cannons.tnt.loadsChunks; // Sakura - load chunks
++        this.physics = world.sakuraConfig().cannons.mechanics.physicsVersion; // Sakura
++        this.eyeHeight = this.physics.isLegacy() ? 0.49f : this.eyeHeight; // Sakura
+     }
+ 
+     public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
+@@ -52,6 +54,11 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+             case Y -> multiplyDeltaMovement(0, 1, 0);
+         }
+         // Sakura end
++        // Sakura start - physics version api
++        if (this.physics.isLegacy()) {
++            multiplyDeltaMovement(0, 1, 0);
++        }
++        // Sakura end
+     }
+ 
+     @Override
+@@ -137,12 +144,30 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         }
+     }
+     // Sakura end
++    // Sakura start - physics version api
++    @Override
++    public double getEyeY() {
++        return this.physics.isLegacy() ? super.getEyeY() : 0.0;
++    }
++
++    @Override
++    public double distanceToSqr(net.minecraft.world.phys.Vec3 vector) {
++        if (!this.physics.isLegacy())
++            return super.distanceToSqr(vector);
++        double x = this.getX() - vector.x;
++        double y = this.getEyeY() - vector.y;
++        double z = this.getZ() - vector.z;
++        return x * x + y * y + z * z;
++    }
++    // Sakura end
+ 
+     @Override
+     public void tick() {
+         // Sakura - remove max tnt per tick
+         if (!this.isNoGravity()) {
+-            this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
++            // Sakura start - physics version api
++            double gravity = this.physics.before(1_14_0) ? 0.04F : 0.04D;
++            this.addDeltaMovement(0.0D, -gravity, 0.0D); // Sakura - reduce movement allocations
+         }
+ 
+         this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura
+@@ -152,15 +177,18 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+             return;
+         }
+         // Paper end
+-        this.scaleDeltaMovement(0.98D); // Sakura - reduce movement allocations
++        double drag = this.physics.before(1_14_0) ? 0.98F : 0.98D;
++        this.scaleDeltaMovement(drag); // Sakura - reduce movement allocations
+         if (this.onGround()) {
+-            this.multiplyDeltaMovement(0.7D, -0.5D, 0.7D); // Sakura - reduce movement allocations
++            double friction = this.physics.before(1_14_0) ? 0.7F : 0.7D;
++            this.multiplyDeltaMovement(friction, -0.5D, friction); // Sakura - reduce movement allocations
++            // Sakura end - physics version api
+         }
+ 
+         int i = this.getFuse() - 1;
+ 
+         this.setFuse(i);
+-        if (i <= 0) {
++        if ((this.physics.before(1_9_0) ? i < 0 : i <= 0)) { // Sakura - physics version api
+             // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
+             // this.discard();
+             this.respawn(); // Sakura
+@@ -213,7 +241,10 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive)this.getBukkitEntity());
+ 
+         if (!event.isCancelled()) {
+-            this.level().explode(this, this.getX(), this.getY(0.0625D), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.TNT);
++            // Sakura start - physics version api
++            double pos = this.physics.before(1_10_0) ? this.getY() + (double) 0.49f : this.getY(0.0625D);
++            this.level().explode(this, this.getX(), pos, this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.TNT);
++            // Sakura end
+         }
+         // CraftBukkit end
+     }
+@@ -258,7 +289,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+     // Paper start - Optional prevent TNT from moving in water
+     @Override
+     public boolean isPushedByFluid() {
+-        return !level().paperConfig().fixes.preventTntFromMovingInWater && level().sakuraConfig().cannons.mechanics.tntFlowsInWater && super.isPushedByFluid(); // Sakura - convenience
++        return !level().paperConfig().fixes.preventTntFromMovingInWater && !this.physics.isLegacy() && level().sakuraConfig().cannons.mechanics.tntFlowsInWater && super.isPushedByFluid(); // Sakura - physics version // Sakura - convenience
+     }
+     // Paper end
+ }
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 730410c30b975ef0cfebb96d2e131e22b70a1109..e8d5213ec15f069b01c1ec668a6c276d3f697239 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -69,6 +69,7 @@ public class Explosion {
+     private final ObjectArrayList<BlockPos> toBlow;
+     private final Map<Player, Vec3> hitPlayers;
+     public boolean wasCanceled = false; // CraftBukkit - add field
++    protected final me.samsuik.sakura.physics.PhysicsVersion physics; // Sakura - physics version
+ 
+     public Explosion(Level world, @Nullable Entity entity, double x, double y, double z, float power, List<BlockPos> affectedBlocks) {
+         this(world, entity, x, y, z, power, false, Explosion.BlockInteraction.DESTROY_WITH_DECAY, affectedBlocks);
+@@ -97,6 +98,7 @@ public class Explosion {
+         this.blockInteraction = destructionType;
+         this.damageSource = damageSource == null ? world.damageSources().explosion(this) : damageSource;
+         this.damageCalculator = behavior == null ? this.makeDamageCalculator(entity) : behavior;
++        this.physics = entity != null ? entity.physics() : world.sakuraConfig().cannons.mechanics.physicsVersion; // Sakura
+     }
+ 
+     // Paper start - optimise collisions
+@@ -477,9 +479,17 @@ public class Explosion {
+                         Vec3 vec3d1 = new Vec3(d8 + d3, d9, d10 + d4);
+ 
+                         // Sakura start
++                        final net.minecraft.world.phys.HitResult.Type hitResult;
+                         if (data != null && data.isExpandable() && data.has(vec3d1)) {
+-                            i += (int) data.density();
+-                        } else if (entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
++                            hitResult = data.density() == 1.0 ? net.minecraft.world.phys.HitResult.Type.BLOCK : net.minecraft.world.phys.HitResult.Type.MISS;
++                        } else {
++                            if (this.physics.afterOrEqual(1_14_0)) {
++                                hitResult = entity.level().rayTrace(vec3d1, source);
++                            } else {
++                                hitResult = entity.level().clip(new ClipContext(vec3d1, source, this.physics.afterOrEqual(1_16_0) ? ClipContext.Block.COLLIDER : ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, entity)).getType();
++                            }
++                        }
++                        if (hitResult == net.minecraft.world.phys.HitResult.Type.MISS) {
+                             // Sakura end
+                             ++i;
+                         }
+@@ -585,6 +595,10 @@ public class Explosion {
+                             }
+ 
+                             if (cachedBlock.outOfWorld) {
++                                // Sakura start - physics version api
++                                if (this.physics.before(1_17_0))
++                                    continue;
++                                // Sakura end
+                                 break;
+                             }
+ 
+@@ -657,10 +671,17 @@ public class Explosion {
+ 
+                 if (d7 <= 1.0D) {
+                     double d8 = entity.getX() - this.x;
+-                    double d9 = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - this.y;
++                    double d9 = entity.getEyeY() - this.y; // Sakura - remove tnt special case
+                     double d10 = entity.getZ() - this.z;
+                     double d11 = Math.sqrt(d8 * d8 + d9 * d9 + d10 * d10);
+ 
++                    // Sakura start
++                    if (this.physics.before(1_17_0)) {
++                        d7  = (float) d7;
++                        d11 = (float) d11;
++                    }
++                    // Sakura end
++
+                     if (d11 != 0.0D) {
+                         d8 /= d11;
+                         d9 /= d11;
+@@ -985,7 +1006,14 @@ public class Explosion {
+             return data.density();
+         }
+ 
+-        float blockDensity = this.getSeenFraction(vec3d, entity, data, blockCache, blockPos); // Paper - optimise explosions;
++        // Sakura start - physics version api
++        final float blockDensity;
++        if (this.physics.before(1_16_0)) {
++            blockDensity = this.getSeenFraction(vec3d, entity, data, blockCache, blockPos); // Paper - optimise explosions;
++        } else {
++            blockDensity = this.getSeenPercent(vec3d, entity, data);
++        }
++        // Sakura end
+ 
+         if (data == null || !data.isExpandable() && (blockDensity == 0.0f || blockDensity == 1.0f)) {
+             level.densityCache.createCache(key, entity, vec3d, blockDensity);
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 9f103669880e1c40b8e12b65d5ffb30d0ca120fe..f58d7bc5839735c33f0af0fb1fd2d74de078af26 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -264,6 +264,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+         return this.getLimitedEntities(except, box, net.minecraft.world.entity.EntitySelector.NO_SPECTATORS, limit, search);
+     }
+     // Sakura end
++    // Sakura start - physics version
++    public net.minecraft.world.phys.BlockHitResult.Type rayTrace(net.minecraft.world.phys.Vec3 vec3d, net.minecraft.world.phys.Vec3 vec3d1) {
++        // May deviate from vanilla here; I remember noticing a bug and there's no fix commit.
++        int i = Mth.floor(vec3d1.x);
++        int j = Mth.floor(vec3d1.y);
++        int k = Mth.floor(vec3d1.z);
++        int l = Mth.floor(vec3d.x);
++        int i1 = Mth.floor(vec3d.y);
++        int j1 = Mth.floor(vec3d.z);
++        BlockPos.MutableBlockPos blockposition = new BlockPos.MutableBlockPos(l, i1, j1);
++        LevelChunk chunk = this.getChunkIfLoaded(l >> 4, j1 >> 4);
++
++        // probably a bad idea to copy this over so we don't need to do a null check
++        if (chunk == null) {
++            return net.minecraft.world.phys.BlockHitResult.Type.MISS;
++        }
++
++        BlockState iblockdata = chunk.getBlockState(blockposition);
++        net.minecraft.world.phys.shapes.VoxelShape shape = iblockdata.getShape(this, blockposition);
++
++        for (AABB bb : shape.toAabbs()) {
++            if (clip(bb, blockposition, vec3d, vec3d1)) {
++                return net.minecraft.world.phys.BlockHitResult.Type.BLOCK;
++            }
++        }
++
++        int k1 = 200;
++
++        while (k1-- >= 0) {
++            if (l == i && i1 == j && j1 == k) {
++                return net.minecraft.world.phys.BlockHitResult.Type.MISS;
++            }
++
++            boolean flag3 = true;
++            boolean flag4 = true;
++            boolean flag5 = true;
++            double d0 = 999.0D;
++            double d1 = 999.0D;
++            double d2 = 999.0D;
++
++            if (i > l) {
++                d0 = (double) l + 1.0D;
++            } else if (i < l) {
++                d0 = (double) l + 0.0D;
++            } else {
++                flag3 = false;
++            }
++
++            if (j > i1) {
++                d1 = (double) i1 + 1.0D;
++            } else if (j < i1) {
++                d1 = (double) i1 + 0.0D;
++            } else {
++                flag4 = false;
++            }
++
++            if (k > j1) {
++                d2 = (double) j1 + 1.0D;
++            } else if (k < j1) {
++                d2 = (double) j1 + 0.0D;
++            } else {
++                flag5 = false;
++            }
++
++            double d3 = 999.0D;
++            double d4 = 999.0D;
++            double d5 = 999.0D;
++            double d6 = vec3d1.x - vec3d.x;
++            double d7 = vec3d1.y - vec3d.y;
++            double d8 = vec3d1.z - vec3d.z;
++
++            if (flag3) {
++                d3 = (d0 - vec3d.x) / d6;
++            }
++
++            if (flag4) {
++                d4 = (d1 - vec3d.y) / d7;
++            }
++
++            if (flag5) {
++                d5 = (d2 - vec3d.z) / d8;
++            }
++
++            if (d3 == -0.0D) {
++                d3 = -1.0E-4D;
++            }
++
++            if (d4 == -0.0D) {
++                d4 = -1.0E-4D;
++            }
++
++            if (d5 == -0.0D) {
++                d5 = -1.0E-4D;
++            }
++
++            Direction enumdirection;
++
++            if (d3 < d4 && d3 < d5) {
++                enumdirection = i > l ? Direction.WEST : Direction.EAST;
++                vec3d = new net.minecraft.world.phys.Vec3(d0, vec3d.y + d7 * d3, vec3d.z + d8 * d3);
++            } else if (d4 < d5) {
++                enumdirection = j > i1 ? Direction.DOWN : Direction.UP;
++                vec3d = new net.minecraft.world.phys.Vec3(vec3d.x + d6 * d4, d1, vec3d.z + d8 * d4);
++            } else {
++                enumdirection = k > j1 ? Direction.NORTH : Direction.SOUTH;
++                vec3d = new net.minecraft.world.phys.Vec3(vec3d.x + d6 * d5, vec3d.y + d7 * d5, d2);
++            }
++
++            l = Mth.floor(vec3d.x) - (enumdirection == Direction.EAST ? 1 : 0);
++            i1 = Mth.floor(vec3d.y) - (enumdirection == Direction.UP ? 1 : 0);
++            j1 = Mth.floor(vec3d.z) - (enumdirection == Direction.SOUTH ? 1 : 0);
++            blockposition.set(l, i1, j1);
++
++            int chunkX = l >> 4;
++            int chunkZ = j1 >> 4;
++
++            if (chunkX != chunk.locX || chunkZ != chunk.locZ) {
++                chunk = this.getChunkIfLoaded(chunkX, chunkZ);
++            }
++
++            if (chunk == null) {
++                return net.minecraft.world.phys.BlockHitResult.Type.MISS;
++            }
++
++            iblockdata = chunk.getBlockState(blockposition);
++            shape = iblockdata.getShape(this, blockposition);
++
++            for (AABB bb : shape.toAabbs()) {
++                if (clip(bb, blockposition, vec3d, vec3d1)) {
++                    return net.minecraft.world.phys.BlockHitResult.Type.BLOCK;
++                }
++            }
++        }
++
++        return net.minecraft.world.phys.BlockHitResult.Type.MISS;
++    }
++
++    private boolean clip(AABB bb, BlockPos blockposition, net.minecraft.world.phys.Vec3 vec3d, net.minecraft.world.phys.Vec3 vec3d1) {
++        vec3d = vec3d.subtract(blockposition.getX(), blockposition.getY(), blockposition.getZ());
++        vec3d1 = vec3d1.subtract(blockposition.getX(), blockposition.getY(), blockposition.getZ());
++
++        double x = vec3d1.x - vec3d.x;
++        double y = vec3d1.y - vec3d.y;
++        double z = vec3d1.z - vec3d.z;
++
++        double minXd = clip(bb.minX, x, vec3d.x);
++        double minYd = clip(bb.minY, y, vec3d.y);
++        double minZd = clip(bb.minZ, z, vec3d.z);
++        double maxXd = clip(bb.maxX, x, vec3d.x);
++        double maxYd = clip(bb.maxY, y, vec3d.y);
++        double maxZd = clip(bb.maxZ, z, vec3d.z);
++
++        return clipX(vec3d, bb, minXd, y, z) || clipY(vec3d, bb, minYd, x, z) || clipZ(vec3d, bb, minZd, x, y)
++            || clipX(vec3d, bb, maxXd, y, z) || clipY(vec3d, bb, maxYd, x, z) || clipZ(vec3d, bb, maxZd, x, y);
++    }
++
++    private double clip(double bound, double axisD, double axisN) {
++        // This is my friend jerry, he was an epsilon. Unfortunately, once day
++        // he was cast to a float. Now he's spending his retirement here as a double.
++        if (axisD * axisD < 1.0000000116860974E-7D) {
++            return -1.0;
++        }
++
++        return (bound - axisN) / axisD;
++    }
++
++    private boolean clipX(net.minecraft.world.phys.Vec3 vec3d, AABB bb, double n, double y, double z) {
++        if (n < 0.0 || n > 1.0) {
++            return false;
++        }
++
++        y = vec3d.y + y * n;
++        z = vec3d.z + z * n;
++
++        return y >= bb.minY && y <= bb.maxY && z >= bb.minZ && z <= bb.maxZ;
++    }
++
++    private boolean clipY(net.minecraft.world.phys.Vec3 vec3d, AABB bb, double n, double x, double z) {
++        if (n < 0.0 || n > 1.0) {
++            return false;
++        }
++
++        x = vec3d.x + x * n;
++        z = vec3d.z + z * n;
++
++        return x >= bb.minX && x <= bb.maxX && z >= bb.minZ && z <= bb.maxZ;
++    }
++
++    private boolean clipZ(net.minecraft.world.phys.Vec3 vec3d, AABB bb, double n, double x, double y) {
++        if (n < 0.0 || n > 1.0) {
++            return false;
++        }
++
++        x = vec3d.x + x * n;
++        y = vec3d.y + y * n;
++
++        return x >= bb.minX && x <= bb.maxX && y >= bb.minY && y <= bb.maxY;
++    }
++    // Sakura end
+ 
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+diff --git a/src/main/java/net/minecraft/world/level/block/FallingBlock.java b/src/main/java/net/minecraft/world/level/block/FallingBlock.java
+index 631ac128aebcd6388482adb3b1f03673281eaf95..2c9dfbd19a13fbe628ae584bf883ec02e03ca7d5 100644
+--- a/src/main/java/net/minecraft/world/level/block/FallingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/FallingBlock.java
+@@ -31,6 +31,15 @@ public class FallingBlock extends Block implements Fallable {
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+     }
+ 
++    // Sakura start - physics version api
++    @Override
++    public void neighborChanged(BlockState state, Level world, BlockPos pos, Block block, BlockPos fromPos, boolean notify) {
++        if (world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_18_2)) {
++            world.scheduleTick(pos, this, this.getDelayAfterPlace());
++        }
++    }
++    // Sakura end
++
+     @Override
+     public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
+         if (isFree(world.getBlockState(pos.below())) && pos.getY() >= world.getMinBuildHeight()) {
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java b/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java
+index e941a4ce35c1bcc84836d04fb97cb1e7f292ae42..8a04d2b2445b2952ae9063fb4ccbba0ef8c7382d 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java
+@@ -103,6 +103,17 @@ public class MovingPistonBlock extends BaseEntityBlock {
+     @Override
+     public VoxelShape getCollisionShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+         PistonMovingBlockEntity pistonMovingBlockEntity = this.getBlockEntity(world, pos);
++        // Sakura start - physics version api
++        if (pistonMovingBlockEntity != null && world instanceof Level level && level.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++            VoxelShape shape = pistonMovingBlockEntity.getCollisionShapeFromProgress(level, pos);
++
++            if (context.isAbove(shape, pos, false)) {
++                return shape;
++            } else {
++                return pistonMovingBlockEntity.getMovedState().getCollisionShape(world, pos);
++            }
++        }
++        // Sakura end
+         return pistonMovingBlockEntity != null ? pistonMovingBlockEntity.getCollisionShape(world, pos) : Shapes.empty();
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+index cdcf11fb9e4690d74b30fe0ade842d6574464624..56a596738799fca0eb7464062558732498b3b154 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+@@ -157,6 +157,11 @@ public class PistonBaseBlock extends DirectionalBlock {
+             // }
+             // PAIL: checkME - what happened to setTypeAndData?
+             // CraftBukkit end
++            // Sakura start - physics version api
++            if (world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++                world.setBlock(pos, state.setValue(PistonBaseBlock.EXTENDED, false), 18);
++            }
++            // Sakura end
+             world.blockEvent(pos, this, b0, enumdirection.get3DDataValue());
+         }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java
+index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..77b177ee7723afbd289cfc80d6963744242aa9c4 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java
+@@ -132,6 +132,11 @@ public class PistonHeadBlock extends DirectionalBlock {
+     @Override
+     public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
+         BlockState blockState = world.getBlockState(pos.relative(state.getValue(FACING).getOpposite()));
++        // Sakura start - physics version api
++        if (world instanceof Level level && level.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++            return this.isFittingBase(state, blockState);
++        }
++        // Sakura end
+         return this.isFittingBase(state, blockState) || blockState.is(Blocks.MOVING_PISTON) && blockState.getValue(FACING) == state.getValue(FACING);
+     }
+ 
+@@ -139,6 +144,10 @@ public class PistonHeadBlock extends DirectionalBlock {
+     public void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
+         if (state.canSurvive(world, pos)) {
+             world.neighborChanged(pos.relative(state.getValue(FACING).getOpposite()), sourceBlock, sourcePos);
++            // Sakura start - physics version api
++        } else if (world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++            world.setBlock(pos, Blocks.AIR.defaultBlockState(), 19);
++            // Sakura end
+         }
+ 
+     }
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+index a971bb30ef8620f016a5968a9da40187ee31a3ef..aa69c005fb459965366e956eea3283ccd70a1855 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+@@ -159,6 +159,13 @@ public class PistonMovingBlockEntity extends BlockEntity {
+ 
+                     double i = 0.0D;
+ 
++                    // Sakura start - physics version api
++                    if (entity.physics().before(1_11_0)) {
++                        moveEntityByPistonFromDirection(direction, entity, aABB);
++                        return;
++                    }
++                    // Sakura end
++
+                     for(AABB aABB2 : list2) {
+                         AABB aABB3 = PistonMath.getMovementArea(moveByPositionAndProgress(pos, aABB2, blockEntity), direction, d);
+                         AABB aABB4 = entity.getBoundingBox();
+@@ -280,6 +287,137 @@ public class PistonMovingBlockEntity extends BlockEntity {
+         }
+ 
+     }
++    
++    // Sakura start - physics version api
++    @javax.annotation.Nullable
++    private AABB getBoundsFromProgress(Level level, BlockPos pos, BlockState state, float progress, Direction dir, boolean absolute) {
++        if (!state.is(Blocks.MOVING_PISTON) && !state.isAir()) {
++            VoxelShape shape = this.movedState.getCollisionShape(level, pos);
++            // bounds on an empty shape causes an exception
++            if (shape.isEmpty()) return null;
++            if (absolute) shape = shape.move(pos.getX(), pos.getY(), pos.getZ());
++            AABB bounds = shape.bounds();
++
++            double minX = bounds.minX;
++            double minY = bounds.minY;
++            double minZ = bounds.minZ;
++            double maxX = bounds.maxX;
++            double maxY = bounds.maxY;
++            double maxZ = bounds.maxZ;
++
++            if (dir.getStepX() < 0) {
++                minX -= (float) dir.getStepX() * progress;
++            } else {
++                maxX -= (float) dir.getStepX() * progress;
++            }
++
++            if (dir.getStepY() < 0) {
++                minY -= (float) dir.getStepY() * progress;
++            } else {
++                maxY -= (float) dir.getStepY() * progress;
++            }
++
++            if (dir.getStepZ() < 0) {
++                minZ -= (float) dir.getStepZ() * progress;
++            } else {
++                maxZ -= (float) dir.getStepZ() * progress;
++            }
++
++            return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
++        }
++
++        return null;
++    }
++
++    public VoxelShape getCollisionShapeFromProgress(Level level, BlockPos pos) {
++        float progress = this.getProgress(0.0f);
++
++        if (this.extending) {
++            progress = 1.0F - progress;
++        }
++
++        AABB bb = this.getBoundsFromProgress(level, pos, this.movedState, progress, this.direction, false);
++        // will never be null, but ide seems to think so hmm thinkge
++        return bb == null ? Shapes.empty() : Shapes.create(bb);
++    }
++
++    private void moveEntities(Level level, float f1) {
++        float f = this.progress;
++
++        if (this.extending) {
++            f = 1.0F - f;
++        } else {
++            --f;
++        }
++
++        AABB bb = this.getBoundsFromProgress(level, this.worldPosition, this.movedState, f, this.direction, true);
++
++        if (bb == null || bb.getSize() == 0.0) {
++            return;
++        }
++
++        List<Entity> entities = level.getEntities(null, bb);
++
++        if (entities.isEmpty()) {
++            return;
++        }
++
++        for (Entity entity : entities) {
++            if (this.movedState.is(Blocks.SLIME_BLOCK) && this.extending) {
++                Vec3 movement = entity.getDeltaMovement();
++                double x = movement.x;
++                double y = movement.y;
++                double z = movement.z;
++
++                switch (this.direction.getAxis()) {
++                    case X -> x = direction.getStepX();
++                    case Y -> y = direction.getStepY();
++                    case Z -> z = direction.getStepZ();
++                }
++
++                entity.setDeltaMovement(x, y, z);
++            } else {
++                entity.move(MoverType.PISTON, new Vec3(f1 * (float) this.direction.getStepX(), f1 * (float) this.direction.getStepY(), f1 * (float) this.direction.getStepZ()));
++            }
++        }
++    }
++
++    private static void moveEntityByPistonFromDirection(Direction direction, Entity entity, AABB blockBB) {
++        AABB entityBB = entity.getBoundingBox();
++        double movX = 0.0;
++        double movY = 0.0;
++        double movZ = 0.0;
++
++        switch (direction.getAxis()) {
++            case X -> {
++                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++                    movX = blockBB.maxX - entityBB.minX;
++                } else {
++                    movX = entityBB.maxX - blockBB.minX;
++                }
++                movX += 0.01D;
++            }
++            case Y -> {
++                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++                    movY = blockBB.maxY - entityBB.minY;
++                } else {
++                    movY = entityBB.maxY - blockBB.minY;
++                }
++                movY += 0.01D;
++            }
++            case Z -> {
++                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++                    movZ = blockBB.maxZ - entityBB.minZ;
++                } else {
++                    movZ = entityBB.maxZ - blockBB.minZ;
++                }
++                movZ += 0.01D;
++            }
++        }
++
++        entity.move(MoverType.PISTON, new Vec3(movX * direction.getStepX(), movY * direction.getStepY(), movZ * direction.getStepZ()));
++    }
++    // Sakura end
+ 
+     public static void tick(Level world, BlockPos pos, BlockState state, PistonMovingBlockEntity blockEntity) {
+         blockEntity.lastTicked = world.getGameTime();
+@@ -288,6 +426,14 @@ public class PistonMovingBlockEntity extends BlockEntity {
+             if (world.isClientSide && blockEntity.deathTicks < 5) {
+                 ++blockEntity.deathTicks;
+             } else {
++                // Sakura start - physics version api
++                if (world.sakuraConfig().cannons.mechanics.physicsVersion.isWithin(1_9_0, 1_10_0)) {
++                    moveCollidedEntities(world, pos, 1.0f, blockEntity);
++                    moveStuckEntities(world, pos, 1.0f, blockEntity);
++                } else if (world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++                    blockEntity.moveEntities(world, 0.25f);
++                }
++                // Sakura end
+                 world.removeBlockEntity(pos);
+                 blockEntity.setRemoved();
+                 if (world.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
+@@ -308,13 +454,25 @@ public class PistonMovingBlockEntity extends BlockEntity {
+             }
+         } else {
+             float f = blockEntity.progress + 0.5F;
++            // Sakura start - physics version api
++            if (world.sakuraConfig().cannons.mechanics.physicsVersion.afterOrEqual(1_11_0)) {
+             moveCollidedEntities(world, pos, f, blockEntity);
+             moveStuckEntities(world, pos, f, blockEntity);
++            }
++
+             blockEntity.progress = f;
+             if (blockEntity.progress >= 1.0F) {
+                 blockEntity.progress = 1.0F;
+             }
+ 
++            if (world.sakuraConfig().cannons.mechanics.physicsVersion.isWithin(1_9_0, 1_10_0)) {
++                moveCollidedEntities(world, pos, f, blockEntity);
++                moveStuckEntities(world, pos, f, blockEntity);
++            } else if (blockEntity.extending && world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++                blockEntity.moveEntities(world, blockEntity.progress - blockEntity.progressO + 0.0625f);
++            }
++            // Sakura end
++
+         }
+     }
+ 
