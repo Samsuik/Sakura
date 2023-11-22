@@ -26,10 +26,10 @@ index d7d0c49cc5d576c594dee16ddba037cd147e11fa..2ed50a4fc9cddc036adc5b4288bd5d83
      public static void registerCommands(final MinecraftServer server) {
 diff --git a/src/main/java/me/samsuik/sakura/command/subcommands/TPSCommand.java b/src/main/java/me/samsuik/sakura/command/subcommands/TPSCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0b9e254f821145369dc9c382029e8585693fa29c
+index 0000000000000000000000000000000000000000..13ad8f19806413ead42ab4d33265bf79b96b5a49
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/command/subcommands/TPSCommand.java
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,67 @@
 +package me.samsuik.sakura.command.subcommands;
 +
 +import me.samsuik.sakura.command.BaseSubCommand;
@@ -40,6 +40,7 @@ index 0000000000000000000000000000000000000000..0b9e254f821145369dc9c382029e8585
 +import net.kyori.adventure.text.format.TextDecoration;
 +import net.kyori.adventure.text.minimessage.MiniMessage;
 +import net.kyori.adventure.text.minimessage.tag.Tag;
++import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 +import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.util.Mth;
@@ -82,12 +83,9 @@ index 0000000000000000000000000000000000000000..0b9e254f821145369dc9c382029e8585
 +
 +    private Component createInformationComponent(TickTracking tracking) {
 +        return MiniMessage.miniMessage().deserialize("<dark_purple>| <gray>-------------- <dark_gray>( <white>Now</white>: <tps>, <white>Mem</white>: <memory><gray>%</gray> ) </dark_gray>---------------",
-+            TagResolver.resolver("tps", Tag.selfClosingInserting(
-+                Component.text("%.1f".formatted(tracking.averageTps(1)), TPSGraph.colour(tracking.averageTps(1) / 20.0))
-+            )),
-+            TagResolver.resolver("memory", Tag.selfClosingInserting(
-+                Component.text("%.1f".formatted(memoryUsage() * 100), TPSGraph.colour(1.0 - memoryUsage()))
-+            )));
++            Placeholder.component("tps", Component.text("%.1f".formatted(tracking.averageTps(1)), TPSGraph.colour(tracking.averageTps(1) / 20.0))),
++            Placeholder.component("memory", Component.text("%.1f".formatted(memoryUsage() * 100), TPSGraph.colour(1.0 - memoryUsage())))
++        );
 +    }
 +
 +    private double memoryUsage() {
