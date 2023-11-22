@@ -149,19 +149,19 @@ index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d3368
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index d559fb2adbebd47d8be75c9dd3477edfca142790..a520e0dbbe2b5baaeba32020d217b5f08870044b 100644
+index e1da429e78ee7445d2243661efbf08e152c8c732..457ccc9934fc6563a1b260ec9d12f0c875a4bd37 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1579,6 +1579,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-             this.profiler.pop();
+@@ -1580,6 +1580,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
+             worldserver.localConfig().expire(currentTickLong); // Sakura
              worldserver.minimalTNT.clear(); // Sakura - visibility api
 +            worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
          }
          this.isIteratingOverLevels = false; // Paper
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index f3da674ae3a38a6c7af488580a685eb4c1523e0c..6beee8db675d737dc492065f0f12b617c5426694 100644
+index efba8d153b5838ff1dbc68d389b4d1529c951008..fd25999781d99526b1bc1677aaa3ff742b216ac5 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -877,6 +877,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -487,10 +487,10 @@ index fbeb52a49b791f992af19c7d69ba44b820541b09..02ef6ca32f3de52e921fdcf3f0f572ce
                  this.explode();
              }
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 7a21fe6e7109eaa1eca38c7503cc4d331e9c66c5..e84b1167c2606bcc1b5ce1e284a6208e3e0b0860 100644
+index 12c6705d652cf873134aca556e205aa5ec0248fb..c7defb4555edd792c83ec001c8dfbf604376b190 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -227,6 +227,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -234,6 +234,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          return slices.getSectionEntities(chunkY);
      }
      // Sakura end

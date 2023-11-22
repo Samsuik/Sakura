@@ -217,18 +217,18 @@ index 50259042ebafe520342bdb1a4b7e6b9138b8acbd..adf8be12b754c3d9b16ef4a7c675dd2c
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index bf52aafe542ca735181e461d1f9cbc39b8d88220..5c95760eabf0139cce8e614a429cd6b883ad9560 100644
+index bf52aafe542ca735181e461d1f9cbc39b8d88220..add0f223ca64daaf1c117a5d6885b9268f62e08a 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -77,6 +77,8 @@ public class FallingBlockEntity extends Entity {
-         this.isFallingBlock = true; // Sakura
-         this.loadChunks = world.sakuraConfig().cannons.sand.loadsChunks; // Sakura - load chunks
-         this.heightParity = world.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura
-+        this.physics = world.sakuraConfig().cannons.mechanics.physicsVersion; // Sakura
+@@ -89,6 +89,8 @@ public class FallingBlockEntity extends Entity {
+         this.yo = y;
+         this.zo = z;
+         this.setStartPos(this.blockPosition());
++        this.physics = world.localConfig().config(this.blockPosition()).physicsVersion; // Sakura
 +        this.eyeHeight = this.physics.isLegacy() ? 0.49f : this.eyeHeight; // Sakura
      }
  
-     public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
+     public static FallingBlockEntity fall(Level world, BlockPos pos, BlockState state) {
 @@ -101,7 +103,11 @@ public class FallingBlockEntity extends Entity {
          FallingBlockEntity entityfallingblock = new FallingBlockEntity(world, (double) blockposition.getX() + 0.5D, (double) blockposition.getY(), (double) blockposition.getZ() + 0.5D, iblockdata.hasProperty(BlockStateProperties.WATERLOGGED) ? (BlockState) iblockdata.setValue(BlockStateProperties.WATERLOGGED, false) : iblockdata);
          if (!CraftEventFactory.callEntityChangeBlockEvent(entityfallingblock, blockposition, iblockdata.getFluidState().createLegacyBlock())) return entityfallingblock; // CraftBukkit
@@ -346,23 +346,16 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..5c95760eabf0139cce8e614a429cd6b8
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index f25b15949f100b01e44a23832bc900d84f6cf1f1..42cdfb68d63e0144753253d92a56bbf93048de63 100644
+index f25b15949f100b01e44a23832bc900d84f6cf1f1..139df4488e00fc71db6a54c4fabca775034ba8d0 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -33,6 +33,8 @@ public class PrimedTnt extends Entity implements TraceableEntity {
-         this.blocksBuilding = true;
-         this.isPrimedTNT = true; // Sakura
-         this.loadChunks = world.sakuraConfig().cannons.tnt.loadsChunks; // Sakura - load chunks
-+        this.physics = world.sakuraConfig().cannons.mechanics.physicsVersion; // Sakura
-+        this.eyeHeight = this.physics.isLegacy() ? 0.49f : this.eyeHeight; // Sakura
-     }
- 
-     public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
-@@ -52,6 +54,11 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -52,6 +52,13 @@ public class PrimedTnt extends Entity implements TraceableEntity {
              case Y -> multiplyDeltaMovement(0, 1, 0);
          }
          // Sakura end
 +        // Sakura start - physics version api
++        this.physics = world.localConfig().config(this.blockPosition()).physicsVersion;
++        this.eyeHeight = this.physics.isLegacy() ? 0.49f : this.eyeHeight;
 +        if (this.physics.isLegacy()) {
 +            multiplyDeltaMovement(0, 1, 0);
 +        }
@@ -446,7 +439,7 @@ index f25b15949f100b01e44a23832bc900d84f6cf1f1..42cdfb68d63e0144753253d92a56bbf9
      // Paper end
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 730410c30b975ef0cfebb96d2e131e22b70a1109..e8d5213ec15f069b01c1ec668a6c276d3f697239 100644
+index 6f1f5a03441e156b9c2cfa2c25db0aef6a7db66c..b0c90958d747e5b97acd9101764065f19f8ee793 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -69,6 +69,7 @@ public class Explosion {
@@ -461,7 +454,7 @@ index 730410c30b975ef0cfebb96d2e131e22b70a1109..e8d5213ec15f069b01c1ec668a6c276d
          this.blockInteraction = destructionType;
          this.damageSource = damageSource == null ? world.damageSources().explosion(this) : damageSource;
          this.damageCalculator = behavior == null ? this.makeDamageCalculator(entity) : behavior;
-+        this.physics = entity != null ? entity.physics() : world.sakuraConfig().cannons.mechanics.physicsVersion; // Sakura
++        this.physics = entity != null ? entity.physics() : world.localConfig().config(BlockPos.containing(x, y, z)).physicsVersion; // Sakura
      }
  
      // Paper start - optimise collisions
@@ -532,10 +525,10 @@ index 730410c30b975ef0cfebb96d2e131e22b70a1109..e8d5213ec15f069b01c1ec668a6c276d
          if (data == null || !data.isExpandable() && (blockDensity == 0.0f || blockDensity == 1.0f)) {
              level.densityCache.createCache(key, entity, vec3d, blockDensity);
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 9f103669880e1c40b8e12b65d5ffb30d0ca120fe..f58d7bc5839735c33f0af0fb1fd2d74de078af26 100644
+index cac37ebd3a73bf3bd53e8de3be06a2b0232c4134..ebdfe421b8e3ee40350b9b717154b77c3e391a8a 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -264,6 +264,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -271,6 +271,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          return this.getLimitedEntities(except, box, net.minecraft.world.entity.EntitySelector.NO_SPECTATORS, limit, search);
      }
      // Sakura end
@@ -742,7 +735,7 @@ index 9f103669880e1c40b8e12b65d5ffb30d0ca120fe..f58d7bc5839735c33f0af0fb1fd2d74d
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
 diff --git a/src/main/java/net/minecraft/world/level/block/FallingBlock.java b/src/main/java/net/minecraft/world/level/block/FallingBlock.java
-index 631ac128aebcd6388482adb3b1f03673281eaf95..2c9dfbd19a13fbe628ae584bf883ec02e03ca7d5 100644
+index 631ac128aebcd6388482adb3b1f03673281eaf95..b200e0ea698662d2fab45467bd26bd31c91e18d8 100644
 --- a/src/main/java/net/minecraft/world/level/block/FallingBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/FallingBlock.java
 @@ -31,6 +31,15 @@ public class FallingBlock extends Block implements Fallable {
@@ -752,7 +745,7 @@ index 631ac128aebcd6388482adb3b1f03673281eaf95..2c9dfbd19a13fbe628ae584bf883ec02
 +    // Sakura start - physics version api
 +    @Override
 +    public void neighborChanged(BlockState state, Level world, BlockPos pos, Block block, BlockPos fromPos, boolean notify) {
-+        if (world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_18_2)) {
++        if (world.localConfig().config(pos).physicsVersion.before(1_18_2)) {
 +            world.scheduleTick(pos, this, this.getDelayAfterPlace());
 +        }
 +    }
@@ -762,7 +755,7 @@ index 631ac128aebcd6388482adb3b1f03673281eaf95..2c9dfbd19a13fbe628ae584bf883ec02
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
          if (isFree(world.getBlockState(pos.below())) && pos.getY() >= world.getMinBuildHeight()) {
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java b/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java
-index e941a4ce35c1bcc84836d04fb97cb1e7f292ae42..8a04d2b2445b2952ae9063fb4ccbba0ef8c7382d 100644
+index e941a4ce35c1bcc84836d04fb97cb1e7f292ae42..ff53e0e47da66ba99e79d1de0c04437a370577f9 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java
 @@ -103,6 +103,17 @@ public class MovingPistonBlock extends BaseEntityBlock {
@@ -770,7 +763,7 @@ index e941a4ce35c1bcc84836d04fb97cb1e7f292ae42..8a04d2b2445b2952ae9063fb4ccbba0e
      public VoxelShape getCollisionShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
          PistonMovingBlockEntity pistonMovingBlockEntity = this.getBlockEntity(world, pos);
 +        // Sakura start - physics version api
-+        if (pistonMovingBlockEntity != null && world instanceof Level level && level.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++        if (pistonMovingBlockEntity != null && world instanceof Level level && level.localConfig().config(pos).physicsVersion.before(1_9_0)) {
 +            VoxelShape shape = pistonMovingBlockEntity.getCollisionShapeFromProgress(level, pos);
 +
 +            if (context.isAbove(shape, pos, false)) {
@@ -784,7 +777,7 @@ index e941a4ce35c1bcc84836d04fb97cb1e7f292ae42..8a04d2b2445b2952ae9063fb4ccbba0e
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-index cdcf11fb9e4690d74b30fe0ade842d6574464624..56a596738799fca0eb7464062558732498b3b154 100644
+index cdcf11fb9e4690d74b30fe0ade842d6574464624..0ad6230fc291008a8b34da8623b1a266d8c3b42d 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 @@ -157,6 +157,11 @@ public class PistonBaseBlock extends DirectionalBlock {
@@ -792,7 +785,7 @@ index cdcf11fb9e4690d74b30fe0ade842d6574464624..56a596738799fca0eb74640625587324
              // PAIL: checkME - what happened to setTypeAndData?
              // CraftBukkit end
 +            // Sakura start - physics version api
-+            if (world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++            if (world.localConfig().config(pos).physicsVersion.before(1_9_0)) {
 +                world.setBlock(pos, state.setValue(PistonBaseBlock.EXTENDED, false), 18);
 +            }
 +            // Sakura end
@@ -800,7 +793,7 @@ index cdcf11fb9e4690d74b30fe0ade842d6574464624..56a596738799fca0eb74640625587324
          }
  
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java
-index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..77b177ee7723afbd289cfc80d6963744242aa9c4 100644
+index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..df6e859688c5b45a541b11f2046395474c083c1b 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java
 @@ -132,6 +132,11 @@ public class PistonHeadBlock extends DirectionalBlock {
@@ -808,7 +801,7 @@ index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..77b177ee7723afbd289cfc80d6963744
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
          BlockState blockState = world.getBlockState(pos.relative(state.getValue(FACING).getOpposite()));
 +        // Sakura start - physics version api
-+        if (world instanceof Level level && level.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++        if (world instanceof Level level && level.localConfig().config(pos).physicsVersion.before(1_9_0)) {
 +            return this.isFittingBase(state, blockState);
 +        }
 +        // Sakura end
@@ -820,14 +813,14 @@ index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..77b177ee7723afbd289cfc80d6963744
          if (state.canSurvive(world, pos)) {
              world.neighborChanged(pos.relative(state.getValue(FACING).getOpposite()), sourceBlock, sourcePos);
 +            // Sakura start - physics version api
-+        } else if (world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++        } else if (world.localConfig().config(pos).physicsVersion.before(1_9_0)) {
 +            world.setBlock(pos, Blocks.AIR.defaultBlockState(), 19);
 +            // Sakura end
          }
  
      }
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index a971bb30ef8620f016a5968a9da40187ee31a3ef..aa69c005fb459965366e956eea3283ccd70a1855 100644
+index a971bb30ef8620f016a5968a9da40187ee31a3ef..68bac9ea693f4457a8ced072cae85aef076eeb71 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 @@ -159,6 +159,13 @@ public class PistonMovingBlockEntity extends BlockEntity {
@@ -844,7 +837,7 @@ index a971bb30ef8620f016a5968a9da40187ee31a3ef..aa69c005fb459965366e956eea3283cc
                      for(AABB aABB2 : list2) {
                          AABB aABB3 = PistonMath.getMovementArea(moveByPositionAndProgress(pos, aABB2, blockEntity), direction, d);
                          AABB aABB4 = entity.getBoundingBox();
-@@ -280,6 +287,137 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -280,14 +287,154 @@ public class PistonMovingBlockEntity extends BlockEntity {
          }
  
      }
@@ -981,28 +974,30 @@ index a971bb30ef8620f016a5968a9da40187ee31a3ef..aa69c005fb459965366e956eea3283cc
 +    // Sakura end
  
      public static void tick(Level world, BlockPos pos, BlockState state, PistonMovingBlockEntity blockEntity) {
++        me.samsuik.sakura.physics.PhysicsVersion physicsVersion = world.localConfig().config(pos).physicsVersion; // Sakura
          blockEntity.lastTicked = world.getGameTime();
-@@ -288,6 +426,14 @@ public class PistonMovingBlockEntity extends BlockEntity {
+         blockEntity.progressO = blockEntity.progress;
+         if (blockEntity.progressO >= 1.0F) {
              if (world.isClientSide && blockEntity.deathTicks < 5) {
                  ++blockEntity.deathTicks;
              } else {
 +                // Sakura start - physics version api
-+                if (world.sakuraConfig().cannons.mechanics.physicsVersion.isWithin(1_9_0, 1_10_0)) {
++                if (physicsVersion.isWithin(1_9_0, 1_10_0)) {
 +                    moveCollidedEntities(world, pos, 1.0f, blockEntity);
 +                    moveStuckEntities(world, pos, 1.0f, blockEntity);
-+                } else if (world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++                } else if (physicsVersion.before(1_9_0)) {
 +                    blockEntity.moveEntities(world, 0.25f);
 +                }
 +                // Sakura end
                  world.removeBlockEntity(pos);
                  blockEntity.setRemoved();
                  if (world.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-@@ -308,13 +454,25 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -308,13 +455,25 @@ public class PistonMovingBlockEntity extends BlockEntity {
              }
          } else {
              float f = blockEntity.progress + 0.5F;
 +            // Sakura start - physics version api
-+            if (world.sakuraConfig().cannons.mechanics.physicsVersion.afterOrEqual(1_11_0)) {
++            if (physicsVersion.afterOrEqual(1_11_0)) {
              moveCollidedEntities(world, pos, f, blockEntity);
              moveStuckEntities(world, pos, f, blockEntity);
 +            }
@@ -1012,10 +1007,10 @@ index a971bb30ef8620f016a5968a9da40187ee31a3ef..aa69c005fb459965366e956eea3283cc
                  blockEntity.progress = 1.0F;
              }
  
-+            if (world.sakuraConfig().cannons.mechanics.physicsVersion.isWithin(1_9_0, 1_10_0)) {
++            if (physicsVersion.isWithin(1_9_0, 1_10_0)) {
 +                moveCollidedEntities(world, pos, f, blockEntity);
 +                moveStuckEntities(world, pos, f, blockEntity);
-+            } else if (blockEntity.extending && world.sakuraConfig().cannons.mechanics.physicsVersion.before(1_9_0)) {
++            } else if (blockEntity.extending && physicsVersion.before(1_9_0)) {
 +                blockEntity.moveEntities(world, blockEntity.progress - blockEntity.progressO + 0.0625f);
 +            }
 +            // Sakura end

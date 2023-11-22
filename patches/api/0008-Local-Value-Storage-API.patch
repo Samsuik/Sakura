@@ -1,0 +1,180 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Tue, 21 Nov 2023 23:22:35 +0000
+Subject: [PATCH] Local Value Storage API
+
+
+diff --git a/src/main/java/me/samsuik/sakura/local/LocalRegion.java b/src/main/java/me/samsuik/sakura/local/LocalRegion.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..34a0755da6c471a51fb18a5e139af42df1362a93
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/local/LocalRegion.java
+@@ -0,0 +1,36 @@
++package me.samsuik.sakura.local;
++
++import org.bukkit.Location;
++
++public record LocalRegion(int minX, int minZ, int maxX, int maxZ) {
++
++    public static LocalRegion of(Location min, Location max) {
++        return of(min.getBlockX(), min.getBlockZ(), max.getBlockX(), max.getBlockZ());
++    }
++
++    public static LocalRegion of(int minX, int minZ, int maxX, int maxZ) {
++        return new LocalRegion(
++            Math.min(minX, maxX), Math.min(minZ, maxZ),
++            Math.max(minX, maxX), Math.max(minZ, maxZ)
++        );
++    }
++
++    public static LocalRegion at(int x, int z, int radius) {
++        return new LocalRegion(x-radius, z-radius, x+radius, z+radius);
++    }
++
++    public boolean intersects(LocalRegion region) {
++        return (minX < region.minX() && maxX > region.minX() || maxX > region.maxX() && minX < region.maxX())
++            && (minZ < region.minZ() && maxZ > region.minZ() || maxZ > region.maxZ() && minZ < region.maxZ());
++    }
++
++    public boolean contains(LocalRegion region) {
++        return minX < region.minX() && maxX > region.maxX()
++            && maxZ < region.minZ() && maxZ > region.maxZ();
++    }
++
++    public boolean contains(int x, int z) {
++        return minX <= x && maxX >= x && minZ <= z && maxZ >= z;
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/local/LocalValueKey.java b/src/main/java/me/samsuik/sakura/local/LocalValueKey.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4735e5d8dcea4835061b5cada9d601794efdf390
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/local/LocalValueKey.java
+@@ -0,0 +1,38 @@
++package me.samsuik.sakura.local;
++
++import me.samsuik.sakura.physics.PhysicsVersion;
++import org.bukkit.Material;
++import org.bukkit.NamespacedKey;
++
++import java.util.HashMap;
++import java.util.Map;
++import java.util.Objects;
++import java.util.function.Supplier;
++
++public record LocalValueKey<T>(NamespacedKey key, Supplier<T> defaultSupplier) {
++
++    // ...
++    public static final LocalValueKey<PhysicsVersion> PHYSICS_VERSION = new LocalValueKey<>(
++            new NamespacedKey("sakura", "physics-version"), () -> PhysicsVersion.LATEST
++    );
++
++    public static final LocalValueKey<Map<Material, Map.Entry<Integer, Float>>> DURABLE_MATERIALS = new LocalValueKey<>(
++            new NamespacedKey("sakura", "durable-materials"), HashMap::new
++    );
++
++    @Override
++    public boolean equals(Object o) {
++        if (this == o) return true;
++        if (o == null || getClass() != o.getClass()) return false;
++
++        LocalValueKey<?> that = (LocalValueKey<?>) o;
++
++        return Objects.equals(key, that.key);
++    }
++
++    @Override
++    public int hashCode() {
++        return key != null ? key.hashCode() : 0;
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/local/storage/LocalStorageHandler.java b/src/main/java/me/samsuik/sakura/local/storage/LocalStorageHandler.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5c971fb4266f46de258767fccaf7fe55be467886
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/local/storage/LocalStorageHandler.java
+@@ -0,0 +1,24 @@
++package me.samsuik.sakura.local.storage;
++
++import me.samsuik.sakura.local.LocalRegion;
++import org.bukkit.Location;
++
++import java.util.List;
++
++public interface LocalStorageHandler {
++
++    LocalRegion locate(Location location, int searchDistance);
++
++    LocalRegion locate(int x, int z, int searchDistance);
++
++    LocalValueStorage get(LocalRegion region);
++
++    boolean has(LocalRegion region);
++
++    void put(LocalRegion region, LocalValueStorage storage);
++
++    void remove(LocalRegion region);
++
++    List<LocalRegion> regions();
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/local/storage/LocalValueStorage.java b/src/main/java/me/samsuik/sakura/local/storage/LocalValueStorage.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0f7da96d434cd699470e050898712898b54fa356
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/local/storage/LocalValueStorage.java
+@@ -0,0 +1,37 @@
++package me.samsuik.sakura.local.storage;
++
++import me.samsuik.sakura.local.LocalValueKey;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public final class LocalValueStorage {
++
++    private final Map<LocalValueKey<?>, Object> map = new HashMap<>();
++
++    public boolean exists(LocalValueKey<?> key) {
++        return this.map.containsKey(key);
++    }
++
++    public <T> T value(LocalValueKey<T> key) {
++        return (T) this.map.get(key);
++    }
++
++    public <T> T value(LocalValueKey<T> key, boolean def) {
++        T val = (T) this.map.get(key);
++        if (!def || val != null)
++            return val;
++        // update value
++        this.set(key, val = key.defaultSupplier().get());
++        return val;
++    }
++
++    public <T> void set(LocalValueKey<T> key, T insert) {
++        this.map.put(key, insert);
++    }
++
++    public void remove(LocalValueKey<?> key) {
++        this.map.remove(key);
++    }
++
++}
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index 5eb3521f5f91b0684b4beebf4f7ba2c795b41c42..5f0cb37bd3384922c4ae2a238d5549db48f16c16 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -131,6 +131,10 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+         return new Location(this, x, y, z);
+     }
+     // Paper end
++    // Sakura start
++    @NotNull
++    me.samsuik.sakura.local.storage.LocalStorageHandler getStorageHandler();
++    // Sakura end
+ 
+     /**
+      * Gets the highest non-empty (impassable) block at the given coordinates.

@@ -600,11 +600,11 @@ index 0000000000000000000000000000000000000000..e0387f16ff49031fdcbc8990613417da
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index a520e0dbbe2b5baaeba32020d217b5f08870044b..805396ad55b551080e5796cbbc493fe10d2997b6 100644
+index 457ccc9934fc6563a1b260ec9d12f0c875a4bd37..d2b12606c4bd7edec4061f67e79bdedcee147fca 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1580,6 +1580,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-             worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
+@@ -1581,6 +1581,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             worldserver.localConfig().expire(currentTickLong); // Sakura
              worldserver.minimalTNT.clear(); // Sakura - visibility api
              worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
 +            worldserver.densityCache.clear(); // Sakura
@@ -959,10 +959,10 @@ index 1b335111bd9eb90bbda87225b740768705f26193..11ce5591f5f7eb487323e2c828218af2
  
          return blockDensity;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index e84b1167c2606bcc1b5ce1e284a6208e3e0b0860..907babe5d01262d0c2d7d1edb7e4882a5503c5f6 100644
+index c7defb4555edd792c83ec001c8dfbf604376b190..3e1271d07883f05fff21d0ec6088fe42a579a706 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -228,6 +228,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -235,6 +235,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      }
      // Sakura end
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura
@@ -970,7 +970,7 @@ index e84b1167c2606bcc1b5ce1e284a6208e3e0b0860..907babe5d01262d0c2d7d1edb7e4882a
  
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
-@@ -1406,7 +1407,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1413,7 +1414,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          }
  
          Explosion.BlockInteraction explosion_effect1 = explosion_effect;
