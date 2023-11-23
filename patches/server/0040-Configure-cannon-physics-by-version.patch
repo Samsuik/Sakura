@@ -217,7 +217,7 @@ index 50259042ebafe520342bdb1a4b7e6b9138b8acbd..adf8be12b754c3d9b16ef4a7c675dd2c
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index bf52aafe542ca735181e461d1f9cbc39b8d88220..80168d32a95bd960e781751fcf05ff591276e991 100644
+index bf52aafe542ca735181e461d1f9cbc39b8d88220..87ef8f4953c7d9fddfc9ddbdb027e76145b645c8 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -89,6 +89,8 @@ public class FallingBlockEntity extends Entity {
@@ -242,7 +242,7 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..80168d32a95bd960e781751fcf05ff59
          world.addFreshEntity(entityfallingblock, spawnReason); // CraftBukkit
          return entityfallingblock;
      }
-@@ -188,7 +194,37 @@ public class FallingBlockEntity extends Entity {
+@@ -188,7 +194,43 @@ public class FallingBlockEntity extends Entity {
      // Sakura start
      @Override
      public final double getEyeY() {
@@ -259,6 +259,12 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..80168d32a95bd960e781751fcf05ff59
 +        double y = this.getEyeY() - vector.y;
 +        double z = this.getZ() - vector.z;
 +        return x * x + y * y + z * z;
++    }
++
++    private BlockPos patchedBlockPosition() {
++        // mitigate the floating point issue for sand breaking below y-0
++        // 1.0e-12 allows tech that uses indirect collision clipping to still function
++        return BlockPos.containing(this.getX(), this.getY() + 1.0e-12, this.getZ());
 +    }
 +
 +    private void removeBlockOnFall(Block block) {
@@ -281,7 +287,7 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..80168d32a95bd960e781751fcf05ff59
      }
      // Sakura end
  
-@@ -204,9 +240,16 @@ public class FallingBlockEntity extends Entity {
+@@ -204,9 +246,16 @@ public class FallingBlockEntity extends Entity {
          } else {
              Block block = this.blockState.getBlock();
  
@@ -299,7 +305,7 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..80168d32a95bd960e781751fcf05ff59
              }
  
              this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura
-@@ -227,6 +270,11 @@ public class FallingBlockEntity extends Entity {
+@@ -227,8 +276,23 @@ public class FallingBlockEntity extends Entity {
                  return;
              }
              // Paper end
@@ -310,8 +316,20 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..80168d32a95bd960e781751fcf05ff59
 +            // Sakura end
              if (!this.level().isClientSide) {
                  BlockPos blockposition = this.blockPosition();
++
++                // Sakura start
++                // Patching this on modern versions can break some cannons that utilise
++                // the floating point issue. But it makes sense on legacy versions where
++                // that is seemingly not an issue.
++                if (this.physics.before(1_17_0)) {
++                    blockposition = this.patchedBlockPosition();
++                }
++                // Sakura end
++
                  boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
-@@ -253,7 +301,20 @@ public class FallingBlockEntity extends Entity {
+                 boolean flag1 = flag && this.level().getFluidState(blockposition).is(FluidTags.WATER);
+                 double d0 = this.getDeltaMovement().lengthSqr();
+@@ -253,7 +317,20 @@ public class FallingBlockEntity extends Entity {
                  } else {
                      BlockState iblockdata = this.level().getBlockState(blockposition);
  
@@ -333,7 +351,7 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..80168d32a95bd960e781751fcf05ff59
                      if (!iblockdata.is(Blocks.MOVING_PISTON)) {
                          if (!this.cancelDrop) {
                              boolean flag2 = iblockdata.canBeReplaced((BlockPlaceContext) (new DirectionalPlaceContext(this.level(), blockposition, Direction.DOWN, ItemStack.EMPTY, Direction.UP)));
-@@ -321,7 +382,12 @@ public class FallingBlockEntity extends Entity {
+@@ -321,7 +398,12 @@ public class FallingBlockEntity extends Entity {
                  }
              }
  
