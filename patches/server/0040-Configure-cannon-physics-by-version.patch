@@ -217,7 +217,7 @@ index 50259042ebafe520342bdb1a4b7e6b9138b8acbd..adf8be12b754c3d9b16ef4a7c675dd2c
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index bf52aafe542ca735181e461d1f9cbc39b8d88220..add0f223ca64daaf1c117a5d6885b9268f62e08a 100644
+index bf52aafe542ca735181e461d1f9cbc39b8d88220..80168d32a95bd960e781751fcf05ff591276e991 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -89,6 +89,8 @@ public class FallingBlockEntity extends Entity {
@@ -242,10 +242,14 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..add0f223ca64daaf1c117a5d6885b926
          world.addFreshEntity(entityfallingblock, spawnReason); // CraftBukkit
          return entityfallingblock;
      }
-@@ -191,6 +197,36 @@ public class FallingBlockEntity extends Entity {
-         return heightParity ? getY() : super.getEyeY();
-     }
-     // Sakura end
+@@ -188,7 +194,37 @@ public class FallingBlockEntity extends Entity {
+     // Sakura start
+     @Override
+     public final double getEyeY() {
+-        return heightParity ? getY() : super.getEyeY();
++        return heightParity ? this.getY() : super.getEyeY();
++    }
++    // Sakura end
 +    // Sakura start - physics version api
 +    @Override
 +    public double distanceToSqr(Vec3 vector) {
@@ -274,11 +278,9 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..add0f223ca64daaf1c117a5d6885b926
 +    // Why was this special cased for sand in the first place?
 +    private static boolean isInAir(BlockState state) {
 +        return state.is(Blocks.FIRE) || state.is(Blocks.AIR) || !state.getFluidState().isEmpty() || state.is(Blocks.WATER) || state.is(Blocks.LAVA);
-+    }
-+    // Sakura end
+     }
+     // Sakura end
  
-     @Override
-     public void tick() {
 @@ -204,9 +240,16 @@ public class FallingBlockEntity extends Entity {
          } else {
              Block block = this.blockState.getBlock();
@@ -346,7 +348,7 @@ index bf52aafe542ca735181e461d1f9cbc39b8d88220..add0f223ca64daaf1c117a5d6885b926
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index f25b15949f100b01e44a23832bc900d84f6cf1f1..139df4488e00fc71db6a54c4fabca775034ba8d0 100644
+index f25b15949f100b01e44a23832bc900d84f6cf1f1..e58ba1a6f0d17a75fa50dc01ff11cc72872f8714 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -52,6 +52,13 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -370,7 +372,7 @@ index f25b15949f100b01e44a23832bc900d84f6cf1f1..139df4488e00fc71db6a54c4fabca775
 +    // Sakura start - physics version api
 +    @Override
 +    public double getEyeY() {
-+        return this.physics.isLegacy() ? super.getEyeY() : 0.0;
++        return this.physics.isLegacy() ? super.getEyeY() : this.getY();
 +    }
 +
 +    @Override
@@ -413,7 +415,7 @@ index f25b15949f100b01e44a23832bc900d84f6cf1f1..139df4488e00fc71db6a54c4fabca775
  
          this.setFuse(i);
 -        if (i <= 0) {
-+        if ((this.physics.before(1_9_0) ? i < 0 : i <= 0)) { // Sakura - physics version api
++        if (this.physics.before(1_9_0) ? (i < 0) : (i <= 0)) { // Sakura - physics version api
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              // this.discard();
              this.respawn(); // Sakura
@@ -439,7 +441,7 @@ index f25b15949f100b01e44a23832bc900d84f6cf1f1..139df4488e00fc71db6a54c4fabca775
      // Paper end
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 6f1f5a03441e156b9c2cfa2c25db0aef6a7db66c..b0c90958d747e5b97acd9101764065f19f8ee793 100644
+index 3dc6bd54890bc1fa0f2a3e76f9620a2bff3c1aef..22a06d109c647629e9eeb6847cc8dadfd4d72652 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -69,6 +69,7 @@ public class Explosion {
@@ -466,7 +468,7 @@ index 6f1f5a03441e156b9c2cfa2c25db0aef6a7db66c..b0c90958d747e5b97acd9101764065f1
                          if (data != null && data.isExpandable() && data.has(vec3d1)) {
 -                            i += (int) data.density();
 -                        } else if (entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
-+                            hitResult = data.density() == 1.0 ? net.minecraft.world.phys.HitResult.Type.BLOCK : net.minecraft.world.phys.HitResult.Type.MISS;
++                            hitResult = data.density() == 1.0 ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
 +                        } else {
 +                            if (this.physics.afterOrEqual(1_14_0)) {
 +                                hitResult = entity.level().rayTrace(vec3d1, source);
@@ -515,7 +517,7 @@ index 6f1f5a03441e156b9c2cfa2c25db0aef6a7db66c..b0c90958d747e5b97acd9101764065f1
 -        float blockDensity = this.getSeenFraction(vec3d, entity, data, blockCache, blockPos); // Paper - optimise explosions;
 +        // Sakura start - physics version api
 +        final float blockDensity;
-+        if (this.physics.before(1_16_0)) {
++        if (this.physics.afterOrEqual(1_16_0)) {
 +            blockDensity = this.getSeenFraction(vec3d, entity, data, blockCache, blockPos); // Paper - optimise explosions;
 +        } else {
 +            blockDensity = this.getSeenPercent(vec3d, entity, data);
