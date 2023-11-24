@@ -142,10 +142,10 @@ index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfca
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2749e740d043ecaf8cca78c4527a8aab51548611
+index 0000000000000000000000000000000000000000..a605a56ec780f871362fc9abc9bb315572ef254b
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
-@@ -0,0 +1,383 @@
+@@ -0,0 +1,391 @@
 +package me.samsuik.sakura.explosion;
 +
 +import net.minecraft.core.BlockPos;
@@ -198,6 +198,14 @@ index 0000000000000000000000000000000000000000..2749e740d043ecaf8cca78c4527a8aab
 +
 +    @Override
 +    public void explode() {
++        if (this.radius < 0.1F) {
++            for (int i = 1; i < source.getStacked() && !wasCanceled; ++i) {
++                this.finalizeExplosion(false);
++            }
++
++            return;
++        }
++        
 +        PrimedTnt origin = (PrimedTnt) source;
 +        List<Vec3> positions = new ArrayList<>(origin.getStacked());
 +
