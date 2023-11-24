@@ -124,7 +124,7 @@ index a8008c7550488be34b51f4280f5569170b1ebd1d..b10cfec6da6dfab89e585c5d4d39ae04
      public String getDescriptionId() {
          return this.getOrCreateDescriptionId();
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 11ce5591f5f7eb487323e2c828218af2461fca09..184da2f99fdcf0c3750457f38e754918efc6d0bb 100644
+index 11ce5591f5f7eb487323e2c828218af2461fca09..4abd9fe2c810057beb9d9d5c732d295325b011d7 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -198,6 +198,17 @@ public class Explosion {
@@ -145,16 +145,18 @@ index 11ce5591f5f7eb487323e2c828218af2461fca09..184da2f99fdcf0c3750457f38e754918
              ret = new ExplosionBlockCache(
                      key, pos, blockState, fluidState,
                      (resistance.orElse(ZERO_RESISTANCE).floatValue() + 0.3f) * 0.3f,
-@@ -795,6 +806,14 @@ public class Explosion {
+@@ -795,6 +806,16 @@ public class Explosion {
                  BlockPos blockposition = (BlockPos) objectlistiterator.next();
                  BlockState iblockdata = this.level.getBlockState(blockposition);
                  Block block = iblockdata.getBlock();
 +                // Sakura start - durable materials
-+                me.samsuik.sakura.explosion.durable.DurableMaterial material = level.localConfig().config(blockposition).durableMaterials.get(block);
++                if (level.sakuraConfig().cannons.explosion.allowNonTNTBreakingDurableBlocks || source instanceof net.minecraft.world.entity.item.PrimedTnt) {
++                    me.samsuik.sakura.explosion.durable.DurableMaterial material = level.localConfig().config(blockposition).durableMaterials.get(block);
 +
-+                if (material != null && material.durability() >= 0 && !level.durabilityManager.damage(blockposition, material)) {
-+                    objectlistiterator.remove();
-+                    continue;
++                    if (material != null && material.durability() >= 0 && !level.durabilityManager.damage(blockposition, material)) {
++                        objectlistiterator.remove();
++                        continue;
++                    }
 +                }
 +                // Sakura end
                  // CraftBukkit start - TNTPrimeEvent
