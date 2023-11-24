@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise TNT fluid state and pushing
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 02d4d2599340d22d8d501b2466b12f0f3216451b..50259042ebafe520342bdb1a4b7e6b9138b8acbd 100644
+index 9feef1fd078cd0ca59f4cc6a7346d8eaa24a15e1..eab1b1043f27c3f996e820b3b50e2689c84e8822 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -2168,7 +2168,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
@@ -18,7 +18,7 @@ index 02d4d2599340d22d8d501b2466b12f0f3216451b..50259042ebafe520342bdb1a4b7e6b91
  
          if (entity instanceof Boat) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 3818d07261ce4f276968691ad32a22b88ffe6826..923dd09399cd85cdb31e129a03affb9403feb181 100644
+index 3818d07261ce4f276968691ad32a22b88ffe6826..ae42975b45ab8529de1d67eb74e72e9ef09c4008 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -124,6 +124,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -27,14 +27,14 @@ index 3818d07261ce4f276968691ad32a22b88ffe6826..923dd09399cd85cdb31e129a03affb94
      // Sakura end
 +    // Sakura start
 +    protected boolean updateInWaterStateAndDoFluidPushing() {
-+        if (isPushedByFluid()) {
-+            return this.updateInWaterStateAndDoFluidPushing();
++        if (this.isPushedByFluid()) {
++            return super.updateInWaterStateAndDoFluidPushing();
 +        } else {
 +            // super method also handles lava fluid pushing
 +            // we only need to search for water to negate fall distance
 +            this.fluidHeight.clear();
 +            this.updateInWaterStateAndDoWaterCurrentPushing();
-+            return isInWater();
++            return this.isInWater();
 +        }
 +    }
 +    // Sakura end
