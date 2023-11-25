@@ -5,15 +5,15 @@ Subject: [PATCH] Destroy Waterlogged Blocks
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 20d1d4ef3f205b278b1c881035e9dce5b1474bb5..2e787079956c863ffd626acc77323a955e7d9871 100644
+index 4abd9fe2c810057beb9d9d5c732d295325b011d7..45e95e9565b9db018b5d7422189b98517e2daac3 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -196,6 +196,12 @@ public class Explosion {
              BlockState blockState = chunk.getBlockStateFinal(x, y, z);
              FluidState fluidState = blockState.getFluidState();
  
-+            // Sakura start
-+            if (this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks) {
++            // Sakura start - destroy water logged blocks
++            if (calculateResistance && !blockState.isAir() && this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks) {
 +                fluidState = Blocks.AIR.defaultBlockState().getFluidState();
 +            }
 +            // Sakura end
