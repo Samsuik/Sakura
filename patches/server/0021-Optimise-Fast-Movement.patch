@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise Fast Movement
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 639712fe3e81703791b87622ae598c11b274802f..97b11192592f67c976dc5567cfeaad55e7780c18 100644
+index 9564477334755756b49fc7bf9f7344912758d47e..ffa4bb17c002a953df4142e353ba9a05b362e3e6 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1198,6 +1198,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -1210,6 +1210,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      }
      // Paper end - detailed watchdog information
  
@@ -104,7 +104,7 @@ index 639712fe3e81703791b87622ae598c11b274802f..97b11192592f67c976dc5567cfeaad55
      public void move(MoverType movementType, Vec3 movement) {
          // Paper start - detailed watchdog information
          io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
-@@ -1575,6 +1664,99 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -1587,6 +1676,99 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
          return offsetFactor;
      }
  
@@ -170,7 +170,7 @@ index 639712fe3e81703791b87622ae598c11b274802f..97b11192592f67c976dc5567cfeaad55
 +        // Copied from the collide method below
 +        io.papermc.paper.util.CollisionUtil.getCollisions(
 +            level, this, collisionBox, voxelList, bbList,
-+            (loadChunks ? io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_LOAD_CHUNKS | io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_ADD_TICKET : 0), // Sakura
++            this.getCollisionFlags(), // Sakura
 +            null, null
 +        );
 +

@@ -50,32 +50,44 @@ index 658e63ebde81dc14c8ab5850fb246dc0aab25dea..f1ff1a67fee37ee7b241ceaa164fa4ee
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a52530dbcd8a3e48a26f13fb246e8183ee560b07..1297012df74a2c955c4f0c87697f802a70ad16f3 100644
+index a52530dbcd8a3e48a26f13fb246e8183ee560b07..f74e590a2f492fd54d3e718bed8b0b0cf5f12cea 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -398,6 +398,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
-     public org.bukkit.projectiles.ProjectileSource projectileSource; // For projectiles only
-     public boolean lastDamageCancelled; // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Keep track if the event was canceled
-     public boolean persistentInvisibility = false;
-+    public boolean loadChunks = false; // Sakura - load chunks
-     public BlockPos lastLavaContact;
-     // Spigot start
-     public final org.spigotmc.ActivationRange.ActivationType activationType = org.spigotmc.ActivationRange.initializeEntityActivationType(this);
-@@ -1490,7 +1491,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -533,6 +533,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     // Paper end - make end portalling safe
+     public boolean isPrimedTNT; // Sakura
+     public boolean isFallingBlock; // Sakura
++    // Sakura start
++    protected boolean loadChunks = false;
++
++    private int getCollisionFlags() {
++        int flags = 0;
++        
++        if (this.loadChunks) {
++            flags |= io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_LOAD_CHUNKS | io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_ADD_TICKET;
++        }
++
++        return flags;
++    }
++    // Sakura end
+ 
+     public boolean isLegacyTrackingEntity = false;
+ 
+@@ -1490,7 +1503,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
  
          io.papermc.paper.util.CollisionUtil.getCollisions(
                  world, this, collisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
 -                (0),
-+                (loadChunks ? io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_LOAD_CHUNKS | io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_ADD_TICKET : 0), // Sakura
++                this.getCollisionFlags(), // Sakura
                  null, null
          );
  
-@@ -4812,7 +4813,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4812,7 +4825,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
  
      @Override
      public boolean isAlwaysTicking() {
 -        return false;
-+        return loadChunks; // Sakura - always tick in chunks
++        return this.loadChunks; // Sakura - always tick in chunks
      }
  
      public boolean mayInteract(Level world, BlockPos pos) {
