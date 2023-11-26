@@ -1,0 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sun, 26 Nov 2023 17:41:00 +0000
+Subject: [PATCH] Disable bubble columns affecting cannon entities
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/BubbleColumnBlock.java b/src/main/java/net/minecraft/world/level/block/BubbleColumnBlock.java
+index ed36a378b79f62c3dce3da637a337595415f14ac..16f99b775957101883d91de82700d712f4eaacb9 100644
+--- a/src/main/java/net/minecraft/world/level/block/BubbleColumnBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BubbleColumnBlock.java
+@@ -41,6 +41,7 @@ public class BubbleColumnBlock extends Block implements BucketPickup {
+     @Override
+     public void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+         if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper
++        if (!world.sakuraConfig().cannons.tntAndSandAffectedByBubbleColumns && entity.isPrimedTNT | entity.isFallingBlock) return; // Sakura
+         BlockState blockState = world.getBlockState(pos.above());
+         if (blockState.isAir()) {
+             entity.onAboveBubbleCol(state.getValue(DRAG_DOWN));
