@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Wed, 29 Nov 2023 22:32:44 +0000
+Subject: [PATCH] Add redstone implementation API
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
+index 7eb617150d278f5b40f097cd402d55fd781e0616..73199366579f8816165b57b1ce7bdc95935b8066 100644
+--- a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
+@@ -262,7 +262,7 @@ public class RedStoneWireBlock extends Block {
+      * Note: Added 'source' argument so as to help determine direction of information flow
+      */
+     private void updateSurroundingRedstone(Level worldIn, BlockPos pos, BlockState state, BlockPos source) {
+-        if (worldIn.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.EIGENCRAFT) {
++        if (worldIn.localConfig().config(pos).redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.EIGENCRAFT) { // Sakura
+             turbo.updateSurroundingRedstone(worldIn, pos, state, source);
+             return;
+         }
+@@ -286,7 +286,7 @@ public class RedStoneWireBlock extends Block {
+         int k = worldIn.getBestNeighborSignal(pos1);
+         this.shouldSignal = true;
+ 
+-        if (worldIn.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.VANILLA) {
++        if (worldIn.localConfig().config(pos1).redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.VANILLA) { // Sakura
+             // This code is totally redundant to if statements just below the loop.
+             if (k > 0 && k > j - 1) {
+                 j = k;
+@@ -300,7 +300,7 @@ public class RedStoneWireBlock extends Block {
+         // redstone wire will be set to 'k'.  If 'k' is already 15, then nothing inside the
+         // following loop can affect the power level of the wire.  Therefore, the loop is
+         // skipped if k is already 15.
+-        if (worldIn.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.VANILLA || k < 15) {
++        if (worldIn.localConfig().config(pos1).redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.VANILLA || k < 15) { // Sakura
+             for (Direction enumfacing : Direction.Plane.HORIZONTAL) {
+                 BlockPos blockpos = pos1.relative(enumfacing);
+                 boolean flag = blockpos.getX() != pos2.getX() || blockpos.getZ() != pos2.getZ();
+@@ -319,7 +319,7 @@ public class RedStoneWireBlock extends Block {
+             }
+         }
+ 
+-        if (worldIn.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.VANILLA) {
++        if (worldIn.localConfig().config(pos1).redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.VANILLA) { // Sakura
+             // The old code would decrement the wire value only by 1 at a time.
+             if (l > j) {
+                 j = l - 1;
+@@ -472,7 +472,7 @@ public class RedStoneWireBlock extends Block {
+     public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
+         if (!oldState.is(state.getBlock()) && !world.isClientSide) {
+             // Paper start - optimize redstone - replace call to updatePowerStrength
+-            if (world.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++            if (world.localConfig().config(pos).redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) { // Sakura
+                 world.getWireHandler().onWireAdded(pos); // Alternate Current
+             } else {
+                 this.updateSurroundingRedstone(world, pos, state, null); // vanilla/Eigencraft
+@@ -505,7 +505,7 @@ public class RedStoneWireBlock extends Block {
+                 }
+ 
+                 // Paper start - optimize redstone - replace call to updatePowerStrength
+-                if (world.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++                if (world.localConfig().config(pos).redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) { // Sakura
+                     world.getWireHandler().onWireRemoved(pos, state); // Alternate Current
+                 } else {
+                     this.updateSurroundingRedstone(world, pos, state, null); // vanilla/Eigencraft
+@@ -546,7 +546,7 @@ public class RedStoneWireBlock extends Block {
+         if (!world.isClientSide) {
+             // Paper start - optimize redstone (Alternate Current)
+             // Alternate Current handles breaking of redstone wires in the WireHandler.
+-            if (world.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++            if (world.localConfig().config(pos).redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) { // Sakura
+                 world.getWireHandler().onWireUpdated(pos);
+             } else
+             // Paper end

@@ -155,19 +155,20 @@ index 0000000000000000000000000000000000000000..3508755c11cc8f577d27a440f2f4a08d
 +}
 diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..90f0d417bdc9d27c16cf8500aae9152f7d0406c5
+index 0000000000000000000000000000000000000000..fbd877356594f0cf8934452522cef4349801e5d7
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,59 @@
 +package me.samsuik.sakura.local.config;
 +
++import io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation;
 +import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 +import me.samsuik.sakura.explosion.durable.DurableMaterial;
 +import me.samsuik.sakura.local.LocalValueKey;
 +import me.samsuik.sakura.local.storage.LocalValueStorage;
++import me.samsuik.sakura.physics.PhysicsVersion;
 +import me.samsuik.sakura.utils.objects.Expiry;
 +import net.minecraft.world.level.Level;
-+import me.samsuik.sakura.physics.PhysicsVersion;
 +import net.minecraft.world.level.block.Block;
 +import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 +
@@ -178,6 +179,7 @@ index 0000000000000000000000000000000000000000..90f0d417bdc9d27c16cf8500aae9152f
 +    private final Expiry expiry;
 +    public Map<Block, DurableMaterial> durableMaterials;
 +    public PhysicsVersion physicsVersion;
++    public RedstoneImplementation redstoneImplementation;
 +
 +    LocalValueConfig(Expiry expiry) {
 +        this.expiry = expiry;
@@ -189,6 +191,9 @@ index 0000000000000000000000000000000000000000..90f0d417bdc9d27c16cf8500aae9152f
 +
 +        // physics version
 +        this.physicsVersion = level.sakuraConfig().cannons.mechanics.physicsVersion;
++
++        // redstone implementation
++        this.redstoneImplementation = level.paperConfig().misc.redstoneImplementation;
 +    }
 +
 +    void load(LocalValueStorage storage) {
@@ -200,6 +205,11 @@ index 0000000000000000000000000000000000000000..90f0d417bdc9d27c16cf8500aae9152f
 +        // physics version
 +        if (storage.exists(LocalValueKey.PHYSICS_VERSION)) {
 +            this.physicsVersion = storage.value(LocalValueKey.PHYSICS_VERSION);
++        }
++
++        // redstone implementation
++        if (storage.exists(LocalValueKey.REDSTONE_IMPLEMENTATION)) {
++            this.redstoneImplementation = RedstoneImplementation.values()[storage.value(LocalValueKey.REDSTONE_IMPLEMENTATION).ordinal()];
 +        }
 +    }
 +

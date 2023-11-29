@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Wed, 29 Nov 2023 22:11:36 +0000
+Subject: [PATCH] Add redstone implementation API
+
+
+diff --git a/src/main/java/me/samsuik/sakura/local/LocalValueKey.java b/src/main/java/me/samsuik/sakura/local/LocalValueKey.java
+index 3beb5830d623e72a3f4dec63aedc8b69a6396bf0..1a725c1f349b9b8f86c118e579004d7974f016fd 100644
+--- a/src/main/java/me/samsuik/sakura/local/LocalValueKey.java
++++ b/src/main/java/me/samsuik/sakura/local/LocalValueKey.java
+@@ -1,6 +1,7 @@
+ package me.samsuik.sakura.local;
+ 
+ import me.samsuik.sakura.physics.PhysicsVersion;
++import me.samsuik.sakura.redstone.RedstoneImplementation;
+ import org.bukkit.Material;
+ import org.bukkit.NamespacedKey;
+ 
+@@ -20,6 +21,10 @@ public record LocalValueKey<T>(NamespacedKey key, Supplier<T> defaultSupplier) {
+             new NamespacedKey("sakura", "durable-materials"), HashMap::new
+     );
+ 
++    public static final LocalValueKey<RedstoneImplementation> REDSTONE_IMPLEMENTATION = new LocalValueKey<>(
++            new NamespacedKey("sakura", "redstone-implementation"), () -> RedstoneImplementation.VANILLA
++    );
++
+     @Override
+     public boolean equals(Object o) {
+         if (this == o) return true;
+diff --git a/src/main/java/me/samsuik/sakura/redstone/RedstoneImplementation.java b/src/main/java/me/samsuik/sakura/redstone/RedstoneImplementation.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f89b5112d98d351435c63b27c64b1a981b8a820f
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/redstone/RedstoneImplementation.java
+@@ -0,0 +1,19 @@
++package me.samsuik.sakura.redstone;
++
++public enum RedstoneImplementation {
++
++    VANILLA("vanilla"),
++    EIGENCRAFT("eigencraft"),
++    ALTERNATE_CURRENT("alternate-current");
++
++    private final String friendlyName;
++
++    RedstoneImplementation(String friendlyName) {
++        this.friendlyName = friendlyName;
++    }
++
++    public String getFriendlyName() {
++        return friendlyName;
++    }
++
++}
