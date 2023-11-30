@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 30 Nov 2023 15:54:49 +0000
+Subject: [PATCH] Reduce entity tracker player updates
+
+
+diff --git a/src/main/java/net/minecraft/network/protocol/game/VecDeltaCodec.java b/src/main/java/net/minecraft/network/protocol/game/VecDeltaCodec.java
+index 33d9131e9c75ef23cd637f5d6c39a2704a0c92a5..715994cbcb6c4dfa016eb9af49b40cde95ab16e7 100644
+--- a/src/main/java/net/minecraft/network/protocol/game/VecDeltaCodec.java
++++ b/src/main/java/net/minecraft/network/protocol/game/VecDeltaCodec.java
+@@ -47,4 +47,10 @@ public class VecDeltaCodec {
+     public void setBase(Vec3 pos) {
+         this.base = pos;
+     }
++
++    // Sakura start
++    public Vec3 getBase() {
++        return base;
++    }
++    // Sakura end
+ }
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 216438a9c285edcd5dfa56b7ae49a674f92ae415..1200ff38189983b647ae8ba99ccea923681107f5 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -1160,6 +1160,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         try {
+             for (TrackedEntity tracker : this.entityMap.values()) {
+                 // update tracker entry
++                if (!tracker.shouldLookForPlayers()) continue; // Sakura - delay entities looking for nearby players
+                 tracker.updatePlayers(tracker.entity.getPlayersInTrackRange());
+             }
+         } finally {
+@@ -1334,6 +1335,14 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             this.lastSectionPos = SectionPos.of((EntityAccess) entity);
+         }
+ 
++        // Sakura start - delay entities looking for nearby players
++        boolean shouldLookForPlayers() {
++            return entity instanceof net.minecraft.world.entity.player.Player // always update players
++                || entity.tickCount % serverEntity.updateInterval == 0
++                || serverEntity.travelledDistanceSquared() > range * range;
++        }
++        // Sakura end
++
+         // Paper start - use distance map to optimise tracker
+         com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> lastTrackerCandidates;
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
+index f7d8aaededd39ce52a9d0105f66fd759635b5288..be3eb957c8cf1bb5f5e2f448be73c0a14f245a4a 100644
+--- a/src/main/java/net/minecraft/server/level/ServerEntity.java
++++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
+@@ -64,7 +64,7 @@ public class ServerEntity {
+     private static final int FORCED_TELEPORT_PERIOD = 400;
+     private final ServerLevel level;
+     private final Entity entity;
+-    private final int updateInterval;
++    final int updateInterval; // Sakura - private -> package
+     private final boolean trackDelta;
+     private final Consumer<Packet<?>> broadcast;
+     private final VecDeltaCodec positionCodec = new VecDeltaCodec();
+@@ -82,6 +82,12 @@ public class ServerEntity {
+     // CraftBukkit start
+     final Set<ServerPlayerConnection> trackedPlayers; // Paper - private -> package
+ 
++    // Sakura start
++    double travelledDistanceSquared() {
++        return entity.position().distanceToSqr(positionCodec.getBase());
++    }
++    // Sakura end
++
+     public ServerEntity(ServerLevel worldserver, Entity entity, int i, boolean flag, Consumer<Packet<?>> consumer, Set<ServerPlayerConnection> trackedPlayers) {
+         this.trackedPlayers = trackedPlayers;
+         // CraftBukkit end
