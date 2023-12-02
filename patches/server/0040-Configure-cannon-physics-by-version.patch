@@ -774,6 +774,39 @@ index 631ac128aebcd6388482adb3b1f03673281eaf95..b200e0ea698662d2fab45467bd26bd31
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
          if (isFree(world.getBlockState(pos.below())) && pos.getY() >= world.getMinBuildHeight()) {
+diff --git a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+index 4a1830f85f47014da63e4584f411d13f0f0cd8b3..727a2fc45de4995cafb371bde43db483a760fa6e 100644
+--- a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+@@ -160,8 +160,26 @@ public class LiquidBlock extends Block implements BucketPickup {
+                 BlockPos blockposition1 = pos.relative(enumdirection.getOpposite());
+ 
+                 if (world.getFluidState(blockposition1).is(FluidTags.WATER)) {
+-                    Block block = world.getFluidState(pos).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
+-
++                    // Sakura start
++                    final FluidState fluidState = state.getFluidState();
++                    final Block block;
++
++                    if (fluidState.isSource()) {
++                        block = Blocks.OBSIDIAN;
++                    } else {
++                        final me.samsuik.sakura.physics.PhysicsVersion physics = world.localConfig().config(pos).physicsVersion;
++
++                        // SANITY: In legacy a patch by paper removes the fluid level condition from vanilla.
++                        if (physics.afterOrEqual(1_16_0) || physics.isLegacy()
++                            || physics.afterOrEqual(1_13_0) && fluidState.getHeight(world, pos) >= 0.44444445f
++                            || physics.before(1_13_0) && FlowingFluid.getLegacyLevel(fluidState) <= 4
++                        ) {
++                            block = Blocks.COBBLESTONE;
++                        } else {
++                            return true;
++                        }
++                    }
++                    // Sakura end
+                     // CraftBukkit start
+                     if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(world, pos, block.defaultBlockState())) {
+                         this.fizz(world, pos);
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java b/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java
 index e941a4ce35c1bcc84836d04fb97cb1e7f292ae42..ff53e0e47da66ba99e79d1de0c04437a370577f9 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/MovingPistonBlock.java
@@ -1038,3 +1071,48 @@ index a971bb30ef8620f016a5968a9da40187ee31a3ef..68bac9ea693f4457a8ced072cae85aef
          }
      }
  
+diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+index 6d59f8b68d644cb43939bcdf5239fa1caf54ed47..96ccad764cb6424ffe561c558cd11200d89ff541 100644
+--- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+@@ -528,7 +528,7 @@ public abstract class FlowingFluid extends Fluid {
+         this.spread(world, pos, state);
+     }
+ 
+-    protected static int getLegacyLevel(FluidState state) {
++    public static int getLegacyLevel(FluidState state) { // Sakura - protected -> public
+         return state.isSource() ? 0 : 8 - Math.min(state.getAmount(), 8) + ((Boolean) state.getValue(FlowingFluid.FALLING) ? 8 : 0);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/material/LavaFluid.java b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
+index c3f8e1e2dd89c168b8b4a15b589109db486bc8d7..1dab5318d8693d15ee879456dff3a1916cfad335 100644
+--- a/src/main/java/net/minecraft/world/level/material/LavaFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
+@@ -175,7 +175,10 @@ public abstract class LavaFluid extends FlowingFluid {
+ 
+     @Override
+     public boolean canBeReplacedWith(FluidState state, BlockGetter world, BlockPos pos, Fluid fluid, Direction direction) {
+-        return state.getHeight(world, pos) >= 0.44444445F && fluid.is(FluidTags.WATER);
++        // Sakura start
++        return state.getHeight(world, pos) >= 0.44444445F && fluid.is(FluidTags.WATER)
++            && world instanceof Level level && level.localConfig().config(pos).physicsVersion.afterOrEqual(1_13_0);
++        // Sakura end
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/level/material/WaterFluid.java b/src/main/java/net/minecraft/world/level/material/WaterFluid.java
+index d280c98aed5262c4ce39526c917de884f25a8584..521b8084e490d5f3ecacd1d7368dddee22647aa9 100644
+--- a/src/main/java/net/minecraft/world/level/material/WaterFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/WaterFluid.java
+@@ -104,7 +104,10 @@ public abstract class WaterFluid extends FlowingFluid {
+ 
+     @Override
+     public boolean canBeReplacedWith(FluidState state, BlockGetter world, BlockPos pos, Fluid fluid, Direction direction) {
+-        return direction == Direction.DOWN && !fluid.is(FluidTags.WATER);
++        // Sakura start
++        return direction == Direction.DOWN && !fluid.is(FluidTags.WATER)
++            || fluid.is(FluidTags.LAVA) && world instanceof Level level && level.localConfig().config(pos).physicsVersion.before(1_13_0);
++        // Sakura end
+     }
+ 
+     @Override
