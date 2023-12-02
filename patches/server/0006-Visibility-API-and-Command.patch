@@ -114,46 +114,45 @@ index 0000000000000000000000000000000000000000..6027e4741e2de7c6d3bd7b094c196a21
 +}
 diff --git a/src/main/java/me/samsuik/sakura/player/visibility/VisibilityGUI.java b/src/main/java/me/samsuik/sakura/player/visibility/VisibilityGUI.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..33615f7a06cd5269e89d794518b6416fc727d823
+index 0000000000000000000000000000000000000000..d5bd47426a219a3825deaa0b62386c88d17b4aac
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/player/visibility/VisibilityGUI.java
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,119 @@
 +package me.samsuik.sakura.player.visibility;
 +
 +import me.samsuik.sakura.configuration.GlobalConfiguration;
 +import me.samsuik.sakura.player.gui.ItemIcon;
 +import me.samsuik.sakura.player.gui.PlayerGUI;
-+import me.samsuik.sakura.player.visibility.Visibility;
 +import net.kyori.adventure.text.Component;
 +import net.kyori.adventure.text.format.NamedTextColor;
 +import net.kyori.adventure.text.format.TextColor;
 +import net.kyori.adventure.text.format.TextDecoration;
-+import net.kyori.adventure.text.minimessage.MiniMessage;
 +import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Material;
 +import org.bukkit.entity.Player;
 +import org.bukkit.inventory.Inventory;
 +import org.bukkit.inventory.ItemStack;
++import org.bukkit.inventory.meta.ItemMeta;
 +
 +import java.util.function.BiFunction;
 +
 +public class VisibilityGUI extends PlayerGUI {
 +
 +    private static final BiFunction<Player, Holder, Inventory> CREATE_INVENTORY = (player, holder) -> {
-+        var inventory = Bukkit.createInventory(holder, 45, Component.text("FPS GUI"));
++        Inventory inventory = Bukkit.createInventory(holder, 45, Component.text("FPS GUI"));
 +
-+        for (var i = 0; i < inventory.getSize(); ++i) {
-+            var column = i % 9;
-+            var row    = (i + 1) / 9;
++        for (int i = 0; i < inventory.getSize(); ++i) {
++            int column = i % 9;
++            int row    = (i + 1) / 9;
 +
-+            var background = column > 0 && column < 8 ? (row > 0 && row < 4 || column > 1 && column < 7)
++            Material background = column > 0 && column < 8 ? (row > 0 && row < 4 || column > 1 && column < 7)
 +                ? Material.matchMaterial(GlobalConfiguration.get().fps.material)
 +                : Material.WHITE_STAINED_GLASS_PANE
 +                : Material.BLACK_STAINED_GLASS_PANE;
 +
-+            var itemstack = new ItemStack(background);
-+            var meta = itemstack.getItemMeta();
++            ItemStack itemstack = new ItemStack(background);
++            ItemMeta meta = itemstack.getItemMeta();
 +            meta.displayName(Component.space());
 +            itemstack.setItemMeta(meta);
 +
@@ -180,45 +179,57 @@ index 0000000000000000000000000000000000000000..33615f7a06cd5269e89d794518b6416f
 +        registerFPSIcon(Visibility.Setting.ENCHANTMENT_GLINT, Material.ENCHANTED_BOOK, NamedTextColor.DARK_PURPLE, 32);
 +
 +        registerIcon(new ItemIcon(
-+            (player) -> new ItemStack(Material.EMERALD_BLOCK),
-+            (player) -> player.getVisibility().toggleAll(),
++            (player) -> {
++                ItemStack itemstack = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
++                Component title = Component.text("Toggle all", NamedTextColor.GREEN);
++                
++                itemstack.editMeta(meta -> meta.displayName(title.decoration(TextDecoration.ITALIC, false)));
++                return itemstack;
++            },
++            (player) -> {
++                player.getVisibility().toggleAll();
++
++                // refresh icons after toggling
++                this.refresh(player);
++            },
 +            26
 +        ));
 +    }
 +
 +    private void registerFPSIcon(Visibility.Setting setting, Material material, TextColor colour, int slot) {
 +        registerIcon(new ItemIcon((player) -> {
-+            var visibility = player.getVisibility();
++            Visibility visibility = player.getVisibility();
++            ItemStack itemstack = new ItemStack(material);
 +
-+            // Get the current state as a string
-+            var state = visibility.isEnabled(setting)
-+                ? "Enabled" : "Disabled";
++            itemstack.editMeta(meta -> {
++                // Get the current state as a string
++                String state = visibility.isEnabled(setting) ? "Enabled" : "Disabled";
 +
-+            // Friendly name as a component
-+            var title = Component.text(setting.friendlyName()).color(colour);
-+            var itemstack = new ItemStack(material);
-+            var meta = itemstack.getItemMeta();
++                // Friendly name as a component
++                Component title = Component.text(setting.friendlyName(), colour);
 +
-+            // Display names are italic by default
-+            title = title.decoration(TextDecoration.ITALIC, false);
++                // Display names are italic by default
++                title = title.decoration(TextDecoration.ITALIC, false);
 +
-+            // Set the display name
-+            meta.displayName(title.append(Component.space())
-+                .append(Component.text(state).color(NamedTextColor.GRAY)));
++                // Set the display name
++                meta.displayName(title.append(Component.space())
++                    .append(Component.text(state, NamedTextColor.GRAY)));
++            });
 +
-+            itemstack.setItemMeta(meta);
 +            return itemstack;
 +        }, (player) -> {
-+            var visibility = player.getVisibility();
++            Visibility visibility = player.getVisibility();
 +
 +            // Toggle clicked setting visibility
 +            visibility.toggle(setting);
 +
++            // Get the current state as a string
++            String state = visibility.isEnabled(setting) ? "Enabled" : "Disabled";
++
 +            // Send message to player
-+            var state = visibility.isEnabled(setting) ? "Enabled" : "Disabled";
-+            player.sendMessage(MiniMessage.miniMessage().deserialize(GlobalConfiguration.get().fps.message,
++            player.sendRichMessage(GlobalConfiguration.get().fps.message,
 +                Placeholder.unparsed("name", setting.friendlyName()),
-+                Placeholder.unparsed("state", state))
++                Placeholder.unparsed("state", state)
 +            );
 +        },
 +            slot
