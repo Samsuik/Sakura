@@ -251,10 +251,10 @@ index e3f355c85eb7cc8c1683e3009502c10a5ed32daa..349e56d5caad3fc38e83eac6ffff83e2
      public ClientboundSectionBlocksUpdatePacket(SectionPos sectionPos, ShortSet positions, LevelChunkSection section) {
          this.sectionPos = sectionPos;
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 63d11c4db7152a7bb5aaf5fc625d8f8e585cafa0..681091462217b1c4176f8892563a681a3c8a9c06 100644
+index b5e2ae560431cd3ecfc780deb25488016c0ad0e7..73dc4f245039805b635f9e89438104e3b7a93e7b 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1576,6 +1576,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1745,6 +1745,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              this.profiler.pop();
              worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
              worldserver.localConfig().expire(currentTickLong); // Sakura
@@ -391,23 +391,23 @@ index 35674f92a67f93382103c2766df4b678ba5c862f..83c4639c2bdca4dc4281d9f5eca104af
  
          if (this.entity instanceof LivingEntity) {
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 9d860f15b13a3daa2f3b44c96f9b18e33828dd15..b48186e142c803d1371cf441542119962862ed07 100644
+index 03fcd3d24b18745c3ddbc20edbb06b92417db341..fdff4d661143b31d0331824c7df0978dfeece930 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1932,7 +1932,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1956,7 +1956,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          while (iterator.hasNext()) {
              ServerPlayer entityplayer = (ServerPlayer) iterator.next();
  
 -            if (entityplayer.distanceToSqr(x, y, z) < 4096.0D) {
 +            if (entityplayer.distanceToSqr(x, y, z) < 4096.0D && !entityplayer.visibility.isToggled(me.samsuik.sakura.player.visibility.Visibility.Setting.EXPLOSIONS)) { // Sakura - visibility api
-                 entityplayer.connection.send(new ClientboundExplodePacket(x, y, z, power, explosion.getToBlow(), (Vec3) explosion.getHitPlayers().get(entityplayer)));
+                 entityplayer.connection.send(new ClientboundExplodePacket(x, y, z, power, explosion.getToBlow(), (Vec3) explosion.getHitPlayers().get(entityplayer), explosion.getBlockInteraction(), explosion.getSmallExplosionParticles(), explosion.getLargeExplosionParticles(), explosion.getExplosionSound()));
              }
          }
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index f71a4a8307fb092d33545e12d253e0b80c884168..fa2ff114c8c8b344b98b639bbbfb94c39c1e996e 100644
+index 8efbbd379244e3ed54d4aba199037cc20ccd096a..3ef738c817c10a9233b930296ce5df6e6dc0a58b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -254,6 +254,7 @@ public class ServerPlayer extends Player {
+@@ -261,6 +261,7 @@ public class ServerPlayer extends Player {
      public final int[] mobCounts = new int[MOBCATEGORY_TOTAL_ENUMS]; // Paper
      // Paper end - mob spawning rework
      public final int[] mobBackoffCounts = new int[MOBCATEGORY_TOTAL_ENUMS]; // Paper - per player mob count backoff
@@ -415,7 +415,7 @@ index f71a4a8307fb092d33545e12d253e0b80c884168..fa2ff114c8c8b344b98b639bbbfb94c3
  
      // CraftBukkit start
      public String displayName;
-@@ -560,6 +561,15 @@ public class ServerPlayer extends Player {
+@@ -567,6 +568,15 @@ public class ServerPlayer extends Player {
                  this.respawnDimension = (ResourceKey) dataresult1.resultOrPartial(logger1::error).orElse(Level.OVERWORLD);
              }
          }
@@ -431,7 +431,7 @@ index f71a4a8307fb092d33545e12d253e0b80c884168..fa2ff114c8c8b344b98b639bbbfb94c3
  
      }
  
-@@ -626,6 +636,13 @@ public class ServerPlayer extends Player {
+@@ -633,6 +643,13 @@ public class ServerPlayer extends Player {
              });
          }
          this.getBukkitEntity().setExtraData(nbt); // CraftBukkit
@@ -446,7 +446,7 @@ index f71a4a8307fb092d33545e12d253e0b80c884168..fa2ff114c8c8b344b98b639bbbfb94c3
      }
  
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 598f807f0d0caac98b81e0e2991f1bd497c4534e..a3fb63aac5603e32e822aae14fb02a5df5dd660c 100644
+index 77cd2b73e4d499beca16962a6b3d1fefe279cd87..79f02204a800ddd3a4e32a34aaa1636d97ccba04 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -40,6 +40,23 @@ import org.bukkit.craftbukkit.util.Waitable;
@@ -549,10 +549,10 @@ index 598f807f0d0caac98b81e0e2991f1bd497c4534e..a3fb63aac5603e32e822aae14fb02a5d
              throw new ReportedException(crashreport);
          }
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 65bb221993147a558995b36fb835f7b82e0eb4bd..5435de311366cb2d7ca9dc298529e5b0ae3e9a5d 100644
+index 9a94249834f8b0b8d3f6aeaf0c859ba875079250..3a5657fe93f8f63cbebfd005db0848c221c2a9c2 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -3105,6 +3105,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -3113,6 +3113,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
  
                          event.setCancelled(cancelled);
                          AbstractContainerMenu oldContainer = this.player.containerMenu; // SPIGOT-1224
@@ -561,10 +561,10 @@ index 65bb221993147a558995b36fb835f7b82e0eb4bd..5435de311366cb2d7ca9dc298529e5b0
                          if (this.player.containerMenu != oldContainer) {
                              return;
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index c655c6fee393c62ba79301f76baa72f9b1154a9a..9d0c8b665bea9da560800b5f7ee1299280201022 100644
+index 9abe817ae202edaa2d88cd59ae5c7db0b1c634be..f3b02609297b663559b82984dcd93db186e645f5 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -531,6 +531,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -536,6 +536,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          this.teleportTo(worldserver, null);
      }
      // Paper end - make end portalling safe
@@ -574,7 +574,7 @@ index c655c6fee393c62ba79301f76baa72f9b1154a9a..9d0c8b665bea9da560800b5f7ee12992
      public boolean isLegacyTrackingEntity = false;
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index e6f75a9cac46c8e3ddba664a9d5b27b665a94cb4..c85d2e98311406ead180ace803aabc17cd05066a 100644
+index 45c07733f03b5c11f6d8e820f65dc950c70d9a67..3ec931c9aa9e2857e0c24eeb47c1048ace05f6fe 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -73,6 +73,7 @@ public class FallingBlockEntity extends Entity {
@@ -586,10 +586,10 @@ index e6f75a9cac46c8e3ddba664a9d5b27b665a94cb4..c85d2e98311406ead180ace803aabc17
  
      public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 4ce3e69970dd9eb251d0538a2d233ca30e9e5e47..d14a8e2cf748cb3784253d99d1bf3c8f9eb2089c 100644
+index c3e47426382296d650fa00ce0bc1a82bf23c7877..62a3cd512d473d5ed673386d5c15091a09426945 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -31,6 +31,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -38,6 +38,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      public PrimedTnt(EntityType<? extends PrimedTnt> type, Level world) {
          super(type, world);
          this.blocksBuilding = true;
@@ -598,10 +598,10 @@ index 4ce3e69970dd9eb251d0538a2d233ca30e9e5e47..d14a8e2cf748cb3784253d99d1bf3c8f
  
      public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index cd2d2db3b3024ed40aaeb478d6e52e9c7c168107..b5b19105f33b27a6ade70e914a2e19c024325b86 100644
+index 512088b5457e5afbc29d2937051fc4dcc4c5aed6..8fd4d63fdbff9c454d903f4797ec9281df7266fc 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -223,6 +223,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -226,6 +226,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
  
      public abstract ResourceKey<LevelStem> getTypeKey();
  
@@ -611,10 +611,10 @@ index cd2d2db3b3024ed40aaeb478d6e52e9c7c168107..b5b19105f33b27a6ade70e914a2e19c0
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
          this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 83aaf3e6e377d731ce02f779f80b7bf5db46f89f..50d2a2b658fd9ddfcc4b25fa2196493d4dbd8664 100644
+index ed41decbf0522c516b3608569d5719687105e25b..3ec169d2ead17d1229c6db1fb2ba05ab91ecba73 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -489,6 +489,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -501,6 +501,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
          this.getHandle().displayName = name == null ? this.getName() : name;
      }
  

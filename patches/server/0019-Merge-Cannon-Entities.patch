@@ -149,10 +149,10 @@ index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d3368
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index e1da429e78ee7445d2243661efbf08e152c8c732..457ccc9934fc6563a1b260ec9d12f0c875a4bd37 100644
+index c8c044f5ffcb4530782c8dbd889c027d1fdbcf6c..d131a64fe26e5ba33ccb1361c015795984fde85a 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1580,6 +1580,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1753,6 +1753,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
              worldserver.localConfig().expire(currentTickLong); // Sakura
              worldserver.minimalTNT.clear(); // Sakura - visibility api
@@ -161,10 +161,10 @@ index e1da429e78ee7445d2243661efbf08e152c8c732..457ccc9934fc6563a1b260ec9d12f0c8
          this.isIteratingOverLevels = false; // Paper
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index efba8d153b5838ff1dbc68d389b4d1529c951008..fd25999781d99526b1bc1677aaa3ff742b216ac5 100644
+index fda15d30321669c3a0bf9bd4e7a9f0c069f040d2..cccdce1e317e049b0cdb45a66c7f0d2853f00216 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -877,6 +877,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -894,6 +894,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
              org.spigotmc.ActivationRange.activateEntities(this); // Spigot
              this.timings.entityTick.startTiming(); // Spigot
@@ -172,7 +172,7 @@ index efba8d153b5838ff1dbc68d389b4d1529c951008..fd25999781d99526b1bc1677aaa3ff74
              this.entityTickList.forEach((entity) -> {
                  if (!entity.isRemoved()) {
                      if (false && this.shouldDiscardEntity(entity)) { // CraftBukkit - We prevent spawning in general, so this butchering is not needed
-@@ -896,6 +897,15 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -913,6 +914,15 @@ public class ServerLevel extends Level implements WorldGenLevel {
                                  entity.stopRiding();
                              }
  
@@ -189,10 +189,10 @@ index efba8d153b5838ff1dbc68d389b4d1529c951008..fd25999781d99526b1bc1677aaa3ff74
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index cbb2853f56c3339826fcaaff20ba93f62e56a761..9564477334755756b49fc7bf9f7344912758d47e 100644
+index 89af45a998dd1884bac8ace525b87be9dd291789..c9d94d157b4bc52742050d75b3a11b8e2769ec08 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -574,6 +574,105 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -579,6 +579,105 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          return BlockPos.asLong(v.getBlockX(), v.getBlockY(), v.getBlockZ());
      }
      // Sakura end
@@ -298,7 +298,7 @@ index cbb2853f56c3339826fcaaff20ba93f62e56a761..9564477334755756b49fc7bf9f734491
  
      public boolean isLegacyTrackingEntity = false;
  
-@@ -652,6 +751,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -657,6 +756,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          this.getEntityData().registrationLocked = true; // Spigot
          this.setPos(0.0D, 0.0D, 0.0D);
          this.eyeHeight = this.getEyeHeight(net.minecraft.world.entity.Pose.STANDING, this.dimensions);
@@ -306,19 +306,19 @@ index cbb2853f56c3339826fcaaff20ba93f62e56a761..9564477334755756b49fc7bf9f734491
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -2499,6 +2599,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
-                 nbt.putBoolean("Paper.FreezeLock", true);
+@@ -2522,6 +2622,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+                 nbttagcompound.putBoolean("Paper.FreezeLock", true);
              }
              // Paper end
 +            // Sakura start
 +            if (stacked > 0) {
-+                nbt.putInt("Sakura.Stacked", stacked);
++                nbttagcompound.putInt("Sakura.Stacked", stacked);
 +            }
 +            // Sakura end
-             return nbt;
+             return nbttagcompound;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2646,6 +2751,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -2669,6 +2774,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  freezeLocked = nbt.getBoolean("Paper.FreezeLock");
              }
              // Paper end
@@ -330,7 +330,7 @@ index cbb2853f56c3339826fcaaff20ba93f62e56a761..9564477334755756b49fc7bf9f734491
  
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
-@@ -4808,6 +4918,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4876,6 +4986,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              return;
          }
          // Paper end - rewrite chunk system
@@ -343,7 +343,7 @@ index cbb2853f56c3339826fcaaff20ba93f62e56a761..9564477334755756b49fc7bf9f734491
          if (this.removalReason == null) {
              this.removalReason = reason;
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 24586ae4833b5bf3596b0921273f712c14f1be9c..45e042dc8b875b08f5f09955258913a256371b54 100644
+index 0cf39ea76902e62b712057fe1bb80e3af8190fc4..6662d48f691cf6ab515a3eb64642dcb770d1caa0 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -132,6 +132,58 @@ public class FallingBlockEntity extends Entity {
@@ -414,10 +414,10 @@ index 24586ae4833b5bf3596b0921273f712c14f1be9c..45e042dc8b875b08f5f09955258913a2
                                          ((Fallable) block).onLand(this.level(), blockposition, this.blockState, iblockdata, this);
                                      }
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index fbeb52a49b791f992af19c7d69ba44b820541b09..02ef6ca32f3de52e921fdcf3f0f572ce7afef318 100644
+index cc30c119f519e7cd947ab40beae56e493e977176..826a910a02ae234012d10bb9ca3b677d127a6d13 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -63,6 +63,60 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -71,6 +71,60 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          return !this.isRemoved();
      }
  
@@ -478,7 +478,7 @@ index fbeb52a49b791f992af19c7d69ba44b820541b09..02ef6ca32f3de52e921fdcf3f0f572ce
      @Override
      public void tick() {
          if (this.level().spigotConfig.maxTntTicksPerTick > 0 && ++this.level().spigotConfig.currentPrimedTnt > this.level().spigotConfig.maxTntTicksPerTick) { return; } // Spigot
-@@ -88,6 +142,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -96,6 +150,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          if (i <= 0) {
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              // this.discard();
@@ -487,10 +487,10 @@ index fbeb52a49b791f992af19c7d69ba44b820541b09..02ef6ca32f3de52e921fdcf3f0f572ce
                  this.explode();
              }
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 12c6705d652cf873134aca556e205aa5ec0248fb..c7defb4555edd792c83ec001c8dfbf604376b190 100644
+index 862a56ce8de55bdca99af24fcf3909e820a0598e..37fbba2f6eb32f2806ae1fec90d7be800ba91d49 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -234,6 +234,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -237,6 +237,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          return slices.getSectionEntities(chunkY);
      }
      // Sakura end

@@ -341,10 +341,10 @@ index 0000000000000000000000000000000000000000..f9ffc75f3c349c6a1cb614ed925b2e90
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 4c2dc25419662c491097a53f2a730b805269da05..de4a9d68585c767b38f662cf3c06f89e5705d8ec 100644
+index 84a0a7ba7340f6379a0db210d7fbffb877d55284..9aeea8521bf209482ac5bda8296e5f25ff35ef49 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1583,6 +1583,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1756,6 +1756,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
              worldserver.densityCache.clear(); // Sakura
              worldserver.durabilityManager.expire(currentTickLong); // Sakura
@@ -353,18 +353,18 @@ index 4c2dc25419662c491097a53f2a730b805269da05..de4a9d68585c767b38f662cf3c06f89e
          this.isIteratingOverLevels = false; // Paper
  
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 3d133380c70c6ef471dd42280bbd269ef72d2e6d..cac37ebd3a73bf3bd53e8de3be06a2b0232c4134 100644
+index 374d600692975a2e8514e8e99c7fa18599ef8dfc..09ff77ec8967645df0de253f6e8ee8cb6b998c0d 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -237,6 +237,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -240,6 +240,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura
-     public final me.samsuik.sakura.explosion.DensityCache densityCache = new me.samsuik.sakura.explosion.DensityCache();
-     public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager();
+     public final me.samsuik.sakura.explosion.DensityCache densityCache = new me.samsuik.sakura.explosion.DensityCache(); // Sakura
+     public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura
 +    public final me.samsuik.sakura.redstone.RedstoneTracker redstoneTracker = new me.samsuik.sakura.redstone.RedstoneTracker(this); // Sakura
  
      // Sakura start - limited get entities
      public void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
-@@ -1018,6 +1019,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1021,6 +1022,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
              } else {
                  BlockState iblockdata2 = this.getBlockState(pos);
  
@@ -373,10 +373,10 @@ index 3d133380c70c6ef471dd42280bbd269ef72d2e6d..cac37ebd3a73bf3bd53e8de3be06a2b0
                  if (iblockdata2 == iblockdata) {
                      if (iblockdata1 != iblockdata2) {
 diff --git a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
-index 2b054439b7a763d5a3fbb5dbfe197cb9a9a3525c..7eb617150d278f5b40f097cd402d55fd781e0616 100644
+index 507be06ad51b7a212e28d3ca6680e0e4b00f4233..82bde0e37971e806b19d17fbf48c663c82399739 100644
 --- a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
-@@ -375,7 +375,15 @@ public class RedStoneWireBlock extends Block {
+@@ -382,7 +382,15 @@ public class RedStoneWireBlock extends Block {
          }
          if (oldPower != i) {
              // CraftBukkit end
@@ -392,7 +392,7 @@ index 2b054439b7a763d5a3fbb5dbfe197cb9a9a3525c..7eb617150d278f5b40f097cd402d55fd
                  world.setBlock(pos, (BlockState) state.setValue(RedStoneWireBlock.POWER, i), 2);
              }
  
-@@ -396,8 +404,17 @@ public class RedStoneWireBlock extends Block {
+@@ -403,8 +411,17 @@ public class RedStoneWireBlock extends Block {
              while (iterator.hasNext()) {
                  BlockPos blockposition1 = (BlockPos) iterator.next();
  

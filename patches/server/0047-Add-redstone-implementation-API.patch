@@ -5,10 +5,10 @@ Subject: [PATCH] Add redstone implementation API
 
 
 diff --git a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
-index 7eb617150d278f5b40f097cd402d55fd781e0616..73199366579f8816165b57b1ce7bdc95935b8066 100644
+index 82bde0e37971e806b19d17fbf48c663c82399739..8a2c9948aea1203c209948bdd3653557b1e57b5c 100644
 --- a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
-@@ -262,7 +262,7 @@ public class RedStoneWireBlock extends Block {
+@@ -269,7 +269,7 @@ public class RedStoneWireBlock extends Block {
       * Note: Added 'source' argument so as to help determine direction of information flow
       */
      private void updateSurroundingRedstone(Level worldIn, BlockPos pos, BlockState state, BlockPos source) {
@@ -17,7 +17,7 @@ index 7eb617150d278f5b40f097cd402d55fd781e0616..73199366579f8816165b57b1ce7bdc95
              turbo.updateSurroundingRedstone(worldIn, pos, state, source);
              return;
          }
-@@ -286,7 +286,7 @@ public class RedStoneWireBlock extends Block {
+@@ -293,7 +293,7 @@ public class RedStoneWireBlock extends Block {
          int k = worldIn.getBestNeighborSignal(pos1);
          this.shouldSignal = true;
  
@@ -26,7 +26,7 @@ index 7eb617150d278f5b40f097cd402d55fd781e0616..73199366579f8816165b57b1ce7bdc95
              // This code is totally redundant to if statements just below the loop.
              if (k > 0 && k > j - 1) {
                  j = k;
-@@ -300,7 +300,7 @@ public class RedStoneWireBlock extends Block {
+@@ -307,7 +307,7 @@ public class RedStoneWireBlock extends Block {
          // redstone wire will be set to 'k'.  If 'k' is already 15, then nothing inside the
          // following loop can affect the power level of the wire.  Therefore, the loop is
          // skipped if k is already 15.
@@ -35,7 +35,7 @@ index 7eb617150d278f5b40f097cd402d55fd781e0616..73199366579f8816165b57b1ce7bdc95
              for (Direction enumfacing : Direction.Plane.HORIZONTAL) {
                  BlockPos blockpos = pos1.relative(enumfacing);
                  boolean flag = blockpos.getX() != pos2.getX() || blockpos.getZ() != pos2.getZ();
-@@ -319,7 +319,7 @@ public class RedStoneWireBlock extends Block {
+@@ -326,7 +326,7 @@ public class RedStoneWireBlock extends Block {
              }
          }
  
@@ -44,7 +44,7 @@ index 7eb617150d278f5b40f097cd402d55fd781e0616..73199366579f8816165b57b1ce7bdc95
              // The old code would decrement the wire value only by 1 at a time.
              if (l > j) {
                  j = l - 1;
-@@ -472,7 +472,7 @@ public class RedStoneWireBlock extends Block {
+@@ -479,7 +479,7 @@ public class RedStoneWireBlock extends Block {
      public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
          if (!oldState.is(state.getBlock()) && !world.isClientSide) {
              // Paper start - optimize redstone - replace call to updatePowerStrength
@@ -53,7 +53,7 @@ index 7eb617150d278f5b40f097cd402d55fd781e0616..73199366579f8816165b57b1ce7bdc95
                  world.getWireHandler().onWireAdded(pos); // Alternate Current
              } else {
                  this.updateSurroundingRedstone(world, pos, state, null); // vanilla/Eigencraft
-@@ -505,7 +505,7 @@ public class RedStoneWireBlock extends Block {
+@@ -512,7 +512,7 @@ public class RedStoneWireBlock extends Block {
                  }
  
                  // Paper start - optimize redstone - replace call to updatePowerStrength
@@ -62,7 +62,7 @@ index 7eb617150d278f5b40f097cd402d55fd781e0616..73199366579f8816165b57b1ce7bdc95
                      world.getWireHandler().onWireRemoved(pos, state); // Alternate Current
                  } else {
                      this.updateSurroundingRedstone(world, pos, state, null); // vanilla/Eigencraft
-@@ -546,7 +546,7 @@ public class RedStoneWireBlock extends Block {
+@@ -553,7 +553,7 @@ public class RedStoneWireBlock extends Block {
          if (!world.isClientSide) {
              // Paper start - optimize redstone (Alternate Current)
              // Alternate Current handles breaking of redstone wires in the WireHandler.
