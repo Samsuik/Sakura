@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Fri, 8 Dec 2023 18:12:20 +0000
+Subject: [PATCH] Allow disabling random dispenser item selection
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/DispenserBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/DispenserBlockEntity.java
+index 881379681c39230a00b3a1f11cd87498984396c7..73e6fbf818944e73885db9c528114b0ea684de47 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/DispenserBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/DispenserBlockEntity.java
+@@ -73,8 +73,15 @@ public class DispenserBlockEntity extends RandomizableContainerBlockEntity {
+         int j = 1;
+ 
+         for (int k = 0; k < this.items.size(); ++k) {
+-            if (!((ItemStack) this.items.get(k)).isEmpty() && random.nextInt(j++) == 0) {
++            // Sakura start - allow disabling dispenser random item selection
++            if (this.level.sakuraConfig().technical.dispenserRandomItemSelection || this instanceof DropperBlockEntity) {
++                if (!((ItemStack) this.items.get(k)).isEmpty() && random.nextInt(j++) == 0) {
++                    i = k;
++                }
++            } else if (!this.items.get(k).isEmpty()) {
+                 i = k;
++                break;
++                // Sakura end
+             }
+         }
+ 
