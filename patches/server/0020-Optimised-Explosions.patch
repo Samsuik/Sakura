@@ -142,7 +142,7 @@ index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfca
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..90540b3c8c695e24419b0e0460f0c42f949142b0
+index 0000000000000000000000000000000000000000..4f9880d35347dd008aa2ee6e67f35301ff37a4c0
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 @@ -0,0 +1,391 @@
@@ -495,12 +495,12 @@ index 0000000000000000000000000000000000000000..90540b3c8c695e24419b0e0460f0c42f
 +                        // Calculate damage separately for each EntityComplexPart
 +                        if (ent == null) break;
 +                        if (ent == entityComplexPart) {
-+                            entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, getSeenFraction(pos, entityComplexPart, null, blockCache, blockPos))); // Sakura // Paper - actually optimise explosions
++                            entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entityComplexPart, getSeenFraction(pos, entityComplexPart, null, blockCache, blockPos))); // Sakura // Paper - actually optimise explosions and use the right entity to calculate the damage
 +                        }
 +                    }
 +                }
 +            } else {
-+                entity.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity));
++                entity.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, getSeenFraction(pos, entity, null, blockCache, blockPos))); // Sakura // Paper - actually optimise explosions
 +            }
 +
 +            CraftEventFactory.entityDamage = null;
@@ -620,7 +620,7 @@ index d131a64fe26e5ba33ccb1361c015795984fde85a..fa6da05e6d33f74bbae986c6b4db3077
          this.isIteratingOverLevels = false; // Paper
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index cccdce1e317e049b0cdb45a66c7f0d2853f00216..ec193e89ac948795e5fb1f6303684df08380ffec 100644
+index a507605a04af7f576548129517029192309fd9e7..65fe46780a9f9687d328afb5cca176ab4da23318 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1961,6 +1961,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -666,7 +666,7 @@ index 826a910a02ae234012d10bb9ca3b677d127a6d13..2445bfc0c5604cb0185d240c9448a5c7
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 9fdfc43ea51a326444a04d79976d315aa64050d1..4d052ef2b6d3ebd399e1904d67e973969efc683d 100644
+index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..fdc0a863aaf6fee90cea28966009088a9926cb1b 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -55,14 +55,16 @@ public class Explosion {
@@ -904,15 +904,20 @@ index 9fdfc43ea51a326444a04d79976d315aa64050d1..4d052ef2b6d3ebd399e1904d67e97396
          int l = Mth.floor(this.y - (double) f2 - 1.0D);
          int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
          int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
-@@ -591,7 +686,7 @@ public class Explosion {
+@@ -591,11 +686,11 @@ public class Explosion {
                                  for (EnderDragonPart entityComplexPart : ((EnderDragon) entity).subEntities) {
                                      // Calculate damage separately for each EntityComplexPart
                                      if (list.contains(entityComplexPart)) {
--                                        entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, getSeenFraction(vec3d, entityComplexPart, blockCache, blockPos))); // Paper - actually optimise explosions
-+                                        entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, getSeenFraction(vec3d, entityComplexPart, null, blockCache, blockPos))); // Sakura // Paper - actually optimise explosions
+-                                        entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entityComplexPart, getSeenFraction(vec3d, entityComplexPart, blockCache, blockPos))); // Paper - actually optimise explosions and use the right entity to calculate the damage
++                                        entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entityComplexPart, getSeenFraction(vec3d, entityComplexPart, null, blockCache, blockPos))); // Sakura // Paper - actually optimise explosions and use the right entity to calculate the damage
                                      }
                                  }
                              } else {
+-                                entity.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, getSeenFraction(vec3d, entity, blockCache, blockPos))); // Paper - actually optimise explosions
++                                entity.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, getSeenFraction(vec3d, entity, null, blockCache, blockPos))); // Sakura // Paper - actually optimise explosions
+                             }
+ 
+                             CraftEventFactory.entityDamage = null;
 @@ -635,9 +730,7 @@ public class Explosion {
              }
          }
@@ -969,11 +974,11 @@ index 9fdfc43ea51a326444a04d79976d315aa64050d1..4d052ef2b6d3ebd399e1904d67e97396
  
          return blockDensity;
 diff --git a/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java b/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java
-index 67625a34084792f6cbab34bf99e5571bb75e59d9..806c0213791ba94a6da121b83921064b0480643b 100644
+index f529f5d0f28533ec89f3ee712e59745991d068ee..d0ff7710577c1cfedae494796e6db420fef2bd08 100644
 --- a/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java
 +++ b/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java
-@@ -22,7 +22,7 @@ public class ExplosionDamageCalculator {
- 
+@@ -23,7 +23,7 @@ public class ExplosionDamageCalculator {
+     @io.papermc.paper.annotation.DoNotUse @Deprecated // Paper
      public float getEntityDamageAmount(Explosion explosion, Entity entity) {
          // Paper start - actually optimise explosions
 -        return this.getEntityDamageAmount(explosion, entity, Explosion.getSeenPercent(explosion.center(), entity));
