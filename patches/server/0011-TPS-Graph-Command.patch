@@ -418,7 +418,7 @@ index 0000000000000000000000000000000000000000..8a94b1a2cb1ff57664c97a7b471c99ec
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 73dc4f245039805b635f9e89438104e3b7a93e7b..c8c044f5ffcb4530782c8dbd889c027d1fdbcf6c 100644
+index 73dc4f245039805b635f9e89438104e3b7a93e7b..39081c0052a333580b22da10310d86de73693b2c 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -1126,6 +1126,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -437,15 +437,11 @@ index 73dc4f245039805b635f9e89438104e3b7a93e7b..c8c044f5ffcb4530782c8dbd889c027d
                      tps1.add(currentTps, diff);
                      tps5.add(currentTps, diff);
                      tps15.add(currentTps, diff);
-@@ -1219,6 +1221,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1219,6 +1221,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  this.tickServer(flag ? () -> {
                      return false;
                  } : this::haveTime);
-+                // Sakura start
-+                if (flag) {
-+                    tickTracking.tickSample((System.nanoTime() - curTime) / 1_000_000L);
-+                }
-+                // Sakura end
++                tickTracking.tickSample((System.nanoTime() - curTime) / 1_000_000L); // Sakura
                  this.profiler.popPush("nextTickWait");
                  this.mayHaveDelayedTasks = true;
                  this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
@@ -467,7 +463,7 @@ index 6e212f672579a3e08dc362c287be59ca5170d717..bc0f6555e9c3fcccf2d9a3bd47c76e64
          return x & 3 | ((z & 3) << 2);
      }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index fdff4d661143b31d0331824c7df0978dfeece930..fda15d30321669c3a0bf9bd4e7a9f0c069f040d2 100644
+index c33c9cb3a0e574e5284e48ffaf8d0945061ea388..f48eaebb0f9a10fb77e85619b2d2a4996e461195 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -194,7 +194,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
