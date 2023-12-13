@@ -189,10 +189,10 @@ index f48eaebb0f9a10fb77e85619b2d2a4996e461195..a507605a04af7f576548129517029192
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 89af45a998dd1884bac8ace525b87be9dd291789..c9d94d157b4bc52742050d75b3a11b8e2769ec08 100644
+index 89af45a998dd1884bac8ace525b87be9dd291789..6e2defee2a8523d7025a8341b41488192618dd1a 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -579,6 +579,105 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -579,6 +579,107 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          return BlockPos.asLong(v.getBlockX(), v.getBlockY(), v.getBlockZ());
      }
      // Sakura end
@@ -272,7 +272,9 @@ index 89af45a998dd1884bac8ace525b87be9dd291789..c9d94d157b4bc52742050d75b3a11b8e
 +        return false;
 +    }
 +
-+    protected void respawn() {}
++    protected boolean respawnMerged() {
++        return false;
++    }
 +
 +    protected boolean isSafeToMergeInto(Entity entity) {
 +        return false;
@@ -298,7 +300,7 @@ index 89af45a998dd1884bac8ace525b87be9dd291789..c9d94d157b4bc52742050d75b3a11b8e
  
      public boolean isLegacyTrackingEntity = false;
  
-@@ -657,6 +756,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -657,6 +758,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          this.getEntityData().registrationLocked = true; // Spigot
          this.setPos(0.0D, 0.0D, 0.0D);
          this.eyeHeight = this.getEyeHeight(net.minecraft.world.entity.Pose.STANDING, this.dimensions);
@@ -306,7 +308,7 @@ index 89af45a998dd1884bac8ace525b87be9dd291789..c9d94d157b4bc52742050d75b3a11b8e
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -2522,6 +2622,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2522,6 +2624,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  nbttagcompound.putBoolean("Paper.FreezeLock", true);
              }
              // Paper end
@@ -318,7 +320,7 @@ index 89af45a998dd1884bac8ace525b87be9dd291789..c9d94d157b4bc52742050d75b3a11b8e
              return nbttagcompound;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2669,6 +2774,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2669,6 +2776,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  freezeLocked = nbt.getBoolean("Paper.FreezeLock");
              }
              // Paper end
@@ -330,7 +332,7 @@ index 89af45a998dd1884bac8ace525b87be9dd291789..c9d94d157b4bc52742050d75b3a11b8e
  
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
-@@ -4876,6 +4986,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4876,6 +4988,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              return;
          }
          // Paper end - rewrite chunk system
@@ -343,7 +345,7 @@ index 89af45a998dd1884bac8ace525b87be9dd291789..c9d94d157b4bc52742050d75b3a11b8e
          if (this.removalReason == null) {
              this.removalReason = reason;
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 0cf39ea76902e62b712057fe1bb80e3af8190fc4..6662d48f691cf6ab515a3eb64642dcb770d1caa0 100644
+index 0cf39ea76902e62b712057fe1bb80e3af8190fc4..3a0d82cd7a0d7ec20138effd6d84eee60ffab788 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -132,6 +132,58 @@ public class FallingBlockEntity extends Entity {
@@ -364,40 +366,40 @@ index 0cf39ea76902e62b712057fe1bb80e3af8190fc4..6662d48f691cf6ab515a3eb64642dcb7
 +    }
 +
 +    @Override
-+    protected void respawn() {
-+        while (stacked-- > 1) {
-+            // create a temporary falling block entity
-+            var fallingBlock = new FallingBlockEntity(EntityType.FALLING_BLOCK, level());
++    protected boolean respawnMerged() {
++        if (stacked <= 1) return false;
 +
-+            // use our the previous state
-+            entityState().apply(fallingBlock);
++        while (stacked-- >= 1) {
++            // Unlike PrimedTnt we have to try respawn each stacked entity
++            FallingBlockEntity fallingBlock = new FallingBlockEntity(EntityType.FALLING_BLOCK, level());
++
++            // Try to stack the falling block
++            this.entityState().apply(fallingBlock);
 +            fallingBlock.time = time - 1;
-+
-+            // and tick
 +            fallingBlock.tick();
 +
-+            // Well, this can actually happen.
-+            // If you horizontal or rectangle stack sand into a b36 this condition will be met.
-+            // This could break some suspicious render queuing setups relying on horizontal stacking
-+            // and keeping sand in b36 using pistons pushing back and forth.
++            // If you horizontal stack into a moving piston block this condition will be met.
 +            if (!fallingBlock.isRemoved()) {
-+                fallingBlock.stacked = stacked;
-+                level().addFreshEntity(fallingBlock);
++                stacked++;
++                fallingBlock.storeEntityState();
++                fallingBlock.entityState().apply(this);
 +                break;
++            } else if (stacked == 0) {
++                this.discard();
 +            }
 +        }
++
++        return true;
 +    }
 +
 +    @Nullable
 +    public ItemEntity spawnAtLocation(ItemLike item) {
-+        // This is to prevent sand continuing to respawn incase it broke.
 +        ItemEntity itemEntity = null;
 +
-+        for (int i = 0; i < stacked; ++i) {
++        while (stacked-- >= 1) {
 +            itemEntity = super.spawnAtLocation(item);
 +        }
 +
-+        stacked = 1;
 +        return itemEntity;
 +    }
 +    // Sakura end
@@ -405,19 +407,19 @@ index 0cf39ea76902e62b712057fe1bb80e3af8190fc4..6662d48f691cf6ab515a3eb64642dcb7
      @Override
      public void tick() {
          // Paper start - fix sand duping
-@@ -214,6 +266,7 @@ public class FallingBlockEntity extends Entity {
+@@ -211,6 +263,7 @@ public class FallingBlockEntity extends Entity {
+                                     return;
+                                 }
+                                 // CraftBukkit end
++                                if (this.respawnMerged()) return; // Sakura
                                  if (this.level().setBlock(blockposition, this.blockState, 3)) {
                                      ((ServerLevel) this.level()).getChunkSource().chunkMap.broadcast(this, new ClientboundBlockUpdatePacket(blockposition, this.level().getBlockState(blockposition)));
                                      this.discard();
-+                                    this.respawn(); // Sakura
-                                     if (block instanceof Fallable) {
-                                         ((Fallable) block).onLand(this.level(), blockposition, this.blockState, iblockdata, this);
-                                     }
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index cc30c119f519e7cd947ab40beae56e493e977176..826a910a02ae234012d10bb9ca3b677d127a6d13 100644
+index cc30c119f519e7cd947ab40beae56e493e977176..811a5224a02bb3badb1b8d6de370b7166d9f877c 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -71,6 +71,60 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -71,6 +71,44 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          return !this.isRemoved();
      }
  
@@ -437,52 +439,36 @@ index cc30c119f519e7cd947ab40beae56e493e977176..826a910a02ae234012d10bb9ca3b677d
 +    }
 +
 +    @Override
-+    protected void respawn() {
-+        if (stacked <= 1) return;
++    protected boolean respawnMerged() {
++        if (stacked <= 1) return false;
 +
-+        // we create a temporary entity that will be affected by each explosion
-+        // this allows us to only keep one entity in the world in an attempt to
-+        // minimise complexity of stacked tnt explosions.
-+        var tnt = new PrimedTnt(level(), 0, 0, 0, owner);
++        PrimedTnt tnt = new PrimedTnt(EntityType.TNT, level());
 +
-+        // Copy our pre-tick state to the temporary entity
-+        entityState().apply(tnt);
++        while (stacked-- > 1) {
++            this.setFuse(100); // Prevent unwanted explosions while ticking
 +
-+        // add the entity to the world and chunk
-+        level().addFreshEntity(tnt);
++            // Cause an explosion to affect this entity
++            tnt.setPos(this.position());
++            tnt.setDeltaMovement(this.getDeltaMovement());
++            this.entityState().apply(this);
++            tnt.explode();
++            this.storeEntityState();
 +
-+        // Some bad plugins may change tnt momentum while we are respawning
-+        // ex: a plugin that sets tnt momentum to 0 upon spawning
-+        tnt.setDeltaMovement(entityState().momentum());
-+
-+        for (int i = stacked - 1; i >= 1; --i) {
-+            // make sure this entity cannot explode unexpectedly
-+            setFuse(100);
-+            stacked = 0;
-+
-+            // explode!
-+            explode();
-+
-+            // clone state from temporary entity
-+            tnt.storeEntityState();
-+            tnt.entityState().apply(this);
-+
-+            // tick, this is only to move the entity and apply physics.
-+            tick();
++            this.tick();
 +        }
 +
-+        tnt.discard();
++        return true;
 +    }
 +    // Sakura end
 +
      @Override
      public void tick() {
          if (this.level().spigotConfig.maxTntTicksPerTick > 0 && ++this.level().spigotConfig.currentPrimedTnt > this.level().spigotConfig.maxTntTicksPerTick) { return; } // Spigot
-@@ -96,6 +150,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -96,6 +134,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          if (i <= 0) {
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              // this.discard();
-+            this.respawn(); // Sakura
++            this.respawnMerged(); // Sakura
              if (!this.level().isClientSide) {
                  this.explode();
              }
