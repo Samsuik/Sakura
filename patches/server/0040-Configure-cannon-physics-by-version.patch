@@ -36,7 +36,7 @@ index ae2eede559bd9fe7e500ce180f2ac102a95d3856..7ced5ae768cbea9ee0a7bab2365fbaef
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
-index 90540b3c8c695e24419b0e0460f0c42f949142b0..a41a831d0e8340312e7c0abeb5da35bf6a8a9d65 100644
+index 4f9880d35347dd008aa2ee6e67f35301ff37a4c0..79d5cd8f90fda2390a64c2d1e0cfca6b66ad83ac 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 @@ -244,10 +244,17 @@ public class SakuraExplosion extends Explosion {
@@ -217,7 +217,7 @@ index 4c97c47e00fec68ef2e87bc981ccb811bbff6516..7e00e47fe01b996bf6a2f16dc4998ab8
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 0f1c9eb07c19dd0926521418390855f4bc1bc399..12eed2d1972de15e4d4b953517d47f2b567d3866 100644
+index 0f1c9eb07c19dd0926521418390855f4bc1bc399..99887ed1044cff244074a4584729df50239e9e9a 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -89,6 +89,8 @@ public class FallingBlockEntity extends Entity {
@@ -242,7 +242,7 @@ index 0f1c9eb07c19dd0926521418390855f4bc1bc399..12eed2d1972de15e4d4b953517d47f2b
          world.addFreshEntity(entityfallingblock, spawnReason); // CraftBukkit
          return entityfallingblock;
      }
-@@ -188,7 +194,43 @@ public class FallingBlockEntity extends Entity {
+@@ -188,7 +194,44 @@ public class FallingBlockEntity extends Entity {
      // Sakura start
      @Override
      public final double getEyeY() {
@@ -267,27 +267,28 @@ index 0f1c9eb07c19dd0926521418390855f4bc1bc399..12eed2d1972de15e4d4b953517d47f2b
 +        return BlockPos.containing(this.getX(), this.getY() + 1.0e-12, this.getZ());
 +    }
 +
++    private boolean isAbleToStackOnBlock() {
++        BlockPos pos = BlockPos.containing(this.getX(), this.getY() - 0.001f, this.getZ());
++        BlockState state = this.level().getBlockState(pos);
++        return FallingBlock.isFree(state);
++    }
++
 +    private void removeBlockOnFall(Block block) {
 +        BlockPos blockposition = this.blockPosition();
-+        // Paper start - fix cancelling block falling causing client desync
-+        if (!this.level().getBlockState(blockposition).is(block) || !CraftEventFactory.callEntityChangeBlockEvent(this, blockposition, Blocks.AIR.defaultBlockState())) {
-+            if (this.level().getBlockState(blockposition).is(block)) { //if listener didn't update the block
++        BlockState blockstate = this.level().getBlockState(blockposition);
++
++        if (blockstate.is(block) && CraftEventFactory.callEntityChangeBlockEvent(this, blockposition, Blocks.AIR.defaultBlockState())) {
++            this.level().removeBlock(blockposition, false);
++        } else {
++            if (blockstate.is(block)) {
 +                ((ServerLevel) level()).getChunkSource().blockChanged(blockposition);
 +            }
 +            this.discard();
-+        } else {
-+            this.level().removeBlock(blockposition, false);
 +        }
-+        // Paper end - fix cancelling block falling causing client desync
-+    }
-+
-+    // Why was this special cased for sand in the first place?
-+    private static boolean isInAir(BlockState state) {
-+        return state.is(Blocks.FIRE) || state.is(Blocks.AIR) || !state.getFluidState().isEmpty() || state.is(Blocks.WATER) || state.is(Blocks.LAVA);
      }
      // Sakura end
  
-@@ -204,9 +246,16 @@ public class FallingBlockEntity extends Entity {
+@@ -204,9 +247,16 @@ public class FallingBlockEntity extends Entity {
          } else {
              Block block = this.blockState.getBlock();
  
@@ -305,7 +306,7 @@ index 0f1c9eb07c19dd0926521418390855f4bc1bc399..12eed2d1972de15e4d4b953517d47f2b
              }
  
              this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura
-@@ -227,8 +276,23 @@ public class FallingBlockEntity extends Entity {
+@@ -227,8 +277,16 @@ public class FallingBlockEntity extends Entity {
                  return;
              }
              // Paper end
@@ -313,45 +314,31 @@ index 0f1c9eb07c19dd0926521418390855f4bc1bc399..12eed2d1972de15e4d4b953517d47f2b
 +            if (this.physics.before(1_12_0)) {
 +                this.scaleDeltaMovement(0.98F);
 +            }
-+            // Sakura end
              if (!this.level().isClientSide) {
-                 BlockPos blockposition = this.blockPosition();
-+
-+                // Sakura start
-+                // Patching this on modern versions can break some cannons that utilise
-+                // the floating point issue. But it makes sense on legacy versions where
-+                // that is seemingly not an issue.
-+                if (this.physics.before(1_17_0)) {
-+                    blockposition = this.patchedBlockPosition();
-+                }
+-                BlockPos blockposition = this.blockPosition();
++                // Patching the floating point issue on modern versions can break some cannons that rely on it.
++                // However, it makes sense for legacy versions pre-1.17 before the world height change.
++                BlockPos blockposition = this.physics.before(1_17_0) ? this.patchedBlockPosition() : this.blockPosition();
 +                // Sakura end
 +
                  boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
                  boolean flag1 = flag && this.level().getFluidState(blockposition).is(FluidTags.WATER);
                  double d0 = this.getDeltaMovement().lengthSqr();
-@@ -253,7 +317,20 @@ public class FallingBlockEntity extends Entity {
+@@ -253,8 +311,11 @@ public class FallingBlockEntity extends Entity {
                  } else {
                      BlockState iblockdata = this.level().getBlockState(blockposition);
  
 -                    this.multiplyDeltaMovement(0.7D, -0.5D, 0.7D); // Sakura - reduce movement allocations
+-                    if (!iblockdata.is(Blocks.MOVING_PISTON)) {
 +                    // Sakura start - physics version api
-+                    if (!flag1 && this.physics.isWithin(1_9_0, 1_12_0)) {
-+                        BlockPos pos = BlockPos.containing(this.getX(), this.getY() - 0.001f, this.getZ());
-+                        BlockState state = this.level().getBlockState(pos);
-+                        this.onGround = !isInAir(state); // this is how it's implemented between 1.9 and 1.12
-+
-+                        if (!this.onGround) {
-+                            iblockdata = Blocks.MOVING_PISTON.defaultBlockState(); // prevent it turning into a solid
-+                        }
-+                    }
-+
 +                    double friction = this.physics.before(1_14_0) ? 0.7F : 0.7D;
 +                    this.multiplyDeltaMovement(friction, -0.5D, friction); // Sakura - reduce movement allocations
-+                    // Sakura end
-                     if (!iblockdata.is(Blocks.MOVING_PISTON)) {
++                    if (!iblockdata.is(Blocks.MOVING_PISTON) && (flag1 || !this.physics.isWithin(1_9_0, 1_12_0) || this.isAbleToStackOnBlock())) {
++                        // Sakura end
                          if (!this.cancelDrop) {
                              boolean flag2 = iblockdata.canBeReplaced((BlockPlaceContext) (new DirectionalPlaceContext(this.level(), blockposition, Direction.DOWN, ItemStack.EMPTY, Direction.UP)));
-@@ -321,7 +398,12 @@ public class FallingBlockEntity extends Entity {
+                             boolean flag3 = FallingBlock.isFree(this.level().getBlockState(blockposition.below())) && (!flag || !flag1);
+@@ -321,7 +382,12 @@ public class FallingBlockEntity extends Entity {
                  }
              }
  
@@ -459,7 +446,7 @@ index 545c15a5bc92450de75e931794c2289da7004617..5010c994dae5aa189b2c02f9b9fc9715
      // Paper end
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index d13ba91f2c633517d46f59eaa938fd81d441fedb..7bef41c62d6c96062532233c80b96d6e65a523c8 100644
+index 4c570ea162f0dec00960705ef615d6e9f4a210a7..8a2d9f6526b62080c4b35ff856b8125c32983364 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -74,6 +74,7 @@ public class Explosion {
