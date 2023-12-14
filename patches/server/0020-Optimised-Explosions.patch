@@ -142,12 +142,13 @@ index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfca
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4f9880d35347dd008aa2ee6e67f35301ff37a4c0
+index 0000000000000000000000000000000000000000..8a8b4169c8928459f6b51150bd8e67d0a309ca08
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
-@@ -0,0 +1,391 @@
+@@ -0,0 +1,403 @@
 +package me.samsuik.sakura.explosion;
 +
++import me.samsuik.sakura.entity.EntityState;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.particles.ParticleOptions;
 +import net.minecraft.server.level.ServerLevel;
@@ -155,6 +156,7 @@ index 0000000000000000000000000000000000000000..4f9880d35347dd008aa2ee6e67f35301
 +import net.minecraft.util.Mth;
 +import net.minecraft.world.damagesource.DamageSource;
 +import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EntityType;
 +import net.minecraft.world.entity.LivingEntity;
 +import net.minecraft.world.entity.boss.EnderDragonPart;
 +import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
@@ -201,40 +203,39 @@ index 0000000000000000000000000000000000000000..4f9880d35347dd008aa2ee6e67f35301
 +    @Override
 +    public void explode() {
 +        if (this.radius < 0.1F) {
-+            for (int i = 1; i < source.getStacked() && !wasCanceled; ++i) {
-+                this.finalizeExplosion(false);
++            for (int i = 1; i < source.getStacked(); ++i) {
++                getToBlow().clear();
++                ((ServerLevel) level).notifyPlayersOfExplosion(x, y, z, radius, this);
++                finalizeExplosion(false);
 +            }
 +
 +            return;
 +        }
-+        
-+        PrimedTnt origin = (PrimedTnt) source;
-+        List<Vec3> positions = new ArrayList<>(origin.getStacked());
 +
-+        // This is a temporary entity that will be used for movement.
-+        PrimedTnt tnt = new PrimedTnt(level, 0, 0, 0, null);
-+        AABB bounds = new AABB(x, y, z, x, y, z);
-+
-+        origin.entityState().apply(tnt);
-+
-+        Vec3 lastMovement = tnt.getDeltaMovement();
++        List<Vec3> positions = new ArrayList<>(source.getStacked());
 +        ExplosionBlockCache[] blockCache = createBlockCache();
++
++        EntityState entityState = null;
++        AABB bounds = new AABB(x, y, z, x, y, z);
++        Vec3 lastMovement = source.entityState().momentum();
 +        int wrapped = 0;
 +
-+        for (int i = 0; i < origin.getStacked() && !wasCanceled; ++i) {
++        for (int i = 0; i < source.getStacked() && !wasCanceled; ++i) {
 +            if (i > 0) {
-+                updatePosition(origin, tnt);
++                calculateNextPosition(entityState);
++                getToBlow().clear();
 +            }
 +
-+            // block at explosion position
-+            int blockX = Mth.floor(x);
-+            int blockY = Mth.floor(y);
-+            int blockZ = Mth.floor(z);
++            // keep track of positions and bounds
 +            Vec3 position = new Vec3(x, y, z);
++            positions.add(position);
++            bounds = bounds.minmax(new AABB(position, position));
 +
 +            // search for blocks if necessary
 +            if (wrapped < 7 + 12) {
-+                getToBlow().clear();
++                int blockX = Mth.floor(x);
++                int blockY = Mth.floor(y);
++                int blockZ = Mth.floor(z);
 +
 +                long key = BlockPos.asLong(blockX, blockY, blockZ);
 +                ExplosionBlockCache center = getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
@@ -244,28 +245,30 @@ index 0000000000000000000000000000000000000000..4f9880d35347dd008aa2ee6e67f35301
 +                }
 +            }
 +
-+            // keep track of positions and bounds
-+            positions.add(position);
-+            bounds = bounds.minmax(new AABB(position, position));
-+
-+            Vec3 movement = tnt.getDeltaMovement();
-+
++            // Check if the explosion has wrapped around with swinging on each axis
 +            if (wrapped < 7) {
-+                // Check if the explosion has wrapped around with swinging on each axis
++                Vec3 movement = source.entityState().momentum();
 +                if (movement.x == lastMovement.x || movement.x * lastMovement.x < 0) wrapped |= 1;
 +                if (movement.y == lastMovement.y || movement.y * lastMovement.y < 0) wrapped |= 1 << 1;
 +                if (movement.z == lastMovement.z || movement.z * lastMovement.z < 0) wrapped |= 1 << 2;
-+            } else if (getToBlow().isEmpty() && level.sakuraConfig().cannons.explosion.avoidRedundantBlockSearches) {
-+                wrapped++;
-+            } else {
-+                wrapped = 7;
++                lastMovement = movement;
 +            }
 +
-+            lastMovement = tnt.getDeltaMovement();
++            boolean isFinalExplosion = i + 1 >= source.getStacked();
 +
-+            if (i + 1 < origin.getStacked()) {
++            // Possible optimisation here is making our own finalize explosion for this special case.
++            // If this is after the explosion event we can take better advantage of protection plugins.
++            if (isFinalExplosion || !getToBlow().isEmpty()) {
++                locateAndImpactEntities(positions, bounds, blockCache);
++                bounds = new AABB(position, position);
++                positions.clear();
++            }
++
++            if (!isFinalExplosion) {
 +                BlockPos.MutableBlockPos mbp = new BlockPos.MutableBlockPos();
-+                impactEntityIdle(tnt, new Entity[0], position, 1, radius * 2.0f, mbp, blockCache);
++
++                // Calculate next source velocity
++                entityState = calculateNextVelocity(position, mbp, blockCache);
 +
 +                // The purpose of this is to make sure papers blockCache doesn't become
 +                // outdated by flushing the map and removing stale entries from the recent
@@ -273,41 +276,50 @@ index 0000000000000000000000000000000000000000..4f9880d35347dd008aa2ee6e67f35301
 +                // movement and then start moving without blocks this may break stuff to
 +                // fix it see the note above or add a boolean to mark the cache as dirty
 +                // outside this loop and then invalidate before the final impact entities.
-+                if (!getToBlow().isEmpty() && tnt.getDeltaMovement().lengthSqr() <= 64.0) {
++                if (!getToBlow().isEmpty()) {
 +                    invalidateBlockCache(blockCache);
 +                }
 +
-+                // could it be viable to have a configuration option to only
-+                // call finalize explosion when blocks are found
-+                // may affect plugins that need exact explosion positions
++                // Could be viable in the future to have a configuration option to reduce explosion events
 +                super.finalizeExplosion(false);
 +                ((ServerLevel) level).notifyPlayersOfExplosion(x, y, z, radius, this);
-+            } else {
-+                locateAndImpactEntities(positions, bounds, blockCache);
++
++                // Update wrapped, this is for tracking swinging and if blocks are found
++                if (getToBlow().isEmpty() && level.sakuraConfig().cannons.explosion.avoidRedundantBlockSearches) {
++                    wrapped++;
++                } else {
++                    wrapped = 7;
++                }
 +            }
 +        }
 +
 +        clearBlockCache();
 +    }
 +
-+    private void updatePosition(PrimedTnt origin, PrimedTnt tnt) {
-+        boolean originMoved = !origin.position().equals(tnt.position());
++    private void calculateNextPosition(EntityState entityState) {
++        if (source instanceof PrimedTnt tnt) {
++            tnt.setFuse(100);
++        }
 +
-+        origin.setFuse(100);
-+        tnt.storeEntityState();
-+        tnt.entityState().apply(origin);
++        boolean moved = !source.entityState().position().equals(source.position());
++        entityState.apply(source);
++        source.storeEntityState();
 +
-+        // We have to check delta movement otherwise this optimisation can break reversing tnt.
-+        // If origin was shot upwards to a block then falls in the explosion tick it will swing
-+        // and origin and tnt will be in the same position every other tnt while swinging.
-+        if (!getToBlow().isEmpty() || tnt.getDeltaMovement().lengthSqr() <= 64.0 || originMoved) {
-+            origin.tick();
++        if (!getToBlow().isEmpty() || source.getDeltaMovement().lengthSqr() <= 65.16525625 || moved) {
++            source.tick();
 +        }
 +
 +        // update explosion position
-+        x = origin.getX();
-+        y = origin.getY(0.0625);
-+        z = origin.getZ();
++        x = source.getX();
++        y = source.getY();
++        z = source.getZ();
++    }
++
++    private EntityState calculateNextVelocity(Vec3 position, BlockPos.MutableBlockPos mbp, ExplosionBlockCache[] blockCache) {
++        PrimedTnt tnt = new PrimedTnt(EntityType.TNT, level);
++        source.entityState().apply(tnt);
++        impactEntityIdle(tnt, new Entity[0], position, 1, radius * 2.0f, mbp, blockCache);
++        return EntityState.of(tnt);
 +    }
 +
 +    private void locateAndImpactEntities(List<Vec3> positions, AABB bb, ExplosionBlockCache[] blockCache) {
