@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise Fast Movement
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 6e2defee2a8523d7025a8341b41488192618dd1a..8d43914e515bbdd58cbc546101af643e6ba6d018 100644
+index ce0f8567f8b3d52b806c2c0ef600852ee192c05b..8733e11bdfdb355928a332c20ed94bb57c57045f 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1217,6 +1217,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1216,6 +1216,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
      // Paper end - detailed watchdog information
  
@@ -104,7 +104,7 @@ index 6e2defee2a8523d7025a8341b41488192618dd1a..8d43914e515bbdd58cbc546101af643e
      public void move(MoverType movementType, Vec3 movement) {
          // Paper start - detailed watchdog information
          io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
-@@ -1594,6 +1683,99 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1593,6 +1682,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          return offsetFactor;
      }
  
@@ -170,13 +170,9 @@ index 6e2defee2a8523d7025a8341b41488192618dd1a..8d43914e515bbdd58cbc546101af643e
 +        // Copied from the collide method below
 +        io.papermc.paper.util.CollisionUtil.getCollisions(
 +            level, this, collisionBox, voxelList, bbList,
-+            this.getCollisionFlags(), // Sakura
++            io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_CHECK_BORDER | this.getExtraCollisionFlags(), // Sakura
 +            null, null
 +        );
-+
-+        if (collidingWithWorldBorder = io.papermc.paper.util.CollisionUtil.isCollidingWithBorderEdge(level.getWorldBorder(), collisionBox)) { // Paper - this line *is* correct, ignore the IDE warning about assignments being used as a condition
-+            voxelList.add(level.getWorldBorder().getCollisionShape());
-+        }
 +    }
 +
 +    private double scanX(AABB currBoundingBox, double x, List<VoxelShape> voxelList, List<AABB> bbList) {

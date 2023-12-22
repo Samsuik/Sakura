@@ -5,10 +5,10 @@ Subject: [PATCH] Reduce deltaMovement Allocations
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index f3b02609297b663559b82984dcd93db186e645f5..8e877437f4d27ef210c9bfbbdbe16e2c328b4e54 100644
+index b2d2b6d588572682730a228888b6dcdae2dc5020..4ffa96f7eeefd6a2a07458f68458cdbf4369340f 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1234,7 +1234,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1233,7 +1233,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  this.tryCheckInsideBlocks();
                  float f = this.getBlockSpeedFactor();
  
@@ -17,7 +17,7 @@ index f3b02609297b663559b82984dcd93db186e645f5..8e877437f4d27ef210c9bfbbdbe16e2c
                  // Paper start - remove expensive streams from here
                  boolean noneMatch = true;
                  AABB fireSearchBox = this.getBoundingBox().deflate(1.0E-6D);
-@@ -2054,6 +2054,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2049,6 +2049,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      public void moveTo(double x, double y, double z, float yaw, float pitch) {
          // Paper - cancel entity velocity if teleported
          if (!preserveMotion) {
@@ -25,7 +25,7 @@ index f3b02609297b663559b82984dcd93db186e645f5..8e877437f4d27ef210c9bfbbdbe16e2c
              this.deltaMovement = Vec3.ZERO;
          } else {
              this.preserveMotion = false;
-@@ -3456,29 +3457,33 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -3451,29 +3452,33 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      public void onAboveBubbleCol(boolean drag) {
@@ -67,7 +67,7 @@ index f3b02609297b663559b82984dcd93db186e645f5..8e877437f4d27ef210c9bfbbdbe16e2c
          this.resetFallDistance();
      }
  
-@@ -4465,16 +4470,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4460,16 +4465,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                      vec3d = vec3d.normalize();
                  }
  
@@ -90,7 +90,7 @@ index f3b02609297b663559b82984dcd93db186e645f5..8e877437f4d27ef210c9bfbbdbe16e2c
              }
  
              this.fluidHeight.put(tag, d1);
-@@ -4545,11 +4553,53 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4540,11 +4548,53 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          return this.chunkPosition;
      }
  
@@ -144,7 +144,7 @@ index f3b02609297b663559b82984dcd93db186e645f5..8e877437f4d27ef210c9bfbbdbe16e2c
          synchronized (this.posLock) { // Paper
          this.deltaMovement = velocity;
          } // Paper
-@@ -4560,7 +4610,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4555,7 +4605,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      public void setDeltaMovement(double x, double y, double z) {
@@ -214,7 +214,7 @@ index 62a3cd512d473d5ed673386d5c15091a09426945..12067c0372ad2803ffa2501a8296496a
  
          int i = this.getFuse() - 1;
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 87897b21c422a6301a08b388a69b3cec650bdfb5..9fdfc43ea51a326444a04d79976d315aa64050d1 100644
+index 9cd244090c294927a7a92c920854d2282ea3f021..3d4a75302d72bdbe47d0efbe08c89401dbe22a87 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -619,10 +619,11 @@ public class Explosion {

@@ -4,8 +4,21 @@ Date: Thu, 16 Nov 2023 20:53:51 +0000
 Subject: [PATCH] Falling Block Stacking Restrictions
 
 
+diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+index 376322d8e47e24a76c7162d6379c7f71debd7505..872b874649ff5383af73f6b07dd59fdabea3ffb2 100644
+--- a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
++++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+@@ -69,7 +69,7 @@ public class WorldConfiguration extends ConfigurationPart {
+             public boolean preventAtWorldHeight = false;
+ 
+             public boolean isFallingBlockInBounds(FallingBlockEntity entity) {
+-                return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isAlmostCollidingOnBorder(entity.level().getWorldBorder(), entity.getBoundingBox()))
++                return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isCollidingWithBorder(entity.level().getWorldBorder(), entity.getBoundingBox().inflate(0.01)))
+                     && (!preventAtWorldHeight || entity.blockPosition().getY() < entity.level().getMaxBuildHeight() - 1);
+             }
+         }
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 78fe35df4ef92f56d5ea2e80131fb7f4e71c9bea..bf52aafe542ca735181e461d1f9cbc39b8d88220 100644
+index d7a3d869417983ea3758c2fab2de78c098826b19..6274c005f4f53f3cec0c94b7d40cdb7070b190e0 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -260,7 +260,7 @@ public class FallingBlockEntity extends Entity {

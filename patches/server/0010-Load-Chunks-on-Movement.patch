@@ -5,10 +5,10 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index bfb1de19f53d5d7c7b65e25a606fabfa416706b3..ae2eede559bd9fe7e500ce180f2ac102a95d3856 100644
+index ee0331a6bc40cdde08d926fd8eb1dc642630c2e5..57ca8212991d0660dd41b70350f59830d4fd09f3 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-@@ -1595,6 +1595,7 @@ public final class CollisionUtil {
+@@ -1569,6 +1569,7 @@ public final class CollisionUtil {
      public static final int COLLISION_FLAG_COLLIDE_WITH_UNLOADED_CHUNKS = 1 << 1;
      public static final int COLLISION_FLAG_CHECK_BORDER = 1 << 2;
      public static final int COLLISION_FLAG_CHECK_ONLY = 1 << 3;
@@ -16,7 +16,7 @@ index bfb1de19f53d5d7c7b65e25a606fabfa416706b3..ae2eede559bd9fe7e500ce180f2ac102
  
      public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
                                                                final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
-@@ -1644,11 +1645,20 @@ public final class CollisionUtil {
+@@ -1619,11 +1620,20 @@ public final class CollisionUtil {
          final int maxChunkZ = maxBlockZ >> 4;
  
          final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
@@ -50,17 +50,17 @@ index 658e63ebde81dc14c8ab5850fb246dc0aab25dea..f1ff1a67fee37ee7b241ceaa164fa4ee
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 8e877437f4d27ef210c9bfbbdbe16e2c328b4e54..2336ca9f16d8d570eeeff8cd780fa02c0138be04 100644
+index 4ffa96f7eeefd6a2a07458f68458cdbf4369340f..583f94cd4f517f17909da43f546e8c9e4580d3ad 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -538,6 +538,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -537,6 +537,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      // Paper end - make end portalling safe
      public boolean isPrimedTNT; // Sakura
      public boolean isFallingBlock; // Sakura
 +    // Sakura start
 +    protected boolean loadChunks = false;
 +
-+    private int getCollisionFlags() {
++    private int getExtraCollisionFlags() {
 +        int flags = 0;
 +        
 +        if (this.loadChunks) {
@@ -73,16 +73,16 @@ index 8e877437f4d27ef210c9bfbbdbe16e2c328b4e54..2336ca9f16d8d570eeeff8cd780fa02c
  
      public boolean isLegacyTrackingEntity = false;
  
-@@ -1495,7 +1508,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1494,7 +1507,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
  
          io.papermc.paper.util.CollisionUtil.getCollisions(
                  world, this, collisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
--                (0),
-+                this.getCollisionFlags(), // Sakura
+-                io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_CHECK_BORDER,
++                io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_CHECK_BORDER | this.getExtraCollisionFlags(), // Sakura
                  null, null
          );
  
-@@ -4880,7 +4893,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4875,7 +4888,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
  
      @Override
      public boolean isAlwaysTicking() {
