@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index ee0331a6bc40cdde08d926fd8eb1dc642630c2e5..57ca8212991d0660dd41b70350f59830d4fd09f3 100644
+index ee0331a6bc40cdde08d926fd8eb1dc642630c2e5..19086bbfdf3a015eafec5ca868c8d2451f554ef0 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
 @@ -1569,6 +1569,7 @@ public final class CollisionUtil {
@@ -16,7 +16,7 @@ index ee0331a6bc40cdde08d926fd8eb1dc642630c2e5..57ca8212991d0660dd41b70350f59830
  
      public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
                                                                final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
-@@ -1619,11 +1620,20 @@ public final class CollisionUtil {
+@@ -1619,11 +1620,21 @@ public final class CollisionUtil {
          final int maxChunkZ = maxBlockZ >> 4;
  
          final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
@@ -27,11 +27,12 @@ index ee0331a6bc40cdde08d926fd8eb1dc642630c2e5..57ca8212991d0660dd41b70350f59830
              for (int currChunkX = minChunkX; currChunkX <= maxChunkX; ++currChunkX) {
                  final ChunkAccess chunk = loadChunks ? chunkSource.getChunk(currChunkX, currChunkZ, ChunkStatus.FULL, true) : chunkSource.getChunkAtIfLoadedImmediately(currChunkX, currChunkZ);
 +                // Sakura start - keep chunks loaded on movement
-+                if (addTicket) {
++                if (addTicket && chunk instanceof net.minecraft.world.level.chunk.LevelChunk levelChunk && levelChunk.movementLoadTicketRequiresUpdate()) {
 +                    chunkSource.chunkMap.getDistanceManager().getChunkHolderManager().addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, currChunkX, currChunkZ, 33, CoordinateUtils.getChunkKey(currChunkX, currChunkZ));
 +                    // This is known to work, uncomment if any issues
 +                    // var pos = new net.minecraft.world.level.ChunkPos(currChunkX, currChunkZ);
 +                    // chunkSource.addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, pos, 33, pos.toLong());
++                    levelChunk.updatedMovementLoadTicket();
 +                }
 +                // Sakura end
  
@@ -115,3 +116,25 @@ index c187a2714d5580a2d8db54d270999aa618c4c878..0be7c39fbb19a0cdca3f5dc779c2690d
      }
  
      public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index fa170cc1ce7011d201295b89718292d696c7fc24..2f48ac198610ee2a379bff4e056a6afe5f7f8a04 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -218,6 +218,17 @@ public class LevelChunk extends ChunkAccess {
+         }
+     }
+     // Paper end
++    // Sakura start
++    private long lastMovementLoadTicket = 0;
++
++    public boolean movementLoadTicketRequiresUpdate() {
++        return net.minecraft.server.MinecraftServer.currentTickLong - this.lastMovementLoadTicket >= 100;
++    }
++
++    public void updatedMovementLoadTicket() {
++        this.lastMovementLoadTicket = net.minecraft.server.MinecraftServer.currentTickLong;
++    }
++    // Sakura end
+ 
+     public LevelChunk(ServerLevel world, ProtoChunk protoChunk, @Nullable LevelChunk.PostLoadProcessor entityLoader) {
+         this(world, protoChunk.getPos(), protoChunk.getUpgradeData(), protoChunk.unpackBlockTicks(), protoChunk.unpackFluidTicks(), protoChunk.getInhabitedTime(), protoChunk.getSections(), entityLoader, protoChunk.getBlendingData());
