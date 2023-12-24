@@ -6,10 +6,10 @@ Subject: [PATCH] Merge Cannon Entities
 
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d33681b356aa3
+index 0000000000000000000000000000000000000000..90f36b2d3847e058cfa2b748838fc6ea3294c159
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,127 @@
 +package me.samsuik.sakura.entity.merge;
 +
 +import it.unimi.dsi.fastutil.HashCommon;
@@ -21,6 +21,8 @@ index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d3368
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.world.entity.Entity;
 +
++import java.util.List;
++
 +public class MergeHistory {
 +
 +    // packed position -> known merging information
@@ -28,7 +30,7 @@ index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d3368
 +    private MergeData mergeData = null;
 +
 +    public MergeData retrievePositions(Entity entity) {
-+        var origin = entity.getPackedOrigin();
++        long origin = entity.getPackedOrigin();
 +
 +        if (mergeData != null && mergeData.knownPositions().contains(origin)) {
 +            return mergeData;
@@ -38,42 +40,32 @@ index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d3368
 +    }
 +
 +    public void markPositions(Entity entity) {
-+        var mergeList = entity.getMergeList();
-+        var origin = entity.getPackedOrigin();
++        List<Entity> mergeList = entity.getMergeList();
++        long origin = entity.getPackedOrigin();
 +
 +        // I apologise for the lambda parameter name in advance
-+        var data = mergeDataMap.computeIfAbsent(origin, (OwO) -> new MergeData(
-+            // Known entity positions that have been able to merge
-+            // This is used for non-strict merging.
-+            new LongOpenHashSet(),
-+            // First copy of the previous positions that is retained.
-+            // This is used for on spawn (aot) merging.
-+            // Retaining means if the collection you're comparing doesn't the same elements the rest gets yeeted.
-+            // We also make use of a _reasonable_ threshold before on spawn merging to reduce abuse and breakage.
-+            new LongOpenHashSet(),
++        MergeData data = mergeDataMap.computeIfAbsent(origin, (OwO) -> new MergeData(
++            new LongOpenHashSet(), // Known entity positions
++            new LongOpenHashSet(), // Retained positions
 +            new EntityTable(Math.min(mergeList.size() * 2, 512)),
-+            // todo: allow configuring expiry and threshold
 +            new Expiry(MinecraftServer.currentTickLong, 200),
++            // Reasonable threshold to reduce abuse and breakage with on spawn merging.
 +            new Threshold(MinecraftServer.currentTickLong, 12, 200)
 +        ));
 +
-+        // Refresh expiry
 +        data.expiry().refresh(MinecraftServer.currentTickLong);
 +
-+        var insert = data.knownPositions().isEmpty();
-+        var positions = new LongOpenHashSet((mergeList.size() + 1) / 2);
++        // Collect all merge positions
++        LongOpenHashSet positions = new LongOpenHashSet((mergeList.size() + 1) / 2);
 +
 +        positions.add(entity.getPackedOrigin());
 +
-+        for (var mergedEntity : mergeList) {
++        for (Entity mergedEntity : mergeList) {
 +            positions.add(mergedEntity.getPackedOrigin());
 +        }
 +
-+        // todo: if tnt spread is enabled double the threshold above then make the first half of the threshold inserting known positions.
-+        // ^ This can allow better merging of randomised tnt for the compromise of it taking longer to merge on spawn.
-+        // ^ There is an uncommon design that uses a single booster at the back and pushes all the tnt forward.
-+        // ^ Using a chest as an offset means tnt alignment doesn't matter so people get away with spread but can make merging difficult.
-+        if (insert) {
++        // Retain existing positions and insert new positions
++        if (!data.knownPositions().isEmpty()) {
 +            data.retainedPositions().addAll(positions);
 +        } else {
 +            data.retainedPositions().retainAll(positions);
@@ -83,15 +75,12 @@ index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d3368
 +    }
 +
 +    public void expire(long tick) {
-+        // clear this every tick
-+        mergeData = null;
++        mergeData = null; // clear this every tick
 +
 +        // only expire every 20 ticks
 +        if (tick % 20 != 0) return;
 +
-+        // using a linked hashmap isn't applicable here as an optimisation
-+        // because we allow the spawn positions to "refresh" this would create a memory leak
-+        mergeDataMap.values().removeIf((data) -> data.expiry().isExpired(tick));
++        mergeDataMap.values().removeIf(data -> data.expiry().isExpired(tick));
 +    }
 +
 +    public record MergeData(LongSet knownPositions, LongSet retainedPositions, EntityTable table, Expiry expiry, Threshold threshold) {
@@ -100,7 +89,7 @@ index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d3368
 +        }
 +
 +        public Entity findFirstAtPosition(Entity entity) {
-+            var found = table.locate(entity);
++            Entity found = table.locate(entity);
 +
 +            if (found != null && found.getId() < entity.getId() && knownPositions.contains(found.getPackedOrigin()) && !found.isRemoved() && entity.compareState(found)) {
 +                return found;
@@ -115,35 +104,35 @@ index 0000000000000000000000000000000000000000..7cb3b0d5a284199cdc117038227d3368
 +        private final int mask;
 +
 +        EntityTable(int size) {
-+            var n = HashCommon.nextPowerOfTwo(size - 1);
++            int n = HashCommon.nextPowerOfTwo(size - 1);
 +            entities = new Entity[n];
 +            mask = n - 1;
 +        }
 +
 +        Entity locate(Entity entity) {
-+            var pos = entity.blockPosition().hashCode();
-+            var key = pos & mask;
-+            var found = entities[key];
++            int pos = entity.blockPosition().hashCode();
++            int key = pos & mask;
++            Entity found = entities[key];
 +            entities[key] = entity;
 +            return found;
 +        }
 +    }
 +
 +    private static class Threshold {
-+        private final long existence; // tick when this was created
++        private final long startingTick;
 +        private final int thresholdAttempts;
 +        private final long thresholdAge;
 +        private int attempts;
 +
 +        Threshold(long tick, int attempts, long age) {
-+            existence = tick;
++            startingTick = tick;
 +            thresholdAttempts = attempts;
 +            thresholdAge = age;
 +        }
 +
 +        boolean hasPassed(long tick) {
 +            return ++attempts >= thresholdAttempts
-+                || tick - existence >= thresholdAge;
++                || tick - startingTick >= thresholdAge;
 +        }
 +    }
 +
