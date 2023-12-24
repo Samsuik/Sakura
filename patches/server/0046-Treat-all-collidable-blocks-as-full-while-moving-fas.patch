@@ -59,14 +59,14 @@ index a40dcbde87860fd6d3b60d0b9e2d5e63e18e69b7..d0bab6610a0ea8d3e6ba69034a25f409
                                      AABB singleAABB = blockCollision.getSingleAABBRepresentation();
                                      if (singleAABB != null) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 852276d9bedc51c3c8a28b60c85fdb23cf9cf818..2588180e543dc8ca2e41c15802b59c9b87df7ee6 100644
+index 852276d9bedc51c3c8a28b60c85fdb23cf9cf818..7631e9c2d64bd153267ebd36648fe5e755906def 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -547,6 +547,14 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              flags |= io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_LOAD_CHUNKS | io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_ADD_TICKET;
          }
  
-+        if (this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMoving && this.isPrimedTNT | this.isFallingBlock) {
++        if (this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMoving && (this.isPrimedTNT || this.isFallingBlock)) {
 +            this.syncDeltaMovement();
 +            double horizontalMovementSqr = this.movementX*this.movementX + this.movementZ*this.movementZ;
 +            if (horizontalMovementSqr > Math.pow(this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMovingFasterThan, 2.0)) {
