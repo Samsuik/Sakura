@@ -384,10 +384,10 @@ index 0000000000000000000000000000000000000000..ebdb73fa24fd2600925bf5664ceda202
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5fc23a0b579d7cbe03baf5324bef887ad3dcaa25
+index 0000000000000000000000000000000000000000..10fbe9f81c406b03ad0a3d86a7b9bd3ce2484e3c
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
-@@ -0,0 +1,231 @@
+@@ -0,0 +1,232 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.google.common.collect.Table;
@@ -397,6 +397,7 @@ index 0000000000000000000000000000000000000000..5fc23a0b579d7cbe03baf5324bef887a
 +import io.papermc.paper.configuration.Configurations;
 +import io.papermc.paper.configuration.NestedSetting;
 +import io.papermc.paper.configuration.PaperConfigurations;
++import io.papermc.paper.configuration.mapping.InnerClassFieldDiscoverer;
 +import io.papermc.paper.configuration.serializer.*;
 +import io.papermc.paper.configuration.serializer.collections.FastutilMapSerializer;
 +import io.papermc.paper.configuration.serializer.collections.MapSerializer;
@@ -412,7 +413,6 @@ index 0000000000000000000000000000000000000000..5fc23a0b579d7cbe03baf5324bef887a
 +import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 +import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 +import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
-+import me.samsuik.sakura.configuration.mapping.InnerClassFieldDiscoverer;
 +import net.minecraft.core.RegistryAccess;
 +import net.minecraft.core.registries.Registries;
 +import net.minecraft.resources.ResourceLocation;
@@ -431,6 +431,7 @@ index 0000000000000000000000000000000000000000..5fc23a0b579d7cbe03baf5324bef887a
 +import java.io.IOException;
 +import java.lang.reflect.Type;
 +import java.nio.file.Path;
++import java.util.Map;
 +import java.util.function.Function;
 +
 +import static io.leangen.geantyref.GenericTypeReflector.erase;
@@ -524,7 +525,7 @@ index 0000000000000000000000000000000000000000..5fc23a0b579d7cbe03baf5324bef887a
 +    protected ObjectMapper.Factory.Builder createWorldObjectMapperFactoryBuilder(final ContextMap contextMap) {
 +        return super.createWorldObjectMapperFactoryBuilder(contextMap)
 +            .addNodeResolver(new NestedSetting.Factory())
-+            .addDiscoverer(InnerClassFieldDiscoverer.worldConfig(createWorldConfigInstance(contextMap)));
++            .addDiscoverer(new InnerClassFieldDiscoverer(Map.of(WorldConfiguration.class, contextMap)));
 +    }
 +
 +    private static WorldConfiguration createWorldConfigInstance(ContextMap contextMap) {
@@ -794,67 +795,6 @@ index 0000000000000000000000000000000000000000..376322d8e47e24a76c7162d6379c7f71
 +        }
 +    }
 +
-+}
-diff --git a/src/main/java/me/samsuik/sakura/configuration/mapping/InnerClassFieldDiscoverer.java b/src/main/java/me/samsuik/sakura/configuration/mapping/InnerClassFieldDiscoverer.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..96080117b5ac9dea6b9eeb7489dc0c87d2c5f8a1
---- /dev/null
-+++ b/src/main/java/me/samsuik/sakura/configuration/mapping/InnerClassFieldDiscoverer.java
-@@ -0,0 +1,55 @@
-+package me.samsuik.sakura.configuration.mapping;
-+
-+import io.papermc.paper.configuration.ConfigurationPart;
-+import io.papermc.paper.configuration.mapping.InnerClassInstanceFactory;
-+import io.papermc.paper.configuration.mapping.InnerClassInstanceSupplier;
-+import me.samsuik.sakura.configuration.WorldConfiguration;
-+import org.checkerframework.checker.nullness.qual.Nullable;
-+import org.spongepowered.configurate.objectmapping.FieldDiscoverer;
-+import org.spongepowered.configurate.serialize.SerializationException;
-+
-+import java.lang.reflect.AnnotatedType;
-+import java.lang.reflect.Field;
-+import java.util.Collections;
-+import java.util.Map;
-+
-+import static io.leangen.geantyref.GenericTypeReflector.erase;
-+
-+public final class InnerClassFieldDiscoverer implements FieldDiscoverer<Map<Field, Object>> {
-+
-+    private final InnerClassInstanceSupplier instanceSupplier;
-+    private final FieldDiscoverer<Map<Field, Object>> delegate;
-+
-+    @SuppressWarnings("unchecked")
-+    public InnerClassFieldDiscoverer(final Map<Class<?>, Object> initialOverrides) {
-+        this.instanceSupplier = new InnerClassInstanceSupplier(initialOverrides);
-+        this.delegate = (FieldDiscoverer<Map<Field, Object>>) FieldDiscoverer.object(this.instanceSupplier);
-+    }
-+
-+    @Override
-+    public @Nullable <V> InstanceFactory<Map<Field, Object>> discover(final AnnotatedType target, final FieldCollector<Map<Field, Object>, V> collector) throws SerializationException {
-+        final Class<?> clazz = erase(target.getType());
-+        if (ConfigurationPart.class.isAssignableFrom(clazz)) {
-+            final @Nullable InstanceFactory<Map<Field, Object>> instanceFactoryDelegate = this.delegate.<V>discover(target, (name, type, annotations, deserializer, serializer) -> {
-+                if (!erase(type.getType()).equals(clazz.getEnclosingClass())) { // don't collect synth fields for inner classes
-+                    collector.accept(name, type, annotations, deserializer, serializer);
-+                }
-+            });
-+            if (instanceFactoryDelegate instanceof MutableInstanceFactory<Map<Field, Object>> mutableInstanceFactoryDelegate) {
-+                return new InnerClassInstanceFactory(this.instanceSupplier, mutableInstanceFactoryDelegate, target);
-+            }
-+        }
-+        return null;
-+    }
-+
-+    public static FieldDiscoverer<?> worldConfig(WorldConfiguration worldConfiguration) {
-+        final Map<Class<?>, Object> overrides = Map.of(
-+            WorldConfiguration.class, worldConfiguration
-+        );
-+        return new InnerClassFieldDiscoverer(overrides);
-+    }
-+
-+    public static FieldDiscoverer<?> globalConfig() {
-+        return new InnerClassFieldDiscoverer(Collections.emptyMap());
-+    }
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
 new file mode 100644
