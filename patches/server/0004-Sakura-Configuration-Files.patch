@@ -384,10 +384,10 @@ index 0000000000000000000000000000000000000000..ebdb73fa24fd2600925bf5664ceda202
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..10fbe9f81c406b03ad0a3d86a7b9bd3ce2484e3c
+index 0000000000000000000000000000000000000000..74d4e257440842d40bfd72ff0741f1d7e04d493e
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
-@@ -0,0 +1,232 @@
+@@ -0,0 +1,240 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.google.common.collect.Table;
@@ -425,6 +425,7 @@ index 0000000000000000000000000000000000000000..10fbe9f81c406b03ad0a3d86a7b9bd3c
 +import org.slf4j.Logger;
 +import org.spongepowered.configurate.ConfigurateException;
 +import org.spongepowered.configurate.ConfigurationOptions;
++import org.spongepowered.configurate.objectmapping.FieldDiscoverer;
 +import org.spongepowered.configurate.objectmapping.ObjectMapper;
 +import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 +
@@ -525,7 +526,14 @@ index 0000000000000000000000000000000000000000..10fbe9f81c406b03ad0a3d86a7b9bd3c
 +    protected ObjectMapper.Factory.Builder createWorldObjectMapperFactoryBuilder(final ContextMap contextMap) {
 +        return super.createWorldObjectMapperFactoryBuilder(contextMap)
 +            .addNodeResolver(new NestedSetting.Factory())
-+            .addDiscoverer(new InnerClassFieldDiscoverer(Map.of(WorldConfiguration.class, contextMap)));
++            .addDiscoverer(createWorldConfigFieldDiscoverer(contextMap));
++    }
++
++    private static FieldDiscoverer<?> createWorldConfigFieldDiscoverer(final ContextMap contextMap) {
++        final Map<Class<?>, Object> overrides = Map.of(
++            WorldConfiguration.class, createWorldConfigInstance(contextMap)
++        );
++        return new InnerClassFieldDiscoverer(overrides);
 +    }
 +
 +    private static WorldConfiguration createWorldConfigInstance(ContextMap contextMap) {
