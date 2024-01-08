@@ -150,10 +150,10 @@ index 39081c0052a333580b22da10310d86de73693b2c..08e8de35fddcd54c5f466edb264aa454
          this.isIteratingOverLevels = false; // Paper
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index f48eaebb0f9a10fb77e85619b2d2a4996e461195..a507605a04af7f576548129517029192309fd9e7 100644
+index 431af1cc839e89e5d9831cd8533971a50a01d7c8..620966965f3d73cd6fdbf03dabe2605c45d51d57 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -894,6 +894,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -899,6 +899,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
              org.spigotmc.ActivationRange.activateEntities(this); // Spigot
              this.timings.entityTick.startTiming(); // Spigot
@@ -161,7 +161,7 @@ index f48eaebb0f9a10fb77e85619b2d2a4996e461195..a507605a04af7f576548129517029192
              this.entityTickList.forEach((entity) -> {
                  if (!entity.isRemoved()) {
                      if (false && this.shouldDiscardEntity(entity)) { // CraftBukkit - We prevent spawning in general, so this butchering is not needed
-@@ -913,6 +914,15 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -918,6 +919,15 @@ public class ServerLevel extends Level implements WorldGenLevel {
                                  entity.stopRiding();
                              }
  
@@ -178,7 +178,7 @@ index f48eaebb0f9a10fb77e85619b2d2a4996e461195..a507605a04af7f576548129517029192
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 70ca40c87c161d96a3661066386f2560d0aeca6d..ce0f8567f8b3d52b806c2c0ef600852ee192c05b 100644
+index 393e951102c49d45a135b37ccd876283c5355710..8562e2794fc2cc29e55d34186480e820bffe1237 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -578,6 +578,107 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -297,7 +297,7 @@ index 70ca40c87c161d96a3661066386f2560d0aeca6d..ce0f8567f8b3d52b806c2c0ef600852e
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -2517,6 +2619,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2521,6 +2623,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  nbttagcompound.putBoolean("Paper.FreezeLock", true);
              }
              // Paper end
@@ -309,7 +309,7 @@ index 70ca40c87c161d96a3661066386f2560d0aeca6d..ce0f8567f8b3d52b806c2c0ef600852e
              return nbttagcompound;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2664,6 +2771,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2668,6 +2775,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  freezeLocked = nbt.getBoolean("Paper.FreezeLock");
              }
              // Paper end
@@ -321,7 +321,7 @@ index 70ca40c87c161d96a3661066386f2560d0aeca6d..ce0f8567f8b3d52b806c2c0ef600852e
  
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
-@@ -4871,6 +4983,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4882,6 +4994,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              return;
          }
          // Paper end - rewrite chunk system
@@ -462,7 +462,7 @@ index cc30c119f519e7cd947ab40beae56e493e977176..811a5224a02bb3badb1b8d6de370b716
                  this.explode();
              }
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 862a56ce8de55bdca99af24fcf3909e820a0598e..37fbba2f6eb32f2806ae1fec90d7be800ba91d49 100644
+index 902ec524d209ab56a6dadb260559910c76dbf96b..467ac21893d2e2ee07bc3ce7852ceb87dfe56cdf 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -237,6 +237,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {

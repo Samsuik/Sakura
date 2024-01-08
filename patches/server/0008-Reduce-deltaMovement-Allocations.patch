@@ -5,10 +5,10 @@ Subject: [PATCH] Reduce deltaMovement Allocations
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index b2d2b6d588572682730a228888b6dcdae2dc5020..4ffa96f7eeefd6a2a07458f68458cdbf4369340f 100644
+index 33a317696c62243952bbf686ff3e52a776672599..8cae7a1ac496995ebe59ad88c56fbc424ca98930 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1233,7 +1233,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1237,7 +1237,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  this.tryCheckInsideBlocks();
                  float f = this.getBlockSpeedFactor();
  
@@ -17,7 +17,7 @@ index b2d2b6d588572682730a228888b6dcdae2dc5020..4ffa96f7eeefd6a2a07458f68458cdbf
                  // Paper start - remove expensive streams from here
                  boolean noneMatch = true;
                  AABB fireSearchBox = this.getBoundingBox().deflate(1.0E-6D);
-@@ -2049,6 +2049,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2053,6 +2053,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      public void moveTo(double x, double y, double z, float yaw, float pitch) {
          // Paper - cancel entity velocity if teleported
          if (!preserveMotion) {
@@ -25,7 +25,7 @@ index b2d2b6d588572682730a228888b6dcdae2dc5020..4ffa96f7eeefd6a2a07458f68458cdbf
              this.deltaMovement = Vec3.ZERO;
          } else {
              this.preserveMotion = false;
-@@ -3451,29 +3452,33 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -3455,29 +3456,33 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      public void onAboveBubbleCol(boolean drag) {
@@ -67,7 +67,7 @@ index b2d2b6d588572682730a228888b6dcdae2dc5020..4ffa96f7eeefd6a2a07458f68458cdbf
          this.resetFallDistance();
      }
  
-@@ -4460,16 +4465,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4471,16 +4476,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                      vec3d = vec3d.normalize();
                  }
  
@@ -90,7 +90,7 @@ index b2d2b6d588572682730a228888b6dcdae2dc5020..4ffa96f7eeefd6a2a07458f68458cdbf
              }
  
              this.fluidHeight.put(tag, d1);
-@@ -4540,11 +4548,53 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4551,11 +4559,53 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          return this.chunkPosition;
      }
  
@@ -144,7 +144,7 @@ index b2d2b6d588572682730a228888b6dcdae2dc5020..4ffa96f7eeefd6a2a07458f68458cdbf
          synchronized (this.posLock) { // Paper
          this.deltaMovement = velocity;
          } // Paper
-@@ -4555,7 +4605,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4566,7 +4616,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      public void setDeltaMovement(double x, double y, double z) {
@@ -232,10 +232,10 @@ index 9cd244090c294927a7a92c920854d2282ea3f021..3d4a75302d72bdbe47d0efbe08c89401
  
                              if (!entityhuman.isSpectator() && (!entityhuman.isCreative() || !entityhuman.getAbilities().flying) && !level.paperConfig().environment.disableExplosionKnockback) { // Paper - Disable explosion knockback
 diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
-index 4d50dd92a7f3187ee1d8edb926e7c273c8156549..ec24eadbe7dd7e60c023303dc8050e3e784516a1 100644
+index e21867d3956078bb0db4ceed45e5811e9acd7377..c2daf4421b5838fe57dc16184c4a5a8c190fa641 100644
 --- a/src/main/java/net/minecraft/world/level/block/Block.java
 +++ b/src/main/java/net/minecraft/world/level/block/Block.java
-@@ -460,7 +460,7 @@ public class Block extends BlockBehaviour implements ItemLike {
+@@ -468,7 +468,7 @@ public class Block extends BlockBehaviour implements ItemLike {
      }
  
      public void updateEntityAfterFallOn(BlockGetter world, Entity entity) {

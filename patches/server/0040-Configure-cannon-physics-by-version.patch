@@ -5,7 +5,7 @@ Subject: [PATCH] Configure cannon physics by version
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index 57ca8212991d0660dd41b70350f59830d4fd09f3..39085c2a356f575f0ef6acaa3de7d9ff560b5a87 100644
+index 19086bbfdf3a015eafec5ca868c8d2451f554ef0..a40dcbde87860fd6d3b60d0b9e2d5e63e18e69b7 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
 @@ -1495,6 +1495,14 @@ public final class CollisionUtil {
@@ -87,7 +87,7 @@ index b87748ae90863abe8f85dcbdc5a202cb3c9e2037..a291516ec7bdb9d8b840f41ca52e6bba
                  x /= distance;
                  y /= distance;
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23cf9cf818 100644
+index 2beb43acfd1e4cc26e50ae11fd1eec6080d7c1fd..599706984734b8979b432b1bbc15f8ac13d2b334 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -378,7 +378,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -113,7 +113,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
  
      public boolean isLegacyTrackingEntity = false;
  
-@@ -1162,7 +1169,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1166,7 +1173,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      protected void checkSupportingBlock(boolean onGround, @Nullable Vec3 movement) {
@@ -122,7 +122,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
              AABB axisalignedbb = this.getBoundingBox();
              AABB axisalignedbb1 = new AABB(axisalignedbb.minX, axisalignedbb.minY - 1.0E-6D, axisalignedbb.minZ, axisalignedbb.maxX, axisalignedbb.minY, axisalignedbb.maxZ);
              Optional<BlockPos> optional = this.level.findSupportingBlock(this, axisalignedbb1);
-@@ -1224,7 +1231,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1228,7 +1235,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          if (this.noPhysics) {
              this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
          } else {
@@ -131,7 +131,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
                  movement = this.limitPistonMovement(movement);
                  if (movement.equals(Vec3.ZERO)) {
                      return;
-@@ -1242,10 +1249,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1246,10 +1253,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              Vec3 vec3d1 = this.collideScan(movement);
              double d0 = vec3d1.lengthSqr();
  
@@ -144,7 +144,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
                      BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
  
                      if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
-@@ -1281,6 +1288,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1285,6 +1292,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  if (this.horizontalCollision) {
                      Vec3 vec3d2 = this.getDeltaMovement();
  
@@ -157,7 +157,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
                      this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
                  }
  
-@@ -1321,7 +1334,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1325,7 +1338,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
          } else {
              this.wasOnFire = this.isOnFire();
@@ -166,7 +166,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
                  this.activatedTick = Math.max(this.activatedTick, MinecraftServer.currentTick + 20); // Paper
                  this.activatedImmunityTick = Math.max(this.activatedImmunityTick, MinecraftServer.currentTick + 20);   // Paper
                  movement = this.limitPistonMovement(movement);
-@@ -1348,8 +1361,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1352,8 +1365,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              Vec3 vec3d1 = this.collide(movement);
              double d0 = vec3d1.lengthSqr();
  
@@ -177,7 +177,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
                      BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
  
                      if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
-@@ -1385,6 +1398,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1389,6 +1402,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  if (this.horizontalCollision) {
                      Vec3 vec3d2 = this.getDeltaMovement();
  
@@ -190,7 +190,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
                      this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
                  }
  
-@@ -1708,7 +1727,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1712,7 +1731,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          double y = movement.y;
          double z = movement.z;
  
@@ -202,7 +202,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
  
          if (y != 0.0) {
              y = scanY(currBoundingBox, y, voxelList, bbList);
-@@ -1824,7 +1846,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1828,7 +1850,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              return movement;
          }
  
@@ -211,7 +211,7 @@ index 4c55fe458378f2f376a8c31cec57e4751aa3d290..852276d9bedc51c3c8a28b60c85fdb23
  
          if (stepHeight > 0.0
                  && (onGround || (limitedMoveVector.y != movement.y && movement.y < 0.0))
-@@ -1940,8 +1962,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1944,8 +1966,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
  
      protected void checkInsideBlocks() {
          AABB axisalignedbb = this.getBoundingBox();
@@ -541,7 +541,7 @@ index 5a10afb92fd62f433be9be6751e5222f3666c9f3..d92798d848754bb02f2de9ee91e1342c
          if (data == null || !data.isExpandable() && (blockDensity == 0.0f || blockDensity == 1.0f)) {
              level.densityCache.createCache(key, entity, vec3d, blockDensity);
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 09ff77ec8967645df0de253f6e8ee8cb6b998c0d..5afbdbd07afc671c3c6db491a713abfa467fffa3 100644
+index 3292c06d040b6c1996f27a34532ed098f9e7a6c9..cd022e636bf31186b7be36d671932b8e0355d948 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -274,6 +274,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
