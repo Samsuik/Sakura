@@ -445,7 +445,11 @@ index aa65887b72a96d87f0cad98047deffd01d60ec3f..c3c053884101b818274400f0ebcd6690
      // Paper end
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+<<<<<<< HEAD:patches/server/0039-Configure-cannon-physics-by-version.patch
 index b017d33ece7563af8fc4d5fdc080b6b8bda79c7d..8646302289669685cd44bb70231a110b4b09affc 100644
+=======
+index 5a10afb92fd62f433be9be6751e5222f3666c9f3..560893581a2547082ab71def32d7ae089d73c261 100644
+>>>>>>> e640167 (Fix wrong raytrace method used in getSeenPercent):patches/server/0040-Configure-cannon-physics-by-version.patch
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -68,6 +68,7 @@ public class Explosion {
@@ -474,8 +478,8 @@ index b017d33ece7563af8fc4d5fdc080b6b8bda79c7d..8646302289669685cd44bb70231a110b
 -                        } else if (entity.level.clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
 +                            hitResult = data.density() == 1.0 ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
 +                        } else {
-+                            if (entity.physics().afterOrEqual(1_14_0)) {
-+                                hitResult = entity.level.rayTrace(vec3d1, source);
++                            if (entity.physics().before(1_14_0)) {
++                                hitResult = entity.level().rayTrace(vec3d1, source);
 +                            } else {
 +                                hitResult = entity.level.clip(new ClipContext(vec3d1, source, entity.physics().afterOrEqual(1_16_0) ? ClipContext.Block.COLLIDER : ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, entity)).getType();
 +                            }
