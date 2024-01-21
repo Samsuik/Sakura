@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sun, 26 Nov 2023 17:57:50 +0000
+Subject: [PATCH] Treat all collidable blocks as full while moving fast
+
+
+diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
+index 9132adee72a2ae9c1c069a4f385c2b8d101484ba..7ff34421298f48d75066db0b2accca4d0dfa5dcf 100644
+--- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
++++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
+@@ -467,6 +467,7 @@ public final class CollisionUtil {
+         final int maxChunkZ = maxBlockZ >> 4;
+ 
+         final boolean addTicket = loadChunks && entity != null && (entity.isPrimedTNT || entity.isFallingBlock); // Sakura
++        final boolean fullBlocks = entity != null && entity.isTreatingBlocksAsFull(); // Sakura
+         final ServerChunkCache chunkProvider;
+         if (getter instanceof WorldGenRegion) {
+             chunkProvider = null;
+@@ -531,7 +532,7 @@ public final class CollisionUtil {
+                     final int maxY = currChunkY == maxChunkYIterate ? maxYIterate & 15 : 15; // coordinate in chunk
+                     final int chunkYGlobalPos = currChunkY << 4;
+ 
+-                    final boolean sectionHasSpecial = section.hasSpecialCollidingBlocks();
++                    final boolean sectionHasSpecial = !fullBlocks && section.hasSpecialCollidingBlocks(); // Sakura
+ 
+                     final int minXIterate;
+                     final int maxXIterate;
+@@ -637,11 +638,20 @@ public final class CollisionUtil {
+                                 BlockState blockData = blocks.get(localBlockIndex);
+ 
+                                 if ((edgeCount != 1 || blockData.shapeExceedsCube()) && (edgeCount != 2 || blockData.getBlock() == Blocks.MOVING_PISTON)) {
+-                                    mutablePos.set(blockX, blockY, blockZ);
+-                                    if (collisionShape == null) {
+-                                        collisionShape = new LazyEntityCollisionContext(entity);
++                                    // Sakura start - treat all collidable block as full
++                                    final VoxelShape voxelshape2;
++
++                                    if (fullBlocks) {
++                                        voxelshape2 = Shapes.block();
++                                    } else {
++                                        mutablePos.set(blockX, blockY, blockZ);
++                                        if (collisionShape == null) {
++                                            collisionShape = new LazyEntityCollisionContext(entity);
++                                        }
++
++                                        voxelshape2 = blockData.getCollisionShape(getter, mutablePos, collisionShape);
+                                     }
+-                                    VoxelShape voxelshape2 = blockData.getCollisionShape(getter, mutablePos, collisionShape);
++                                    // Sakura end
+                                     if (voxelshape2 != Shapes.empty()) {
+                                         VoxelShape voxelshape3 = voxelshape2.move((double)blockX, (double)blockY, (double)blockZ);
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 888801fc3468970bffe63fbefbae63e1d851f403..a15d5cd0acfba3e3e8ed46dda9fbab671eca4112 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -684,6 +684,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         return this.physics;
+     }
+     // Sakura end
++    // Sakura start - treat all collidable blocks as full
++    public boolean isTreatingBlocksAsFull() {
++        if (level.sakuraConfig().cannons.treatAllBlocksAsFullWhenMoving && (this.isPrimedTNT || this.isFallingBlock)) {
++            this.syncDeltaMovement();
++            double horizontalMovementSqr = this.movementX*this.movementX + this.movementZ*this.movementZ;
++            if (horizontalMovementSqr > Math.pow(this.level.sakuraConfig().cannons.treatAllBlocksAsFullWhenMovingFasterThan, 2.0)) {
++                return true;
++            }
++        }
++
++        return false;
++    }
++    // Sakura end
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();

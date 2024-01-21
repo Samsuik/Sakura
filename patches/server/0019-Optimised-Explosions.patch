@@ -1,0 +1,987 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 12 Oct 2023 16:23:31 +0100
+Subject: [PATCH] Optimised Explosions
+
+
+diff --git a/src/main/java/me/samsuik/sakura/explosion/DensityCache.java b/src/main/java/me/samsuik/sakura/explosion/DensityCache.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfcad88e3783
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/explosion/DensityCache.java
+@@ -0,0 +1,130 @@
++package me.samsuik.sakura.explosion;
++
++import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
++import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
++import net.minecraft.util.Mth;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.Vec3;
++
++import javax.annotation.Nullable;
++
++public class DensityCache {
++
++    private final Int2ObjectMap<Density> densityMap = new Int2ObjectOpenHashMap<>();
++
++    public @Nullable Density retrieveCache(int key) {
++        return densityMap.get(key);
++    }
++
++    public void createCache(int key, Entity entity, Vec3 vec3d, float density) {
++        densityMap.put(key, new Density(entity.getBoundingBox(), vec3d, density));
++    }
++
++    public void clear() {
++        densityMap.clear();
++    }
++
++    public static int createKey(Entity entity, Vec3 vec3d) {
++        int hash         = Mth.floor(vec3d.x);
++        hash = 31 * hash ^ Mth.floor(vec3d.y);
++        hash = 31 * hash ^ Mth.floor(vec3d.z);
++        hash = 31 * hash ^ Mth.floor(entity.getX());
++        hash = 31 * hash ^ Mth.floor(entity.getY());
++        hash = 31 * hash ^ Mth.floor(entity.getZ());
++        return hash;
++    }
++
++    public static final class Density {
++        private AABB source;
++        private AABB entity;
++        private AABB obstruction;
++        private final float density;
++        private final boolean expand;
++
++        Density(AABB bb, Vec3 p, float d) {
++            entity = bb;
++            source = new AABB(p, p);
++            density = d;
++            expand = density == 0.0f || density == 1.0f;
++        }
++
++        public boolean isExpandable() {
++            return expand;
++        }
++
++        public float density() {
++            return density;
++        }
++
++        public void obscure(Vec3 p) {
++            if (obstruction == null) {
++                obstruction = new AABB(p, p);
++            } else {
++                obstruction = expandBBWithVec3(p, obstruction);
++            }
++        }
++
++        public boolean isObscured(Vec3 p) {
++            return obstruction != null
++                && obstruction.minX <= p.x && obstruction.maxX >= p.x
++                && obstruction.minY <= p.y && obstruction.maxY >= p.y
++                && obstruction.minZ <= p.z && obstruction.maxZ >= p.z;
++        }
++
++        public void expand(AABB bb, Vec3 p) {
++            entity = entity.minmax(bb);
++            source = expandBBWithVec3(p, source);
++        }
++
++        public boolean has(AABB bb, Vec3 p) {
++            return isBBWithinBounds(bb) && isPointWithinBounds(p);
++        }
++
++        public boolean has(Vec3 p) {
++            return isPointWithinBounds(p);
++        }
++
++        private boolean isBBWithinBounds(AABB bb) {
++            return entity.minX <= bb.minX && entity.maxX >= bb.maxX
++                && entity.minY <= bb.minY && entity.maxY >= bb.maxY
++                && entity.minZ <= bb.minZ && entity.maxZ >= bb.maxZ;
++        }
++
++        private boolean isPointWithinBounds(Vec3 p) {
++            return source.minX <= p.x && source.maxX >= p.x
++                && source.minY <= p.y && source.maxY >= p.y
++                && source.minZ <= p.z && source.maxZ >= p.z;
++        }
++        
++        private AABB expandBBWithVec3(Vec3 point, AABB what) {
++            double minX = what.minX;
++            double minY = what.minY;
++            double minZ = what.minZ;
++            double maxX = what.maxX;
++            double maxY = what.maxY;
++            double maxZ = what.maxZ;
++
++            if (point.x < minX) {
++                minX = point.x;
++            } else if (point.x > maxX) {
++                maxX = point.x;
++            }
++
++            if (point.y < minY) {
++                minY = point.y;
++            } else if (point.y > maxY) {
++                maxY = point.y;
++            }
++
++            if (point.z < minZ) {
++                minZ = point.z;
++            } else if (point.z > maxZ) {
++                maxZ = point.z;
++            }
++
++            return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
++        }
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..31eec14e78612e4cd6941c09f8b9093f324dce7e
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
+@@ -0,0 +1,381 @@
++package me.samsuik.sakura.explosion;
++
++import me.samsuik.sakura.entity.EntityState;
++import net.minecraft.core.BlockPos;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.util.Mth;
++import net.minecraft.world.damagesource.DamageSource;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.entity.LivingEntity;
++import net.minecraft.world.entity.boss.EnderDragonPart;
++import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
++import net.minecraft.world.entity.item.PrimedTnt;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.item.enchantment.ProtectionEnchantment;
++import net.minecraft.world.level.Explosion;
++import net.minecraft.world.level.ExplosionDamageCalculator;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.ArrayList;
++import java.util.List;
++
++/*
++ * Special explosion implementation to take advantage of TNT merging.
++ *
++ * This allows us to introduce more optimisations
++ * * if we have been unable to find any blocks nearby stop searching for blocks
++ * * avoid trying to affect entities that are completely obscured
++ * * reduce range checks for out of range entities
++ * * take better advantage of the block cache in paper
++ * * special case for explosions in the same position
++ *
++ * Unfortunately, this requires duplicating the impact entity section from Explosion.
++ *
++ * This does hurt performance in a "rogue tnt" scenario, tnt that has been spawned
++ * by an explosion destroying a tnt block often in massive blocks of tnt. It is not
++ * realistic to explode a big block of tnt in survival or factions. They only cause
++ * harm to a server and extremely wasteful for resources with minimal impact to terrain.
++ */
++public class SakuraExplosion extends Explosion {
++
++    private final Level level;
++
++    public SakuraExplosion(Level world, @Nullable Entity entity, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator behavior, double x, double y, double z, float power, boolean createFire, BlockInteraction destructionType) {
++        super(world, entity, damageSource, behavior, x, y, z, power, createFire, destructionType);
++        this.level = world;
++    }
++
++    @Override
++    public void explode() {
++        if (this.radius < 0.1F) {
++            for (int i = 1; i < source.getStacked(); ++i) {
++                getToBlow().clear();
++                ((ServerLevel) level).notifyPlayersOfExplosion(x, y, z, radius, this);
++                finalizeExplosion(false);
++            }
++
++            return;
++        }
++
++        List<Vec3> positions = new ArrayList<>(source.getStacked());
++
++        EntityState entityState = null;
++        AABB bounds = new AABB(x, y, z, x, y, z);
++        Vec3 lastMovement = source.entityState().momentum();
++        int wrapped = 0;
++
++        for (int i = 0; i < source.getStacked() && !wasCanceled; ++i) {
++            if (i > 0) {
++                calculateNextPosition(entityState);
++                getToBlow().clear();
++            }
++
++            // keep track of positions and bounds
++            Vec3 position = new Vec3(x, y, z);
++            positions.add(position);
++            bounds = bounds.minmax(new AABB(position, position));
++
++            // search for blocks if necessary
++            if (wrapped < 7 + 12) {
++                BlockState state = level.getBlockState(BlockPos.containing(x, y, z));
++                if (interactsWithBlocks() && isDestructibleBlock(state) && isRegionUnprotected()) {
++                    searchForBlocks();
++                }
++            }
++
++            // Check if the explosion has wrapped around with swinging on each axis
++            if (wrapped < 7) {
++                Vec3 movement = source.entityState().momentum();
++                if (movement.x == lastMovement.x || movement.x * lastMovement.x < 0) wrapped |= 1;
++                if (movement.y == lastMovement.y || movement.y * lastMovement.y < 0) wrapped |= 1 << 1;
++                if (movement.z == lastMovement.z || movement.z * lastMovement.z < 0) wrapped |= 1 << 2;
++                lastMovement = movement;
++            }
++
++            boolean isFinalExplosion = i + 1 >= source.getStacked();
++
++            // Possible optimisation here is making our own finalize explosion for this special case.
++            // If this is after the explosion event we can take better advantage of protection plugins.
++            if (isFinalExplosion || !getToBlow().isEmpty()) {
++                locateAndImpactEntities(positions, bounds);
++                bounds = new AABB(position, position);
++                positions.clear();
++            }
++
++            if (!isFinalExplosion) {
++                // Calculate next source velocity
++                entityState = calculateNextVelocity(position);
++
++                // Could be viable in the future to have a configuration option to reduce explosion events
++                super.finalizeExplosion(false);
++                ((ServerLevel) level).notifyPlayersOfExplosion(x, y, z, radius, this);
++
++                // Update wrapped, this is for tracking swinging and if blocks are found
++                if (getToBlow().isEmpty() && level.sakuraConfig().cannons.explosion.avoidRedundantBlockSearches) {
++                    wrapped++;
++                } else {
++                    wrapped = 7;
++                }
++            }
++        }
++    }
++
++    private void calculateNextPosition(EntityState entityState) {
++        if (source instanceof PrimedTnt tnt) {
++            tnt.setFuse(100);
++        }
++
++        boolean moved = !source.entityState().position().equals(source.position());
++        entityState.apply(source);
++        source.storeEntityState();
++
++        if (!getToBlow().isEmpty() || source.getDeltaMovement().lengthSqr() <= 65.16525625 || moved) {
++            source.tick();
++        }
++
++        // update explosion position
++        x = source.getX();
++        y = source.getY(0.0625D);
++        z = source.getZ();
++    }
++
++    private EntityState calculateNextVelocity(Vec3 position) {
++        PrimedTnt tnt = new PrimedTnt(EntityType.TNT, level);
++        source.entityState().apply(tnt);
++        impactEntityIdle(tnt, new Entity[0], position, 1, radius * 2.0f);
++        return EntityState.of(tnt);
++    }
++
++    private void locateAndImpactEntities(List<Vec3> positions, AABB bb) {
++        double radius = this.radius * 2.0f;
++
++        int minSection = io.papermc.paper.util.WorldUtil.getMinSection(level);
++        int maxSection = io.papermc.paper.util.WorldUtil.getMaxSection(level);
++
++        int minChunkX = Mth.floor(bb.minX - radius) >> 4;
++        int minChunkY = Mth.clamp(Mth.floor(bb.minY - radius) >> 4, minSection, maxSection);
++        int minChunkZ = Mth.floor(bb.minZ - radius) >> 4;
++        int maxChunkX = Mth.floor(bb.maxX + radius) >> 4;
++        int maxChunkY = Mth.clamp(Mth.floor(bb.maxY + radius) >> 4, minSection, maxSection);
++        int maxChunkZ = Mth.floor(bb.maxZ + radius) >> 4;
++
++        Vec3 center = bb.getCenter();
++        double change = Math.max(bb.maxX - bb.minX, Math.max(bb.maxY - bb.minY, bb.maxZ - bb.minZ));
++        double maxDistanceSqr = Math.pow(radius + change, 2);
++
++        boolean moved = change != 0.0;
++
++        io.papermc.paper.chunk.system.entity.EntityLookup entityLookup = ((ServerLevel) level).getEntityLookup();
++
++        // impact entities already has a range check there is no reason to also
++        // do an intersection check when retrieving entities from the chunk.
++
++        for (int chunkX = minChunkX; chunkX <= maxChunkX; ++chunkX) {
++            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; ++chunkZ) {
++                io.papermc.paper.world.ChunkEntitySlices chunk = entityLookup.getChunk(chunkX, chunkZ);
++
++                if (chunk == null) {
++                    continue;
++                }
++
++                for (int chunkY = minChunkY; chunkY <= maxChunkY; ++chunkY) {
++                    if (moved) {
++                        impactEntities(chunk.getSectionEntities(chunkY), positions, center, radius, maxDistanceSqr);
++                    } else {
++                        impactEntitiesIdle(chunk.getSectionEntities(chunkY), positions.get(0), positions.size(), radius);
++                    }
++                }
++            }
++        }
++    }
++
++    // swinging case: more than 1 position and actively changing positions.
++    private void impactEntities(Entity[] entities, List<Vec3> positions, Vec3 center, double radius, double maxDistanceSqr) {
++        for (int i = 0; i < entities.length; ++i) {
++            Entity entity = entities[i];
++            if (entity == null) break;
++
++            if (entity != source && !entity.ignoreExplosion() && entity.distanceToSqr(center.x, center.y, center.z) <= maxDistanceSqr) {
++                int key = DensityCache.createKey(entity, center);
++                DensityCache.Density data = level.densityCache.retrieveCache(key);
++                Vec3 position = entity.position();
++
++                if (data != null && data.isObscured(position)) {
++                    continue;
++                } else if (impactEntity(entity, entities, positions, radius) == 1 && data != null) {
++                    data.obscure(position);
++                }
++            }
++
++            // chunk entities can change while we're affecting entities
++            if (entities[i] != entity) {
++                i--;
++            }
++        }
++    }
++
++    private int impactEntity(Entity entity, Entity[] section, List<Vec3> positions, double radius) {
++        int found = 0;
++
++        //noinspection ForLoopReplaceableByForEach
++        for (int i = 0; i < positions.size(); i++) {
++            Vec3 pos = positions.get(i);
++
++            double distanceFromBottom = Math.sqrt(entity.distanceToSqr(pos)) / radius;
++
++            if (distanceFromBottom > 1.0) continue;
++
++            double x = entity.getX() - pos.x;
++            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - pos.y;
++            double z = entity.getZ() - pos.z;
++            double distance = Math.sqrt(x * x + y * y + z * z);
++
++            if (distance == 0.0D) continue;
++
++            x /= distance;
++            y /= distance;
++            z /= distance;
++            double density = this.getBlockDensity(pos, entity); // Paper - Optimize explosions // Paper - optimise explosions
++            double exposure = (1.0D - distanceFromBottom) * density;
++
++            int visible = density != 0.0 ? 1 : 0;
++            found |= (visible << 1) | 1;
++
++            if (entity.isPrimedTNT || entity.isFallingBlock) {
++                entity.addDeltaMovement(x * exposure, y * exposure, z * exposure);
++                continue;
++            }
++
++            impactNonLiving(entity, pos, section, x, y, z, exposure, radius);
++        }
++
++        return found;
++    }
++
++    // stationary case: 1 position or stationary
++    private void impactEntitiesIdle(Entity[] entities, Vec3 position, int potential, double radius) {
++        for (int i = 0; i < entities.length; ++i) {
++            Entity entity = entities[i];
++            if (entity == null) break;
++
++            if (entity != source && !entity.ignoreExplosion()) {
++                impactEntityIdle(entity, entities, position, potential, radius);
++            }
++
++            // chunk entities can change while we're affecting entities
++            if (entities[i] != entity) {
++                i--;
++            }
++        }
++    }
++
++    private void impactEntityIdle(Entity entity, Entity[] section, Vec3 pos, int potential, double radius) {
++        double distanceFromBottom = Math.sqrt(entity.distanceToSqr(pos)) / radius;
++
++        if (distanceFromBottom <= 1.0) {
++            double x = entity.getX() - pos.x;
++            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - pos.y;
++            double z = entity.getZ() - pos.z;
++            double distance = Math.sqrt(x * x + y * y + z * z);
++
++            if (distance != 0.0D) {
++                x /= distance;
++                y /= distance;
++                z /= distance;
++                double density = this.getBlockDensity(pos, entity); // Paper - Optimize explosions // Paper - optimise explosions
++                double exposure = (1.0D - distanceFromBottom) * density;
++
++                if (entity.isPrimedTNT || entity.isFallingBlock) {
++                    x *= exposure;
++                    y *= exposure;
++                    z *= exposure;
++
++                    if (exposure == 0.0) {
++                        return;
++                    }
++
++                    for (int i = 0; i < potential; ++i) {
++                        entity.addDeltaMovement(x, y, z);
++                    }
++                } else {
++                    for (int i = 0; i < potential; ++i) {
++                        impactNonLiving(entity, pos, section, x, y, z, exposure, radius);
++                    }
++                }
++            }
++        }
++    }
++
++    private void impactNonLiving(Entity entity, Vec3 pos, Entity[] section, double x, double y, double z, double exposure, double radius) {
++        // CraftBukkit start
++
++        // Special case ender dragon only give knockback if no damage is cancelled
++        // Thinks to note:
++        // - Setting a velocity to a ComplexEntityPart is ignored (and therefore not needed)
++        // - Damaging ComplexEntityPart while forward the damage to EntityEnderDragon
++        // - Damaging EntityEnderDragon does nothing
++        // - EntityEnderDragon hitbock always covers the other parts and is therefore always present
++        if (entity instanceof EnderDragonPart) {
++            return;
++        }
++
++        CraftEventFactory.entityDamage = this.source;
++        entity.lastDamageCancelled = false;
++
++        if (entity instanceof EnderDragon) {
++            for (EnderDragonPart entityComplexPart : ((EnderDragon) entity).subEntities) {
++                for (Entity ent : section) {
++                    // Calculate damage separately for each EntityComplexPart
++                    if (ent == null) break;
++                    if (ent == entityComplexPart) {
++                        double d7part;
++                        if ((d7part = Math.sqrt(entityComplexPart.distanceToSqr(pos)) / radius) <= 1.0D) {
++                            double d13part = (1.0D - d7part) * Explosion.getSeenPercent(pos, entityComplexPart, null); // Sakura
++                            entityComplexPart.hurt(this.getDamageSource(), (float) ((int) ((d13part * d13part + d13part) / 2.0D * 7.0D * radius + 1.0D)));
++                        }
++                    }
++                }
++            }
++        } else {
++            entity.hurt(this.damageSource, (float) ((int) ((exposure * exposure + exposure) / 2.0D * 7.0D * radius + 1.0D)));
++        }
++
++        CraftEventFactory.entityDamage = null;
++        if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled
++            return;
++        }
++        // CraftBukkit end
++
++        double force;
++
++        if (entity instanceof LivingEntity) {
++            LivingEntity entityliving = (LivingEntity) entity;
++
++            force = entity instanceof Player && level.paperConfig().environment.disableExplosionKnockback ? 0 : ProtectionEnchantment.getExplosionKnockbackAfterDampener(entityliving, exposure); // Paper - disable explosion knockback
++        } else {
++            force = exposure;
++        }
++
++        x *= force;
++        y *= force;
++        z *= force;
++        // Sakura - moved down
++
++        entity.addDeltaMovement(x, y, z); // Sakura reduce deltamovement allocations
++        if (entity instanceof Player) {
++            Vec3 vec3d1 = new Vec3(x, y, z); // Sakura
++            Player entityhuman = (Player) entity;
++
++            if (!entityhuman.isSpectator() && (!entityhuman.isCreative() || !entityhuman.getAbilities().flying) && !level.paperConfig().environment.disableExplosionKnockback) { // Paper - Disable explosion knockback
++                this.getHitPlayers().put(entityhuman, vec3d1);
++            }
++        }
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/utils/ExplosionUtil.java b/src/main/java/me/samsuik/sakura/utils/ExplosionUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e0387f16ff49031fdcbc8990613417da88d84e87
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/utils/ExplosionUtil.java
+@@ -0,0 +1,64 @@
++package me.samsuik.sakura.utils;
++
++import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class ExplosionUtil {
++
++    private static final java.util.function.Function<double[], Double> highestOf = (vector) -> {
++        double highest = 0;
++
++        for (double v : vector) {
++            highest = Math.max(Math.abs(v), highest);
++        }
++
++        return highest;
++    };
++
++    public static void reduceRays(DoubleArrayList rayCoords) {
++        // temporarily transform rayCoords into a double[] list
++        List<double[]> vectors = new ArrayList<>();
++
++        for (int i = 0; i < rayCoords.size(); i += 3) {
++            vectors.add(new double[] {
++                rayCoords.getDouble(i),
++                rayCoords.getDouble(i + 1),
++                rayCoords.getDouble(i + 2)
++            });
++        }
++
++        vectors.sort((o1, o2) -> Double.compare(highestOf.apply(o2), highestOf.apply(o1)));
++
++        List<double[]> checked = new java.util.ArrayList<>();
++
++        for (double[] vector : vectors) {
++            boolean found = checked.stream().anyMatch((filtered) -> {
++                double x = (filtered[0] - vector[0]) / 0.3f;
++                double y = (filtered[1] - vector[1]) / 0.3f;
++                double z = (filtered[2] - vector[2]) / 0.3f;
++                double distanceSquared = x * x + y * y + z * z;
++
++                return (distanceSquared > 0.009 && distanceSquared < 0.01)
++                    || (distanceSquared > 0.0075 && distanceSquared < 0.008)
++                    || (distanceSquared > 0.006 && distanceSquared < 0.00675);
++            });
++
++            if (!found) {
++                checked.add(vector);
++            }
++        }
++
++        rayCoords.clear();
++
++        for (double[] vector : vectors) {
++            for (double coord : vector) {
++                rayCoords.add(coord);
++            }
++        }
++
++        rayCoords.trim();
++    }
++
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 9a15ce8aef1c52b915ea9131a31e60065d667a4a..a9049e2cf29bdf90eb308f6b15a4374779032eec 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1579,6 +1579,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             worldserver.localConfig().expire(currentTickLong); // Sakura
+             worldserver.minimalTNT.clear(); // Sakura - visibility api
+             worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
++            worldserver.densityCache.clear(); // Sakura
+         }
+         this.isIteratingOverLevels = false; // Paper
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 3ace813ccce8b836edef76a16b92ca99762af7b1..c2452f6c47533c7d921c55c4997c1be6471fe942 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -1761,6 +1761,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
+             explosion.clearToBlow();
+         }
+ 
++        // Sakura start
++        notifyPlayersOfExplosion(x, y, z, power, explosion);
++        return explosion;
++    }
++    public void notifyPlayersOfExplosion(double x, double y, double z, float power, Explosion explosion) {
++        // Sakura end
+         Iterator iterator = this.players.iterator();
+ 
+         while (iterator.hasNext()) {
+@@ -1771,7 +1777,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+             }
+         }
+ 
+-        return explosion;
++        // Sakura - move up
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index 2bdd46350317a9fadf362b1a341993c92d7a9651..7b5d96670c6818949a0be556b547347e559dd93a 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -75,6 +75,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+               || tnt.entityState().fallDistance() > 2.5f && fallDistance > 2.5f);
+     }
+ 
++    /*
+     @Override
+     protected boolean respawnMerged() {
+         if (stacked <= 1) return false;
+@@ -96,6 +97,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+ 
+         return true;
+     }
++    */
+     // Sakura end
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe03290db2 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -55,14 +55,16 @@ public class Explosion {
+     private final Explosion.BlockInteraction blockInteraction;
+     private final RandomSource random;
+     private final Level level;
+-    private final double x;
+-    private final double y;
+-    private final double z;
++    // Sakura start - expose fields
++    protected double x;
++    protected double y;
++    protected double z;
+     @Nullable
+     public final Entity source;
+-    private final float radius;
+-    private final DamageSource damageSource;
+-    private final ExplosionDamageCalculator damageCalculator;
++    protected final float radius;
++    protected final DamageSource damageSource;
++    protected final ExplosionDamageCalculator damageCalculator;
++    // Sakura end
+     private final ObjectArrayList<BlockPos> toBlow;
+     private final Map<Player, Vec3> hitPlayers;
+     public boolean wasCanceled = false; // CraftBukkit - add field
+@@ -96,11 +98,70 @@ public class Explosion {
+         this.damageCalculator = behavior == null ? this.makeDamageCalculator(entity) : behavior;
+     }
+ 
++    // Sakura start
++    private static final double[] BLOCK_RAYCAST_VECTORS;
++
++    static {
++        it.unimi.dsi.fastutil.doubles.DoubleArrayList vectorList = new it.unimi.dsi.fastutil.doubles.DoubleArrayList();
++
++        for (int k = 0; k < 16; ++k) {
++            for (int i = 0; i < 16; ++i) {
++                for (int j = 0; j < 16; ++j) {
++                    if (k == 0 || k == 15 || i == 0 || i == 15 || j == 0 || j == 15) {
++                        double d0 = (double) ((float) k / 15.0F * 2.0F - 1.0F);
++                        double d1 = (double) ((float) i / 15.0F * 2.0F - 1.0F);
++                        double d2 = (double) ((float) j / 15.0F * 2.0F - 1.0F);
++                        double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
++
++                        d0 /= d3;
++                        d1 /= d3;
++                        d2 /= d3;
++
++                        vectorList.add(d0 * 0.30000001192092896D);
++                        vectorList.add(d1 * 0.30000001192092896D);
++                        vectorList.add(d2 * 0.30000001192092896D);
++                    }
++                }
++            }
++        }
++
++        me.samsuik.sakura.utils.ExplosionUtil.reduceRays(vectorList);
++        BLOCK_RAYCAST_VECTORS = vectorList.toDoubleArray();
++    }
++
++    protected boolean isDestructibleBlock(@Nullable BlockState state) {
++        if (state == null) {
++            return false;
++        }
++
++        float power = radius * 1.3f;
++        float blockRes = state.getBlock().getExplosionResistance();
++        float fluidRes = state.getFluidState().getExplosionResistance();
++
++        // This should be better than just checking if we're within a fluid block.
++        return (Math.max(blockRes, fluidRes) + 0.3f) * 0.3f <= power;
++    }
++
++    protected boolean isRegionUnprotected() {
++        // As an optimisation, check if a plugin has cancelled or cleared the blockList.
++        // This is relatively sane on factions and cannon servers, but mileage may vary.
++        if (source != null && level.sakuraConfig().cannons.explosion.optimiseProtectedRegions) {
++            Location location = new Location(level.getWorld(), x, y, z);
++            List<org.bukkit.block.Block> blocks = new ObjectArrayList<>(1);
++            blocks.add(location.getBlock());
++            EntityExplodeEvent event = new EntityExplodeEvent(source.getBukkitEntity(), location, blocks, 0.0f);
++            return event.callEvent() && !event.blockList().isEmpty();
++        }
++
++        return true;
++    }
++    // Sakura end
++
+     private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
+         return (ExplosionDamageCalculator) (entity == null ? Explosion.EXPLOSION_DAMAGE_CALCULATOR : new EntityBasedExplosionDamageCalculator(entity));
+     }
+ 
+-    public static float getSeenPercent(Vec3 source, Entity entity) {
++    protected static float getSeenPercent(Vec3 source, Entity entity, @Nullable me.samsuik.sakura.explosion.DensityCache.Density data) { // Sakura - protected and pass density
+         AABB axisalignedbb = entity.getBoundingBox();
+         double d0 = 1.0D / ((axisalignedbb.maxX - axisalignedbb.minX) * 2.0D + 1.0D);
+         double d1 = 1.0D / ((axisalignedbb.maxY - axisalignedbb.minY) * 2.0D + 1.0D);
+@@ -120,7 +181,11 @@ public class Explosion {
+                         double d10 = Mth.lerp(d7, axisalignedbb.minZ, axisalignedbb.maxZ);
+                         Vec3 vec3d1 = new Vec3(d8 + d3, d9, d10 + d4);
+ 
+-                        if (entity.level.clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
++                        // Sakura start
++                        if (data != null && data.isExpandable() && data.has(vec3d1)) {
++                            i += (int) data.density();
++                        } else if (entity.level.clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
++                            // Sakura end
+                             ++i;
+                         }
+ 
+@@ -141,34 +206,75 @@ public class Explosion {
+             return;
+         }
+         // CraftBukkit end
++        // Sakura start
++        // block at explosion position
++        BlockState state = level.getBlockState(BlockPos.containing(x, y, z));
++        if (interactsWithBlocks() && isDestructibleBlock(state) && isRegionUnprotected()) {
++            searchForBlocks();
++        }
++
++        // Checking if this explosion occurred inside a block is not a viable optimisation.
++        // If an entity is 1.0e-7 away from the position no matter it will be affected no matter what.
++        locateAndImpactEntities();
++    }
++
++    protected void searchForBlocks() {
+         this.level.gameEvent(this.source, GameEvent.EXPLODE, new Vec3(this.x, this.y, this.z));
+         Set<BlockPos> set = Sets.newHashSet();
+         boolean flag = true;
+ 
+-        int i;
+-        int j;
++        it.unimi.dsi.fastutil.longs.LongSet found = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
++        BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
++        net.minecraft.server.level.ServerChunkCache chunkProvider = (net.minecraft.server.level.ServerChunkCache) level.getChunkSource();
+ 
+-        for (int k = 0; k < 16; ++k) {
+-            for (i = 0; i < 16; ++i) {
+-                for (j = 0; j < 16; ++j) {
+-                    if (k == 0 || k == 15 || i == 0 || i == 15 || j == 0 || j == 15) {
+-                        double d0 = (double) ((float) k / 15.0F * 2.0F - 1.0F);
+-                        double d1 = (double) ((float) i / 15.0F * 2.0F - 1.0F);
+-                        double d2 = (double) ((float) j / 15.0F * 2.0F - 1.0F);
+-                        double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
++        for (int i = 0; i < BLOCK_RAYCAST_VECTORS.length; i += 3) {
++            {
++                {
++                    {
++                        double d0 = BLOCK_RAYCAST_VECTORS[0];
++                        double d1 = BLOCK_RAYCAST_VECTORS[1];
++                        double d2 = BLOCK_RAYCAST_VECTORS[2];
+ 
+-                        d0 /= d3;
+-                        d1 /= d3;
+-                        d2 /= d3;
+                         float f = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
+                         double d4 = this.x;
+                         double d5 = this.y;
+                         double d6 = this.z;
+ 
++                        float resistance = 0.0f;
++                        int prevX = Integer.MIN_VALUE, prevY = prevX, prevZ = prevX;
++                        int lastChunkX = Integer.MIN_VALUE, lastChunkZ = lastChunkX;
++                        net.minecraft.world.level.chunk.LevelChunk chunk = null;
++
+                         for (float f1 = 0.3F; f > 0.0F; f -= 0.22500001F) {
+-                            BlockPos blockposition = BlockPos.containing(d4, d5, d6);
+-                            BlockState iblockdata = this.level.getBlockState(blockposition);
+-                            if (!iblockdata.isDestroyable()) continue; // Paper
++                            final int blockX = Mth.floor(d4);
++                            final int blockY = Mth.floor(d5);
++                            final int blockZ = Mth.floor(d6);
++
++                            d4 += d0;
++                            d5 += d1;
++                            d6 += d2;
++
++                            if (blockX == prevX && blockY == prevY && blockZ == prevZ) {
++                                f += resistance;
++                                continue;
++                            }
++
++                            final int chunkX = blockX >> 4;
++                            final int chunkZ = blockZ >> 4;
++
++                            if (chunkX != lastChunkX || chunkZ != lastChunkZ) {
++                                chunk = chunkProvider.getChunkAtIfLoadedMainThread(chunkX, chunkZ);
++
++                                lastChunkX = chunkX;
++                                lastChunkZ = chunkZ;
++                            }
++
++                            mutableBlockPos.set(blockX, blockY, blockZ);
++
++                            BlockPos blockposition = mutableBlockPos;
++                            BlockState iblockdata = chunk.getBlockState(blockposition);
++                            if (!iblockdata.isDestroyable()) break; // Paper
++                            // Sakura end
+                             FluidState fluid = iblockdata.getFluidState(); // Paper
+ 
+                             if (!this.level.isInWorldBounds(blockposition)) {
+@@ -181,8 +287,9 @@ public class Explosion {
+                                 f -= ((Float) optional.get() + 0.3F) * 0.3F;
+                             }
+ 
++                            resistance = f; // Sakura
+                             if (f > 0.0F && this.damageCalculator.shouldBlockExplode(this, this.level, blockposition, iblockdata, f)) {
+-                                set.add(blockposition);
++                                found.add(mutableBlockPos.asLong()); // Sakura
+                                 // Paper start - prevent headless pistons from forming
+                                 if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowHeadlessPistons && iblockdata.getBlock() == Blocks.MOVING_PISTON) {
+                                     BlockEntity extension = this.level.getBlockEntity(blockposition);
+@@ -193,21 +300,25 @@ public class Explosion {
+                                 }
+                                 // Paper end
+                             }
+-
+-                            d4 += d0 * 0.30000001192092896D;
+-                            d5 += d1 * 0.30000001192092896D;
+-                            d6 += d2 * 0.30000001192092896D;
++                            // Sakura - move up
+                         }
+                     }
+                 }
+             }
+         }
+ 
+-        this.toBlow.addAll(set);
++        // Sakura start
++        for (long position : found) {
++            this.toBlow.add(BlockPos.of(position));
++        }
++    }
++
++    protected void locateAndImpactEntities() {
+         float f2 = this.radius * 2.0F;
+ 
+-        i = Mth.floor(this.x - (double) f2 - 1.0D);
+-        j = Mth.floor(this.x + (double) f2 + 1.0D);
++        int i = Mth.floor(this.x - (double) f2 - 1.0D);
++        int j = Mth.floor(this.x + (double) f2 + 1.0D);
++        // Sakura end
+         int l = Mth.floor(this.y - (double) f2 - 1.0D);
+         int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
+         int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
+@@ -254,7 +365,7 @@ public class Explosion {
+                                 // Calculate damage separately for each EntityComplexPart
+                                 double d7part;
+                                 if (list.contains(entityComplexPart) && (d7part = Math.sqrt(entityComplexPart.distanceToSqr(vec3d)) / f2) <= 1.0D) {
+-                                    double d13part = (1.0D - d7part) * Explosion.getSeenPercent(vec3d, entityComplexPart);
++                                    double d13part = (1.0D - d7part) * Explosion.getSeenPercent(vec3d, entityComplexPart, null); // Sakura
+                                     entityComplexPart.hurt(this.getDamageSource(), (float) ((int) ((d13part * d13part + d13part) / 2.0D * 7.0D * (double) f2 + 1.0D)));
+                                 }
+                             }
+@@ -362,6 +473,12 @@ public class Explosion {
+                 this.wasCanceled = true;
+                 return;
+             }
++
++            // Sakura start
++            if (!this.level.paperConfig().environment.optimizeExplosions) {
++                this.level.densityCache.clear();
++            }
++            // Sakura end
+             // CraftBukkit end
+             objectlistiterator = this.toBlow.iterator();
+ 
+@@ -525,15 +642,22 @@ public class Explosion {
+         private BlockInteraction() {}
+     }
+     // Paper start - Optimize explosions
+-    private float getBlockDensity(Vec3 vec3d, Entity entity) {
+-        if (!this.level.paperConfig().environment.optimizeExplosions) {
+-            return getSeenPercent(vec3d, entity);
++    // Sakura start
++    protected float getBlockDensity(Vec3 vec3d, Entity entity) { // Paper - optimise explosions
++        int key = me.samsuik.sakura.explosion.DensityCache.createKey(entity, vec3d);
++        me.samsuik.sakura.explosion.DensityCache.Density data = level.densityCache.retrieveCache(key);
++
++        if (data != null && data.has(entity.getBoundingBox(), vec3d)) {
++            return data.density();
+         }
+-        CacheKey key = new CacheKey(this, entity.getBoundingBox());
+-        Float blockDensity = this.level.explosionDensityCache.get(key);
+-        if (blockDensity == null) {
+-            blockDensity = getSeenPercent(vec3d, entity);
+-            this.level.explosionDensityCache.put(key, blockDensity);
++
++        float blockDensity = getSeenPercent(vec3d, entity, data); // Paper - optimise explosions;
++
++        if (data == null || !data.isExpandable() && (blockDensity == 0.0f || blockDensity == 1.0f)) {
++            level.densityCache.createCache(key, entity, vec3d, blockDensity);
++        } else if (data.isExpandable() && data.density() == blockDensity) {
++            data.expand(entity.getBoundingBox(), vec3d);
++            // Sakura end
+         }
+ 
+         return blockDensity;
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 86e8bcaee950d233b062b906bc9fc12d7708e125..378197b05a074fc69ac2508d02acdc788242b49c 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -299,6 +299,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     }
+     // Sakura end
+     public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura
++    public final me.samsuik.sakura.explosion.DensityCache densityCache = new me.samsuik.sakura.explosion.DensityCache(); // Sakura
+ 
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+@@ -1020,7 +1021,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+         }
+ 
+         Explosion.BlockInteraction explosion_effect1 = explosion_effect;
+-        Explosion explosion = new Explosion(this, entity, damageSource, behavior, x, y, z, power, createFire, explosion_effect1);
++        // Sakura start
++        Explosion explosion;
++
++        if (explosionSourceType == ExplosionInteraction.TNT) {
++            explosion = new me.samsuik.sakura.explosion.SakuraExplosion(this, entity, damageSource, behavior, x, y, z, power, createFire, explosion_effect1);
++        } else {
++            explosion = new Explosion(this, entity, damageSource, behavior, x, y, z, power, createFire, explosion_effect1);
++        }
++        // Sakura end
+ 
+         explosion.explode();
+         explosion.finalizeExplosion(particles);

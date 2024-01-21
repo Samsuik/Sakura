@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Mon, 16 Oct 2023 22:57:55 +0100
+Subject: [PATCH] Optimise TNT fluid state and pushing
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 9e8847f1a8e54002f7ccf534dbe9da42a26794e0..a7c380e4b1be65c1c252dd7644d92a3c85ca6529 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -2021,7 +2021,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         return this.isInWater() || flag;
+     }
+ 
+-    void updateInWaterStateAndDoWaterCurrentPushing() {
++    protected void updateInWaterStateAndDoWaterCurrentPushing() { // Sakura
+         Entity entity = this.getVehicle();
+ 
+         if (entity instanceof Boat) {
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index 595853612890d9330095cd478e32fb48ac920881..60254479c91de9770c32161ac3482f7e6a7177cf 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -105,6 +105,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+     }
+     */
+     // Sakura end
++    // Sakura start
++    protected boolean updateInWaterStateAndDoFluidPushing() {
++        if (this.isPushedByFluid()) {
++            return super.updateInWaterStateAndDoFluidPushing();
++        } else {
++            // super method also handles lava fluid pushing
++            // we only need to search for water to negate fall distance
++            this.fluidHeight.clear();
++            this.updateInWaterStateAndDoWaterCurrentPushing();
++            return this.isInWater();
++        }
++    }
++    // Sakura end
+ 
+     @Override
+     public void tick() {

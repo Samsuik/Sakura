@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sat, 25 Nov 2023 21:14:45 +0000
+Subject: [PATCH] Allow explosions to destroy lava
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 8646302289669685cd44bb70231a110b4b09affc..8dd53e7c714657fe357757cdbfdfd7182b8a73eb 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -136,6 +136,12 @@ public class Explosion {
+             return false;
+         }
+ 
++        // Sakura start - explode lava
++        if (level.sakuraConfig().cannons.explosion.explodeLava && state.is(Blocks.LAVA)) {
++            return true;
++        }
++        // Sakura end
++
+         float power = radius * 1.3f;
+         float blockRes = state.getBlock().getExplosionResistance();
+         float fluidRes = state.getFluidState().getExplosionResistance();
+@@ -313,6 +319,12 @@ public class Explosion {
+                             }
+                             // Sakura end
+ 
++                            // Sakura start
++                            if (this.level.sakuraConfig().cannons.explosion.explodeLava && iblockdata.is(Blocks.LAVA)) {
++                                optional = Optional.of(0.0f); // 1.0 might be better here, 0.0 seems too much.
++                            }
++                            // Sakura end
++
+                             if (optional.isPresent()) {
+                                 f -= ((Float) optional.get() + 0.3F) * 0.3F;
+                             }

@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 16 Nov 2023 00:59:04 +0000
+Subject: [PATCH] Destroy Waterlogged Blocks
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 1f0e98d8cfb93511be2841dd4823a9006f8be8be..13606d7165bb2df19a45f95536f85fcad17c1375 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -281,6 +281,12 @@ public class Explosion {
+                                 break;
+                             }
+ 
++                            // Sakura start - destroy water logged blocks
++                            if (!iblockdata.isAir() && this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks) {
++                                fluid = Blocks.AIR.defaultBlockState().getFluidState();
++                            }
++                            // Sakura end
++
+                             Optional<Float> optional = this.damageCalculator.getBlockExplosionResistance(this, this.level, blockposition, iblockdata, fluid);
+ 
+                             // Sakura start - durable materials

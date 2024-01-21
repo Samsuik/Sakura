@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 3 Aug 2023 13:48:27 +0100
+Subject: [PATCH] Add utility methods to EntitySlices
+
+
+diff --git a/src/main/java/io/papermc/paper/world/ChunkEntitySlices.java b/src/main/java/io/papermc/paper/world/ChunkEntitySlices.java
+index 1d6b96fd6dae9524c31e71a778351e8b2d325b7f..ce231d8b230d4983b21c597357c0b22377e4bcca 100644
+--- a/src/main/java/io/papermc/paper/world/ChunkEntitySlices.java
++++ b/src/main/java/io/papermc/paper/world/ChunkEntitySlices.java
+@@ -246,6 +246,12 @@ public final class ChunkEntitySlices {
+ 
+         return true;
+     }
++    
++    // Sakura start
++    public Entity[] getSectionEntities(int sectionY) {
++        return this.allEntities.getSectionEntities(sectionY);
++    }
++    // Sakura end
+ 
+     public void getHardCollidingEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
+         this.hardCollidingEntities.getEntities(except, box, into, predicate);
+@@ -424,6 +430,18 @@ public final class ChunkEntitySlices {
+                 this.nonEmptyBitset[sectionIndex >>> 6] ^= (1L << (sectionIndex & (Long.SIZE - 1)));
+             }
+         }
++        
++        // Sakura start
++        public Entity[] getSectionEntities(int sectionY) {
++            var list = entitiesBySection[sectionY - this.manager.minSection];
++
++            if (list != null) {
++                return list.storage;
++            }
++
++            return new Entity[0];
++        }
++        // Sakura end
+ 
+         public void getEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
+             if (this.count == 0) {
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 303c4a47b275e6c53a809c65482ad66734945622..45e6a37fc304d89cc7b152bcb3ff5ae0f2e3bde5 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -289,6 +289,16 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+ 
+     public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
+ 
++    // Sakura start
++    public Entity[] getSectionEntities(int chunkX, int chunkY, int chunkZ) {
++        var slices = ((ServerLevel)this).getEntityLookup().getChunk(chunkX, chunkZ);
++        if (slices == null) {
++            return new Entity[0];
++        }
++        return slices.getSectionEntities(chunkY);
++    }
++    // Sakura end
++
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper

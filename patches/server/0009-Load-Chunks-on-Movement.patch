@@ -1,0 +1,123 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sat, 11 Sep 2021 19:19:41 +0100
+Subject: [PATCH] Load Chunks on Movement
+
+
+diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
+index a87f6380b2c387fb0cdd40d5087b5c93492e3c88..04305ed8e75c5e83d08392c0f7f431cb77ac272e 100644
+--- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
++++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
+@@ -457,6 +457,7 @@ public final class CollisionUtil {
+         final int minChunkZ = minBlockZ >> 4;
+         final int maxChunkZ = maxBlockZ >> 4;
+ 
++        final boolean addTicket = loadChunks && entity != null && (entity.isPrimedTNT || entity.isFallingBlock); // Sakura
+         final ServerChunkCache chunkProvider;
+         if (getter instanceof WorldGenRegion) {
+             chunkProvider = null;
+@@ -483,6 +484,16 @@ public final class CollisionUtil {
+                     chunk = loadChunks ? chunkProvider.getChunk(currChunkX, currChunkZ, true) : chunkProvider.getChunkAtIfLoadedImmediately(currChunkX, currChunkZ);
+                 }
+ 
++                // Sakura start - keep chunks loaded on movement
++                if (addTicket && chunkProvider != null && chunk instanceof net.minecraft.world.level.chunk.LevelChunk levelChunk && levelChunk.movementLoadTicketRequiresUpdate()) {
++                    chunkProvider.chunkMap.getDistanceManager().getChunkHolderManager().addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, currChunkX, currChunkZ, 33, CoordinateUtils.getChunkKey(currChunkX, currChunkZ));
++                    // This is known to work, uncomment if any issues
++                    // var pos = new net.minecraft.world.level.ChunkPos(currChunkX, currChunkZ);
++                    // chunkSource.addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, pos, 33, pos.toLong());
++                    levelChunk.updatedMovementLoadTicket();
++                }
++                // Sakura end
++
+                 if (chunk == null) {
+                     if (collidesWithUnloaded) {
+                         if (checkOnly) {
+diff --git a/src/main/java/net/minecraft/server/level/TicketType.java b/src/main/java/net/minecraft/server/level/TicketType.java
+index 97d1ff2af23bac14e67bca5896843325aaa5bfc1..c90b265a9cd92d40960d5513d9585e47d93fed3c 100644
+--- a/src/main/java/net/minecraft/server/level/TicketType.java
++++ b/src/main/java/net/minecraft/server/level/TicketType.java
+@@ -35,6 +35,7 @@ public class TicketType<T> {
+     public static final TicketType<Long> POI_LOAD = create("poi_load", Long::compareTo);
+     public static final TicketType<Unit> UNLOAD_COOLDOWN = create("unload_cooldown", (u1, u2) -> 0, 5 * 20);
+     // Paper end - rewrite chunk system
++    public static final TicketType<Long> ENTITY_MOVEMENT = create("entity_movement", Long::compareTo, 10 * 20); // Sakura
+ 
+     public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
+         return new TicketType<>(name, argumentComparator, 0L);
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 8363fb274fafb06253272bc5706c8d209856e7ab..f6f9f101899121afcf9df1426b56e49011a5bbcd 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -546,6 +546,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     // Paper end - make end portalling safe
+     public boolean isPrimedTNT; // Sakura
+     public boolean isFallingBlock; // Sakura
++    protected boolean loadChunks = false; // Sakura - load chunks on movement
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+@@ -1393,7 +1394,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+                 }
+             }
+ 
+-            io.papermc.paper.util.CollisionUtil.getCollisions(world, this, collisionBox, potentialCollisions, false, this.level.paperConfig().chunks.preventMovingIntoUnloadedChunks,
++            io.papermc.paper.util.CollisionUtil.getCollisions(world, this, collisionBox, potentialCollisions, this.loadChunks, this.level.paperConfig().chunks.preventMovingIntoUnloadedChunks, // Sakura
+                 false, false, null, null);
+ 
+             if (collidingWithWorldBorder = io.papermc.paper.util.CollisionUtil.isCollidingWithBorderEdge(world.getWorldBorder(), collisionBox)) { // Paper - this line *is* correct, ignore the IDE warning about assignments being used as a condition
+@@ -4618,7 +4619,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+ 
+     @Override
+     public boolean isAlwaysTicking() {
+-        return false;
++        return this.loadChunks; // Sakura - always tick in chunks
+     }
+ 
+     public boolean mayInteract(Level world, BlockPos pos) {
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index 2c1b7fae5f2ebbcb6ec77db9435a8658a569c65e..0bab2d4397dd4f24755a38e4c14320bbfda62425 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -72,6 +72,7 @@ public class FallingBlockEntity extends Entity {
+         this.dropItem = true;
+         this.fallDamageMax = 40;
+         this.isFallingBlock = true; // Sakura
++        this.loadChunks = world.sakuraConfig().cannons.sand.loadsChunks; // Sakura - load chunks
+     }
+ 
+     public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index fd0c9d4afe8ae71ab428d05c93bac45825765415..6e842da33ca43c8e22f35c59afd41ddff629c28c 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -29,6 +29,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         super(type, world);
+         this.blocksBuilding = true;
+         this.isPrimedTNT = true; // Sakura
++        this.loadChunks = world.sakuraConfig().cannons.tnt.loadsChunks; // Sakura - load chunks
+     }
+ 
+     public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index d190bad5d287766ed4165ed827d9901a9d878687..e9aa742b01bf89269b477d3a858cfe7b9c3f410f 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -354,6 +354,17 @@ public class LevelChunk extends ChunkAccess {
+         }
+     }
+     // Paper end - optimise checkDespawn
++    // Sakura start
++    private long lastMovementLoadTicket = 0;
++
++    public boolean movementLoadTicketRequiresUpdate() {
++        return net.minecraft.server.MinecraftServer.currentTickLong - this.lastMovementLoadTicket >= 100;
++    }
++
++    public void updatedMovementLoadTicket() {
++        this.lastMovementLoadTicket = net.minecraft.server.MinecraftServer.currentTickLong;
++    }
++    // Sakura end
+ 
+     public LevelChunk(ServerLevel world, ProtoChunk protoChunk, @Nullable LevelChunk.PostLoadProcessor entityLoader) {
+         this(world, protoChunk.getPos(), protoChunk.getUpgradeData(), protoChunk.unpackBlockTicks(), protoChunk.unpackFluidTicks(), protoChunk.getInhabitedTime(), protoChunk.getSections(), entityLoader, protoChunk.getBlendingData());

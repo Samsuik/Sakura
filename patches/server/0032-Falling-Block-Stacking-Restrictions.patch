@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 16 Nov 2023 20:53:51 +0000
+Subject: [PATCH] Falling Block Stacking Restrictions
+
+
+diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+index 46599109e55da0e4ce91c9b0c137d286a8cca78c..2aa7dbad27dfd5dc37b36a1f05e4d3e2f9d36339 100644
+--- a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
++++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+@@ -69,8 +69,8 @@ public class WorldConfiguration extends ConfigurationPart {
+             public boolean preventAtWorldHeight = false;
+ 
+             public boolean isFallingBlockInBounds(FallingBlockEntity entity) {
+-                return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isAlmostCollidingOnBorder(entity.level().getWorldBorder(), entity.getBoundingBox()))
+-                    && (!preventAtWorldHeight || entity.blockPosition().getY() < entity.level().getMaxBuildHeight() - 1);
++                return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isAlmostCollidingOnBorder(entity.level.getWorldBorder(), entity.getBoundingBox().inflate(0.01)))
++                    && (!preventAtWorldHeight || entity.blockPosition().getY() < entity.level.getMaxBuildHeight() - 1);
+             }
+         }
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index c09f5ab720dbf67b4464d75727728caba24fc621..254833aa760910e12123c795354ce531b7cb5567 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -258,7 +258,7 @@ public class FallingBlockEntity extends Entity {
+                             boolean flag3 = FallingBlock.isFree(this.level.getBlockState(blockposition.below())) && (!flag || !flag1);
+                             boolean flag4 = this.blockState.canSurvive(this.level, blockposition) && !flag3;
+ 
+-                            if (flag2 && flag4) {
++                            if (flag2 && flag4 && level.sakuraConfig().cannons.sand.isFallingBlockInBounds(this)) { // Sakura
+                                 if (this.blockState.hasProperty(BlockStateProperties.WATERLOGGED) && this.level.getFluidState(blockposition).getType() == Fluids.WATER) {
+                                     this.blockState = (BlockState) this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
+                                 }

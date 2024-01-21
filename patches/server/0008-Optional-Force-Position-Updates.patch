@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sat, 11 Sep 2021 22:23:39 +0100
+Subject: [PATCH] Optional Force Position Updates
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index 480d3025977b8f3710e4252a9127a1c018f532d1..fd0c9d4afe8ae71ab428d05c93bac45825765415 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -96,6 +96,14 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+             }
+         }
+ 
++        // Sakura start - configurable force position updates
++        if (level.sakuraConfig().cannons.tnt.forcePositionUpdates) {
++            forcePositionUpdate();
++        }
++    }
++
++    private void forcePositionUpdate() {
++        // Sakura end
+         // Paper start - Optional prevent TNT from moving in water
+         if (!this.isRemoved() && this.wasTouchingWater && this.level.paperConfig().fixes.preventTntFromMovingInWater) {
+             /*

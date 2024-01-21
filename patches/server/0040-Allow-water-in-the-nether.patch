@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Fri, 24 Nov 2023 18:52:51 +0000
+Subject: [PATCH] Allow water in the nether
+
+
+diff --git a/src/main/java/net/minecraft/world/item/BucketItem.java b/src/main/java/net/minecraft/world/item/BucketItem.java
+index 5c6aa9c464784ad5ee366412d080c72d3d22a76f..4f21231d6ede7bf1b82185f115b2c48b87732c14 100644
+--- a/src/main/java/net/minecraft/world/item/BucketItem.java
++++ b/src/main/java/net/minecraft/world/item/BucketItem.java
+@@ -166,7 +166,7 @@ public class BucketItem extends Item implements DispensibleContainerItem {
+             // CraftBukkit end
+             if (!flag1) {
+                 return movingobjectpositionblock != null && this.emptyContents(entityhuman, world, movingobjectpositionblock.getBlockPos().relative(movingobjectpositionblock.getDirection()), (BlockHitResult) null, enumdirection, clicked, itemstack, enumhand); // CraftBukkit
+-            } else if (world.dimensionType().ultraWarm() && this.content.is(FluidTags.WATER)) {
++            } else if (!world.sakuraConfig().environment.allowWaterInTheNether && world.dimensionType().ultraWarm() && this.content.is(FluidTags.WATER)) { // Sakura
+                 int i = blockposition.getX();
+                 int j = blockposition.getY();
+                 int k = blockposition.getZ();
+diff --git a/src/main/java/net/minecraft/world/level/block/IceBlock.java b/src/main/java/net/minecraft/world/level/block/IceBlock.java
+index 5ecf02ce83b7496c977adfeb203b8eadb05f9da5..48bac53bc807d51a0d81103063fd8bf8e06c0c64 100644
+--- a/src/main/java/net/minecraft/world/level/block/IceBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/IceBlock.java
+@@ -31,7 +31,7 @@ public class IceBlock extends HalfTransparentBlock {
+     public void afterDestroy(Level world, BlockPos pos, ItemStack tool) {
+         // Paper end
+         if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, tool) == 0) {
+-            if (world.dimensionType().ultraWarm()) {
++            if (!world.sakuraConfig().environment.allowWaterInTheNether && world.dimensionType().ultraWarm()) { // Sakura
+                 world.removeBlock(pos, false);
+                 return;
+             }
+@@ -59,7 +59,7 @@ public class IceBlock extends HalfTransparentBlock {
+             return;
+         }
+         // CraftBukkit end
+-        if (world.dimensionType().ultraWarm()) {
++        if (!world.sakuraConfig().environment.allowWaterInTheNether && world.dimensionType().ultraWarm()) { // Sakura
+             world.removeBlock(pos, false);
+         } else {
+             world.setBlockAndUpdate(pos, Blocks.WATER.defaultBlockState());

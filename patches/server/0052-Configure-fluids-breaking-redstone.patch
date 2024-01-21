@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sat, 9 Dec 2023 00:11:48 +0000
+Subject: [PATCH] Configure fluids breaking redstone
+
+
+diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+index f8c1926a0db9c45fee7e794d14f1fe540918a1e2..ea1246f8a58e4cac83dff870aa1d218ef4b2feae 100644
+--- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+@@ -465,6 +465,10 @@ public abstract class FlowingFluid extends Fluid {
+ 
+         if (block instanceof LiquidBlockContainer) {
+             return ((LiquidBlockContainer) block).canPlaceLiquid(world, pos, state, fluid);
++            // Sakura start
++        } else if (world instanceof Level level && !level.sakuraConfig().technical.redstone.fluidsBreakRedstone && state.isSignalSource()) {
++            return false;
++            // Sakura end
+         } else if (!(block instanceof DoorBlock) && !state.is(BlockTags.SIGNS) && !state.is(Blocks.LADDER) && !state.is(Blocks.SUGAR_CANE) && !state.is(Blocks.BUBBLE_COLUMN)) {
+             Material material = state.getMaterial();
+ 

@@ -1,0 +1,541 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sat, 9 Sep 2023 18:39:15 +0100
+Subject: [PATCH] Merge Cannon Entities
+
+
+diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..90f36b2d3847e058cfa2b748838fc6ea3294c159
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java
+@@ -0,0 +1,127 @@
++package me.samsuik.sakura.entity.merge;
++
++import it.unimi.dsi.fastutil.HashCommon;
++import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
++import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
++import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
++import it.unimi.dsi.fastutil.longs.LongSet;
++import me.samsuik.sakura.utils.objects.Expiry;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.entity.Entity;
++
++import java.util.List;
++
++public class MergeHistory {
++
++    // packed position -> known merging information
++    private final Long2ObjectMap<MergeData> mergeDataMap = new Long2ObjectOpenHashMap<>();
++    private MergeData mergeData = null;
++
++    public MergeData retrievePositions(Entity entity) {
++        long origin = entity.getPackedOrigin();
++
++        if (mergeData != null && mergeData.knownPositions().contains(origin)) {
++            return mergeData;
++        }
++
++        return mergeData = mergeDataMap.get(origin);
++    }
++
++    public void markPositions(Entity entity) {
++        List<Entity> mergeList = entity.getMergeList();
++        long origin = entity.getPackedOrigin();
++
++        // I apologise for the lambda parameter name in advance
++        MergeData data = mergeDataMap.computeIfAbsent(origin, (OwO) -> new MergeData(
++            new LongOpenHashSet(), // Known entity positions
++            new LongOpenHashSet(), // Retained positions
++            new EntityTable(Math.min(mergeList.size() * 2, 512)),
++            new Expiry(MinecraftServer.currentTickLong, 200),
++            // Reasonable threshold to reduce abuse and breakage with on spawn merging.
++            new Threshold(MinecraftServer.currentTickLong, 12, 200)
++        ));
++
++        data.expiry().refresh(MinecraftServer.currentTickLong);
++
++        // Collect all merge positions
++        LongOpenHashSet positions = new LongOpenHashSet((mergeList.size() + 1) / 2);
++
++        positions.add(entity.getPackedOrigin());
++
++        for (Entity mergedEntity : mergeList) {
++            positions.add(mergedEntity.getPackedOrigin());
++        }
++
++        // Retain existing positions and insert new positions
++        if (!data.knownPositions().isEmpty()) {
++            data.retainedPositions().addAll(positions);
++        } else {
++            data.retainedPositions().retainAll(positions);
++        }
++
++        data.knownPositions().addAll(positions);
++    }
++
++    public void expire(long tick) {
++        mergeData = null; // clear this every tick
++
++        // only expire every 20 ticks
++        if (tick % 20 != 0) return;
++
++        mergeDataMap.values().removeIf(data -> data.expiry().isExpired(tick));
++    }
++
++    public record MergeData(LongSet knownPositions, LongSet retainedPositions, EntityTable table, Expiry expiry, Threshold threshold) {
++        public boolean hasPassed() {
++            return threshold.hasPassed(MinecraftServer.currentTickLong);
++        }
++
++        public Entity findFirstAtPosition(Entity entity) {
++            Entity found = table.locate(entity);
++
++            if (found != null && found.getId() < entity.getId() && knownPositions.contains(found.getPackedOrigin()) && !found.isRemoved() && entity.compareState(found)) {
++                return found;
++            }
++
++            return null;
++        }
++    }
++
++    private static class EntityTable {
++        private final Entity[] entities;
++        private final int mask;
++
++        EntityTable(int size) {
++            int n = HashCommon.nextPowerOfTwo(size - 1);
++            entities = new Entity[n];
++            mask = n - 1;
++        }
++
++        Entity locate(Entity entity) {
++            int pos = entity.blockPosition().hashCode();
++            int key = pos & mask;
++            Entity found = entities[key];
++            entities[key] = entity;
++            return found;
++        }
++    }
++
++    private static class Threshold {
++        private final long startingTick;
++        private final int thresholdAttempts;
++        private final long thresholdAge;
++        private int attempts;
++
++        Threshold(long tick, int attempts, long age) {
++            startingTick = tick;
++            thresholdAttempts = attempts;
++            thresholdAge = age;
++        }
++
++        boolean hasPassed(long tick) {
++            return ++attempts >= thresholdAttempts
++                || tick - startingTick >= thresholdAge;
++        }
++    }
++
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 0a5aa9404f3c6af54d6130f883a7b334977ed108..9a15ce8aef1c52b915ea9131a31e60065d667a4a 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1578,6 +1578,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
+             worldserver.localConfig().expire(currentTickLong); // Sakura
+             worldserver.minimalTNT.clear(); // Sakura - visibility api
++            worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
+         }
+         this.isIteratingOverLevels = false; // Paper
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 4a19da041971d9f9031af70ae39798233287b3c9..3ace813ccce8b836edef76a16b92ca99762af7b1 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -708,6 +708,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+ 
+             org.spigotmc.ActivationRange.activateEntities(this); // Spigot
+             timings.entityTick.startTiming(); // Spigot
++            Entity[] previousEntity = new Entity[1]; // Sakura
+             this.entityTickList.forEach((entity) -> {
+                 if (!entity.isRemoved()) {
+                     if (false && this.shouldDiscardEntity(entity)) { // CraftBukkit - We prevent spawning in general, so this butchering is not needed
+@@ -727,6 +728,15 @@ public class ServerLevel extends Level implements WorldGenLevel {
+                                 entity.stopRiding();
+                             }
+ 
++                            // Sakura start
++                            Entity previous = previousEntity[0];
++                            if (entity.isMergeableType(previous) && entity.tryMergeInto(previous)) {
++                                return;
++                            } else {
++                                previousEntity[0] = entity;
++                            }
++                            // Sakura end
++
+                             gameprofilerfiller.push("tick");
+                             this.guardEntityTick(this::tickNonPassenger, entity);
+                             gameprofilerfiller.pop();
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 1bd5db8e0919d126d18e250bb1cb35cb96d63f5c..bc7a65dc8c8718f2e02249ff251764a4fb13f9a7 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -575,6 +575,107 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         return BlockPos.asLong(v.getBlockX(), v.getBlockY(), v.getBlockZ());
+     }
+     // Sakura end
++    // Sakura start - cannon entity merging
++    // List of merged entities, should be naturally sorted (oldest -> youngest)
++    private final List<Entity> mergeList = new java.util.ArrayList<>(1);
++    private @Nullable me.samsuik.sakura.entity.merge.MergeHistory.MergeData originData = null;
++    private me.samsuik.sakura.entity.merge.MergeLevel mergeLevel;
++    protected int stacked = 1; // default
++
++    public final me.samsuik.sakura.entity.merge.MergeLevel getMergeLevel() {
++        return mergeLevel;
++    }
++
++    public final void setMergeLevel(me.samsuik.sakura.entity.merge.MergeLevel level) {
++        mergeLevel = level;
++    }
++
++    public final int getStacked() {
++        return stacked;
++    }
++
++    public final void setStacked(int stack) {
++        stacked = stack;
++    }
++
++    public List<Entity> getMergeList() {
++        return mergeList;
++    }
++
++    private boolean isSafeToSpawnMerge(Entity entity) {
++        return tickCount == 1 && originData != null
++            && originData.hasPassed() // on spawn safety delay has passed
++            && originData == entity.originData // make sure it's the same group
++            && originData.retainedPositions().contains(entity.getPackedOrigin());
++    }
++
++    public boolean isMergeableType(@Nullable Entity previous) {
++        return false;
++    }
++
++    public final boolean tryMergeInto(@Nullable Entity entity) {
++        if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.NON_STRICT) && tickCount == 0) {
++            originData = level.mergeHistory.retrievePositions(this);
++        }
++
++        Entity mergeEntity = null;
++
++        if (entity == null || entity.getType() != getType()) {
++            // first entity in the tick loop, we have to let it into this method so that we can retrieve the originData
++            return false;
++        } else if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.SPAWN) && entity.isSafeToSpawnMerge(this)) {
++            // On spawn merging, this merges entities immediately upon spawning after
++            // it is considered "safe". We try to make sure it is safe by only retaining
++            // positions that do not change when we're collecting information.
++            mergeEntity = entity;
++        } else {
++            // Strict, simple merging
++            // This merges entities that are in the exact same state and sequential.
++            // Sane for most use cases but as it is merging entities plugins may misbehave.
++            if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.STRICT) && compareState(entity)) {
++                mergeEntity = entity;
++            }
++
++            // Non strict merging algorithm uses information collected after entities die
++            // to be able to perform more aggressive merging by already knowing the OOE.
++            if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.NON_STRICT) && mergeEntity == null && originData != null) {
++                mergeEntity = originData.findFirstAtPosition(this);
++            }
++        }
++
++        if (mergeEntity != null && isSafeToMergeInto(mergeEntity)) {
++            mergeInto(mergeEntity);
++            return true;
++        }
++
++        return false;
++    }
++
++    protected boolean respawnMerged() {
++        return false;
++    }
++
++    protected boolean isSafeToMergeInto(Entity entity) {
++        return false;
++    }
++
++    private void mergeInto(Entity entity) {
++        entity.mergeList.add(this);
++        entity.mergeList.addAll(mergeList);
++        entity.stacked += stacked;
++
++        mergeList.clear(); // clear the list to stop our tracking when merging
++        stacked = 0; // prevent any possible duplication
++
++        // update api handle, this is so cannondebug can function
++        //noinspection ConstantValue
++        if (bukkitEntity != null) {
++            bukkitEntity.setHandle(entity);
++        }
++
++        discard();
++    }
++    // Sakura end
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+@@ -621,6 +722,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         this.getEntityData().registrationLocked = true; // Spigot
+         this.setPos(0.0D, 0.0D, 0.0D);
+         this.eyeHeight = this.getEyeHeight(net.minecraft.world.entity.Pose.STANDING, this.dimensions);
++        this.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura
+     }
+ 
+     public boolean isColliding(BlockPos pos, BlockState state) {
+@@ -2337,6 +2439,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+                 nbt.putBoolean("Paper.FreezeLock", true);
+             }
+             // Paper end
++            // Sakura start
++            if (stacked > 0) {
++                nbt.putInt("Sakura.Stacked", stacked);
++            }
++            // Sakura end
+             return nbt;
+         } catch (Throwable throwable) {
+             CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
+@@ -2505,6 +2612,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+                 freezeLocked = nbt.getBoolean("Paper.FreezeLock");
+             }
+             // Paper end
++            // Sakura start
++            if (nbt.contains("Sakura.Stacked")) {
++                stacked = nbt.getInt("Sakura.Stacked");
++            }
++            // Sakura end
+ 
+         } catch (Throwable throwable) {
+             CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
+@@ -4619,6 +4731,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+             return;
+         }
+         // Paper end - rewrite chunk system
++        // Sakura start
++        if (reason == RemovalReason.DISCARDED && !mergeList.isEmpty()) {
++            level.mergeHistory.markPositions(this);
++        }
++        // Sakura end
+         if (this.removalReason == null) {
+             this.removalReason = reason;
+         }
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index aa88218a06366ade96797d370ef08baafb9dfa61..2113c330d309819c4b24b5ab63574ae481e2f77d 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -130,6 +130,58 @@ public class FallingBlockEntity extends Entity {
+         return !this.isRemoved();
+     }
+ 
++    // Sakura start - cannon entity merging
++    @Override
++    public boolean isMergeableType(@Nullable Entity previous) {
++        return previous == null || !isRemoved() && !previous.isRemoved();
++    }
++
++    @Override
++    protected boolean isSafeToMergeInto(Entity entity) {
++        return entity instanceof FallingBlockEntity fbe
++            && fbe.blockState.equals(blockState)
++            && fbe.time - 1 == time; // todo: special case in case on spawn isn't used
++    }
++
++    @Override
++    protected boolean respawnMerged() {
++        if (stacked <= 1) return false;
++
++        while (stacked-- >= 1) {
++            // Unlike PrimedTnt we have to try respawn each stacked entity
++            FallingBlockEntity fallingBlock = new FallingBlockEntity(EntityType.FALLING_BLOCK, level);
++
++            // Try to stack the falling block
++            this.entityState().apply(fallingBlock);
++            fallingBlock.time = time - 1;
++            fallingBlock.tick();
++
++            // If you horizontal stack into a moving piston block this condition will be met.
++            if (!fallingBlock.isRemoved()) {
++                stacked++;
++                fallingBlock.storeEntityState();
++                fallingBlock.entityState().apply(this);
++                break;
++            } else if (stacked == 0) {
++                this.discard();
++            }
++        }
++
++        return true;
++    }
++
++    @Nullable
++    public ItemEntity spawnAtLocation(ItemLike item) {
++        ItemEntity itemEntity = null;
++
++        while (stacked-- >= 1) {
++            itemEntity = super.spawnAtLocation(item);
++        }
++
++        return itemEntity;
++    }
++    // Sakura end
++
+     @Override
+     public void tick() {
+         // Paper start - fix sand duping
+@@ -209,6 +261,7 @@ public class FallingBlockEntity extends Entity {
+                                     return;
+                                 }
+                                 // CraftBukkit end
++                                if (this.respawnMerged()) return; // Sakura
+                                 if (this.level.setBlock(blockposition, this.blockState, 3)) {
+                                     ((ServerLevel) this.level).getChunkSource().chunkMap.broadcast(this, new ClientboundBlockUpdatePacket(blockposition, this.level.getBlockState(blockposition)));
+                                     this.discard();
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index 6097d495252c9c7ee54f7017ca2b39d42e5046fe..2bdd46350317a9fadf362b1a341993c92d7a9651 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -60,6 +60,44 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         return !this.isRemoved();
+     }
+ 
++    // Sakura start - cannon entity merging
++    @Override
++    public boolean isMergeableType(@Nullable Entity previous) {
++        return previous == null || !isRemoved() && !previous.isRemoved();
++    }
++
++    @Override
++    protected boolean isSafeToMergeInto(Entity entity) {
++        return entity instanceof PrimedTnt tnt
++            && tnt.getFuse() + 1 == getFuse()
++            // required to prevent issues with powdered snow
++            && (tnt.entityState().fallDistance() == 0.0f && fallDistance == 0.0f
++              || tnt.entityState().fallDistance() > 2.5f && fallDistance > 2.5f);
++    }
++
++    @Override
++    protected boolean respawnMerged() {
++        if (stacked <= 1) return false;
++
++        PrimedTnt tnt = new PrimedTnt(EntityType.TNT, level);
++
++        while (stacked-- > 1) {
++            this.setFuse(100); // Prevent unwanted explosions while ticking
++
++            // Cause an explosion to affect this entity
++            tnt.setPos(this.position());
++            tnt.setDeltaMovement(this.getDeltaMovement());
++            this.entityState().apply(this);
++            tnt.explode();
++            this.storeEntityState();
++
++            this.tick();
++        }
++
++        return true;
++    }
++    // Sakura end
++
+     @Override
+     public void tick() {
+         if (level.spigotConfig.maxTntTicksPerTick > 0 && ++level.spigotConfig.currentPrimedTnt > level.spigotConfig.maxTntTicksPerTick) { return; } // Spigot
+@@ -85,6 +123,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         if (i <= 0) {
+             // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
+             // this.discard();
++            this.respawnMerged(); // Sakura
+             if (!this.level.isClientSide) {
+                 this.explode();
+             }
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 9bf8b4d67a5a2295ad994fd6fdb4df77c84c2486..86e8bcaee950d233b062b906bc9fc12d7708e125 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -298,6 +298,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+         return slices.getSectionEntities(chunkY);
+     }
+     // Sakura end
++    public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura
+ 
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
+index 05778023c3b2809c52c148efdfc8677dcc087a7b..90df6530606e0a487dc70a1663980092f6f0b120 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
+@@ -15,6 +15,28 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
+         super(server, entity);
+     }
+ 
++    // Sakura start
++    @Override
++    public @org.jetbrains.annotations.NotNull me.samsuik.sakura.entity.merge.MergeLevel getMergeLevel() {
++        return getHandle().getMergeLevel();
++    }
++
++    @Override
++    public void setMergeLevel(@org.jetbrains.annotations.NotNull me.samsuik.sakura.entity.merge.MergeLevel level) {
++        getHandle().setMergeLevel(level);
++    }
++
++    @Override
++    public int getStacked() {
++        return getHandle().getStacked();
++    }
++
++    @Override
++    public void setStacked(int stacked) {
++        getHandle().setStacked(stacked);
++    }
++    // Sakura end
++
+     @Override
+     public FallingBlockEntity getHandle() {
+         return (FallingBlockEntity) entity;
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftTNTPrimed.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftTNTPrimed.java
+index 06540d3771949daff641e518219090559f363959..9b03ba0b3a7b491fafad5afae606cb6b8a6b53e6 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftTNTPrimed.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftTNTPrimed.java
+@@ -13,6 +13,28 @@ public class CraftTNTPrimed extends CraftEntity implements TNTPrimed {
+         super(server, entity);
+     }
+ 
++    // Sakura start
++    @Override
++    public @org.jetbrains.annotations.NotNull me.samsuik.sakura.entity.merge.MergeLevel getMergeLevel() {
++        return getHandle().getMergeLevel();
++    }
++
++    @Override
++    public void setMergeLevel(@org.jetbrains.annotations.NotNull me.samsuik.sakura.entity.merge.MergeLevel level) {
++        getHandle().setMergeLevel(level);
++    }
++
++    @Override
++    public int getStacked() {
++        return getHandle().getStacked();
++    }
++
++    @Override
++    public void setStacked(int stacked) {
++        getHandle().setStacked(stacked);
++    }
++    // Sakura end
++
+     @Override
+     public float getYield() {
+         return this.getHandle().yield;
