@@ -656,7 +656,7 @@ index 2bdd46350317a9fadf362b1a341993c92d7a9651..7b5d96670c6818949a0be556b547347e
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe03290db2 100644
+index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..4487045d031948e01c37ec91a5114fc1e8909cf2 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -55,14 +55,16 @@ public class Explosion {
@@ -767,7 +767,7 @@ index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe
                              ++i;
                          }
  
-@@ -141,34 +206,75 @@ public class Explosion {
+@@ -141,34 +206,79 @@ public class Explosion {
              return;
          }
          // CraftBukkit end
@@ -806,9 +806,9 @@ index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe
 +            {
 +                {
 +                    {
-+                        double d0 = BLOCK_RAYCAST_VECTORS[0];
-+                        double d1 = BLOCK_RAYCAST_VECTORS[1];
-+                        double d2 = BLOCK_RAYCAST_VECTORS[2];
++                        double d0 = BLOCK_RAYCAST_VECTORS[i];
++                        double d1 = BLOCK_RAYCAST_VECTORS[i + 1];
++                        double d2 = BLOCK_RAYCAST_VECTORS[i + 2];
  
 -                        d0 /= d3;
 -                        d1 /= d3;
@@ -850,6 +850,10 @@ index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe
 +                                lastChunkZ = chunkZ;
 +                            }
 +
++                            prevX = blockX;
++                            prevY = blockY;
++                            prevZ = blockZ;
++
 +                            mutableBlockPos.set(blockX, blockY, blockZ);
 +
 +                            BlockPos blockposition = mutableBlockPos;
@@ -859,7 +863,7 @@ index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe
                              FluidState fluid = iblockdata.getFluidState(); // Paper
  
                              if (!this.level.isInWorldBounds(blockposition)) {
-@@ -181,8 +287,9 @@ public class Explosion {
+@@ -181,8 +291,9 @@ public class Explosion {
                                  f -= ((Float) optional.get() + 0.3F) * 0.3F;
                              }
  
@@ -870,7 +874,7 @@ index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe
                                  // Paper start - prevent headless pistons from forming
                                  if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowHeadlessPistons && iblockdata.getBlock() == Blocks.MOVING_PISTON) {
                                      BlockEntity extension = this.level.getBlockEntity(blockposition);
-@@ -193,21 +300,25 @@ public class Explosion {
+@@ -193,21 +304,25 @@ public class Explosion {
                                  }
                                  // Paper end
                              }
@@ -903,7 +907,7 @@ index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe
          int l = Mth.floor(this.y - (double) f2 - 1.0D);
          int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
          int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
-@@ -254,7 +365,7 @@ public class Explosion {
+@@ -254,7 +369,7 @@ public class Explosion {
                                  // Calculate damage separately for each EntityComplexPart
                                  double d7part;
                                  if (list.contains(entityComplexPart) && (d7part = Math.sqrt(entityComplexPart.distanceToSqr(vec3d)) / f2) <= 1.0D) {
@@ -912,7 +916,7 @@ index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe
                                      entityComplexPart.hurt(this.getDamageSource(), (float) ((int) ((d13part * d13part + d13part) / 2.0D * 7.0D * (double) f2 + 1.0D)));
                                  }
                              }
-@@ -362,6 +473,12 @@ public class Explosion {
+@@ -362,6 +477,12 @@ public class Explosion {
                  this.wasCanceled = true;
                  return;
              }
@@ -925,7 +929,7 @@ index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..3a622a84b3846e368b099a27bbc44afe
              // CraftBukkit end
              objectlistiterator = this.toBlow.iterator();
  
-@@ -525,15 +642,22 @@ public class Explosion {
+@@ -525,15 +646,22 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions
