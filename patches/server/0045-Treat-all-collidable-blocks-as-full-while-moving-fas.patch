@@ -5,7 +5,7 @@ Subject: [PATCH] Treat all collidable blocks as full while moving fast
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index 9132adee72a2ae9c1c069a4f385c2b8d101484ba..7ff34421298f48d75066db0b2accca4d0dfa5dcf 100644
+index 9132adee72a2ae9c1c069a4f385c2b8d101484ba..aee02670c421dc238085871021a272667e3dbeb1 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
 @@ -467,6 +467,7 @@ public final class CollisionUtil {
@@ -25,33 +25,21 @@ index 9132adee72a2ae9c1c069a4f385c2b8d101484ba..7ff34421298f48d75066db0b2accca4d
  
                      final int minXIterate;
                      final int maxXIterate;
-@@ -637,11 +638,20 @@ public final class CollisionUtil {
-                                 BlockState blockData = blocks.get(localBlockIndex);
- 
-                                 if ((edgeCount != 1 || blockData.shapeExceedsCube()) && (edgeCount != 2 || blockData.getBlock() == Blocks.MOVING_PISTON)) {
--                                    mutablePos.set(blockX, blockY, blockZ);
--                                    if (collisionShape == null) {
--                                        collisionShape = new LazyEntityCollisionContext(entity);
-+                                    // Sakura start - treat all collidable block as full
-+                                    final VoxelShape voxelshape2;
-+
-+                                    if (fullBlocks) {
-+                                        voxelshape2 = Shapes.block();
-+                                    } else {
-+                                        mutablePos.set(blockX, blockY, blockZ);
-+                                        if (collisionShape == null) {
-+                                            collisionShape = new LazyEntityCollisionContext(entity);
-+                                        }
-+
-+                                        voxelshape2 = blockData.getCollisionShape(getter, mutablePos, collisionShape);
+@@ -643,6 +644,12 @@ public final class CollisionUtil {
                                      }
--                                    VoxelShape voxelshape2 = blockData.getCollisionShape(getter, mutablePos, collisionShape);
-+                                    // Sakura end
+                                     VoxelShape voxelshape2 = blockData.getCollisionShape(getter, mutablePos, collisionShape);
                                      if (voxelshape2 != Shapes.empty()) {
++                                        // Sakura start - treat all collidable block as full
++                                        if (fullBlocks) {
++                                            voxelshape2 = Shapes.block();
++                                        }
++                                        // Sakura end
++
                                          VoxelShape voxelshape3 = voxelshape2.move((double)blockX, (double)blockY, (double)blockZ);
  
+                                         if (predicate != null && !predicate.test(blockData, mutablePos)) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 888801fc3468970bffe63fbefbae63e1d851f403..a15d5cd0acfba3e3e8ed46dda9fbab671eca4112 100644
+index b682bf36bdde2b5162be7c2b2e1164e8e65b9d51..4e8b0f4e29e8afadf1ae6349c96eb28cbf3bb2bb 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -684,6 +684,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
