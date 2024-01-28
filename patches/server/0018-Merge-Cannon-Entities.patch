@@ -178,10 +178,10 @@ index 4a19da041971d9f9031af70ae39798233287b3c9..3ace813ccce8b836edef76a16b92ca99
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 1bd5db8e0919d126d18e250bb1cb35cb96d63f5c..bc7a65dc8c8718f2e02249ff251764a4fb13f9a7 100644
+index 1bd5db8e0919d126d18e250bb1cb35cb96d63f5c..3362751c6b6afcb45bb46e3d09c79fb6508784da 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -575,6 +575,107 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -575,6 +575,108 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
          return BlockPos.asLong(v.getBlockX(), v.getBlockY(), v.getBlockZ());
      }
      // Sakura end
@@ -281,6 +281,7 @@ index 1bd5db8e0919d126d18e250bb1cb35cb96d63f5c..bc7a65dc8c8718f2e02249ff251764a4
 +        //noinspection ConstantValue
 +        if (bukkitEntity != null) {
 +            bukkitEntity.setHandle(entity);
++            bukkitEntity = entity.bukkitEntity;
 +        }
 +
 +        discard();
@@ -289,7 +290,7 @@ index 1bd5db8e0919d126d18e250bb1cb35cb96d63f5c..bc7a65dc8c8718f2e02249ff251764a4
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -621,6 +722,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -621,6 +723,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
          this.getEntityData().registrationLocked = true; // Spigot
          this.setPos(0.0D, 0.0D, 0.0D);
          this.eyeHeight = this.getEyeHeight(net.minecraft.world.entity.Pose.STANDING, this.dimensions);
@@ -297,7 +298,7 @@ index 1bd5db8e0919d126d18e250bb1cb35cb96d63f5c..bc7a65dc8c8718f2e02249ff251764a4
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -2337,6 +2439,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -2337,6 +2440,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
                  nbt.putBoolean("Paper.FreezeLock", true);
              }
              // Paper end
@@ -309,7 +310,7 @@ index 1bd5db8e0919d126d18e250bb1cb35cb96d63f5c..bc7a65dc8c8718f2e02249ff251764a4
              return nbt;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2505,6 +2612,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -2505,6 +2613,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
                  freezeLocked = nbt.getBoolean("Paper.FreezeLock");
              }
              // Paper end
@@ -321,7 +322,7 @@ index 1bd5db8e0919d126d18e250bb1cb35cb96d63f5c..bc7a65dc8c8718f2e02249ff251764a4
  
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
-@@ -4619,6 +4731,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4619,6 +4732,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
              return;
          }
          // Paper end - rewrite chunk system
