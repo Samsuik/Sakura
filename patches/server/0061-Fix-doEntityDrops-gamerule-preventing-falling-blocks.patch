@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sun, 28 Jan 2024 20:30:09 +0000
+Subject: [PATCH] Fix doEntityDrops gamerule preventing falling blocks from
+ breaking
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index d218dda9b7d88ea10cc4caf527c5fa3d3cacd3ad..de3f74f316e3cc2c1fce954b6a759d5a5d4c4219 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -363,10 +363,14 @@ public class FallingBlockEntity extends Entity {
+                                             tileentity.setChanged();
+                                         }
+                                     }
+-                                } else if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++                                    // Sakura start - fix the do entity drops gamerule
++                                } else {
+                                     this.discard();
+-                                    this.callOnBrokenAfterFall(block, blockposition);
+-                                    this.spawnAtLocation((ItemLike) block);
++                                    if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
++                                        this.callOnBrokenAfterFall(block, blockposition);
++                                        this.spawnAtLocation((ItemLike) block);
++                                    }
++                                    // Sakura end
+                                 }
+                             } else {
+                                 this.discard();
