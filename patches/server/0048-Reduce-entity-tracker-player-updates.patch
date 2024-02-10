@@ -4,23 +4,8 @@ Date: Thu, 30 Nov 2023 15:54:49 +0000
 Subject: [PATCH] Reduce entity tracker player updates
 
 
-diff --git a/src/main/java/net/minecraft/network/protocol/game/VecDeltaCodec.java b/src/main/java/net/minecraft/network/protocol/game/VecDeltaCodec.java
-index 33d9131e9c75ef23cd637f5d6c39a2704a0c92a5..715994cbcb6c4dfa016eb9af49b40cde95ab16e7 100644
---- a/src/main/java/net/minecraft/network/protocol/game/VecDeltaCodec.java
-+++ b/src/main/java/net/minecraft/network/protocol/game/VecDeltaCodec.java
-@@ -47,4 +47,10 @@ public class VecDeltaCodec {
-     public void setBase(Vec3 pos) {
-         this.base = pos;
-     }
-+
-+    // Sakura start
-+    public Vec3 getBase() {
-+        return base;
-+    }
-+    // Sakura end
- }
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 24e0eaf25b2b366fd0e63a530c90f233c11d1bca..a09ac6167757b29ca2c6c78f1fd38039e8c19534 100644
+index 24e0eaf25b2b366fd0e63a530c90f233c11d1bca..d295a4b872b4296732c9c59d6e0d856e07ec0f60 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -1159,6 +1159,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -31,44 +16,38 @@ index 24e0eaf25b2b366fd0e63a530c90f233c11d1bca..a09ac6167757b29ca2c6c78f1fd38039
                  tracker.updatePlayers(tracker.entity.getPlayersInTrackRange());
              }
          } finally {
-@@ -1333,6 +1334,14 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1325,14 +1326,34 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         private final int range;
+         SectionPos lastSectionPos;
+         public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - optimise map impl
++        private final int playerSearchInterval; // Sakura
++        private Vec3 entityPosition; // Sakura
+ 
+         public TrackedEntity(Entity entity, int i, int j, boolean flag) {
+             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, j, flag, this::broadcast, this.seenBy); // CraftBukkit
+             this.entity = entity;
+             this.range = i;
              this.lastSectionPos = SectionPos.of((EntityAccess) entity);
++            // Sakura start - delay entities looking for nearby players
++            // Use a maximum of 20 ticks because stationary entities use Integer.MAX_VALUE
++            // which causes them to turn invisible after untracking.
++            this.playerSearchInterval = Math.min(j, 20);
++            this.entityPosition = entity.position();
          }
  
-+        // Sakura start - delay entities looking for nearby players
-+        boolean shouldLookForPlayers() {
-+            return entity instanceof net.minecraft.world.entity.player.Player // always update players
-+                || entity.tickCount % serverEntity.updateInterval == 0
-+                || serverEntity.travelledDistanceSquared() > range * range;
++        final boolean shouldLookForPlayers() {
++            // We have to always update players otherwise they can turn invisible on teleports (why?)
++            if (entity instanceof net.minecraft.world.entity.player.Player || entity.tickCount % playerSearchInterval == 0) {
++                return true;
++            }
++
++            Vec3 lastPosition = entityPosition;
++            entityPosition = entity.position();
++
++            return entity.position().distanceToSqr(lastPosition) >= (double) range / 2.0;
 +        }
 +        // Sakura end
 +
          // Paper start - use distance map to optimise tracker
          com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> lastTrackerCandidates;
  
-diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
-index f7d8aaededd39ce52a9d0105f66fd759635b5288..be3eb957c8cf1bb5f5e2f448be73c0a14f245a4a 100644
---- a/src/main/java/net/minecraft/server/level/ServerEntity.java
-+++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
-@@ -64,7 +64,7 @@ public class ServerEntity {
-     private static final int FORCED_TELEPORT_PERIOD = 400;
-     private final ServerLevel level;
-     private final Entity entity;
--    private final int updateInterval;
-+    final int updateInterval; // Sakura - private -> package
-     private final boolean trackDelta;
-     private final Consumer<Packet<?>> broadcast;
-     private final VecDeltaCodec positionCodec = new VecDeltaCodec();
-@@ -82,6 +82,12 @@ public class ServerEntity {
-     // CraftBukkit start
-     final Set<ServerPlayerConnection> trackedPlayers; // Paper - private -> package
- 
-+    // Sakura start
-+    double travelledDistanceSquared() {
-+        return entity.position().distanceToSqr(positionCodec.getBase());
-+    }
-+    // Sakura end
-+
-     public ServerEntity(ServerLevel worldserver, Entity entity, int i, boolean flag, Consumer<Packet<?>> consumer, Set<ServerPlayerConnection> trackedPlayers) {
-         this.trackedPlayers = trackedPlayers;
-         // CraftBukkit end
