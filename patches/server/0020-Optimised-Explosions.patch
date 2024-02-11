@@ -142,7 +142,7 @@ index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfca
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..406a7e354ada6211bda59df6795e56286d321251
+index 0000000000000000000000000000000000000000..10a9c32ad0ef6f08589e10187e5ab9f1e0571440
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 @@ -0,0 +1,407 @@
@@ -271,6 +271,11 @@ index 0000000000000000000000000000000000000000..406a7e354ada6211bda59df6795e5628
 +                // Calculate next source velocity
 +                entityState = calculateNextVelocity(position, mbp, blockCache);
 +
++                // Could be viable in the future to have a configuration option to reduce explosion events
++                List<BlockPos> foundBlocks = new ObjectArrayList<>(getToBlow());
++                super.finalizeExplosion(false);
++                ((ServerLevel) level).notifyPlayersOfExplosion(x, y, z, radius, this);
++
 +                // Update wrapped, this is for tracking swinging and if blocks are found
 +                if (wrapped >= 7) {
 +                    if (getToBlow().isEmpty() && level.sakuraConfig().cannons.explosion.avoidRedundantBlockSearches) {
@@ -279,11 +284,6 @@ index 0000000000000000000000000000000000000000..406a7e354ada6211bda59df6795e5628
 +                        wrapped = 7;
 +                    }
 +                }
-+
-+                // Could be viable in the future to have a configuration option to reduce explosion events
-+                List<BlockPos> foundBlocks = new ObjectArrayList<>(getToBlow());
-+                super.finalizeExplosion(false);
-+                ((ServerLevel) level).notifyPlayersOfExplosion(x, y, z, radius, this);
 +
 +                // The purpose of this is to make sure papers blockCache doesn't become outdated
 +                // by flushing the map and removing stale entries from the recent cache array.
