@@ -142,12 +142,13 @@ index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfca
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b44d41314f60eabb72e72621fd6aa6625034ee14
+index 0000000000000000000000000000000000000000..406a7e354ada6211bda59df6795e56286d321251
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
-@@ -0,0 +1,403 @@
+@@ -0,0 +1,407 @@
 +package me.samsuik.sakura.explosion;
 +
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 +import me.samsuik.sakura.entity.EntityState;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.particles.ParticleOptions;
@@ -206,7 +207,7 @@ index 0000000000000000000000000000000000000000..b44d41314f60eabb72e72621fd6aa662
 +            for (int i = 1; i < source.getStacked(); ++i) {
 +                getToBlow().clear();
 +                ((ServerLevel) level).notifyPlayersOfExplosion(x, y, z, radius, this);
-+                finalizeExplosion(false);
++                super.finalizeExplosion(false);
 +            }
 +
 +            return;
@@ -270,25 +271,28 @@ index 0000000000000000000000000000000000000000..b44d41314f60eabb72e72621fd6aa662
 +                // Calculate next source velocity
 +                entityState = calculateNextVelocity(position, mbp, blockCache);
 +
-+                // The purpose of this is to make sure papers blockCache doesn't become
-+                // outdated by flushing the map and removing stale entries from the recent
-+                // cache array. If there is any case where tnt can provide its self delta
-+                // movement and then start moving without blocks this may break stuff to
-+                // fix it see the note above or add a boolean to mark the cache as dirty
-+                // outside this loop and then invalidate before the final impact entities.
-+                if (!getToBlow().isEmpty()) {
-+                    invalidateBlockCache(blockCache);
++                // Update wrapped, this is for tracking swinging and if blocks are found
++                if (wrapped >= 7) {
++                    if (getToBlow().isEmpty() && level.sakuraConfig().cannons.explosion.avoidRedundantBlockSearches) {
++                        wrapped++;
++                    } else {
++                        wrapped = 7;
++                    }
 +                }
 +
 +                // Could be viable in the future to have a configuration option to reduce explosion events
++                List<BlockPos> foundBlocks = new ObjectArrayList<>(getToBlow());
 +                super.finalizeExplosion(false);
 +                ((ServerLevel) level).notifyPlayersOfExplosion(x, y, z, radius, this);
 +
-+                // Update wrapped, this is for tracking swinging and if blocks are found
-+                if (getToBlow().isEmpty() && level.sakuraConfig().cannons.explosion.avoidRedundantBlockSearches) {
-+                    wrapped++;
-+                } else {
-+                    wrapped = 7;
++                // The purpose of this is to make sure papers blockCache doesn't become outdated
++                // by flushing the map and removing stale entries from the recent cache array.
++                if (!foundBlocks.isEmpty()) {
++                    if (getToBlow().isEmpty()) {
++                        cleanBlockCache(foundBlocks);
++                    } else {
++                        invalidateBlockCache(blockCache);
++                    }
 +                }
 +            }
 +        }
@@ -678,7 +682,7 @@ index 811a5224a02bb3badb1b8d6de370b7166d9f877c..1b8d43cf54999c9a005459bc59d7b5a5
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c517d64c09 100644
+index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..2f1e9c8ce55d8f8fc97c2b4208424dc163f28346 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -55,14 +55,16 @@ public class Explosion {
@@ -767,7 +771,7 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
                          ++missedRays;
                      }
                  }
-@@ -375,12 +388,70 @@ public class Explosion {
+@@ -375,12 +388,76 @@ public class Explosion {
          return (float)missedRays / (float)totalRays;
      }
      // Paper end - optimise collisions
@@ -789,12 +793,18 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
 +        this.chunkCache = null; // Paper - optimise explosions
 +    }
 +
++    protected void cleanBlockCache(List<BlockPos> blocks) {
++        for (BlockPos blow : blocks) {
++            blockCache.get(blow.asLong()).shouldExplode = null;
++        }
++    }
++
 +    protected void invalidateBlockCache(ExplosionBlockCache[] blockCaches) {
 +        for (BlockPos blow : getToBlow()) {
 +            final int cacheKey =
 +                (blow.getX() & BLOCK_EXPLOSION_CACHE_MASK) |
-+                    (blow.getY() & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT) |
-+                    (blow.getZ() & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT + BLOCK_EXPLOSION_CACHE_SHIFT);
++                (blow.getY() & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT) |
++                (blow.getZ() & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT + BLOCK_EXPLOSION_CACHE_SHIFT);
 +
 +            blockCaches[cacheKey] = null;
 +        }
@@ -839,7 +849,7 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
          AABB axisalignedbb = entity.getBoundingBox();
          double d0 = 1.0D / ((axisalignedbb.maxX - axisalignedbb.minX) * 2.0D + 1.0D);
          double d1 = 1.0D / ((axisalignedbb.maxY - axisalignedbb.minY) * 2.0D + 1.0D);
-@@ -400,7 +471,11 @@ public class Explosion {
+@@ -400,7 +477,11 @@ public class Explosion {
                          double d10 = Mth.lerp(d7, axisalignedbb.minZ, axisalignedbb.maxZ);
                          Vec3 vec3d1 = new Vec3(d8 + d3, d9, d10 + d4);
  
@@ -852,7 +862,7 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
                              ++i;
                          }
  
-@@ -429,7 +504,29 @@ public class Explosion {
+@@ -429,7 +510,29 @@ public class Explosion {
              return;
          }
          // CraftBukkit end
@@ -882,7 +892,7 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
          Set<BlockPos> set = Sets.newHashSet();
          boolean flag = true;
  
-@@ -437,14 +534,7 @@ public class Explosion {
+@@ -437,14 +540,7 @@ public class Explosion {
          int j;
  
          // Paper start - optimise explosions
@@ -898,7 +908,7 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
          // use initial cache value that is most likely to be used: the source position
          final ExplosionBlockCache initialCache;
          {
-@@ -541,10 +631,15 @@ public class Explosion {
+@@ -541,10 +637,15 @@ public class Explosion {
          }
  
          this.toBlow.addAll(set);
@@ -916,7 +926,7 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
          int l = Mth.floor(this.y - (double) f2 - 1.0D);
          int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
          int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
-@@ -591,11 +686,11 @@ public class Explosion {
+@@ -591,11 +692,11 @@ public class Explosion {
                                  for (EnderDragonPart entityComplexPart : ((EnderDragon) entity).subEntities) {
                                      // Calculate damage separately for each EntityComplexPart
                                      if (list.contains(entityComplexPart)) {
@@ -930,7 +940,7 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
                              }
  
                              CraftEventFactory.entityDamage = null;
-@@ -635,9 +730,7 @@ public class Explosion {
+@@ -635,9 +736,7 @@ public class Explosion {
              }
          }
  
@@ -941,7 +951,7 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
      }
  
      public void finalizeExplosion(boolean particles) {
-@@ -705,6 +798,12 @@ public class Explosion {
+@@ -705,6 +804,12 @@ public class Explosion {
              if (this.wasCanceled) {
                  return;
              }
@@ -954,7 +964,7 @@ index 3d4a75302d72bdbe47d0efbe08c89401dbe22a87..1e6e9b6709298b611ae2f77720baa9c5
              // CraftBukkit end
              objectlistiterator = this.toBlow.iterator();
  
-@@ -851,15 +950,22 @@ public class Explosion {
+@@ -851,15 +956,22 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions
