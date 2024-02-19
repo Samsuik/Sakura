@@ -360,7 +360,7 @@ index 0000000000000000000000000000000000000000..efbf8360657c862dd522d0264aa1c5d8
 +}
 diff --git a/src/main/java/me/samsuik/sakura/utils/tps/TickTracking.java b/src/main/java/me/samsuik/sakura/utils/tps/TickTracking.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8a94b1a2cb1ff57664c97a7b471c99ec391103ae
+index 0000000000000000000000000000000000000000..2886262ed8420f4e28cd264159e5cd70a39fe495
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/tps/TickTracking.java
 @@ -0,0 +1,53 @@
@@ -400,7 +400,7 @@ index 0000000000000000000000000000000000000000..8a94b1a2cb1ff57664c97a7b471c99ec
 +        history.remove(history.size() - 1);
 +
 +        int entities = server.stream().mapToInt((world) -> world.entityTickList.entityCount()).sum();
-+        int loaded = server.stream().mapToInt((world) -> world.chunkSource.actualLoadedChunkCount()).sum();
++        int loaded = server.stream().mapToInt((world) -> world.chunkSource.getInternallyLoadedChunks()).sum();
 +
 +        double mspt = Arrays.stream(msptSamples).average().orElse(0.0);
 +        double max = Arrays.stream(msptSamples).max().orElse(0.0);
@@ -418,55 +418,54 @@ index 0000000000000000000000000000000000000000..8a94b1a2cb1ff57664c97a7b471c99ec
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 73dc4f245039805b635f9e89438104e3b7a93e7b..39081c0052a333580b22da10310d86de73693b2c 100644
+index f6a43cbd45834141e539f87f5bd7240ec3879955..06af35cba1a7b9c11cade2bcd0cc72c4bc28e56f 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1126,6 +1126,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1125,6 +1125,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
      private static final java.math.BigDecimal TPS_BASE = new java.math.BigDecimal(1E9).multiply(new java.math.BigDecimal(SAMPLE_INTERVAL));
-+    public static final me.samsuik.sakura.utils.tps.TickTracking tickTracking = new me.samsuik.sakura.utils.tps.TickTracking(120); // Sakura - TPS Graph
-     // Paper End
++    public static final me.samsuik.sakura.utils.tps.TickTracking tickTracking = new me.samsuik.sakura.utils.tps.TickTracking(120); // Sakura - tps graph command
+     // Paper end
      // Spigot End
  
-@@ -1192,6 +1193,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-                     curTime = Util.getNanos();
-                     final long diff = curTime - tickSection;
-                     java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
+@@ -1193,6 +1194,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                 if (++MinecraftServer.currentTick % MinecraftServer.SAMPLE_INTERVAL == 0) {
+                     final long diff = currentTime - tickSection;
+                     final java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
 +                    tickTracking.secondSample(levels.values(), currentTps.doubleValue()); // Sakura
                      tps1.add(currentTps, diff);
                      tps5.add(currentTps, diff);
                      tps15.add(currentTps, diff);
-@@ -1219,6 +1221,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1221,6 +1223,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  this.tickServer(flag ? () -> {
                      return false;
                  } : this::haveTime);
-+                tickTracking.tickSample((System.nanoTime() - curTime) / 1_000_000L); // Sakura
++                tickTracking.tickSample((System.nanoTime() - currentTime) / 1_000_000L); // Sakura
                  this.profiler.popPush("nextTickWait");
                  this.mayHaveDelayedTasks = true;
                  this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 6e212f672579a3e08dc362c287be59ca5170d717..bc0f6555e9c3fcccf2d9a3bd47c76e6433dd6bff 100644
+index 366c0c9b45a819f7f94ebe3e49b8ab7f9edf9ce7..3662c364d0bf04c9d5ef3af84bceb4263c47df7f 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -74,6 +74,12 @@ public class ServerChunkCache extends ChunkSource {
+@@ -92,6 +92,11 @@ public class ServerChunkCache extends ChunkSource {
+         this.clearCache();
+     }
  
-     private final LevelChunk[] lastLoadedChunks = new LevelChunk[4 * 4];
- 
-+    // Sakura start - there's another method with the same name that returns how many chunks players have loaded
-+    public int actualLoadedChunkCount() {
++    // Sakura start - tps graph command
++    public final int getInternallyLoadedChunks() {
 +        return loadedChunkMap.size();
 +    }
-+    // Sakura end
-+
-     private static int getChunkCacheKey(int x, int z) {
-         return x & 3 | ((z & 3) << 2);
-     }
++    // Sakura end - tps graph command
+     // CraftBukkit start - properly implement isChunkLoaded
+     public boolean isChunkLoaded(int chunkX, int chunkZ) {
+         ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.asLong(chunkX, chunkZ));
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index c33c9cb3a0e574e5284e48ffaf8d0945061ea388..f48eaebb0f9a10fb77e85619b2d2a4996e461195 100644
+index 730ad919eef9e38bbeea7cfd1153065b14f12ceb..7a89e4f70195c62c51bbf1993a0988a9c5706449 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -194,7 +194,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -193,7 +193,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      public final ServerChunkCache chunkSource;
      private final MinecraftServer server;
      public final PrimaryLevelData serverLevelData; // CraftBukkit - type
@@ -493,7 +492,7 @@ index 4cdfc433df67afcd455422e9baf56f167dd712ae..1fcce60790cab6e7b137464ccd87e678
          // Paper - replace with better logic, do not delay removals
  
 diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
-index 68602dfb171d47e47fd0710b4324013ef05214d0..6f21afd958fbb7037611ca01458b6848b93cc208 100644
+index 6c260403d91d640da0473a3df56e1c5582459fde..2d2d1eeaeb9e7f36263b8cecc753adf721b96435 100644
 --- a/src/main/java/org/spigotmc/SpigotConfig.java
 +++ b/src/main/java/org/spigotmc/SpigotConfig.java
 @@ -283,7 +283,7 @@ public class SpigotConfig

@@ -51,30 +51,30 @@ index 658e63ebde81dc14c8ab5850fb246dc0aab25dea..f1ff1a67fee37ee7b241ceaa164fa4ee
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 8cae7a1ac496995ebe59ad88c56fbc424ca98930..218866882e3b08b1eb46b2a286bc7fe480db9c74 100644
+index d92e4db0051f128fac5653c7920c2466bff80143..38d416b4d9acf811f862cd2fbf88de8dfcef077c 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -537,6 +537,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
-     // Paper end - make end portalling safe
-     public boolean isPrimedTNT; // Sakura
-     public boolean isFallingBlock; // Sakura
-+    // Sakura start
+@@ -570,6 +570,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+     public boolean isPrimedTNT;
+     public boolean isFallingBlock;
+     // Sakura end - visibility api and command
++    // Sakura start - load chunks on cannon entity movement
 +    protected boolean loadChunks = false;
 +
 +    private int getExtraCollisionFlags() {
 +        int flags = 0;
-+        
++
 +        if (this.loadChunks) {
 +            flags |= io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_LOAD_CHUNKS | io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_ADD_TICKET;
 +        }
 +
 +        return flags;
 +    }
-+    // Sakura end
++    // Sakura end - load chunks on cannon entity movement
  
-     public boolean isLegacyTrackingEntity = false;
- 
-@@ -1498,7 +1511,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+@@ -1501,7 +1514,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
  
          io.papermc.paper.util.CollisionUtil.getCollisions(
                  world, this, collisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
@@ -83,7 +83,7 @@ index 8cae7a1ac496995ebe59ad88c56fbc424ca98930..218866882e3b08b1eb46b2a286bc7fe4
                  null, null
          );
  
-@@ -4886,7 +4899,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4878,7 +4891,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
  
      @Override
      public boolean isAlwaysTicking() {
@@ -93,7 +93,7 @@ index 8cae7a1ac496995ebe59ad88c56fbc424ca98930..218866882e3b08b1eb46b2a286bc7fe4
  
      public boolean mayInteract(Level world, BlockPos pos) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index ec8488a2ab16950052a3bff04be6e3ecc3b44891..1a018e1d2b6dd93be5e6209a2d52eade0b356f58 100644
+index f345ab3886899e5823e5146b032c41f4e5ef5953..3b0c6dbe6b473e2249846f894f85770d5f46ded8 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -74,6 +74,7 @@ public class FallingBlockEntity extends Entity {
@@ -105,7 +105,7 @@ index ec8488a2ab16950052a3bff04be6e3ecc3b44891..1a018e1d2b6dd93be5e6209a2d52eade
  
      public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index c187a2714d5580a2d8db54d270999aa618c4c878..0be7c39fbb19a0cdca3f5dc779c2690df5f08647 100644
+index 61a6901c081c64ac576563958f905f0a943b056f..9d92561eb38431ac01416900420793c21f89d82f 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -39,6 +39,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -117,7 +117,7 @@ index c187a2714d5580a2d8db54d270999aa618c4c878..0be7c39fbb19a0cdca3f5dc779c2690d
  
      public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index fa170cc1ce7011d201295b89718292d696c7fc24..2f48ac198610ee2a379bff4e056a6afe5f7f8a04 100644
+index 6ec3fc801453fd54c25b642e6fa71c19b463311d..99af90c9f4cd7b2e5e230e97f06e131a722b3f78 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -218,6 +218,17 @@ public class LevelChunk extends ChunkAccess {

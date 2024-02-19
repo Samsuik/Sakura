@@ -41,23 +41,23 @@ index 2d79633d86007c7d40eecf5f9271fa3f351b72b5..d917a19c838ed3d74322abd85e1f737e
          public void getEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
              if (this.count == 0) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 8fd4d63fdbff9c454d903f4797ec9281df7266fc..9ef1d77dd87793577223402808ff7a6baad42ee4 100644
+index 89a6fc46b6cc2d0a2e3192cfd258cf358ffb25ca..cb0197f9fbdd32f6338926cc4c45c26fd673a121 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -228,6 +228,16 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -222,6 +222,16 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
  
      public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
  
-+    // Sakura start
-+    public Entity[] getSectionEntities(int chunkX, int chunkY, int chunkZ) {
++    // Sakura start - add utility method for accessing ChunkEntitySlices
++    public final Entity[] getSectionEntities(int chunkX, int chunkY, int chunkZ) {
 +        var slices = ((ServerLevel)this).getEntityLookup().getChunk(chunkX, chunkZ);
 +        if (slices == null) {
 +            return new Entity[0];
 +        }
 +        return slices.getSectionEntities(chunkY);
 +    }
-+    // Sakura end
++    // Sakura end - add utility method for accessing ChunkEntitySlices
 +
-     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
-         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper
+         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config

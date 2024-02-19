@@ -5,14 +5,14 @@ Subject: [PATCH] Cannon Mechanics
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index c548b1c0a9da290bc1ab52c37a792b4734e647e4..4c1b739860f58d6f60d420840202a9b4eb45d5f3 100644
+index 6a18f855d26e5a32f9bc40af5e238754a0697440..6371253ed8f2d7a35e8ec0de3fc46c5f27e64a0f 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -67,6 +67,7 @@ public class FallingBlockEntity extends Entity {
      public CompoundTag blockData;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
-     public boolean autoExpire = true; // Paper - Auto expire setting
-+    public boolean heightParity; // Sakura
+     public boolean autoExpire = true; // Paper - Expand FallingBlock API
++    public boolean heightParity; // Sakura - configure cannon mechanics
  
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level world) {
          super(type, world);
@@ -20,7 +20,7 @@ index c548b1c0a9da290bc1ab52c37a792b4734e647e4..4c1b739860f58d6f60d420840202a9b4
          this.fallDamageMax = 40;
          this.isFallingBlock = true; // Sakura
          this.loadChunks = world.sakuraConfig().cannons.sand.loadsChunks; // Sakura - load chunks
-+        this.heightParity = world.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura
++        this.heightParity = world.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
      }
  
      public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
@@ -38,7 +38,7 @@ index c548b1c0a9da290bc1ab52c37a792b4734e647e4..4c1b739860f58d6f60d420840202a9b4
      @Override
      public void tick() {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index ebfd24f9fb90071288f0c872c0e3fbd58bb3f2b9..d534bc3ff8d5995ced0f9f89261cdcf1835698f4 100644
+index a7ecf63d18891c61ddbdc55e74aa10da884838e8..4deb969309179e2314bd479608e715540d5ea3d6 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -53,6 +53,12 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -54,17 +54,17 @@ index ebfd24f9fb90071288f0c872c0e3fbd58bb3f2b9..d534bc3ff8d5995ced0f9f89261cdcf1
      }
  
      @Override
-@@ -255,7 +261,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
-     // Paper start - Optional prevent TNT from moving in water
+@@ -247,7 +253,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+     // Paper start - Option to prevent TNT from moving in water
      @Override
      public boolean isPushedByFluid() {
 -        return !level().paperConfig().fixes.preventTntFromMovingInWater && super.isPushedByFluid();
 +        return !level().paperConfig().fixes.preventTntFromMovingInWater && level().sakuraConfig().cannons.mechanics.tntFlowsInWater && super.isPushedByFluid(); // Sakura - convenience
      }
-     // Paper end
+     // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
-index c64ab06b62334e5ab1ab5ad78fa400de45c15723..94667eab6d756ee170eb49e2e434c7a3b0df2d67 100644
+index 0afa2cfb04b5097788927076669e85fe24041df9..8e678a811e232bbd78de45b80fae47964bdf8f98 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
 @@ -34,6 +34,16 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {

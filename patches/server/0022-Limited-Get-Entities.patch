@@ -329,14 +329,14 @@ index d917a19c838ed3d74322abd85e1f737e852b5d7b..1ba10713c85d6f19f075cc267602a04c
              if (this.count == 0) {
                  return;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index c63c5c1451d5678ddea0d570ff2628af258490ae..a2f8040da7e8baa120e5dcdacb3c5b22f2f2eb46 100644
+index e8de10a604892a4b571c643aaf479add13e95804..f759e3903a71d7a92544a1e0967c69bfba18b6e4 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -240,6 +240,39 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
-     public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura
-     public final me.samsuik.sakura.explosion.DensityCache densityCache = new me.samsuik.sakura.explosion.DensityCache(); // Sakura
+@@ -234,6 +234,39 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
+     public final me.samsuik.sakura.explosion.DensityCache densityCache = new me.samsuik.sakura.explosion.DensityCache(); // Sakura - specialised density cache for swinging explosions
  
-+    // Sakura start - limited get entities
++    // Sakura start - add entity retrival methods with search limits
 +    public void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
 +        ((ServerLevel)this).getEntityLookup().getLimitedEntities(except, box, into, predicate, limit, search);
 +    }
@@ -367,8 +367,8 @@ index c63c5c1451d5678ddea0d570ff2628af258490ae..a2f8040da7e8baa120e5dcdacb3c5b22
 +    public List<Entity> getLimitedEntities(@Nullable Entity except, AABB box, int limit, int search) {
 +        return this.getLimitedEntities(except, box, net.minecraft.world.entity.EntitySelector.NO_SPECTATORS, limit, search);
 +    }
-+    // Sakura end
++    // Sakura end - add entity retrival methods with search limits
 +
-     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
-         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper
+         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config

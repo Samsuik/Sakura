@@ -19,13 +19,13 @@ The current packets modified/obfuscated are the following:
     # with packets instead of every single player within tracking distance
 
 diff --git a/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java b/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java
-index a043c382c37058032548a5192e17f5f816abe5a6..8e84afc92bef8192320dfe405609bf06ff0f9e15 100644
+index 58b602e550258c1062ee940bc46538dac95d8979..50c6647ef3755c3712bf095c14c820019d6318e1 100644
 --- a/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java
 +++ b/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java
 @@ -39,6 +39,7 @@ public class SynchedEntityData {
      private static final int GROW_FACTOR = 8;
      private SynchedEntityData.DataItem<?>[] itemsArray = new SynchedEntityData.DataItem<?>[DEFAULT_ENTRY_COUNT];
-     // Paper end
+     // Paper end - Perf: array backed synched entity data
 +    private boolean isForeignDirty; // Slice
  
      public SynchedEntityData(Entity trackedEntity) {
@@ -155,7 +155,7 @@ index a043c382c37058032548a5192e17f5f816abe5a6..8e84afc92bef8192320dfe405609bf06
              return SynchedEntityData.DataValue.create(this.accessor, this.value);
          }
 diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
-index 83c4639c2bdca4dc4281d9f5eca104af3063bfa5..f7d8aaededd39ce52a9d0105f66fd759635b5288 100644
+index cce8f45c15b9a9acfbf9b769f7670cfd0969d62f..4237442c649845ffb0ff613e6c76ca478191e950 100644
 --- a/src/main/java/net/minecraft/server/level/ServerEntity.java
 +++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
 @@ -148,7 +148,7 @@ public class ServerEntity {
@@ -167,7 +167,7 @@ index 83c4639c2bdca4dc4281d9f5eca104af3063bfa5..f7d8aaededd39ce52a9d0105f66fd759
              int i;
              int j;
  
-@@ -395,11 +395,23 @@ public class ServerEntity {
+@@ -401,11 +401,23 @@ public class ServerEntity {
      }
      
      // Sakura start - visibility api
@@ -193,7 +193,7 @@ index 83c4639c2bdca4dc4281d9f5eca104af3063bfa5..f7d8aaededd39ce52a9d0105f66fd759
              var copyOfDirtyItems = Lists.newArrayList(packedValues);
              copyOfDirtyItems.removeIf((data) -> data.id() == 8);
  
-@@ -426,7 +438,7 @@ public class ServerEntity {
+@@ -432,7 +444,7 @@ public class ServerEntity {
  
          if (list != null) {
              this.trackedDataValues = datawatcher.getNonDefaultValues();
@@ -203,10 +203,10 @@ index 83c4639c2bdca4dc4281d9f5eca104af3063bfa5..f7d8aaededd39ce52a9d0105f66fd759
  
          if (this.entity instanceof LivingEntity) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 218866882e3b08b1eb46b2a286bc7fe480db9c74..7fad22ee8a24399acbae6a9bc07ad5de39d41020 100644
+index 38d416b4d9acf811f862cd2fbf88de8dfcef077c..9a7b9f72531dfaecb55c089eea412e81ee00ef65 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -3399,7 +3399,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -3402,7 +3402,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              this.entityData.markDirty(Entity.DATA_AIR_SUPPLY_ID);
              return;
          }
@@ -216,7 +216,7 @@ index 218866882e3b08b1eb46b2a286bc7fe480db9c74..7fad22ee8a24399acbae6a9bc07ad5de
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 1a018e1d2b6dd93be5e6209a2d52eade0b356f58..0cf39ea76902e62b712057fe1bb80e3af8190fc4 100644
+index 3b0c6dbe6b473e2249846f894f85770d5f46ded8..85da566b151d6c9995b5c41333c4cd05235c1d70 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -110,7 +110,7 @@ public class FallingBlockEntity extends Entity {
@@ -229,10 +229,10 @@ index 1a018e1d2b6dd93be5e6209a2d52eade0b356f58..0cf39ea76902e62b712057fe1bb80e3a
  
      public BlockPos getStartPos() {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 0be7c39fbb19a0cdca3f5dc779c2690df5f08647..cc30c119f519e7cd947ab40beae56e493e977176 100644
+index 9d92561eb38431ac01416900420793c21f89d82f..46680f551f83b91581440d89a1c35c048db03638 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -196,7 +196,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -188,7 +188,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      }
  
      public void setFuse(int fuse) {
@@ -242,10 +242,10 @@ index 0be7c39fbb19a0cdca3f5dc779c2690df5f08647..cc30c119f519e7cd947ab40beae56e49
  
      public int getFuse() {
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index ccc1caafb0ada52c7b99b7358253826f5390843e..ad8114246633498c22d615f1bc669ea83f97c930 100644
+index 5ca1f834f311a87323ced2578535e66efa14e47f..d89e7f021cc4ac61550ca5dbf660323fc1aec01f 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
 +++ b/src/main/java/net/minecraft/world/entity/player/Player.java
-@@ -644,7 +644,7 @@ public abstract class Player extends LivingEntity {
+@@ -645,7 +645,7 @@ public abstract class Player extends LivingEntity {
      public void increaseScore(int score) {
          int j = this.getScore();
  
