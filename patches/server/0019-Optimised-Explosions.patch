@@ -6,7 +6,7 @@ Subject: [PATCH] Optimised Explosions
 
 diff --git a/src/main/java/me/samsuik/sakura/explosion/DensityCache.java b/src/main/java/me/samsuik/sakura/explosion/DensityCache.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfcad88e3783
+index 0000000000000000000000000000000000000000..5c6d4124189d98421e2d6f351840c5d69bf2faf4
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/DensityCache.java
 @@ -0,0 +1,130 @@
@@ -21,7 +21,7 @@ index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfca
 +
 +import javax.annotation.Nullable;
 +
-+public class DensityCache {
++public final class DensityCache {
 +
 +    private final Int2ObjectMap<Density> densityMap = new Int2ObjectOpenHashMap<>();
 +
@@ -142,7 +142,7 @@ index 0000000000000000000000000000000000000000..3f6f34cc617efaad420485a7f613cfca
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..93c7be878632296683a794235455013c33bec9e7
+index 0000000000000000000000000000000000000000..21e620a23ad5ba889760fe6234fe2c245f1d73a8
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 @@ -0,0 +1,381 @@
@@ -190,7 +190,7 @@ index 0000000000000000000000000000000000000000..93c7be878632296683a794235455013c
 + * realistic to explode a big block of tnt in survival or factions. They only cause
 + * harm to a server and extremely wasteful for resources with minimal impact to terrain.
 + */
-+public class SakuraExplosion extends Explosion {
++public final class SakuraExplosion extends Explosion {
 +
 +    private final Level level;
 +
@@ -529,7 +529,7 @@ index 0000000000000000000000000000000000000000..93c7be878632296683a794235455013c
 +}
 diff --git a/src/main/java/me/samsuik/sakura/utils/ExplosionUtil.java b/src/main/java/me/samsuik/sakura/utils/ExplosionUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e0387f16ff49031fdcbc8990613417da88d84e87
+index 0000000000000000000000000000000000000000..84e5fe09f7432cdeec846dc1e26404706f1c298c
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/ExplosionUtil.java
 @@ -0,0 +1,64 @@
@@ -540,7 +540,7 @@ index 0000000000000000000000000000000000000000..e0387f16ff49031fdcbc8990613417da
 +import java.util.ArrayList;
 +import java.util.List;
 +
-+public class ExplosionUtil {
++public final class ExplosionUtil {
 +
 +    private static final java.util.function.Function<double[], Double> highestOf = (vector) -> {
 +        double highest = 0;
@@ -961,7 +961,7 @@ index 3cb5306a2ccfc1c53f90ecd56980d17be4042093..88fccb17260c203111147a2a458d8185
  
          return blockDensity;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index d1ca193575f531f0cb12e056bfda75b86c3940bb..c62793c50e95e2e9588e20a59a1d8fb70ddf7760 100644
+index 890e862217947b21d976b45d271554abb210b622..a246493bc7c0b589521c39ec5c10f5040ca19e33 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -289,6 +289,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {

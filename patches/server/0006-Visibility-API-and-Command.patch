@@ -5,7 +5,7 @@ Subject: [PATCH] Visibility API and Command
 
 
 diff --git a/src/main/java/me/samsuik/sakura/command/SakuraCommands.java b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
-index c2651cac1dcf85fb67fe981b97efee4e56431de2..d7d0c49cc5d576c594dee16ddba037cd147e11fa 100644
+index 3b08454cf7411d12bb33225df59800bd73312123..22676ec7a7ae9494b198e5e65e6be6d32e0feb85 100644
 --- a/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
 +++ b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
 @@ -2,6 +2,9 @@ package me.samsuik.sakura.command;
@@ -18,7 +18,7 @@ index c2651cac1dcf85fb67fe981b97efee4e56431de2..d7d0c49cc5d576c594dee16ddba037cd
  import net.minecraft.server.MinecraftServer;
  import org.bukkit.command.Command;
  
-@@ -14,6 +17,10 @@ public class SakuraCommands {
+@@ -14,6 +17,10 @@ public final class SakuraCommands {
      static {
          COMMANDS.put("sakura", new SakuraCommand("sakura"));
          COMMANDS.put("config", new ConfigCommand("config"));
@@ -31,7 +31,7 @@ index c2651cac1dcf85fb67fe981b97efee4e56431de2..d7d0c49cc5d576c594dee16ddba037cd
      public static void registerCommands(final MinecraftServer server) {
 diff --git a/src/main/java/me/samsuik/sakura/command/subcommands/FPSCommand.java b/src/main/java/me/samsuik/sakura/command/subcommands/FPSCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1dc2a98123d671c945e85b97a898f56e527a81f5
+index 0000000000000000000000000000000000000000..aa5ddf696b09226a0bd3d967d2ac2b11fc2deb32
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/command/subcommands/FPSCommand.java
 @@ -0,0 +1,26 @@
@@ -45,7 +45,7 @@ index 0000000000000000000000000000000000000000..1dc2a98123d671c945e85b97a898f56e
 +import org.checkerframework.framework.qual.DefaultQualifier;
 +
 +@DefaultQualifier(NonNull.class)
-+public class FPSCommand extends BaseSubCommand {
++public final class FPSCommand extends BaseSubCommand {
 +
 +    private final VisibilityGUI VISIBILITY_GUI = new VisibilityGUI();
 +
@@ -63,7 +63,7 @@ index 0000000000000000000000000000000000000000..1dc2a98123d671c945e85b97a898f56e
 +}
 diff --git a/src/main/java/me/samsuik/sakura/command/subcommands/VisualCommand.java b/src/main/java/me/samsuik/sakura/command/subcommands/VisualCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6027e4741e2de7c6d3bd7b094c196a212e34e2f5
+index 0000000000000000000000000000000000000000..148a583279333eeb3e5db16652623082cd5e0e60
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/command/subcommands/VisualCommand.java
 @@ -0,0 +1,45 @@
@@ -82,7 +82,7 @@ index 0000000000000000000000000000000000000000..6027e4741e2de7c6d3bd7b094c196a21
 +import java.util.Arrays;
 +
 +@DefaultQualifier(NonNull.class)
-+public class VisualCommand extends BaseSubCommand {
++public final class VisualCommand extends BaseSubCommand {
 +
 +    private final Visibility.Setting type;
 +
@@ -114,7 +114,7 @@ index 0000000000000000000000000000000000000000..6027e4741e2de7c6d3bd7b094c196a21
 +}
 diff --git a/src/main/java/me/samsuik/sakura/player/visibility/VisibilityGUI.java b/src/main/java/me/samsuik/sakura/player/visibility/VisibilityGUI.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..aaffe63cec82e8d89a9b6cd6e1749ca983dc6a13
+index 0000000000000000000000000000000000000000..8cd203d9643813ec04dfbaa9ef2550b5814ca38f
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/player/visibility/VisibilityGUI.java
 @@ -0,0 +1,120 @@
@@ -138,7 +138,7 @@ index 0000000000000000000000000000000000000000..aaffe63cec82e8d89a9b6cd6e1749ca9
 +
 +import java.util.function.BiFunction;
 +
-+public class VisibilityGUI extends PlayerGUI {
++public final class VisibilityGUI extends PlayerGUI {
 +
 +    private static final BiFunction<Player, Holder, Inventory> CREATE_INVENTORY = (player, holder) -> {
 +        Inventory inventory = Bukkit.createInventory(holder, 45, Component.text("FPS GUI"));
@@ -594,7 +594,7 @@ index dfdf7e7fc1070975ec18fd215c724f4fc84d3705..23ba4fc50c0d45f1e5d666ff583b9166
  
      public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 4f0b68f33c4fca1fa9f983f966b3899e75b837b8..303c4a47b275e6c53a809c65482ad66734945622 100644
+index 6feb45464e2cae5cb84b8e3f5202f7364af17648..7b60000ff3d6e359229d6bacfa0e6e0141d91838 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -287,6 +287,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
