@@ -6,7 +6,7 @@ Subject: [PATCH] Local Config and Value Storage API
 
 diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3508755c11cc8f577d27a440f2f4a08d9856f5ae
+index 0000000000000000000000000000000000000000..ff54d6b5d3f0299a37f36dde86fd00c5d04115dc
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
 @@ -0,0 +1,143 @@
@@ -31,7 +31,7 @@ index 0000000000000000000000000000000000000000..3508755c11cc8f577d27a440f2f4a08d
 +import java.util.List;
 +import java.util.Map;
 +
-+public class LocalConfigManager implements LocalStorageHandler {
++public final class LocalConfigManager implements LocalStorageHandler {
 +
 +    private final Map<LocalRegion, LocalValueStorage> storageMap = new Object2ObjectOpenHashMap<>();
 +    // tree is a tree. it may not be correct but it works.
@@ -155,7 +155,7 @@ index 0000000000000000000000000000000000000000..3508755c11cc8f577d27a440f2f4a08d
 +}
 diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fbd877356594f0cf8934452522cef4349801e5d7
+index 0000000000000000000000000000000000000000..f0037f98e93fd1f0dea9c224ba402ebcacf9b21f
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
 @@ -0,0 +1,59 @@
@@ -174,7 +174,7 @@ index 0000000000000000000000000000000000000000..fbd877356594f0cf8934452522cef434
 +
 +import java.util.Map;
 +
-+public class LocalValueConfig {
++public final class LocalValueConfig {
 +
 +    private final Expiry expiry;
 +    public Map<Block, DurableMaterial> durableMaterials;
@@ -231,17 +231,16 @@ index eb04fab84e266b11ef4e531cb7ea8504a1e46aac..23e5fcffe6e1b1a12af5c7399dd8b2f6
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 18a26062c114ef2b67cb7fbbffc8e2dc14b4e097..65a9b601204eb8e958e579a47cb0241d134228e2 100644
+index 8be02651774f7f7c5b383759df41ee18a8b5c267..d40c3aefde1e3b70657b48241cda2d0b0c457531 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -177,6 +177,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -177,6 +177,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          return this.sakuraConfig;
      }
      // Sakura end
 +    // Sakura start
 +    private final me.samsuik.sakura.local.config.LocalConfigManager localConfig = new me.samsuik.sakura.local.config.LocalConfigManager(this);
-+
-+    public me.samsuik.sakura.local.config.LocalConfigManager localConfig() {
++    public final me.samsuik.sakura.local.config.LocalConfigManager localConfig() {
 +        return this.localConfig;
 +    }
 +    // Sakura end
