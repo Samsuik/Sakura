@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Tue, 20 Feb 2024 19:16:16 +0000
+Subject: [PATCH] Add entity travel distance limits
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 1db051b952cb893d9aa1bfef4dd6439f11285ec2..ee8bae340448eaa0753833b222de96ccff205939 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -1417,6 +1417,11 @@ public class ServerLevel extends Level implements WorldGenLevel {
+         if (isActive) { // Paper - EAR 2
+             TimingHistory.activatedEntityTicks++;
+         entity.tick();
++            // Sakura start - entity travel distance limits
++            if (entity.isPastTravelDistanceLimit()) {
++                entity.discard();
++            }
++            // Sakura end - entity travel distance limits
+         entity.postTick(); // CraftBukkit
+         } else { entity.inactiveTick(); } // Paper - EAR 2
+         this.getProfiler().pop();
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index af422f8e5d89c4ac10ea91265fd84cf65cbf28cb..8baa9da071a55f691031668b3f5baf42bc923c98 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -729,6 +729,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+         return this.physics;
+     }
+     // Sakura end - physics version api
++    // Sakura start - entity travel distance limits
++    private final double travelDistanceLimit;
++
++    public final boolean isPastTravelDistanceLimit() {
++        if (origin == null) {
++            return false;
++        }
++
++        double x = Math.pow(origin.getX() - position.x(), 2);
++        double z = Math.pow(origin.getZ() - position.z(), 2);
++        return Math.max(x, z) >= travelDistanceLimit;
++    }
++    // Sakura end - entity travel distance limits
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+@@ -778,6 +791,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+         this.setPos(0.0D, 0.0D, 0.0D);
+         this.eyeHeight = this.getEyeHeight(net.minecraft.world.entity.Pose.STANDING, this.dimensions);
+         this.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura
++        this.travelDistanceLimit = Math.pow(level.sakuraConfig().entity.chunkTravelLimit.getOrDefault(type, Integer.MAX_VALUE) * 16.0, 2); // Sakura - entity travel distance limits
+     }
+ 
+     public boolean isColliding(BlockPos pos, BlockState state) {
