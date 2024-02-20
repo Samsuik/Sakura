@@ -6,18 +6,15 @@ Subject: [PATCH] Merge Cannon Entities
 
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3216f20b93b73277c4ad2ebb054eeee4db4fb8b6
+index 0000000000000000000000000000000000000000..7d899163b308f52b48bf72a1e9cd38d565bbe05d
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeHistory.java
-@@ -0,0 +1,127 @@
+@@ -0,0 +1,56 @@
 +package me.samsuik.sakura.entity.merge;
 +
-+import it.unimi.dsi.fastutil.HashCommon;
 +import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 +import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 +import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-+import it.unimi.dsi.fastutil.longs.LongSet;
-+import me.samsuik.sakura.utils.objects.Expiry;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.world.entity.Entity;
 +
@@ -26,13 +23,13 @@ index 0000000000000000000000000000000000000000..3216f20b93b73277c4ad2ebb054eeee4
 +public final class MergeHistory {
 +
 +    // packed position -> known merging information
-+    private final Long2ObjectMap<MergeData> mergeDataMap = new Long2ObjectOpenHashMap<>();
-+    private MergeData mergeData = null;
++    private final Long2ObjectMap<SpawnPositionData> mergeDataMap = new Long2ObjectOpenHashMap<>();
++    private SpawnPositionData mergeData = null;
 +
-+    public MergeData retrievePositions(Entity entity) {
++    public SpawnPositionData retrievePositions(Entity entity) {
 +        long origin = entity.getPackedOrigin();
 +
-+        if (mergeData != null && mergeData.knownPositions().contains(origin)) {
++        if (mergeData != null && mergeData.isPositionKnown(origin)) {
 +            return mergeData;
 +        }
 +
@@ -43,35 +40,20 @@ index 0000000000000000000000000000000000000000..3216f20b93b73277c4ad2ebb054eeee4
 +        List<Entity> mergeList = entity.getMergeList();
 +        long origin = entity.getPackedOrigin();
 +
-+        // I apologise for the lambda parameter name in advance
-+        MergeData data = mergeDataMap.computeIfAbsent(origin, (OwO) -> new MergeData(
-+            new LongOpenHashSet(), // Known entity positions
-+            new LongOpenHashSet(), // Retained positions
-+            new EntityTable(Math.min(mergeList.size() * 2, 512)),
-+            new Expiry(MinecraftServer.currentTickLong, 200),
-+            // Reasonable threshold to reduce abuse and breakage with on spawn merging.
-+            new Threshold(MinecraftServer.currentTickLong, 12, 200)
-+        ));
-+
-+        data.expiry().refresh(MinecraftServer.currentTickLong);
++        // After a merged entity has been discarded store all the position data
++        SpawnPositionData data = mergeDataMap.computeIfAbsent(origin, p -> new SpawnPositionData(mergeList));
++        data.getExpiry().refresh(MinecraftServer.currentTickLong);
 +
 +        // Collect all merge positions
 +        LongOpenHashSet positions = new LongOpenHashSet((mergeList.size() + 1) / 2);
-+
 +        positions.add(entity.getPackedOrigin());
 +
 +        for (Entity mergedEntity : mergeList) {
 +            positions.add(mergedEntity.getPackedOrigin());
 +        }
 +
-+        // Retain existing positions and insert new positions
-+        if (!data.knownPositions().isEmpty()) {
-+            data.retainedPositions().addAll(positions);
-+        } else {
-+            data.retainedPositions().retainAll(positions);
-+        }
-+
-+        data.knownPositions().addAll(positions);
++        // Retain existing positions or insert new positions
++        data.retainOrInsertPositions(positions);
 +    }
 +
 +    public void expire(long tick) {
@@ -80,60 +62,109 @@ index 0000000000000000000000000000000000000000..3216f20b93b73277c4ad2ebb054eeee4
 +        // only expire every 20 ticks
 +        if (tick % 20 != 0) return;
 +
-+        mergeDataMap.values().removeIf(data -> data.expiry().isExpired(tick));
++        mergeDataMap.values().removeIf(data -> data.getExpiry().isExpired(tick));
 +    }
 +
-+    public record MergeData(LongSet knownPositions, LongSet retainedPositions, EntityTable table, Expiry expiry, Threshold threshold) {
-+        public boolean hasPassed() {
-+            return threshold.hasPassed(MinecraftServer.currentTickLong);
-+        }
++}
+diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeThreshold.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeThreshold.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4d08af1a7ff0ebc2b1198513c86c08087d9d6e89
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeThreshold.java
+@@ -0,0 +1,26 @@
++package me.samsuik.sakura.entity.merge;
 +
-+        public Entity findFirstAtPosition(Entity entity) {
-+            Entity found = table.locate(entity);
++/**
++ * Threshold for AOT/on spawn merging.
++ * <p>
++ * This is determined by the amount of spawn attempts over time.
++ */
++public final class MergeThreshold {
 +
-+            if (found != null && found.getId() < entity.getId() && knownPositions.contains(found.getPackedOrigin()) && !found.isRemoved() && entity.compareState(found)) {
-+                return found;
-+            }
++    private final long startingTick;
++    private final int thresholdAttempts;
++    private final long thresholdAge;
++    private int attempts;
 +
-+            return null;
-+        }
++    public MergeThreshold(long tick, int attempts, long age) {
++        startingTick = tick;
++        thresholdAttempts = attempts;
++        thresholdAge = age;
 +    }
 +
-+    private static class EntityTable {
-+        private final Entity[] entities;
-+        private final int mask;
++    public boolean hasPassed(long tick) {
++        return ++attempts >= thresholdAttempts
++            || tick - startingTick >= thresholdAge;
++    }
 +
-+        EntityTable(int size) {
-+            int n = HashCommon.nextPowerOfTwo(size - 1);
-+            entities = new Entity[n];
-+            mask = n - 1;
++}
+diff --git a/src/main/java/me/samsuik/sakura/entity/merge/SpawnPositionData.java b/src/main/java/me/samsuik/sakura/entity/merge/SpawnPositionData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e63935c17e213bf60571d120ad9ce311b5249d45
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/entity/merge/SpawnPositionData.java
+@@ -0,0 +1,64 @@
++package me.samsuik.sakura.entity.merge;
++
++import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
++import it.unimi.dsi.fastutil.longs.LongSet;
++import me.samsuik.sakura.utils.collections.EntityTable;
++import me.samsuik.sakura.utils.objects.Expiry;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.entity.Entity;
++
++import java.util.List;
++
++/**
++ * Contains all the positions that past entities of the same origin have merged with.
++ */
++public final class SpawnPositionData {
++
++    private final LongSet knownPositions = new LongOpenHashSet();
++    private final LongSet retainedPositions = new LongOpenHashSet();
++
++    private final EntityTable table;
++    private final Expiry expiry = new Expiry(MinecraftServer.currentTickLong, 200);
++    private final MergeThreshold threshold = new MergeThreshold(MinecraftServer.currentTickLong, 12, 200);
++
++    public SpawnPositionData(List<Entity> mergeList) {
++        this.table = new EntityTable(mergeList.size());
++    }
++
++    public Expiry getExpiry() {
++        return expiry;
++    }
++
++    public void retainOrInsertPositions(LongOpenHashSet positions) {
++        if (!knownPositions.isEmpty()) {
++            retainedPositions.addAll(positions);
++        } else {
++            retainedPositions.retainAll(positions);
 +        }
 +
-+        Entity locate(Entity entity) {
-+            int pos = entity.blockPosition().hashCode();
-+            int key = pos & mask;
-+            Entity found = entities[key];
-+            entities[key] = entity;
++        knownPositions.addAll(positions);
++    }
++
++    public boolean isPositionKnown(long pos) {
++        return knownPositions.contains(pos);
++    }
++
++    public boolean isPositionRetained(long pos) {
++        return retainedPositions.contains(pos);
++    }
++
++    public boolean isAbleToOnSpawnMerge() {
++        return threshold.hasPassed(MinecraftServer.currentTickLong);
++    }
++
++    public Entity findFirstEntityInSamePosition(Entity entity) {
++        Entity found = table.locate(entity);
++
++        if (found != null && found.getId() < entity.getId() && knownPositions.contains(found.getPackedOrigin()) && !found.isRemoved() && entity.compareState(found)) {
 +            return found;
 +        }
-+    }
 +
-+    private static class Threshold {
-+        private final long startingTick;
-+        private final int thresholdAttempts;
-+        private final long thresholdAge;
-+        private int attempts;
-+
-+        Threshold(long tick, int attempts, long age) {
-+            startingTick = tick;
-+            thresholdAttempts = attempts;
-+            thresholdAge = age;
-+        }
-+
-+        boolean hasPassed(long tick) {
-+            return ++attempts >= thresholdAttempts
-+                || tick - startingTick >= thresholdAge;
-+        }
++        return null;
 +    }
 +
 +}
@@ -178,7 +209,7 @@ index 7a89e4f70195c62c51bbf1993a0988a9c5706449..2b49e60aba45f997143d6a575c5f39d6
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 88735691892aa19f30d4e686e88a3c09f565bb56..2320cbd0714294c078ec6e16c687713d28b0c174 100644
+index 88735691892aa19f30d4e686e88a3c09f565bb56..de009d83f54c86f1369c1b7188a0ed7eb1d5fc74 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -611,6 +611,108 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -188,7 +219,7 @@ index 88735691892aa19f30d4e686e88a3c09f565bb56..2320cbd0714294c078ec6e16c687713d
 +    // Sakura start - cannon entity merging
 +    // List of merged entities, should be naturally sorted (oldest -> youngest)
 +    private final List<Entity> mergeList = new java.util.ArrayList<>(1);
-+    private @Nullable me.samsuik.sakura.entity.merge.MergeHistory.MergeData originData = null;
++    private @Nullable me.samsuik.sakura.entity.merge.SpawnPositionData originData = null;
 +    private me.samsuik.sakura.entity.merge.MergeLevel mergeLevel;
 +    protected int stacked = 1; // default
 +
@@ -214,9 +245,9 @@ index 88735691892aa19f30d4e686e88a3c09f565bb56..2320cbd0714294c078ec6e16c687713d
 +
 +    private boolean isSafeToSpawnMerge(Entity entity) {
 +        return tickCount == 1 && originData != null
-+            && originData.hasPassed() // on spawn safety delay has passed
-+            && originData == entity.originData // make sure it's the same group
-+            && originData.retainedPositions().contains(entity.getPackedOrigin());
++            && originData.isAbleToOnSpawnMerge() // on spawn safety delay has passed
++            && originData == entity.originData   // make sure it's the same group
++            && originData.isPositionRetained(entity.getPackedOrigin());
 +    }
 +
 +    public boolean isMergeableType(@Nullable Entity previous) {
@@ -249,7 +280,7 @@ index 88735691892aa19f30d4e686e88a3c09f565bb56..2320cbd0714294c078ec6e16c687713d
 +            // Non strict merging algorithm uses information collected after entities die
 +            // to be able to perform more aggressive merging by already knowing the OOE.
 +            if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.NON_STRICT) && mergeEntity == null && originData != null) {
-+                mergeEntity = originData.findFirstAtPosition(this);
++                mergeEntity = originData.findFirstEntityInSamePosition(this);
 +            }
 +        }
 +
