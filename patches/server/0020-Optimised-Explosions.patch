@@ -1007,18 +1007,18 @@ index f529f5d0f28533ec89f3ee712e59745991d068ee..d0ff7710577c1cfedae494796e6db420
      public float getEntityDamageAmount(Explosion explosion, Entity entity, double seenPercent) {
          // Paper end - actually optimise explosions
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 1bc20269707a1c0a741666c0fb4b90ffc93560a7..e8de10a604892a4b571c643aaf479add13e95804 100644
+index 4176c5ef6489d74d1063e8f857a085270a188e28..dc376192830321e173036da00897df2c6fbb7d5f 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -232,6 +232,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
-     }
-     // Sakura end - add utility method for accessing ChunkEntitySlices
+@@ -222,6 +222,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+ 
+     public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
 +    public final me.samsuik.sakura.explosion.DensityCache densityCache = new me.samsuik.sakura.explosion.DensityCache(); // Sakura - specialised density cache for swinging explosions
  
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
-@@ -1420,7 +1421,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1410,7 +1411,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          }
  
          Explosion.BlockInteraction explosion_effect1 = explosion_effect;
