@@ -5,7 +5,7 @@ Subject: [PATCH] Configure Entity Knockback
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 9dcf75b711924c1630526d99662ccc4ff314ddfc..f6b893644d74d81f4f07319ae2f7df43a9bc9552 100644
+index 9dcf75b711924c1630526d99662ccc4ff314ddfc..256d2fd1ad9abccfcee10f1928e9d46644e2e734 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 @@ -1541,7 +1541,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
@@ -26,7 +26,14 @@ index 9dcf75b711924c1630526d99662ccc4ff314ddfc..f6b893644d74d81f4f07319ae2f7df43
      }
  
      private boolean checkTotemDeathProtection(DamageSource source) {
-@@ -1912,7 +1912,17 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -1906,13 +1906,23 @@ public abstract class LivingEntity extends Entity implements Attackable {
+     }
+ 
+     public void knockback(double d0, double d1, double d2, @Nullable Entity attacker, EntityKnockbackEvent.KnockbackCause cause) { // Paper - add nullable to attacker param
+-        d0 *= 1.0D - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
++        d0 *= 1.0D - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE) * level().sakuraConfig().players.knockback.knockbackResistanceModifier; // Sakura - configure entity knockback
+         if (true || d0 > 0.0D) { // CraftBukkit - Call event even when force is 0
+             //this.hasImpulse = true; // CraftBukkit - Move down
              Vec3 vec3d = this.getDeltaMovement();
              Vec3 vec3d1 = (new Vec3(d1, 0.0D, d2)).normalize().scale(d0);
  
