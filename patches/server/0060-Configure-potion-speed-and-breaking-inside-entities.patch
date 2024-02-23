@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 23 Feb 2024 16:18:51 +0000
+Subject: [PATCH] Configure potion speed and breaking inside entities
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/Projectile.java b/src/main/java/net/minecraft/world/entity/projectile/Projectile.java
+index a211ca048dddc75afce1f83ee1700bad66e457fc..429708583d5b6ed3565e6caf6f2488011b99da50 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/Projectile.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/Projectile.java
+@@ -135,7 +135,7 @@ public abstract class Projectile extends Entity implements TraceableEntity {
+         super.tick();
+     }
+ 
+-    private boolean checkLeftOwner() {
++    protected boolean checkLeftOwner() { // Sakura - configure potion mechanics
+         Entity entity = this.getOwner();
+ 
+         if (entity != null) {
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/ProjectileUtil.java b/src/main/java/net/minecraft/world/entity/projectile/ProjectileUtil.java
+index 0524161f7cb414d526e6118258bddd989be6cc9a..a14eb401d739850fa1fa6eb673442462b4c8e435 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/ProjectileUtil.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/ProjectileUtil.java
+@@ -29,7 +29,14 @@ public final class ProjectileUtil {
+             vec33 = hitResult.getLocation();
+         }
+ 
+-        HitResult hitResult2 = getEntityHitResult(level, entity, vec32, vec33, entity.getBoundingBox().expandTowards(entity.getDeltaMovement()).inflate(1.0D), predicate);
++        // Sakura start - configure potion mechanics
++        final HitResult hitResult2;
++        if (level.sakuraConfig().entity.thrownPotion.allowBreakingInsideEntities && entity instanceof ThrownPotion) {
++            hitResult2 = getEntityHitResult(entity, vec32, vec33, entity.getBoundingBox().expandTowards(entity.getDeltaMovement()).inflate(1.0D), predicate, 0.3);
++        } else {
++            hitResult2 = getEntityHitResult(level, entity, vec32, vec33, entity.getBoundingBox().expandTowards(entity.getDeltaMovement()).inflate(1.0D), predicate);
++        }
++        // Sakura end - configure potion mechanics
+         if (hitResult2 != null) {
+             hitResult = hitResult2;
+         }
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/ThrownPotion.java b/src/main/java/net/minecraft/world/entity/projectile/ThrownPotion.java
+index 8d448ea844309af8d90e285919bfc76774a53904..b1883d7e4d8449a395b01aaa5980152708752bbe 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/ThrownPotion.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/ThrownPotion.java
+@@ -59,6 +59,25 @@ public class ThrownPotion extends ThrowableItemProjectile implements ItemSupplie
+         super(EntityType.POTION, x, y, z, world);
+     }
+ 
++    // Sakura start - configure potion mechanics
++    @Override
++    public void shoot(double x, double y, double z, float speed, float divergence) {
++        super.shoot(x, y, z, speed, divergence);
++
++        net.minecraft.world.phys.Vec3 movement = getDeltaMovement();
++        double moveX = movement.x * level.sakuraConfig().entity.thrownPotion.horizontalSpeed;
++        double moveY = movement.y * level.sakuraConfig().entity.thrownPotion.verticalSpeed;
++        double moveZ = movement.z * level.sakuraConfig().entity.thrownPotion.horizontalSpeed;
++
++        setDeltaMovement(moveX, moveY, moveZ);
++    }
++
++    @Override
++    protected final boolean checkLeftOwner() {
++        return super.checkLeftOwner() || level.sakuraConfig().entity.thrownPotion.allowBreakingInsideEntities && tickCount >= 5;
++    }
++    // Sakura end - configure potion mechanics
++
+     @Override
+     protected Item getDefaultItem() {
+         return Items.SPLASH_POTION;
