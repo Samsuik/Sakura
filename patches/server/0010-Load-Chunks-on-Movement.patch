@@ -51,7 +51,7 @@ index 658e63ebde81dc14c8ab5850fb246dc0aab25dea..f1ff1a67fee37ee7b241ceaa164fa4ee
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index d92e4db0051f128fac5653c7920c2466bff80143..38d416b4d9acf811f862cd2fbf88de8dfcef077c 100644
+index d92e4db0051f128fac5653c7920c2466bff80143..3cd640d628835c3a94888ca09889a52d3329f7e3 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -570,6 +570,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -83,7 +83,13 @@ index d92e4db0051f128fac5653c7920c2466bff80143..38d416b4d9acf811f862cd2fbf88de8d
                  null, null
          );
  
-@@ -4878,7 +4891,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4873,12 +4886,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+ 
+     @Override
+     public boolean shouldBeSaved() {
+-        return this.removalReason != null && !this.removalReason.shouldSave() ? false : (this.isPassenger() ? false : !this.isVehicle() || !this.hasAnyPlayerPassengers()); // Paper - rewrite chunk system - it should check if the entity has ANY player passengers
++        return !this.loadChunks && this.removalReason != null && !this.removalReason.shouldSave() ? false : (this.isPassenger() ? false : !this.isVehicle() || !this.hasAnyPlayerPassengers()); // Sakura - used to determine whether a chunk should unload // Paper - rewrite chunk system - it should check if the entity has ANY player passengers
+     }
  
      @Override
      public boolean isAlwaysTicking() {
