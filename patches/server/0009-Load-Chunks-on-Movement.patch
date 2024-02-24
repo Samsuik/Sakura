@@ -46,7 +46,7 @@ index 97d1ff2af23bac14e67bca5896843325aaa5bfc1..c90b265a9cd92d40960d5513d9585e47
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 8363fb274fafb06253272bc5706c8d209856e7ab..f6f9f101899121afcf9df1426b56e49011a5bbcd 100644
+index 8363fb274fafb06253272bc5706c8d209856e7ab..6526f8352392852f4f91dffd4327a89b136007bf 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -546,6 +546,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
@@ -66,7 +66,13 @@ index 8363fb274fafb06253272bc5706c8d209856e7ab..f6f9f101899121afcf9df1426b56e490
                  false, false, null, null);
  
              if (collidingWithWorldBorder = io.papermc.paper.util.CollisionUtil.isCollidingWithBorderEdge(world.getWorldBorder(), collisionBox)) { // Paper - this line *is* correct, ignore the IDE warning about assignments being used as a condition
-@@ -4618,7 +4619,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4613,12 +4614,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+ 
+     @Override
+     public boolean shouldBeSaved() {
+-        return this.removalReason != null && !this.removalReason.shouldSave() ? false : (this.isPassenger() ? false : !this.isVehicle() || !this.hasAnyPlayerPassengers()); // Paper - rewrite chunk system - it should check if the entity has ANY player passengers
++        return this.removalReason != null && !this.removalReason.shouldSave() ? false : (this.loadChunks || this.isPassenger() ? false : !this.isVehicle() || !this.hasAnyPlayerPassengers()); // Sakura - used to determine whether a chunk should unload// Paper - rewrite chunk system - it should check if the entity has ANY player passengers
+     }
  
      @Override
      public boolean isAlwaysTicking() {
