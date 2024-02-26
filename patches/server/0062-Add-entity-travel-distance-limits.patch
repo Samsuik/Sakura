@@ -5,7 +5,7 @@ Subject: [PATCH] Add entity travel distance limits
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 1db051b952cb893d9aa1bfef4dd6439f11285ec2..ee8bae340448eaa0753833b222de96ccff205939 100644
+index 942000dd75d1467ed59063173423bb737021be89..0321f48070d2d264e18837a888527543aad78cc2 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1417,6 +1417,11 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -14,17 +14,17 @@ index 1db051b952cb893d9aa1bfef4dd6439f11285ec2..ee8bae340448eaa0753833b222de96cc
          entity.tick();
 +            // Sakura start - entity travel distance limits
 +            if (entity.isPastTravelDistanceLimit()) {
-+                entity.discard();
++                entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
 +            }
 +            // Sakura end - entity travel distance limits
          entity.postTick(); // CraftBukkit
          } else { entity.inactiveTick(); } // Paper - EAR 2
          this.getProfiler().pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index af422f8e5d89c4ac10ea91265fd84cf65cbf28cb..8baa9da071a55f691031668b3f5baf42bc923c98 100644
+index 584520739e41d4372e2c4040fc6b2363927e7187..8ecf39f1ff7184bb67969b830bb11e2100695c1e 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -729,6 +729,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -730,6 +730,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          return this.physics;
      }
      // Sakura end - physics version api
@@ -44,7 +44,7 @@ index af422f8e5d89c4ac10ea91265fd84cf65cbf28cb..8baa9da071a55f691031668b3f5baf42
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -778,6 +791,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -779,6 +792,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          this.setPos(0.0D, 0.0D, 0.0D);
          this.eyeHeight = this.getEyeHeight(net.minecraft.world.entity.Pose.STANDING, this.dimensions);
          this.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura

@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise Fast Movement
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 2320cbd0714294c078ec6e16c687713d28b0c174..472a411b18b27f498e3a446d2d335ff25d8da859 100644
+index 3923ac7ec338956186f33f09d1f1cebebbef8732..d6afc7308698f41760938841967df3706d197082 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1223,6 +1223,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1236,6 +1236,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
      // Paper end - detailed watchdog information
  
@@ -104,7 +104,7 @@ index 2320cbd0714294c078ec6e16c687713d28b0c174..472a411b18b27f498e3a446d2d335ff2
      public void move(MoverType movementType, Vec3 movement) {
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
-@@ -1601,6 +1690,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1614,6 +1703,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          return offsetFactor;
      }
  
@@ -201,10 +201,10 @@ index 2320cbd0714294c078ec6e16c687713d28b0c174..472a411b18b27f498e3a446d2d335ff2
          // Paper start - optimise collisions
          final boolean xZero = movement.x == 0.0;
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index ff6d82fe45dd9613faebed71f7936451100848df..6a18f855d26e5a32f9bc40af5e238754a0697440 100644
+index 11652215b96f4a0a2be58e5b547a84781731d253..cb216f5f7d5087503ae915915e562b33ccbf7fdd 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -202,7 +202,7 @@ public class FallingBlockEntity extends Entity {
+@@ -203,7 +203,7 @@ public class FallingBlockEntity extends Entity {
                  this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
              }
  
@@ -214,10 +214,10 @@ index ff6d82fe45dd9613faebed71f7936451100848df..6a18f855d26e5a32f9bc40af5e238754
              if (this.isRemoved()) {
                  return;
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index a7f6100520cbcdb4851954bc1b919e232a91a464..a7ecf63d18891c61ddbdc55e74aa10da884838e8 100644
+index 2800af98260ebdab107466c596d2ec8cba6088fe..7ff11a09234606508dac8347af281885b0a1f7e1 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -118,7 +118,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -119,7 +119,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
              this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
          }
  
@@ -225,4 +225,4 @@ index a7f6100520cbcdb4851954bc1b919e232a91a464..a7ecf63d18891c61ddbdc55e74aa10da
 +        this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
          // Paper start - Configurable TNT height nerf
          if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
-             this.discard();
+             this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);

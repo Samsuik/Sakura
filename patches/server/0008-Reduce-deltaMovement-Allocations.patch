@@ -5,10 +5,10 @@ Subject: [PATCH] Reduce deltaMovement Allocations
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index f426abb7e6db911dfb3609383fce6476fd4233ed..d92e4db0051f128fac5653c7920c2466bff80143 100644
+index 006cd1fdd4c0f76043609a4b684f7818e21106ac..a63d1a624df5d84f4e8168cbe075ae3d9bd4ff84 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1240,7 +1240,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1253,7 +1253,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  this.tryCheckInsideBlocks();
                  float f = this.getBlockSpeedFactor();
  
@@ -17,7 +17,7 @@ index f426abb7e6db911dfb3609383fce6476fd4233ed..d92e4db0051f128fac5653c7920c2466
                  // Paper start - remove expensive streams from here
                  boolean noneMatch = true;
                  AABB fireSearchBox = this.getBoundingBox().deflate(1.0E-6D);
-@@ -2056,6 +2056,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2069,6 +2069,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      public void moveTo(double x, double y, double z, float yaw, float pitch) {
          // Paper start - Fix Entity Teleportation and cancel velocity if teleported
          if (!preserveMotion) {
@@ -25,7 +25,7 @@ index f426abb7e6db911dfb3609383fce6476fd4233ed..d92e4db0051f128fac5653c7920c2466
              this.deltaMovement = Vec3.ZERO;
          } else {
              this.preserveMotion = false;
-@@ -3457,29 +3458,33 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -3473,29 +3474,33 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      public void onAboveBubbleCol(boolean drag) {
@@ -67,7 +67,7 @@ index f426abb7e6db911dfb3609383fce6476fd4233ed..d92e4db0051f128fac5653c7920c2466
          this.resetFallDistance();
      }
  
-@@ -4468,16 +4473,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4484,16 +4489,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                      vec3d = vec3d.normalize();
                  }
  
@@ -90,7 +90,7 @@ index f426abb7e6db911dfb3609383fce6476fd4233ed..d92e4db0051f128fac5653c7920c2466
              }
  
              this.fluidHeight.put(tag, d1);
-@@ -4548,11 +4556,53 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4564,11 +4572,53 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          return this.chunkPosition;
      }
  
@@ -144,7 +144,7 @@ index f426abb7e6db911dfb3609383fce6476fd4233ed..d92e4db0051f128fac5653c7920c2466
          synchronized (this.posLock) { // Paper
          this.deltaMovement = velocity;
          } // Paper
-@@ -4563,7 +4613,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4579,7 +4629,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      public void setDeltaMovement(double x, double y, double z) {
@@ -158,10 +158,10 @@ index f426abb7e6db911dfb3609383fce6476fd4233ed..d92e4db0051f128fac5653c7920c2466
  
      public final int getBlockX() {
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index af4875fd0ed635dde59ec579dc198558efab0533..f345ab3886899e5823e5146b032c41f4e5ef5953 100644
+index 788915f5e5cf54ee53222ded9939139ea982d306..4e58a786f4c6a4b441e444c41c910b2cd486ee33 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -145,7 +145,7 @@ public class FallingBlockEntity extends Entity {
+@@ -146,7 +146,7 @@ public class FallingBlockEntity extends Entity {
  
              ++this.time;
              if (!this.isNoGravity()) {
@@ -170,7 +170,7 @@ index af4875fd0ed635dde59ec579dc198558efab0533..f345ab3886899e5823e5146b032c41f4
              }
  
              this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -190,7 +190,7 @@ public class FallingBlockEntity extends Entity {
+@@ -191,7 +191,7 @@ public class FallingBlockEntity extends Entity {
                  } else {
                      BlockState iblockdata = this.level().getBlockState(blockposition);
  
@@ -179,7 +179,7 @@ index af4875fd0ed635dde59ec579dc198558efab0533..f345ab3886899e5823e5146b032c41f4
                      if (!iblockdata.is(Blocks.MOVING_PISTON)) {
                          if (!this.cancelDrop) {
                              boolean flag2 = iblockdata.canBeReplaced((BlockPlaceContext) (new DirectionalPlaceContext(this.level(), blockposition, Direction.DOWN, ItemStack.EMPTY, Direction.UP)));
-@@ -257,7 +257,7 @@ public class FallingBlockEntity extends Entity {
+@@ -258,7 +258,7 @@ public class FallingBlockEntity extends Entity {
                  }
              }
  
@@ -189,10 +189,10 @@ index af4875fd0ed635dde59ec579dc198558efab0533..f345ab3886899e5823e5146b032c41f4
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 3c5e8c594ff63d93bdd052a6b648120c550f60f5..bc77b3093dbc7312516817d8dd5a9b04534fb09e 100644
+index 2e6691b86e161616bb2dcf5ce0391ad57a3ef422..7890f84d7a69e2e6820ef0daa35f898534f7372f 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -74,7 +74,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -75,7 +75,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      public void tick() {
          if (this.level().spigotConfig.maxTntTicksPerTick > 0 && ++this.level().spigotConfig.currentPrimedTnt > this.level().spigotConfig.maxTntTicksPerTick) { return; } // Spigot
          if (!this.isNoGravity()) {
@@ -201,7 +201,7 @@ index 3c5e8c594ff63d93bdd052a6b648120c550f60f5..bc77b3093dbc7312516817d8dd5a9b04
          }
  
          this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -84,9 +84,9 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -85,9 +85,9 @@ public class PrimedTnt extends Entity implements TraceableEntity {
              return;
          }
          // Paper end - Configurable TNT height nerf

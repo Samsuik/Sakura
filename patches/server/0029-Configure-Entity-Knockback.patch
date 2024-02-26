@@ -5,10 +5,10 @@ Subject: [PATCH] Configure Entity Knockback
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 9dcf75b711924c1630526d99662ccc4ff314ddfc..256d2fd1ad9abccfcee10f1928e9d46644e2e734 100644
+index aad41a0026ae3240c9ba97e5b44ccce6d021f8aa..4a85c137dee528b56c2b9353bfbad86005ff709f 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-@@ -1541,7 +1541,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -1549,7 +1549,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                          d0 = (Math.random() - Math.random()) * 0.01D;
                      }
  
@@ -17,7 +17,7 @@ index 9dcf75b711924c1630526d99662ccc4ff314ddfc..256d2fd1ad9abccfcee10f1928e9d466
                      if (!flag) {
                          this.indicateDamage(d0, d1);
                      }
-@@ -1588,7 +1588,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -1596,7 +1596,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
      }
  
      protected void blockedByShield(LivingEntity target) {
@@ -26,7 +26,7 @@ index 9dcf75b711924c1630526d99662ccc4ff314ddfc..256d2fd1ad9abccfcee10f1928e9d466
      }
  
      private boolean checkTotemDeathProtection(DamageSource source) {
-@@ -1906,13 +1906,23 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -1914,13 +1914,23 @@ public abstract class LivingEntity extends Entity implements Attackable {
      }
  
      public void knockback(double d0, double d1, double d2, @Nullable Entity attacker, EntityKnockbackEvent.KnockbackCause cause) { // Paper - add nullable to attacker param
@@ -53,10 +53,10 @@ index 9dcf75b711924c1630526d99662ccc4ff314ddfc..256d2fd1ad9abccfcee10f1928e9d466
                  return;
              }
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index d89e7f021cc4ac61550ca5dbf660323fc1aec01f..3892af6ddcd889f65a46d01322d3e015d7c1fcf7 100644
+index 74dcfabdc66ef289b8d6a5c6606579b5321af1db..94577ca6de11d23d2a2561b645212a7717088974 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
 +++ b/src/main/java/net/minecraft/world/entity/player/Player.java
-@@ -182,6 +182,7 @@ public abstract class Player extends LivingEntity {
+@@ -183,6 +183,7 @@ public abstract class Player extends LivingEntity {
      public float hurtDir; // Paper - protected -> public
      public boolean affectsSpawning = true; // Paper - Affects Spawning API
      public net.kyori.adventure.util.TriState flyingFallDamage = net.kyori.adventure.util.TriState.NOT_SET; // Paper - flying fall damage
@@ -64,7 +64,7 @@ index d89e7f021cc4ac61550ca5dbf660323fc1aec01f..3892af6ddcd889f65a46d01322d3e015
  
      // CraftBukkit start
      public boolean fauxSleeping;
-@@ -1273,7 +1274,7 @@ public abstract class Player extends LivingEntity {
+@@ -1274,7 +1275,7 @@ public abstract class Player extends LivingEntity {
                      byte b0 = 0;
                      int i = b0 + EnchantmentHelper.getKnockbackBonus(this);
  
@@ -73,7 +73,7 @@ index d89e7f021cc4ac61550ca5dbf660323fc1aec01f..3892af6ddcd889f65a46d01322d3e015
                          sendSoundEffect(this, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_KNOCKBACK, this.getSoundSource(), 1.0F, 1.0F); // Paper - send while respecting visibility
                          ++i;
                          flag1 = true;
-@@ -1323,10 +1324,20 @@ public abstract class Player extends LivingEntity {
+@@ -1324,10 +1325,20 @@ public abstract class Player extends LivingEntity {
  
                      if (flag5) {
                          if (i > 0) {
@@ -96,7 +96,7 @@ index d89e7f021cc4ac61550ca5dbf660323fc1aec01f..3892af6ddcd889f65a46d01322d3e015
                              }
  
                              this.setDeltaMovement(this.getDeltaMovement().multiply(0.6D, 1.0D, 0.6D));
-@@ -1348,7 +1359,7 @@ public abstract class Player extends LivingEntity {
+@@ -1349,7 +1360,7 @@ public abstract class Player extends LivingEntity {
                                  if (entityliving != this && entityliving != target && !this.isAlliedTo((Entity) entityliving) && (!(entityliving instanceof ArmorStand) || !((ArmorStand) entityliving).isMarker()) && this.distanceToSqr((Entity) entityliving) < 9.0D) {
                                      // CraftBukkit start - Only apply knockback if the damage hits
                                      if (entityliving.hurt(this.damageSources().playerAttack(this).sweep().critical(flag2), f4)) { // Paper - add critical damage API

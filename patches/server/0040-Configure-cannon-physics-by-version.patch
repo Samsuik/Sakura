@@ -87,10 +87,10 @@ index fbdd4c4ec21cff4c9651402a9e94dd99996723e1..0dd7b5dcb59e9eee2af769cc0989d30c
                  x /= distance;
                  y /= distance;
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2faef0c35 100644
+index 432601bc7a33a0da2034b3032e827fbdce8f6b6e..d0a70a1035aa7b24879b16d6e85adb834685fb1e 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -379,7 +379,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -380,7 +380,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      private final double[] pistonDeltas;
      private long pistonDeltasGameTime;
      private EntityDimensions dimensions;
@@ -99,7 +99,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
      public boolean isInPowderSnow;
      public boolean wasInPowderSnow;
      public boolean wasOnFire;
-@@ -714,6 +714,13 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -715,6 +715,13 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
      // Sakura end - cannon entity merging
      public boolean pushedByFluid = true; // Sakura - entity pushed by fluid api
@@ -113,7 +113,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -1169,7 +1176,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1182,7 +1189,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      protected void checkSupportingBlock(boolean onGround, @Nullable Vec3 movement) {
@@ -122,7 +122,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
              AABB axisalignedbb = this.getBoundingBox();
              AABB axisalignedbb1 = new AABB(axisalignedbb.minX, axisalignedbb.minY - 1.0E-6D, axisalignedbb.minZ, axisalignedbb.maxX, axisalignedbb.minY, axisalignedbb.maxZ);
              Optional<BlockPos> optional = this.level.findSupportingBlock(this, axisalignedbb1);
-@@ -1231,7 +1238,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1244,7 +1251,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          if (this.noPhysics) {
              this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
          } else {
@@ -131,7 +131,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
                  movement = this.limitPistonMovement(movement);
                  if (movement.equals(Vec3.ZERO)) {
                      return;
-@@ -1249,10 +1256,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1262,10 +1269,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              Vec3 vec3d1 = this.collideScan(movement);
              double d0 = vec3d1.lengthSqr();
  
@@ -144,7 +144,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
                      BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
  
                      if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
-@@ -1288,6 +1295,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1301,6 +1308,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  if (this.horizontalCollision) {
                      Vec3 vec3d2 = this.getDeltaMovement();
  
@@ -157,7 +157,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
                      this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
                  }
  
-@@ -1329,7 +1342,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1342,7 +1355,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
          } else {
              this.wasOnFire = this.isOnFire();
@@ -166,7 +166,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
                  this.activatedTick = Math.max(this.activatedTick, MinecraftServer.currentTick + 20); // Paper
                  this.activatedImmunityTick = Math.max(this.activatedImmunityTick, MinecraftServer.currentTick + 20);   // Paper
                  movement = this.limitPistonMovement(movement);
-@@ -1356,8 +1369,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1369,8 +1382,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              Vec3 vec3d1 = this.collide(movement);
              double d0 = vec3d1.lengthSqr();
  
@@ -177,7 +177,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
                      BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
  
                      if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
-@@ -1393,6 +1406,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1406,6 +1419,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  if (this.horizontalCollision) {
                      Vec3 vec3d2 = this.getDeltaMovement();
  
@@ -190,7 +190,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
                      this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
                  }
  
-@@ -1716,7 +1735,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1729,7 +1748,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          double y = movement.y;
          double z = movement.z;
  
@@ -202,7 +202,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
  
          if (y != 0.0) {
              y = scanY(currBoundingBox, y, voxelList, bbList);
-@@ -1832,7 +1854,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1845,7 +1867,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              return movement;
          }
  
@@ -211,7 +211,7 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
  
          if (stepHeight > 0.0
                  && (onGround || (limitedMoveVector.y != movement.y && movement.y < 0.0))
-@@ -1948,8 +1970,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1961,8 +1983,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
  
      protected void checkInsideBlocks() {
          AABB axisalignedbb = this.getBoundingBox();
@@ -226,10 +226,10 @@ index c4ead1bd76c5bcd694758a993134aaf9b4d20594..f9c7bb5636fee6e56e73428d1ec7afc2
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index b10484757f46ba23b3fc07e27d8928755d345083..cc28593be3f99ee0e5ae086872966a9ab0f0a6c4 100644
+index 642cfdfa8fe31aa5e0a6a60a5852df3dd11054e7..222fb210f97e9bc06cfd9431d297dcdb10fc6e1e 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -89,6 +89,8 @@ public class FallingBlockEntity extends Entity {
+@@ -90,6 +90,8 @@ public class FallingBlockEntity extends Entity {
          this.yo = y;
          this.zo = z;
          this.setStartPos(this.blockPosition());
@@ -238,7 +238,7 @@ index b10484757f46ba23b3fc07e27d8928755d345083..cc28593be3f99ee0e5ae086872966a9a
      }
  
      public static FallingBlockEntity fall(Level world, BlockPos pos, BlockState state) {
-@@ -101,7 +103,11 @@ public class FallingBlockEntity extends Entity {
+@@ -102,7 +104,11 @@ public class FallingBlockEntity extends Entity {
          FallingBlockEntity entityfallingblock = new FallingBlockEntity(world, (double) blockposition.getX() + 0.5D, (double) blockposition.getY(), (double) blockposition.getZ() + 0.5D, iblockdata.hasProperty(BlockStateProperties.WATERLOGGED) ? (BlockState) iblockdata.setValue(BlockStateProperties.WATERLOGGED, false) : iblockdata);
          if (!CraftEventFactory.callEntityChangeBlockEvent(entityfallingblock, blockposition, iblockdata.getFluidState().createLegacyBlock())) return entityfallingblock; // CraftBukkit
  
@@ -251,7 +251,7 @@ index b10484757f46ba23b3fc07e27d8928755d345083..cc28593be3f99ee0e5ae086872966a9a
          world.addFreshEntity(entityfallingblock, spawnReason); // CraftBukkit
          return entityfallingblock;
      }
-@@ -189,9 +195,46 @@ public class FallingBlockEntity extends Entity {
+@@ -190,9 +196,46 @@ public class FallingBlockEntity extends Entity {
      // Sakura start
      @Override
      public final double getEyeY() {
@@ -292,14 +292,14 @@ index b10484757f46ba23b3fc07e27d8928755d345083..cc28593be3f99ee0e5ae086872966a9a
 +            if (blockstate.is(block)) {
 +                ((ServerLevel) level()).getChunkSource().blockChanged(blockposition);
 +            }
-+            this.discard();
++            this.discard(EntityRemoveEvent.Cause.DESPAWN);
 +        }
 +    }
 +    // Sakura end - physics version api
  
      @Override
      public void tick() {
-@@ -205,9 +248,16 @@ public class FallingBlockEntity extends Entity {
+@@ -206,9 +249,16 @@ public class FallingBlockEntity extends Entity {
          } else {
              Block block = this.blockState.getBlock();
  
@@ -317,7 +317,7 @@ index b10484757f46ba23b3fc07e27d8928755d345083..cc28593be3f99ee0e5ae086872966a9a
              }
  
              this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
-@@ -226,8 +276,16 @@ public class FallingBlockEntity extends Entity {
+@@ -227,8 +277,16 @@ public class FallingBlockEntity extends Entity {
                  return;
              }
              // Paper end - Configurable falling blocks height nerf
@@ -335,7 +335,7 @@ index b10484757f46ba23b3fc07e27d8928755d345083..cc28593be3f99ee0e5ae086872966a9a
                  boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
                  boolean flag1 = flag && this.level().getFluidState(blockposition).is(FluidTags.WATER);
                  double d0 = this.getDeltaMovement().lengthSqr();
-@@ -252,8 +310,11 @@ public class FallingBlockEntity extends Entity {
+@@ -253,8 +311,11 @@ public class FallingBlockEntity extends Entity {
                  } else {
                      BlockState iblockdata = this.level().getBlockState(blockposition);
  
@@ -349,7 +349,7 @@ index b10484757f46ba23b3fc07e27d8928755d345083..cc28593be3f99ee0e5ae086872966a9a
                          if (!this.cancelDrop) {
                              boolean flag2 = iblockdata.canBeReplaced((BlockPlaceContext) (new DirectionalPlaceContext(this.level(), blockposition, Direction.DOWN, ItemStack.EMPTY, Direction.UP)));
                              boolean flag3 = FallingBlock.isFree(this.level().getBlockState(blockposition.below())) && (!flag || !flag1);
-@@ -320,7 +381,12 @@ public class FallingBlockEntity extends Entity {
+@@ -321,7 +382,12 @@ public class FallingBlockEntity extends Entity {
                  }
              }
  
@@ -364,10 +364,10 @@ index b10484757f46ba23b3fc07e27d8928755d345083..cc28593be3f99ee0e5ae086872966a9a
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index d6bd637873052e9919a59490efc7d29157681003..ecc33caa0af31949ad28580537fba9822ced9eb7 100644
+index 19397e2556a3cdc7180a5f8889aefb5ef23715b7..26fc6a8018cfde3c219a7d828f743663e804d1c6 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -59,6 +59,13 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -60,6 +60,13 @@ public class PrimedTnt extends Entity implements TraceableEntity {
              case Y -> multiplyDeltaMovement(0, 1, 0);
          }
          // Sakura end
@@ -381,7 +381,7 @@ index d6bd637873052e9919a59490efc7d29157681003..ecc33caa0af31949ad28580537fba982
      }
  
      @Override
-@@ -129,12 +136,30 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -130,12 +137,30 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          }
      }
      // Sakura end
@@ -413,7 +413,7 @@ index d6bd637873052e9919a59490efc7d29157681003..ecc33caa0af31949ad28580537fba982
          }
  
          this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
-@@ -144,15 +169,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -145,15 +170,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
              return;
          }
          // Paper end - Configurable TNT height nerf
@@ -436,7 +436,7 @@ index d6bd637873052e9919a59490efc7d29157681003..ecc33caa0af31949ad28580537fba982
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              // this.discard();
              this.respawnMerged(); // Sakura
-@@ -205,7 +234,10 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -206,7 +235,10 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive)this.getBukkitEntity());
  
          if (!event.isCancelled()) {
@@ -448,7 +448,7 @@ index d6bd637873052e9919a59490efc7d29157681003..ecc33caa0af31949ad28580537fba982
          }
          // CraftBukkit end
      }
-@@ -266,7 +298,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -267,7 +299,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      // Paper start - Option to prevent TNT from moving in water
      @Override
      public boolean isPushedByFluid() {
@@ -544,7 +544,7 @@ index e09d159007922d29a2cdc1b2597a52c16958b819..e10a78213da1514f54e0659960f76338
          if (data == null || !data.isExpandable() && (blockDensity == 0.0f || blockDensity == 1.0f)) {
              level.densityCache.createCache(key, entity, vec3d, blockDensity);
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 96d67bae33543b90013c6cd312f01f5ab98ff5ab..e4783deff8eafdb6e84bbe8e5f636dd5f4ad10d8 100644
+index 8dc99872cf778a784e81a54abefa73a4f25e2a49..db433c73df018e5953053041f058291f42ebb8ec 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -257,6 +257,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
