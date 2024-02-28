@@ -634,7 +634,7 @@ index 0000000000000000000000000000000000000000..74d4e257440842d40bfd72ff0741f1d7
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f9a99319a4ba86762e2486a75f73df1cf74dcfdc
+index 0000000000000000000000000000000000000000..671fa0b3076276741ede09d5ae1f915e525ecf9f
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 @@ -0,0 +1,184 @@
@@ -710,7 +710,7 @@ index 0000000000000000000000000000000000000000..f9a99319a4ba86762e2486a75f73df1c
 +            public boolean preventAtWorldHeight = false;
 +
 +            public boolean isFallingBlockInBounds(FallingBlockEntity entity) {
-+                return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isAlmostCollidingOnBorder(entity.level().getWorldBorder(), entity.getBoundingBox()))
++                return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isCollidingWithBorder(entity.level().getWorldBorder(), entity.getBoundingBox().inflate(0.01)))
 +                    && (!preventAtWorldHeight || entity.blockPosition().getY() < entity.level().getMaxBuildHeight() - 1);
 +            }
 +        }
@@ -875,7 +875,7 @@ index 68d268b6fff126e8645b6deec3fb549ea2286b77..66eb8a462b472003333bb0af897e7650
          this.setPvpAllowed(dedicatedserverproperties.pvp);
          this.setFlightAllowed(dedicatedserverproperties.allowFlight);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 6934e9dac0d69c043b73b7c46d59f2d39b37c67f..5c125a044536f65637ca82870a4a9d8d7de6ef40 100644
+index 6907d1be36fbdf0856c0e11983218d2fd1f9cb46..46e060bab0a9adb05a9dadff7e0cee9277db9511 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -692,7 +692,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -888,7 +888,7 @@ index 6934e9dac0d69c043b73b7c46d59f2d39b37c67f..5c125a044536f65637ca82870a4a9d8d
          this.convertable = convertable_conversionsession;
          this.uuid = WorldUUID.getUUID(convertable_conversionsession.levelDirectory.path().toFile());
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 19f23a6c8fb5c02843c27fb8a242ec9d0d1b538b..8be02651774f7f7c5b383759df41ee18a8b5c267 100644
+index f476ba6c97944bdffae5aacae2e285d17541f46e..7ea0aee066529720311c0089fc0b5d3bfde901d0 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -171,6 +171,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
