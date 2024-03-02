@@ -36,7 +36,7 @@ index 19086bbfdf3a015eafec5ca868c8d2451f554ef0..a40dcbde87860fd6d3b60d0b9e2d5e63
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
-index fbdd4c4ec21cff4c9651402a9e94dd99996723e1..0dd7b5dcb59e9eee2af769cc0989d30cf231b490 100644
+index 1819b24c90b4e58487cacce5eb0b3ee21c5a8f83..45532ed1f6cc4b7846fd94b2d0a3ac8a4771f2f1 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 @@ -167,7 +167,7 @@ public final class SakuraExplosion extends Explosion {
@@ -458,7 +458,7 @@ index 19397e2556a3cdc7180a5f8889aefb5ef23715b7..26fc6a8018cfde3c219a7d828f743663
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 144c2c9c11c3df3c8a95e252458828154728f555..6adf7e5945dcf8d11b133c7497a2c1eea0990860 100644
+index 2233375561a7e22752d5ed6513dd4282f1bb3c7a..384efe3249b35ce28aaf4b6114d42683ce8e7854 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -74,6 +74,7 @@ public class Explosion {
@@ -482,7 +482,7 @@ index 144c2c9c11c3df3c8a95e252458828154728f555..6adf7e5945dcf8d11b133c7497a2c1ee
  
                          // Sakura start
 +                        final net.minecraft.world.phys.HitResult.Type hitResult;
-                         if (data != null && data.isExpandable() && data.has(vec3d1)) {
+                         if (data != null && data.hasKnownDensity(vec3d1)) {
 -                            i += (int) data.density();
 -                        } else if (entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
 +                            hitResult = data.density() == 1.0 ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
@@ -527,24 +527,24 @@ index 144c2c9c11c3df3c8a95e252458828154728f555..6adf7e5945dcf8d11b133c7497a2c1ee
                      if (d11 != 0.0D) {
                          d8 /= d11;
                          d9 /= d11;
-@@ -1016,7 +1037,14 @@ public class Explosion {
-             return data.density();
+@@ -1026,7 +1047,14 @@ public class Explosion {
+             }
          }
  
--        float blockDensity = this.getSeenFraction(vec3d, entity, data, blockCache, blockPos); // Paper - optimise explosions;
+-        float blockDensity = this.getSeenFraction(vec3d, entity, knownData, blockCache, blockPos); // Paper - optimise explosions;
 +        // Sakura start - physics version api
 +        final float blockDensity;
 +        if (this.physics.afterOrEqual(1_16_0)) {
-+            blockDensity = this.getSeenFraction(vec3d, entity, data, blockCache, blockPos); // Paper - optimise explosions;
++            blockDensity = this.getSeenFraction(vec3d, entity, knownData, blockCache, blockPos); // Paper - optimise explosions;
 +        } else {
-+            blockDensity = getSeenPercent(vec3d, entity, data);
++            blockDensity = getSeenPercent(vec3d, entity, knownData);
 +        }
 +        // Sakura end
  
          if (data == null || !data.isExpandable() && (blockDensity == 0.0f || blockDensity == 1.0f)) {
              level.densityCache.createCache(key, entity, vec3d, blockDensity);
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 1db7ce24a7459b5509d2f420ed56f3b3b2c1ffe8..a93e22d81939cc7fa3247550da91bb39e6d5b111 100644
+index ebfdcadc3e2e28fb791afd3d5708df0bc0741464..e6b12380dbab67d930b761f4ab9f493f9e895024 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -266,6 +266,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable {

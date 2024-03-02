@@ -6,10 +6,10 @@ Subject: [PATCH] Optimised Explosions
 
 diff --git a/src/main/java/me/samsuik/sakura/explosion/DensityCache.java b/src/main/java/me/samsuik/sakura/explosion/DensityCache.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5c6d4124189d98421e2d6f351840c5d69bf2faf4
+index 0000000000000000000000000000000000000000..f9e2cac37b4eebd30b46c3335ecba762c2b3a6a1
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/DensityCache.java
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,131 @@
 +package me.samsuik.sakura.explosion;
 +
 +import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -78,10 +78,7 @@ index 0000000000000000000000000000000000000000..5c6d4124189d98421e2d6f351840c5d6
 +        }
 +
 +        public boolean isObscured(Vec3 p) {
-+            return obstruction != null
-+                && obstruction.minX <= p.x && obstruction.maxX >= p.x
-+                && obstruction.minY <= p.y && obstruction.maxY >= p.y
-+                && obstruction.minZ <= p.z && obstruction.maxZ >= p.z;
++            return obstruction != null && isPointWithinBB(p, obstruction);
 +        }
 +
 +        public void expand(AABB bb, Vec3 p) {
@@ -89,12 +86,16 @@ index 0000000000000000000000000000000000000000..5c6d4124189d98421e2d6f351840c5d6
 +            source = expandBBWithVec3(p, source);
 +        }
 +
-+        public boolean has(AABB bb, Vec3 p) {
-+            return isBBWithinBounds(bb) && isPointWithinBounds(p);
++        public boolean hasKnownDensity(Vec3 p) {
++            return isPointWithinBB(p, entity);
 +        }
 +
-+        public boolean has(Vec3 p) {
-+            return isPointWithinBounds(p);
++        public boolean isKnownSource(Vec3 p) {
++            return isPointWithinBB(p, source);
++        }
++
++        public boolean isKnownEntityBB(AABB bb) {
++            return isBBWithinBounds(bb);
 +        }
 +
 +        private boolean isBBWithinBounds(AABB bb) {
@@ -103,12 +104,12 @@ index 0000000000000000000000000000000000000000..5c6d4124189d98421e2d6f351840c5d6
 +                && entity.minZ <= bb.minZ && entity.maxZ >= bb.maxZ;
 +        }
 +
-+        private boolean isPointWithinBounds(Vec3 p) {
-+            return source.minX <= p.x && source.maxX >= p.x
-+                && source.minY <= p.y && source.maxY >= p.y
-+                && source.minZ <= p.z && source.maxZ >= p.z;
++        private boolean isPointWithinBB(Vec3 p, AABB bb) {
++            return bb.minX <= p.x && bb.maxX >= p.x
++                && bb.minY <= p.y && bb.maxY >= p.y
++                && bb.minZ <= p.z && bb.maxZ >= p.z;
 +        }
-+        
++
 +        private AABB expandBBWithVec3(Vec3 point, AABB what) {
 +            double minX = what.minX;
 +            double minY = what.minY;
@@ -680,7 +681,7 @@ index ed0234d6a2718d35af635c4b74243bb2afd40769..2800af98260ebdab107466c596d2ec8c
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba14f3b8c61 100644
+index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..c9b98f179330dcf1dffffbed4598c111f012cf8a 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -55,14 +55,16 @@ public class Explosion {
@@ -762,7 +763,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
  
 -                    if (!this.clipsAnything(from, source, context, blockCache, blockPos)) {
 +                    // Sakura start
-+                    if (data != null && data.isExpandable() && data.has(from)) {
++                    if (data != null && data.hasKnownDensity(from)) {
 +                        missedRays += (int) data.density();
 +                    } else if (!this.clipsAnything(from, source, context, blockCache, blockPos)) {
 +                        // Sakura end
@@ -857,7 +858,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
  
 -                        if (entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
 +                        // Sakura start
-+                        if (data != null && data.isExpandable() && data.has(vec3d1)) {
++                        if (data != null && data.hasKnownDensity(vec3d1)) {
 +                            i += (int) data.density();
 +                        } else if (entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
 +                            // Sakura end
@@ -966,7 +967,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
              // CraftBukkit end
              objectlistiterator = this.toBlow.iterator();
  
-@@ -871,15 +980,22 @@ public class Explosion {
+@@ -871,15 +980,32 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions
@@ -974,12 +975,22 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
 -        if (!this.level.paperConfig().environment.optimizeExplosions) {
 -            return this.getSeenFraction(vec3d, entity, blockCache, blockPos); // Paper - optimise explosions
 +    // Sakura start
-+    protected float getBlockDensity(Vec3 vec3d, Entity entity, ExplosionBlockCache[] blockCache, BlockPos.MutableBlockPos blockPos) { // Paper - optimise explosions
++    protected final float getBlockDensity(Vec3 vec3d, Entity entity, ExplosionBlockCache[] blockCache, BlockPos.MutableBlockPos blockPos) { // Paper - optimise explosions
 +        int key = me.samsuik.sakura.explosion.DensityCache.createKey(entity, vec3d);
 +        me.samsuik.sakura.explosion.DensityCache.Density data = level.densityCache.retrieveCache(key);
++        me.samsuik.sakura.explosion.DensityCache.Density knownData = null;
 +
-+        if (data != null && data.has(entity.getBoundingBox(), vec3d)) {
-+            return data.density();
++        if (data != null && data.isKnownSource(vec3d)) {
++            // early return if source and entity pos is already known
++            if (data.isKnownEntityBB(entity.getBoundingBox())) {
++                return data.density();
++            }
++
++            // cached density is known to be fully obscured or exposed
++            // we can pass this to getSeenFraction to simplify clipping
++            if (data.isExpandable()) {
++                knownData = data;
++            }
          }
 -        CacheKey key = new CacheKey(this, entity.getBoundingBox());
 -        Float blockDensity = this.level.explosionDensityCache.get(key);
@@ -987,7 +998,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
 -            blockDensity = this.getSeenFraction(vec3d, entity, blockCache, blockPos); // Paper - optimise explosions;
 -            this.level.explosionDensityCache.put(key, blockDensity);
 +
-+        float blockDensity = this.getSeenFraction(vec3d, entity, data, blockCache, blockPos); // Paper - optimise explosions;
++        float blockDensity = this.getSeenFraction(vec3d, entity, knownData, blockCache, blockPos); // Paper - optimise explosions;
 +
 +        if (data == null || !data.isExpandable() && (blockDensity == 0.0f || blockDensity == 1.0f)) {
 +            level.densityCache.createCache(key, entity, vec3d, blockDensity);
