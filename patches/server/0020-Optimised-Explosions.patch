@@ -6,10 +6,10 @@ Subject: [PATCH] Optimised Explosions
 
 diff --git a/src/main/java/me/samsuik/sakura/explosion/DensityCache.java b/src/main/java/me/samsuik/sakura/explosion/DensityCache.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f9e2cac37b4eebd30b46c3335ecba762c2b3a6a1
+index 0000000000000000000000000000000000000000..0991c11e665fee5897ac88d702c13b696680bd3d
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/DensityCache.java
-@@ -0,0 +1,131 @@
+@@ -0,0 +1,118 @@
 +package me.samsuik.sakura.explosion;
 +
 +import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -50,7 +50,6 @@ index 0000000000000000000000000000000000000000..f9e2cac37b4eebd30b46c3335ecba762
 +    public static final class Density {
 +        private AABB source;
 +        private AABB entity;
-+        private AABB obstruction;
 +        private final float density;
 +        private final boolean expand;
 +
@@ -67,18 +66,6 @@ index 0000000000000000000000000000000000000000..f9e2cac37b4eebd30b46c3335ecba762
 +
 +        public float density() {
 +            return density;
-+        }
-+
-+        public void obscure(Vec3 p) {
-+            if (obstruction == null) {
-+                obstruction = new AABB(p, p);
-+            } else {
-+                obstruction = expandBBWithVec3(p, obstruction);
-+            }
-+        }
-+
-+        public boolean isObscured(Vec3 p) {
-+            return obstruction != null && isPointWithinBB(p, obstruction);
 +        }
 +
 +        public void expand(AABB bb, Vec3 p) {
@@ -143,10 +130,10 @@ index 0000000000000000000000000000000000000000..f9e2cac37b4eebd30b46c3335ecba762
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1819b24c90b4e58487cacce5eb0b3ee21c5a8f83
+index 0000000000000000000000000000000000000000..d210d33e572b9c866bc08abb8b0f5a0432f6eb9c
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
-@@ -0,0 +1,405 @@
+@@ -0,0 +1,390 @@
 +package me.samsuik.sakura.explosion;
 +
 +import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -379,27 +366,17 @@ index 0000000000000000000000000000000000000000..1819b24c90b4e58487cacce5eb0b3ee2
 +            if (entity == null) break;
 +
 +            if (entity != source && !entity.ignoreExplosion(this) && entity.distanceToSqr(center.x, center.y, center.z) <= maxDistanceSqr) {
-+                int key = DensityCache.createKey(entity, center);
-+                DensityCache.Density data = level.densityCache.retrieveCache(key);
-+                Vec3 position = entity.position();
-+
-+                if (data != null && data.isObscured(position)) {
-+                    continue;
-+                } else if (impactEntity(entity, entities, positions, radius, blockPos, blockCache) == 1 && data != null) {
-+                    data.obscure(position);
-+                }
++                impactEntity(entity, entities, positions, radius, blockPos, blockCache);
 +            }
 +
-+            // chunk entities can change while we're affecting entities
++            // chunk entities can change if an entity dies
 +            if (entities[i] != entity) {
 +                i--;
 +            }
 +        }
 +    }
 +
-+    private int impactEntity(Entity entity, Entity[] section, List<Vec3> positions, double radius, BlockPos.MutableBlockPos blockPos, ExplosionBlockCache[] blockCache) {
-+        int found = 0;
-+
++    private void impactEntity(Entity entity, Entity[] section, List<Vec3> positions, double radius, BlockPos.MutableBlockPos blockPos, ExplosionBlockCache[] blockCache) {
 +        //noinspection ForLoopReplaceableByForEach
 +        for (int i = 0; i < positions.size(); i++) {
 +            Vec3 pos = positions.get(i);
@@ -421,9 +398,6 @@ index 0000000000000000000000000000000000000000..1819b24c90b4e58487cacce5eb0b3ee2
 +            double density = this.getBlockDensity(pos, entity, blockCache, blockPos); // Paper - Optimize explosions // Paper - optimise explosions
 +            double exposure = (1.0D - distanceFromBottom) * density;
 +
-+            int visible = density != 0.0 ? 1 : 0;
-+            found |= (visible << 1) | 1;
-+
 +            if (entity.isPrimedTNT || entity.isFallingBlock) {
 +                entity.addDeltaMovement(x * exposure, y * exposure, z * exposure);
 +                continue;
@@ -431,8 +405,6 @@ index 0000000000000000000000000000000000000000..1819b24c90b4e58487cacce5eb0b3ee2
 +
 +            impactLiving(entity, pos, section, x, y, z, exposure, blockPos, blockCache);
 +        }
-+
-+        return found;
 +    }
 +
 +    // stationary case: 1 position or stationary
@@ -445,7 +417,7 @@ index 0000000000000000000000000000000000000000..1819b24c90b4e58487cacce5eb0b3ee2
 +                impactEntityIdle(entity, entities, position, potential, radius, blockPos, blockCache);
 +            }
 +
-+            // chunk entities can change while we're affecting entities
++            // chunk entities can change if an entity dies
 +            if (entities[i] != entity) {
 +                i--;
 +            }
