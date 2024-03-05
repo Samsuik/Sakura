@@ -87,7 +87,7 @@ index fbdd4c4ec21cff4c9651402a9e94dd99996723e1..0dd7b5dcb59e9eee2af769cc0989d30c
                  x /= distance;
                  y /= distance;
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 432601bc7a33a0da2034b3032e827fbdce8f6b6e..d0a70a1035aa7b24879b16d6e85adb834685fb1e 100644
+index e682b52c6f295506f25223950e73188ed5eb4e1a..4c8ef097735020642811decc2e9122dd6373d2df 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -380,7 +380,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -226,7 +226,7 @@ index 432601bc7a33a0da2034b3032e827fbdce8f6b6e..d0a70a1035aa7b24879b16d6e85adb83
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 642cfdfa8fe31aa5e0a6a60a5852df3dd11054e7..222fb210f97e9bc06cfd9431d297dcdb10fc6e1e 100644
+index 2c51b5f927fc08b5077bd0e58b08ce2acbb0331a..f22b2c52aaeab6757b4a50accb8fb6c66ffd1c1f 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -90,6 +90,8 @@ public class FallingBlockEntity extends Entity {
@@ -299,7 +299,7 @@ index 642cfdfa8fe31aa5e0a6a60a5852df3dd11054e7..222fb210f97e9bc06cfd9431d297dcdb
  
      @Override
      public void tick() {
-@@ -206,9 +249,16 @@ public class FallingBlockEntity extends Entity {
+@@ -201,9 +244,16 @@ public class FallingBlockEntity extends Entity {
          } else {
              Block block = this.blockState.getBlock();
  
@@ -317,7 +317,7 @@ index 642cfdfa8fe31aa5e0a6a60a5852df3dd11054e7..222fb210f97e9bc06cfd9431d297dcdb
              }
  
              this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
-@@ -227,8 +277,16 @@ public class FallingBlockEntity extends Entity {
+@@ -217,8 +267,16 @@ public class FallingBlockEntity extends Entity {
                  return;
              }
              // Paper end - Configurable falling blocks height nerf
@@ -335,7 +335,7 @@ index 642cfdfa8fe31aa5e0a6a60a5852df3dd11054e7..222fb210f97e9bc06cfd9431d297dcdb
                  boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
                  boolean flag1 = flag && this.level().getFluidState(blockposition).is(FluidTags.WATER);
                  double d0 = this.getDeltaMovement().lengthSqr();
-@@ -253,8 +311,11 @@ public class FallingBlockEntity extends Entity {
+@@ -243,8 +301,11 @@ public class FallingBlockEntity extends Entity {
                  } else {
                      BlockState iblockdata = this.level().getBlockState(blockposition);
  
@@ -349,7 +349,7 @@ index 642cfdfa8fe31aa5e0a6a60a5852df3dd11054e7..222fb210f97e9bc06cfd9431d297dcdb
                          if (!this.cancelDrop) {
                              boolean flag2 = iblockdata.canBeReplaced((BlockPlaceContext) (new DirectionalPlaceContext(this.level(), blockposition, Direction.DOWN, ItemStack.EMPTY, Direction.UP)));
                              boolean flag3 = FallingBlock.isFree(this.level().getBlockState(blockposition.below())) && (!flag || !flag1);
-@@ -321,7 +382,12 @@ public class FallingBlockEntity extends Entity {
+@@ -311,7 +372,12 @@ public class FallingBlockEntity extends Entity {
                  }
              }
  
@@ -544,10 +544,10 @@ index e09d159007922d29a2cdc1b2597a52c16958b819..e10a78213da1514f54e0659960f76338
          if (data == null || !data.isExpandable() && (blockDensity == 0.0f || blockDensity == 1.0f)) {
              level.densityCache.createCache(key, entity, vec3d, blockDensity);
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 8dc99872cf778a784e81a54abefa73a4f25e2a49..db433c73df018e5953053041f058291f42ebb8ec 100644
+index 1db7ce24a7459b5509d2f420ed56f3b3b2c1ffe8..a93e22d81939cc7fa3247550da91bb39e6d5b111 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -257,6 +257,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -266,6 +266,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          return this.getLimitedEntities(except, box, net.minecraft.world.entity.EntitySelector.NO_SPECTATORS, limit, search);
      }
      // Sakura end - add entity retrival methods with search limits

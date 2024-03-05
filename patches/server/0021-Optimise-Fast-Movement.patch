@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise Fast Movement
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 3923ac7ec338956186f33f09d1f1cebebbef8732..d6afc7308698f41760938841967df3706d197082 100644
+index e600bcf392abb5bd40d93f73290c46a2478adb91..c04db5ed8cc925c1935d3670e2fa0edf70017b5f 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1236,6 +1236,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -201,18 +201,18 @@ index 3923ac7ec338956186f33f09d1f1cebebbef8732..d6afc7308698f41760938841967df370
          // Paper start - optimise collisions
          final boolean xZero = movement.x == 0.0;
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 11652215b96f4a0a2be58e5b547a84781731d253..cb216f5f7d5087503ae915915e562b33ccbf7fdd 100644
+index 7a1cc86185b9f4b6aa82cb2dd92500063b9f0736..0e60e3f694dd4d52ce92290148ff043e834d7c4c 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -203,7 +203,7 @@ public class FallingBlockEntity extends Entity {
+@@ -198,7 +198,7 @@ public class FallingBlockEntity extends Entity {
                  this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
              }
  
 -            this.move(MoverType.SELF, this.getDeltaMovement());
 +            this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
-             // Paper start - fix sand duping
-             if (this.isRemoved()) {
-                 return;
+             // Paper start - Configurable falling blocks height nerf
+             if (this.level().paperConfig().fixes.fallingBlockHeightNerf.test(v -> this.getY() > v)) {
+                 if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 index 2800af98260ebdab107466c596d2ec8cba6088fe..7ff11a09234606508dac8347af281885b0a1f7e1 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java

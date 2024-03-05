@@ -181,7 +181,7 @@ index 06af35cba1a7b9c11cade2bcd0cc72c4bc28e56f..f68da3e0168c9462aa05cce11e523b9c
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 4bcbf7810b2c1c2067352f44e91187361c41641a..fe8a1ffe9a8030955d41b9324a59eb30db678e27 100644
+index 976cdac745212847d6b25bdb080f43314560e423..4b524e5b62f3d83c2f1ad750ff4237f5484da586 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -893,6 +893,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -209,7 +209,7 @@ index 4bcbf7810b2c1c2067352f44e91187361c41641a..fe8a1ffe9a8030955d41b9324a59eb30
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 552780f56247c0f064c704679e4c2d81e652291b..aaa10bbc8adafa42ce4a14ae426cc7bb78d145c1 100644
+index f3f5e10c8147f7fa7351daa91b3f410ca36bcf9b..e600bcf392abb5bd40d93f73290c46a2478adb91 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -612,6 +612,108 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -366,7 +366,7 @@ index 552780f56247c0f064c704679e4c2d81e652291b..aaa10bbc8adafa42ce4a14ae426cc7bb
          if (this.removalReason == null) {
              this.removalReason = entity_removalreason;
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index b8687b3c6386288609cfb1980da2ee727acae03e..b323b87ef01adcef6f21e4daa9566918bd958a67 100644
+index 743aac4ba5d08ef3e6b67136bd4919b62411a7a0..7a1cc86185b9f4b6aa82cb2dd92500063b9f0736 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -133,6 +133,59 @@ public class FallingBlockEntity extends Entity {
@@ -428,8 +428,8 @@ index b8687b3c6386288609cfb1980da2ee727acae03e..b323b87ef01adcef6f21e4daa9566918
 +
      @Override
      public void tick() {
-         // Paper start - fix sand duping
-@@ -210,6 +263,7 @@ public class FallingBlockEntity extends Entity {
+         if (this.blockState.isAir()) {
+@@ -200,6 +253,7 @@ public class FallingBlockEntity extends Entity {
                                      return;
                                  }
                                  // CraftBukkit end
@@ -495,10 +495,10 @@ index 90f10473ae441d68333cd497c718a3c982544533..ed0234d6a2718d35af635c4b74243bb2
                  this.explode();
              }
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index a57ae743a7be1835799d286c8c9d3ea82ed3da3e..0ccfae5343c88481d3f8ed5ec9839a5b7fa7f25c 100644
+index fb2fa37ba62d9945dfb89efbc5609ecd94cfd6c1..c23ae4d49c59cdd49495f6e8ffb7c7d21b016b42 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -220,6 +220,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -229,6 +229,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public abstract ResourceKey<LevelStem> getTypeKey();
  
      public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
