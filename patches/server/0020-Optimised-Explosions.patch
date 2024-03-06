@@ -680,7 +680,7 @@ index ed0234d6a2718d35af635c4b74243bb2afd40769..2800af98260ebdab107466c596d2ec8c
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa590454a8c 100644
+index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..87a61b091bb839460394e285e030244fd6140379 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -55,14 +55,16 @@ public class Explosion {
@@ -769,7 +769,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
                          ++missedRays;
                      }
                  }
-@@ -375,12 +388,76 @@ public class Explosion {
+@@ -375,12 +388,80 @@ public class Explosion {
          return (float)missedRays / (float)totalRays;
      }
      // Paper end - optimise collisions
@@ -793,7 +793,11 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
 +
 +    protected void cleanBlockCache(List<BlockPos> blocks) {
 +        for (BlockPos blow : blocks) {
-+            blockCache.get(blow.asLong()).shouldExplode = null;
++            ExplosionBlockCache cache = blockCache.get(blow.asLong());
++            // May be null if the cache is invalidated then retrieved from the ExplosionBlockCache[]
++            if (cache != null) {
++                cache.shouldExplode = null;
++            }
 +        }
 +    }
 +
@@ -847,7 +851,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
          AABB axisalignedbb = entity.getBoundingBox();
          double d0 = 1.0D / ((axisalignedbb.maxX - axisalignedbb.minX) * 2.0D + 1.0D);
          double d1 = 1.0D / ((axisalignedbb.maxY - axisalignedbb.minY) * 2.0D + 1.0D);
-@@ -400,7 +477,11 @@ public class Explosion {
+@@ -400,7 +481,11 @@ public class Explosion {
                          double d10 = Mth.lerp(d7, axisalignedbb.minZ, axisalignedbb.maxZ);
                          Vec3 vec3d1 = new Vec3(d8 + d3, d9, d10 + d4);
  
@@ -860,7 +864,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
                              ++i;
                          }
  
-@@ -429,7 +510,29 @@ public class Explosion {
+@@ -429,7 +514,29 @@ public class Explosion {
              return;
          }
          // CraftBukkit end
@@ -890,7 +894,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
          Set<BlockPos> set = Sets.newHashSet();
          boolean flag = true;
  
-@@ -437,14 +540,7 @@ public class Explosion {
+@@ -437,14 +544,7 @@ public class Explosion {
          int j;
  
          // Paper start - optimise explosions
@@ -906,7 +910,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
          // use initial cache value that is most likely to be used: the source position
          final ExplosionBlockCache initialCache;
          {
-@@ -541,10 +637,15 @@ public class Explosion {
+@@ -541,10 +641,15 @@ public class Explosion {
          }
  
          this.toBlow.addAll(set);
@@ -924,7 +928,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
          int l = Mth.floor(this.y - (double) f2 - 1.0D);
          int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
          int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
-@@ -590,11 +691,11 @@ public class Explosion {
+@@ -590,11 +695,11 @@ public class Explosion {
                                  for (EnderDragonPart entityComplexPart : ((EnderDragon) entity).subEntities) {
                                      // Calculate damage separately for each EntityComplexPart
                                      if (list.contains(entityComplexPart)) {
@@ -938,7 +942,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
                              }
  
                              if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled
-@@ -655,9 +756,7 @@ public class Explosion {
+@@ -655,9 +760,7 @@ public class Explosion {
              }
          }
  
@@ -949,7 +953,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
      }
  
      public void finalizeExplosion(boolean particles) {
-@@ -725,6 +824,12 @@ public class Explosion {
+@@ -725,6 +828,12 @@ public class Explosion {
              if (this.wasCanceled) {
                  return;
              }
@@ -962,7 +966,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..f7b2ebc636b8f01654ac917e2b9c4aa5
              // CraftBukkit end
              objectlistiterator = this.toBlow.iterator();
  
-@@ -871,15 +976,22 @@ public class Explosion {
+@@ -871,15 +980,22 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions
