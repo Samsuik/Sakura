@@ -388,19 +388,16 @@ index 0000000000000000000000000000000000000000..5296d4e0a1041932e36562f42fbf3e1d
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..74d4e257440842d40bfd72ff0741f1d7e04d493e
+index 0000000000000000000000000000000000000000..04dc81634277d05894076a2cafde60ca35e1886e
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
-@@ -0,0 +1,240 @@
+@@ -0,0 +1,251 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.google.common.collect.Table;
 +import com.mojang.logging.LogUtils;
 +import io.leangen.geantyref.TypeToken;
-+import io.papermc.paper.configuration.ConfigurationPart;
-+import io.papermc.paper.configuration.Configurations;
-+import io.papermc.paper.configuration.NestedSetting;
-+import io.papermc.paper.configuration.PaperConfigurations;
++import io.papermc.paper.configuration.*;
 +import io.papermc.paper.configuration.mapping.InnerClassFieldDiscoverer;
 +import io.papermc.paper.configuration.serializer.*;
 +import io.papermc.paper.configuration.serializer.collections.FastutilMapSerializer;
@@ -408,6 +405,7 @@ index 0000000000000000000000000000000000000000..74d4e257440842d40bfd72ff0741f1d7
 +import io.papermc.paper.configuration.serializer.collections.TableSerializer;
 +import io.papermc.paper.configuration.serializer.registry.RegistryHolderSerializer;
 +import io.papermc.paper.configuration.serializer.registry.RegistryValueSerializer;
++import io.papermc.paper.configuration.transformation.Transformations;
 +import io.papermc.paper.configuration.type.BooleanOrDefault;
 +import io.papermc.paper.configuration.type.Duration;
 +import io.papermc.paper.configuration.type.DurationOrDisabled;
@@ -417,6 +415,8 @@ index 0000000000000000000000000000000000000000..74d4e257440842d40bfd72ff0741f1d7
 +import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 +import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 +import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
++import me.samsuik.sakura.configuration.transformation.world.V3_RenameKnockback;
++import me.samsuik.sakura.configuration.transformation.world.V2_VerticalKnockbackUseDefault;
 +import net.minecraft.core.RegistryAccess;
 +import net.minecraft.core.registries.Registries;
 +import net.minecraft.resources.ResourceLocation;
@@ -428,9 +428,11 @@ index 0000000000000000000000000000000000000000..74d4e257440842d40bfd72ff0741f1d7
 +import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 +import org.slf4j.Logger;
 +import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.ConfigurationNode;
 +import org.spongepowered.configurate.ConfigurationOptions;
 +import org.spongepowered.configurate.objectmapping.FieldDiscoverer;
 +import org.spongepowered.configurate.objectmapping.ObjectMapper;
++import org.spongepowered.configurate.transformation.ConfigurationTransformation;
 +import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 +
 +import java.io.IOException;
@@ -573,6 +575,15 @@ index 0000000000000000000000000000000000000000..74d4e257440842d40bfd72ff0741f1d7
 +    }
 +
 +    @Override
++    protected void applyWorldConfigTransformations(final ContextMap contextMap, final ConfigurationNode node) throws ConfigurateException {
++        final ConfigurationTransformation.VersionedBuilder versionedBuilder = Transformations.versionedBuilder();
++        V2_VerticalKnockbackUseDefault.apply(versionedBuilder);
++        V3_RenameKnockback.apply(versionedBuilder);
++        // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
++        versionedBuilder.build().apply(node);
++    }
++
++    @Override
 +    public WorldConfiguration createWorldConfig(final ContextMap contextMap) {
 +        final String levelName = contextMap.require(WORLD_NAME);
 +        try {
@@ -634,7 +645,7 @@ index 0000000000000000000000000000000000000000..74d4e257440842d40bfd72ff0741f1d7
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..671fa0b3076276741ede09d5ae1f915e525ecf9f
+index 0000000000000000000000000000000000000000..9f3bfd0394f2aa2033ec9affb22b7e2a3732dc5a
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 @@ -0,0 +1,184 @@
@@ -645,6 +656,7 @@ index 0000000000000000000000000000000000000000..671fa0b3076276741ede09d5ae1f915e
 +import io.papermc.paper.configuration.ConfigurationPart;
 +import io.papermc.paper.configuration.NestedSetting;
 +import io.papermc.paper.configuration.PaperConfigurations;
++import io.papermc.paper.configuration.type.number.DoubleOr;
 +import io.papermc.paper.configuration.type.number.IntOr;
 +import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 +import me.samsuik.sakura.entity.merge.MergeLevel;
@@ -668,7 +680,7 @@ index 0000000000000000000000000000000000000000..671fa0b3076276741ede09d5ae1f915e
 +public class WorldConfiguration extends ConfigurationPart {
 +
 +    private static final Logger LOGGER = LogUtils.getClassLogger();
-+    static final int CURRENT_VERSION = 1; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
++    static final int CURRENT_VERSION = 3; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
 +
 +    private transient final ResourceLocation worldKey;
 +    WorldConfiguration(ResourceLocation worldKey) {
@@ -761,11 +773,10 @@ index 0000000000000000000000000000000000000000..671fa0b3076276741ede09d5ae1f915e
 +    public class Players extends ConfigurationPart {
 +        public Knockback knockback = new Knockback();
 +        public class Knockback extends ConfigurationPart {
-+            public double knockbackVertical = 0.4;
++            public DoubleOr.Default knockbackVertical = DoubleOr.Default.USE_DEFAULT;
 +            public double knockbackVerticalLimit = 0.4;
-+            @Comment("In vanilla the vertical limit will only work when the entity is on the ground")
-+            public boolean verticalLimitRequireGround = true;
-+            public double knockbackHorizontal = 0.4;
++            public boolean verticalKnockbackRequireGround = true;
++            public double baseKnockback = 0.4;
 +            @Comment("Knockback caused by sweeping edge")
 +            public double sweepingEdgeKnockback = 0.4;
 +
@@ -821,6 +832,76 @@ index 0000000000000000000000000000000000000000..671fa0b3076276741ede09d5ae1f915e
 +        }
 +    }
 +
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/transformation/world/V2_VerticalKnockbackUseDefault.java b/src/main/java/me/samsuik/sakura/configuration/transformation/world/V2_VerticalKnockbackUseDefault.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..97d5224ef110cb2fa4f44a90a54a1611dc0182d9
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/transformation/world/V2_VerticalKnockbackUseDefault.java
+@@ -0,0 +1,31 @@
++package me.samsuik.sakura.configuration.transformation.world;
++
++import io.papermc.paper.configuration.type.number.DoubleOr;
++import org.checkerframework.checker.nullness.qual.Nullable;
++import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.ConfigurationNode;
++import org.spongepowered.configurate.NodePath;
++import org.spongepowered.configurate.transformation.ConfigurationTransformation;
++import org.spongepowered.configurate.transformation.TransformAction;
++
++import static org.spongepowered.configurate.NodePath.path;
++
++public final class V2_VerticalKnockbackUseDefault implements TransformAction {
++    private static final int VERSION = 2;
++    private static final NodePath PATH = path("players", "knockback", "knockback-vertical");
++    private static final V2_VerticalKnockbackUseDefault INSTANCE = new V2_VerticalKnockbackUseDefault();
++
++    private V2_VerticalKnockbackUseDefault() {}
++
++    public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
++        builder.addVersion(VERSION, ConfigurationTransformation.builder().addAction(PATH, INSTANCE).build());
++    }
++
++    @Override
++    public Object @Nullable [] visitPath(NodePath path, ConfigurationNode value) throws ConfigurateException {
++        if (value.getDouble() == 0.4) {
++            value.set(DoubleOr.Default.USE_DEFAULT);
++        }
++        return null;
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/transformation/world/V3_RenameKnockback.java b/src/main/java/me/samsuik/sakura/configuration/transformation/world/V3_RenameKnockback.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..efba1f83cb079d0e75904adc439b715d17793979
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/transformation/world/V3_RenameKnockback.java
+@@ -0,0 +1,27 @@
++package me.samsuik.sakura.configuration.transformation.world;
++
++import org.spongepowered.configurate.NodePath;
++import org.spongepowered.configurate.transformation.ConfigurationTransformation;
++
++import java.util.Map;
++
++import static org.spongepowered.configurate.NodePath.path;
++import static org.spongepowered.configurate.transformation.TransformAction.*;
++
++public final class V3_RenameKnockback {
++    private static final int VERSION = 3;
++    private static final Map<NodePath, String> RENAME = Map.of(
++        path("players", "knockback", "vertical-limit-require-ground"), "vertical-knockback-require-ground",
++        path("players", "knockback", "knockback-horizontal"), "base-knockback"
++    );
++
++    private V3_RenameKnockback() {}
++
++    public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
++        ConfigurationTransformation.Builder transformationBuilder = ConfigurationTransformation.builder();
++        for (Map.Entry<NodePath, String> entry : RENAME.entrySet()) {
++            transformationBuilder.addAction(entry.getKey(), rename(entry.getValue()));
++        }
++        builder.addVersion(VERSION, transformationBuilder.build());
++    }
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
 new file mode 100644

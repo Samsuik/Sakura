@@ -5,7 +5,7 @@ Subject: [PATCH] Configure Entity Knockback
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index aad41a0026ae3240c9ba97e5b44ccce6d021f8aa..4a85c137dee528b56c2b9353bfbad86005ff709f 100644
+index aad41a0026ae3240c9ba97e5b44ccce6d021f8aa..d20cf4f957da6b11551335bbe99e49cf33d52ae7 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 @@ -1549,7 +1549,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
@@ -13,7 +13,7 @@ index aad41a0026ae3240c9ba97e5b44ccce6d021f8aa..4a85c137dee528b56c2b9353bfbad860
                      }
  
 -                    this.knockback(0.4000000059604645D, d0, d1, entity1, entity1 == null ? EntityKnockbackEvent.KnockbackCause.DAMAGE : EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // CraftBukkit
-+                    this.knockback((float) level().sakuraConfig().players.knockback.knockbackHorizontal, d0, d1, entity1, entity1 == null ? EntityKnockbackEvent.KnockbackCause.DAMAGE : EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // Sakura - configure entity knockback // CraftBukkit
++                    this.knockback((float) level().sakuraConfig().players.knockback.baseKnockback, d0, d1, entity1, entity1 == null ? EntityKnockbackEvent.KnockbackCause.DAMAGE : EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // Sakura - configure entity knockback // CraftBukkit
                      if (!flag) {
                          this.indicateDamage(d0, d1);
                      }
@@ -26,7 +26,7 @@ index aad41a0026ae3240c9ba97e5b44ccce6d021f8aa..4a85c137dee528b56c2b9353bfbad860
      }
  
      private boolean checkTotemDeathProtection(DamageSource source) {
-@@ -1914,13 +1914,23 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -1914,13 +1914,26 @@ public abstract class LivingEntity extends Entity implements Attackable {
      }
  
      public void knockback(double d0, double d1, double d2, @Nullable Entity attacker, EntityKnockbackEvent.KnockbackCause cause) { // Paper - add nullable to attacker param
@@ -40,11 +40,14 @@ index aad41a0026ae3240c9ba97e5b44ccce6d021f8aa..4a85c137dee528b56c2b9353bfbad860
 -            EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) this.getBukkitEntity(), attacker, cause, d0, vec3d1, vec3d.x / 2.0D - vec3d1.x, this.onGround() ? Math.min(0.4D, vec3d.y / 2.0D + d0) : vec3d.y, vec3d.z / 2.0D - vec3d1.z);
 +            // Sakura start - configure entity knockback
 +            double velocityX = vec3d.x / 2.0D - vec3d1.x;
-+            double velocityY = vec3d.y / 2.0D + (float) level().sakuraConfig().players.knockback.knockbackVertical;
++            double velocityY = vec3d.y / 2.0D + level().sakuraConfig().players.knockback.knockbackVertical.or(d0);
 +            double velocityZ = vec3d.z / 2.0D - vec3d1.z;
 +
-+            if (!level().sakuraConfig().players.knockback.verticalLimitRequireGround || this.onGround()) {
-+                velocityY = Math.min(velocityY, (float) level().sakuraConfig().players.knockback.knockbackVerticalLimit);
++            // this.onGround() ? Math.min(0.4D, vec3d.y / 2.0D + d0) : vec3d.y
++            if (!level().sakuraConfig().players.knockback.verticalKnockbackRequireGround || this.onGround()) {
++                velocityY = Math.min(level().sakuraConfig().players.knockback.knockbackVerticalLimit, velocityY);
++            } else {
++                velocityY = vec3d.y;
 +            }
 +
 +            EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) this.getBukkitEntity(), attacker, cause, d0, vec3d1, velocityX, velocityY, velocityZ);
