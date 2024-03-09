@@ -6,7 +6,7 @@ Subject: [PATCH] Local Config and Value Storage API
 
 diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ff54d6b5d3f0299a37f36dde86fd00c5d04115dc
+index 0000000000000000000000000000000000000000..a3a09b8d58589883c7c465597bc64502bbfa0d88
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
 @@ -0,0 +1,143 @@
@@ -49,7 +49,7 @@ index 0000000000000000000000000000000000000000..ff54d6b5d3f0299a37f36dde86fd00c5
 +    }
 +
 +    @Override
-+    public LocalRegion locate(int x, int z, int searchDistance) {
++    public synchronized LocalRegion locate(int x, int z, int searchDistance) {
 +        long search = (long) searchDistance << 32;
 +        long coordinate = ChunkPos.asLong(x, z);
 +
@@ -74,17 +74,17 @@ index 0000000000000000000000000000000000000000..ff54d6b5d3f0299a37f36dde86fd00c5
 +    }
 +
 +    @Override
-+    public LocalValueStorage get(LocalRegion region) {
++    public synchronized LocalValueStorage get(LocalRegion region) {
 +        return this.storageMap.get(region);
 +    }
 +
 +    @Override
-+    public boolean has(LocalRegion region) {
++    public synchronized boolean has(LocalRegion region) {
 +        return this.storageMap.containsKey(region);
 +    }
 +
 +    @Override
-+    public void put(LocalRegion region, LocalValueStorage storage) {
++    public synchronized void put(LocalRegion region, LocalValueStorage storage) {
 +        assert region  != null : "region cannot be null";
 +        assert storage != null : "storage cannot be null";
 +
@@ -96,7 +96,7 @@ index 0000000000000000000000000000000000000000..ff54d6b5d3f0299a37f36dde86fd00c5
 +    }
 +
 +    @Override
-+    public void remove(LocalRegion region) {
++    public synchronized void remove(LocalRegion region) {
 +        assert region != null : "region cannot be null";
 +
 +        long base = ChunkPos.asLong(region.minX(), region.minZ());
@@ -106,11 +106,11 @@ index 0000000000000000000000000000000000000000..ff54d6b5d3f0299a37f36dde86fd00c5
 +    }
 +
 +    @Override
-+    public List<LocalRegion> regions() {
++    public synchronized List<LocalRegion> regions() {
 +        return new ArrayList<>(this.storageMap.keySet());
 +    }
 +
-+    public LocalValueConfig config(BlockPos position) {
++    public synchronized LocalValueConfig config(BlockPos position) {
 +        long chunkKey = ChunkPos.asLong(position.getX() >> 4, position.getZ() >> 4);
 +
 +        LocalValueConfig local = this.configMap.computeIfAbsent(chunkKey, (key) -> {
@@ -134,7 +134,7 @@ index 0000000000000000000000000000000000000000..ff54d6b5d3f0299a37f36dde86fd00c5
 +        return local;
 +    }
 +
-+    public void expire(long tick) {
++    public synchronized void expire(long tick) {
 +        if (tick % 200 != 0) return;
 +
 +        // remove expired
@@ -231,7 +231,7 @@ index eb04fab84e266b11ef4e531cb7ea8504a1e46aac..23e5fcffe6e1b1a12af5c7399dd8b2f6
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 8be02651774f7f7c5b383759df41ee18a8b5c267..d40c3aefde1e3b70657b48241cda2d0b0c457531 100644
+index 1830fc9bb35f900df389e8886b5355478bf3148c..7a1eb9f7fa60125cc1660d6f9c244101991123d9 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -177,6 +177,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
