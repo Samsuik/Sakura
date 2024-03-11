@@ -142,7 +142,7 @@ index 0000000000000000000000000000000000000000..5c6d4124189d98421e2d6f351840c5d6
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fbdd4c4ec21cff4c9651402a9e94dd99996723e1
+index 0000000000000000000000000000000000000000..1819b24c90b4e58487cacce5eb0b3ee21c5a8f83
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 @@ -0,0 +1,405 @@
@@ -291,7 +291,7 @@ index 0000000000000000000000000000000000000000..fbdd4c4ec21cff4c9651402a9e94dd99
 +                    if (getToBlow().isEmpty()) {
 +                        cleanBlockCache(foundBlocks);
 +                    } else {
-+                        invalidateBlockCache(blockCache);
++                        invalidateBlockCache(blockCache, foundBlocks);
 +                    }
 +                }
 +            }
@@ -680,7 +680,7 @@ index ed0234d6a2718d35af635c4b74243bb2afd40769..2800af98260ebdab107466c596d2ec8c
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..87a61b091bb839460394e285e030244fd6140379 100644
+index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba14f3b8c61 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -55,14 +55,16 @@ public class Explosion {
@@ -801,8 +801,8 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..87a61b091bb839460394e285e030244f
 +        }
 +    }
 +
-+    protected void invalidateBlockCache(ExplosionBlockCache[] blockCaches) {
-+        for (BlockPos blow : getToBlow()) {
++    protected void invalidateBlockCache(ExplosionBlockCache[] blockCaches, List<BlockPos> blocks) {
++        for (BlockPos blow : blocks) {
 +            final int cacheKey =
 +                (blow.getX() & BLOCK_EXPLOSION_CACHE_MASK) |
 +                (blow.getY() & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT) |
