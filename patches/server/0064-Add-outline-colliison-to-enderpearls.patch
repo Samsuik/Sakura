@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 14 Mar 2024 18:13:24 +0000
+Subject: [PATCH] Add outline colliison to enderpearls
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/ThrowableProjectile.java b/src/main/java/net/minecraft/world/entity/projectile/ThrowableProjectile.java
+index ab777952bda1651796ed41e8a7fc6621f27db9aa..72676ea1458e91e46a62bb6fd88d7a425664d56a 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/ThrowableProjectile.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/ThrowableProjectile.java
+@@ -44,7 +44,15 @@ public abstract class ThrowableProjectile extends Projectile {
+     @Override
+     public void tick() {
+         super.tick();
+-        HitResult movingobjectposition = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
++        // Sakura start - enderpearls use outline for collision
++        final net.minecraft.world.level.ClipContext.Block type;
++        if (level().sakuraConfig().entity.enderPearl.useOutlineForCollision && this instanceof ThrownEnderpearl) {
++            type = net.minecraft.world.level.ClipContext.Block.OUTLINE;
++        } else {
++            type = net.minecraft.world.level.ClipContext.Block.COLLIDER;
++        }
++        HitResult movingobjectposition = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, type);
++        // Sakura end - enderpearls use outline for collision
+         boolean flag = false;
+ 
+         if (movingobjectposition.getType() == HitResult.Type.BLOCK) {
