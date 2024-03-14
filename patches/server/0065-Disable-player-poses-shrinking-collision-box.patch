@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 14 Mar 2024 19:51:20 +0000
+Subject: [PATCH] Disable player poses shrinking collision box
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
+index 127b83d92719fb5149d936125423a509779e577d..b0dd1e699e743ed9fa7bd7499d81d813be89d3f2 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Player.java
++++ b/src/main/java/net/minecraft/world/entity/player/Player.java
+@@ -2243,7 +2243,13 @@ public abstract class Player extends LivingEntity {
+ 
+     @Override
+     public EntityDimensions getDimensions(Pose pose) {
+-        return (EntityDimensions) Player.POSES.getOrDefault(pose, Player.STANDING_DIMENSIONS);
++        // Sakura start - player poses shrink collision box
++        EntityDimensions dimensions = (EntityDimensions) Player.POSES.getOrDefault(pose, Player.STANDING_DIMENSIONS);
++        if (!level().sakuraConfig().players.posesShrinkCollisionBox && dimensions.height == 0.6f) {
++            dimensions = Player.STANDING_DIMENSIONS;
++        }
++        return dimensions;
++        // Sakura end - player poses shrink collision box
+     }
+ 
+     @Override
