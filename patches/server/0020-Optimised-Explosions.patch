@@ -142,7 +142,7 @@ index 0000000000000000000000000000000000000000..5c6d4124189d98421e2d6f351840c5d6
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1819b24c90b4e58487cacce5eb0b3ee21c5a8f83
+index 0000000000000000000000000000000000000000..cecc88aa129e201ebe85f7ca9cfd73bc25f2f902
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
 @@ -0,0 +1,405 @@
@@ -286,14 +286,14 @@ index 0000000000000000000000000000000000000000..1819b24c90b4e58487cacce5eb0b3ee2
 +                }
 +
 +                // The purpose of this is to make sure papers blockCache doesn't become outdated
-+                // by flushing the map and removing stale entries from the recent cache array.
-+                if (!foundBlocks.isEmpty()) {
-+                    if (getToBlow().isEmpty()) {
-+                        cleanBlockCache(foundBlocks);
-+                    } else {
-+                        invalidateBlockCache(blockCache, foundBlocks);
-+                    }
++                // by removing stale entries from the block cache map and the recent cache array.
++                if (!foundBlocks.isEmpty() && getToBlow().isEmpty()) {
++                    markBlocksInCacheAsExplodable(foundBlocks);
++                } else {
++                    this.blockCache.clear();
 +                }
++
++                java.util.Arrays.fill(blockCache, null);
 +            }
 +        }
 +
@@ -680,7 +680,7 @@ index ed0234d6a2718d35af635c4b74243bb2afd40769..2800af98260ebdab107466c596d2ec8c
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba14f3b8c61 100644
+index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..a30bc7ed6b0ea1787ef9bf320a834e6d407762a4 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -55,14 +55,16 @@ public class Explosion {
@@ -769,7 +769,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
                          ++missedRays;
                      }
                  }
-@@ -375,12 +388,80 @@ public class Explosion {
+@@ -375,12 +388,67 @@ public class Explosion {
          return (float)missedRays / (float)totalRays;
      }
      // Paper end - optimise collisions
@@ -791,27 +791,14 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
 +        this.chunkCache = null; // Paper - optimise explosions
 +    }
 +
-+    protected void cleanBlockCache(List<BlockPos> blocks) {
++    protected void markBlocksInCacheAsExplodable(List<BlockPos> blocks) {
 +        for (BlockPos blow : blocks) {
 +            ExplosionBlockCache cache = blockCache.get(blow.asLong());
-+            // May be null if the cache is invalidated then retrieved from the ExplosionBlockCache[]
++            // May be null if the blockCache is cleared then retrieved from the recent cache
 +            if (cache != null) {
 +                cache.shouldExplode = null;
 +            }
 +        }
-+    }
-+
-+    protected void invalidateBlockCache(ExplosionBlockCache[] blockCaches, List<BlockPos> blocks) {
-+        for (BlockPos blow : blocks) {
-+            final int cacheKey =
-+                (blow.getX() & BLOCK_EXPLOSION_CACHE_MASK) |
-+                (blow.getY() & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT) |
-+                (blow.getZ() & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT + BLOCK_EXPLOSION_CACHE_SHIFT);
-+
-+            blockCaches[cacheKey] = null;
-+        }
-+
-+        blockCache.clear();
 +    }
 +
 +    protected boolean isDestructibleBlock(@Nullable BlockState state) {
@@ -851,7 +838,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
          AABB axisalignedbb = entity.getBoundingBox();
          double d0 = 1.0D / ((axisalignedbb.maxX - axisalignedbb.minX) * 2.0D + 1.0D);
          double d1 = 1.0D / ((axisalignedbb.maxY - axisalignedbb.minY) * 2.0D + 1.0D);
-@@ -400,7 +481,11 @@ public class Explosion {
+@@ -400,7 +468,11 @@ public class Explosion {
                          double d10 = Mth.lerp(d7, axisalignedbb.minZ, axisalignedbb.maxZ);
                          Vec3 vec3d1 = new Vec3(d8 + d3, d9, d10 + d4);
  
@@ -864,7 +851,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
                              ++i;
                          }
  
-@@ -429,7 +514,29 @@ public class Explosion {
+@@ -429,7 +501,29 @@ public class Explosion {
              return;
          }
          // CraftBukkit end
@@ -894,7 +881,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
          Set<BlockPos> set = Sets.newHashSet();
          boolean flag = true;
  
-@@ -437,14 +544,7 @@ public class Explosion {
+@@ -437,14 +531,7 @@ public class Explosion {
          int j;
  
          // Paper start - optimise explosions
@@ -910,7 +897,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
          // use initial cache value that is most likely to be used: the source position
          final ExplosionBlockCache initialCache;
          {
-@@ -541,10 +641,15 @@ public class Explosion {
+@@ -541,10 +628,15 @@ public class Explosion {
          }
  
          this.toBlow.addAll(set);
@@ -928,7 +915,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
          int l = Mth.floor(this.y - (double) f2 - 1.0D);
          int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
          int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
-@@ -590,11 +695,11 @@ public class Explosion {
+@@ -590,11 +682,11 @@ public class Explosion {
                                  for (EnderDragonPart entityComplexPart : ((EnderDragon) entity).subEntities) {
                                      // Calculate damage separately for each EntityComplexPart
                                      if (list.contains(entityComplexPart)) {
@@ -942,7 +929,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
                              }
  
                              if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled
-@@ -655,9 +760,7 @@ public class Explosion {
+@@ -655,9 +747,7 @@ public class Explosion {
              }
          }
  
@@ -953,7 +940,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
      }
  
      public void finalizeExplosion(boolean particles) {
-@@ -725,6 +828,12 @@ public class Explosion {
+@@ -725,6 +815,12 @@ public class Explosion {
              if (this.wasCanceled) {
                  return;
              }
@@ -966,7 +953,7 @@ index 39c30a295df9dfbc3c861f1678a958ef2ed2ba93..e9d6c126b236cb0e29765e7febb52ba1
              // CraftBukkit end
              objectlistiterator = this.toBlow.iterator();
  
-@@ -871,15 +980,22 @@ public class Explosion {
+@@ -871,15 +967,22 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions
