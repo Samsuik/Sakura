@@ -209,11 +209,11 @@ index 976cdac745212847d6b25bdb080f43314560e423..4b524e5b62f3d83c2f1ad750ff4237f5
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index f3f5e10c8147f7fa7351daa91b3f410ca36bcf9b..e600bcf392abb5bd40d93f73290c46a2478adb91 100644
+index cc63a577e36962e811be097474433751a22bfb63..56793db72eb2358d8a27e8d225abe17c61fa92ef 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -612,6 +612,108 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
-         return BlockPos.asLong(v.getBlockX(), v.getBlockY(), v.getBlockZ());
+@@ -603,6 +603,117 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+         return to.entityState() != null && to.entityState().isCurrentState(this);
      }
      // Sakura end - store entity data/state
 +    // Sakura start - cannon entity merging
@@ -241,6 +241,15 @@ index f3f5e10c8147f7fa7351daa91b3f410ca36bcf9b..e600bcf392abb5bd40d93f73290c46a2
 +
 +    public final List<Entity> getMergeList() {
 +        return mergeList;
++    }
++
++    public final long getPackedOrigin() {
++        var v = getOriginVector();
++        if (v == null) return Long.MIN_VALUE;
++        // Note: vector#getBlockN may not be 100% exact
++        // If there's any future issues at let's say 0.999999...
++        // giving an incorrect position change it to Mth instead.
++        return BlockPos.asLong(v.getBlockX(), v.getBlockY(), v.getBlockZ());
 +    }
 +
 +    private boolean isSafeToSpawnMerge(Entity entity) {
@@ -321,7 +330,7 @@ index f3f5e10c8147f7fa7351daa91b3f410ca36bcf9b..e600bcf392abb5bd40d93f73290c46a2
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -660,6 +762,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -651,6 +762,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          this.getEntityData().registrationLocked = true; // Spigot
          this.setPos(0.0D, 0.0D, 0.0D);
          this.eyeHeight = this.getEyeHeight(net.minecraft.world.entity.Pose.STANDING, this.dimensions);
@@ -329,7 +338,7 @@ index f3f5e10c8147f7fa7351daa91b3f410ca36bcf9b..e600bcf392abb5bd40d93f73290c46a2
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -2542,6 +2645,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2533,6 +2645,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  nbttagcompound.putBoolean("Paper.FreezeLock", true);
              }
              // Paper end
@@ -341,7 +350,7 @@ index f3f5e10c8147f7fa7351daa91b3f410ca36bcf9b..e600bcf392abb5bd40d93f73290c46a2
              return nbttagcompound;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2689,6 +2797,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2680,6 +2797,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  freezeLocked = nbt.getBoolean("Paper.FreezeLock");
              }
              // Paper end
@@ -353,7 +362,7 @@ index f3f5e10c8147f7fa7351daa91b3f410ca36bcf9b..e600bcf392abb5bd40d93f73290c46a2
  
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
-@@ -4898,6 +5011,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4889,6 +5011,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          // Paper end - rewrite chunk system
          CraftEventFactory.callEntityRemoveEvent(this, cause);
          // CraftBukkit end
