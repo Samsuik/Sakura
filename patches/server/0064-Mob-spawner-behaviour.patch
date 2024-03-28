@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 28 Mar 2024 15:44:33 +0000
+Subject: [PATCH] Mob spawner behaviour
+
+
+diff --git a/src/main/java/net/minecraft/world/level/BaseSpawner.java b/src/main/java/net/minecraft/world/level/BaseSpawner.java
+index 218e06c3e0dd17f2801a5d3ca12b049ee24275a1..de0ca67b4bc51bd2001f4b5b9e483ad650318c08 100644
+--- a/src/main/java/net/minecraft/world/level/BaseSpawner.java
++++ b/src/main/java/net/minecraft/world/level/BaseSpawner.java
+@@ -66,7 +66,7 @@ public abstract class BaseSpawner {
+     }
+ 
+     public boolean isNearPlayer(Level world, BlockPos pos) {
+-        return world.hasNearbyAlivePlayerThatAffectsSpawning((double) pos.getX() + 0.5D, (double) pos.getY() + 0.5D, (double) pos.getZ() + 0.5D, (double) this.requiredPlayerRange); // Paper - Affects Spawning API
++        return !world.sakuraConfig().environment.mobSpawner.requireNearbyPlayer || world.hasNearbyAlivePlayerThatAffectsSpawning((double) pos.getX() + 0.5D, (double) pos.getY() + 0.5D, (double) pos.getZ() + 0.5D, (double) this.requiredPlayerRange); // Sakura - mob spawner behaviour // Paper - Affects Spawning API
+     }
+ 
+     public void clientTick(Level world, BlockPos pos) {
+@@ -137,7 +137,7 @@ public abstract class BaseSpawner {
+                             if (!mobspawnerdata_a.blockLightLimit().isValueInRange(world.getBrightness(LightLayer.BLOCK, blockposition1)) || !mobspawnerdata_a.skyLightLimit().isValueInRange(world.getBrightness(LightLayer.SKY, blockposition1))) {
+                                 continue;
+                             }
+-                        } else if (!SpawnPlacements.checkSpawnRules((EntityType) optional.get(), world, MobSpawnType.SPAWNER, blockposition1, world.getRandom())) {
++                        } else if (world.sakuraConfig().environment.mobSpawner.checkSpawnConditions && !SpawnPlacements.checkSpawnRules((EntityType) optional.get(), world, MobSpawnType.SPAWNER, blockposition1, world.getRandom())) { // Sakura - mob spawner behaviour
+                             continue;
+                         }
+                         // Paper start - PreCreatureSpawnEvent
+@@ -165,7 +165,7 @@ public abstract class BaseSpawner {
+                             return;
+                         }
+ 
+-                        int k = world.getEntities(EntityTypeTest.forExactClass(entity.getClass()), (new AABB((double) pos.getX(), (double) pos.getY(), (double) pos.getZ(), (double) (pos.getX() + 1), (double) (pos.getY() + 1), (double) (pos.getZ() + 1))).inflate((double) this.spawnRange), EntitySelector.NO_SPECTATORS).size();
++                        int k = world.sakuraConfig().environment.mobSpawner.ignoreEntityLimit ? 0 : world.getEntities(EntityTypeTest.forExactClass(entity.getClass()), (new AABB((double) pos.getX(), (double) pos.getY(), (double) pos.getZ(), (double) (pos.getX() + 1), (double) (pos.getY() + 1), (double) (pos.getZ() + 1))).inflate((double) this.spawnRange), EntitySelector.NO_SPECTATORS).size(); // Sakura - mob spawner behaviour
+ 
+                         if (k >= this.maxNearbyEntities) {
+                             this.delay(world, pos);
+@@ -177,7 +177,7 @@ public abstract class BaseSpawner {
+                         if (entity instanceof Mob) {
+                             Mob entityinsentient = (Mob) entity;
+ 
+-                            if (mobspawnerdata.getCustomSpawnRules().isEmpty() && !entityinsentient.checkSpawnRules(world, MobSpawnType.SPAWNER) || !entityinsentient.checkSpawnObstruction(world)) {
++                            if (world.sakuraConfig().environment.mobSpawner.checkSpawnConditions && (mobspawnerdata.getCustomSpawnRules().isEmpty() && !entityinsentient.checkSpawnRules(world, MobSpawnType.SPAWNER) || !entityinsentient.checkSpawnObstruction(world))) { // Sakura - mob spawner behaviour
+                                 continue;
+                             }
+ 
