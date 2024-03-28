@@ -5,33 +5,65 @@ Subject: [PATCH] Configure cannon physics by version
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index 19086bbfdf3a015eafec5ca868c8d2451f554ef0..a40dcbde87860fd6d3b60d0b9e2d5e63e18e69b7 100644
+index 19086bbfdf3a015eafec5ca868c8d2451f554ef0..510d722fffd4bdcee2db42aefa662c49563ffa81 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-@@ -1495,6 +1495,14 @@ public final class CollisionUtil {
-     public static Vec3 performCollisions(final Vec3 moveVector, AABB axisalignedbb,
-                                          final List<VoxelShape> voxels,
-                                          final List<AABB> aabbs) {
-+        // Sakura start
-+        return performCollisions(moveVector, axisalignedbb, voxels, aabbs, null);
+@@ -1457,7 +1457,15 @@ public final class CollisionUtil {
+         return new Vec3(x, y, z);
+     }
+ 
++    // Sakura start - physics version api
+     public static Vec3 performAABBCollisions(final Vec3 moveVector, AABB axisalignedbb, final List<AABB> potentialCollisions) {
++        return performAABBCollisions(moveVector, axisalignedbb, potentialCollisions, null);
 +    }
-+    public static Vec3 performCollisions(final Vec3 moveVector, AABB axisalignedbb,
-+                                         final List<VoxelShape> voxels,
-+                                         final List<AABB> aabbs,
-+                                         final me.samsuik.sakura.physics.PhysicsVersion physics) {
-+        // Sakura end
-         if (voxels.isEmpty()) {
-             // fast track only AABBs
-             return performAABBCollisions(moveVector, axisalignedbb, aabbs);
-@@ -1512,7 +1520,10 @@ public final class CollisionUtil {
++    public static Vec3 performAABBCollisions(final Vec3 moveVector,
++                                             AABB axisalignedbb,
++                                             final List<AABB> potentialCollisions,
++                                             final me.samsuik.sakura.physics.PhysicsVersion physics) {
++        // Sakura end - physics version api
+         double x = moveVector.x;
+         double y = moveVector.y;
+         double z = moveVector.z;
+@@ -1469,7 +1477,10 @@ public final class CollisionUtil {
              }
          }
  
 -        final boolean xSmaller = Math.abs(x) < Math.abs(z);
 +        // Sakura start - physics version api
 +        final boolean xSmaller = physics == null || physics.afterOrEqual(1_14_0) ? Math.abs(x) < Math.abs(z)
-+            : physics.is(1_7_0) && Math.abs(x) > Math.abs(z);
-+        // Sakura end
++            : physics.isLegacy() && Math.abs(x) > Math.abs(z);
++        // Sakura end - physics version api
+ 
+         if (xSmaller && z != 0.0) {
+             z = performAABBCollisionsZ(axisalignedbb, z, potentialCollisions);
+@@ -1495,9 +1506,17 @@ public final class CollisionUtil {
+     public static Vec3 performCollisions(final Vec3 moveVector, AABB axisalignedbb,
+                                          final List<VoxelShape> voxels,
+                                          final List<AABB> aabbs) {
++        // Sakura start - physics version api
++        return performCollisions(moveVector, axisalignedbb, voxels, aabbs, null);
++    }
++    public static Vec3 performCollisions(final Vec3 moveVector, AABB axisalignedbb,
++                                         final List<VoxelShape> voxels,
++                                         final List<AABB> aabbs,
++                                         final me.samsuik.sakura.physics.PhysicsVersion physics) {
+         if (voxels.isEmpty()) {
+             // fast track only AABBs
+-            return performAABBCollisions(moveVector, axisalignedbb, aabbs);
++            return performAABBCollisions(moveVector, axisalignedbb, aabbs, physics);
++            // Sakura end - physics version api
+         }
+ 
+         double x = moveVector.x;
+@@ -1512,7 +1531,10 @@ public final class CollisionUtil {
+             }
+         }
+ 
+-        final boolean xSmaller = Math.abs(x) < Math.abs(z);
++        // Sakura start - physics version api
++        final boolean xSmaller = physics == null || physics.afterOrEqual(1_14_0) ? Math.abs(x) < Math.abs(z)
++            : physics.isLegacy() && Math.abs(x) > Math.abs(z);
++        // Sakura end - physics version api
  
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
@@ -87,7 +119,7 @@ index cecc88aa129e201ebe85f7ca9cfd73bc25f2f902..78b08a9557e9fd98251714dce9ba1180
                  x /= distance;
                  y /= distance;
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index e682b52c6f295506f25223950e73188ed5eb4e1a..4c8ef097735020642811decc2e9122dd6373d2df 100644
+index e682b52c6f295506f25223950e73188ed5eb4e1a..c596f553bfce8db067c3a3df2f366878fd97376a 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -380,7 +380,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -190,6 +222,15 @@ index e682b52c6f295506f25223950e73188ed5eb4e1a..4c8ef097735020642811decc2e9122dd
                      this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
                  }
  
+@@ -1720,7 +1739,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+         } else {
+             final AABB bb = currBoundingBox.expandTowards(movement.x, movement.y, movement.z);
+             collectCollisions(bb, potentialCollisionsVoxel, potentialCollisionsBB);
+-            return io.papermc.paper.util.CollisionUtil.performCollisions(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
++            return io.papermc.paper.util.CollisionUtil.performCollisions(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB, this.physics); // Sakura - physics version api
+         }
+     }
+ 
 @@ -1729,7 +1748,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          double y = movement.y;
          double z = movement.z;
@@ -197,8 +238,8 @@ index e682b52c6f295506f25223950e73188ed5eb4e1a..4c8ef097735020642811decc2e9122dd
 -        final boolean xSmaller = Math.abs(x) < Math.abs(z);
 +        // Sakura start - physics version api
 +        final boolean xSmaller = this.physics == null || this.physics.afterOrEqual(1_14_0) ? Math.abs(x) < Math.abs(z)
-+            : this.physics.is(1_7_0) && Math.abs(x) > Math.abs(z);
-+        // Sakura end
++            : this.physics.isLegacy() && Math.abs(x) > Math.abs(z);
++        // Sakura end - physics version api
  
          if (y != 0.0) {
              y = scanY(currBoundingBox, y, voxelList, bbList);
