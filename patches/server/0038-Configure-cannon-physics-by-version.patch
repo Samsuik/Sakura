@@ -499,7 +499,7 @@ index 19397e2556a3cdc7180a5f8889aefb5ef23715b7..26fc6a8018cfde3c219a7d828f743663
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index b01930533e4c24d3fa4566a8462ac7ceeb9184f1..50621055665ca973875fa06e5fd274c6398fa06f 100644
+index b01930533e4c24d3fa4566a8462ac7ceeb9184f1..dfc30155d1b636ed8381a61fd61c74bc00b11b6d 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -74,6 +74,7 @@ public class Explosion {
@@ -538,18 +538,22 @@ index b01930533e4c24d3fa4566a8462ac7ceeb9184f1..50621055665ca973875fa06e5fd274c6
                              // Sakura end
                              ++i;
                          }
-@@ -602,6 +612,10 @@ public class Explosion {
+@@ -602,6 +612,14 @@ public class Explosion {
                              }
  
                              if (cachedBlock.outOfWorld) {
 +                                // Sakura start - physics version api
-+                                if (this.physics.before(1_17_0))
++                                if (this.physics.before(1_17_0)) {
++                                    d4 += d0;
++                                    d5 += d1;
++                                    d6 += d2;
 +                                    continue;
-+                                // Sakura end
++                                }
++                                // Sakura end - physics version api
                                  break;
                              }
  
-@@ -672,10 +686,17 @@ public class Explosion {
+@@ -672,10 +690,17 @@ public class Explosion {
  
                  if (d7 <= 1.0D) {
                      double d8 = entity.getX() - this.x;
@@ -568,7 +572,7 @@ index b01930533e4c24d3fa4566a8462ac7ceeb9184f1..50621055665ca973875fa06e5fd274c6
                      if (d11 != 0.0D) {
                          d8 /= d11;
                          d9 /= d11;
-@@ -1003,7 +1024,14 @@ public class Explosion {
+@@ -1003,7 +1028,14 @@ public class Explosion {
              return data.density();
          }
  
