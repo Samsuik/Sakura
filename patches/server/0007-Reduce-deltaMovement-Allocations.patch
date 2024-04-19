@@ -214,7 +214,7 @@ index 2e6691b86e161616bb2dcf5ce0391ad57a3ef422..7890f84d7a69e2e6820ef0daa35f8985
  
          int i = this.getFuse() - 1;
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 0e20d82c11702396306c0529f92496073d986380..89942b02225a116ec883ff8a3872d4d2ca348d17 100644
+index eeacf65ebb0ea7070de6e773d31651e4c190d592..8fd87dc8f925a160bf390b05040110735f2a145b 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -617,10 +617,11 @@ public class Explosion {
@@ -226,7 +226,7 @@ index 0e20d82c11702396306c0529f92496073d986380..89942b02225a116ec883ff8a3872d4d2
  
                          // CraftBukkit start - Call EntityKnockbackEvent
                          if (entity instanceof LivingEntity) {
-+                            vec3d1 = new Vec3(d8, d9, d10); // Sakura
++                            vec3d1 = new Vec3(d8, d9, d10); // Sakura - reduce deltaMovement allocations
                              Vec3 result = entity.getDeltaMovement().add(vec3d1);
                              org.bukkit.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity(), this.source, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.EXPLOSION, d13, vec3d1, result.x, result.y, result.z);
  
@@ -234,11 +234,11 @@ index 0e20d82c11702396306c0529f92496073d986380..89942b02225a116ec883ff8a3872d4d2
                                  vec3d1 = org.bukkit.craftbukkit.util.CraftVector.toNMS(paperEvent.getAcceleration());
                              }
                              // Paper end - call EntityKnockbackByEntityEvent for explosions
-+                            // Sakura start - reduce deltamovement allocations
++                            // Sakura start - reduce deltaMovement allocations
 +                            entity.setDeltaMovement(entity.getDeltaMovement().add(vec3d1));
 +                        } else {
 +                            entity.addDeltaMovement(d8, d9, d10);
-+                            // Sakura end - reduce deltamovement allocations
++                            // Sakura end - reduce deltaMovement allocations
                          }
                          // CraftBukkit end
 -                        entity.setDeltaMovement(entity.getDeltaMovement().add(vec3d1));

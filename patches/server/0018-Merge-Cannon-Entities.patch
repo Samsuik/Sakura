@@ -209,7 +209,7 @@ index 55e0be135ec084ee7ebe6bc7bb9323519e0cd864..51fa57e8b9d5c9ee563ec3608a437c69
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index e657b5f88195f1db2cb9a9a97f255ff23992cadd..c518dc036459b925e384fed8cdf81d89b081a19e 100644
+index e657b5f88195f1db2cb9a9a97f255ff23992cadd..a81dde7251255aa0966498c1c8449492dae537a9 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -603,6 +603,117 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -305,7 +305,7 @@ index e657b5f88195f1db2cb9a9a97f255ff23992cadd..c518dc036459b925e384fed8cdf81d89
 +        return false;
 +    }
 +
-+    protected boolean isSafeToMergeInto(Entity entity) {
++    public boolean isSafeToMergeInto(Entity entity) {
 +        return false;
 +    }
 +
@@ -375,7 +375,7 @@ index e657b5f88195f1db2cb9a9a97f255ff23992cadd..c518dc036459b925e384fed8cdf81d89
          if (this.removalReason == null) {
              this.removalReason = entity_removalreason;
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 743aac4ba5d08ef3e6b67136bd4919b62411a7a0..7a1cc86185b9f4b6aa82cb2dd92500063b9f0736 100644
+index 743aac4ba5d08ef3e6b67136bd4919b62411a7a0..99a0bec7eb5be527b41248b365b037a5e42a3270 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -133,6 +133,59 @@ public class FallingBlockEntity extends Entity {
@@ -389,7 +389,7 @@ index 743aac4ba5d08ef3e6b67136bd4919b62411a7a0..7a1cc86185b9f4b6aa82cb2dd9250006
 +    }
 +
 +    @Override
-+    protected boolean isSafeToMergeInto(Entity entity) {
++    public boolean isSafeToMergeInto(Entity entity) {
 +        return entity instanceof FallingBlockEntity fbe
 +            && fbe.blockState.equals(blockState)
 +            && fbe.time - 1 == time; // todo: special case in case on spawn isn't used
@@ -447,7 +447,7 @@ index 743aac4ba5d08ef3e6b67136bd4919b62411a7a0..7a1cc86185b9f4b6aa82cb2dd9250006
                                      ((ServerLevel) this.level()).getChunkSource().chunkMap.broadcast(this, new ClientboundBlockUpdatePacket(blockposition, this.level().getBlockState(blockposition)));
                                      this.discard(EntityRemoveEvent.Cause.DESPAWN);
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 90f10473ae441d68333cd497c718a3c982544533..ed0234d6a2718d35af635c4b74243bb2afd40769 100644
+index 90f10473ae441d68333cd497c718a3c982544533..6e096594016be726e19b18c8a657ccbea717b926 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -72,6 +72,44 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -461,7 +461,7 @@ index 90f10473ae441d68333cd497c718a3c982544533..ed0234d6a2718d35af635c4b74243bb2
 +    }
 +
 +    @Override
-+    protected boolean isSafeToMergeInto(Entity entity) {
++    public boolean isSafeToMergeInto(Entity entity) {
 +        return entity instanceof PrimedTnt tnt
 +            && tnt.getFuse() + 1 == getFuse()
 +            // required to prevent issues with powdered snow

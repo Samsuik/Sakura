@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 3 May 2024 15:18:58 +0100
+Subject: [PATCH] Optimise explosions in protected regions
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 55f3f6bd77976f1ba4f7ac820a0333f1df82ab4d..fa1a06e6455390c3c945d988a3d4ee9a9ea92d38 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -415,6 +415,21 @@ public class Explosion {
+         return (float)missedRays / (float)totalRays;
+     }
+     // Paper end - optimise collisions
++    // Sakura start - optimise protected explosions
++    protected final boolean isRegionUnprotected() {
++        // As an optimisation, check if a plugin has cancelled or cleared the blockList.
++        // This is relatively sane on factions and cannon servers, but mileage may vary.
++        if (this.source != null && this.level.sakuraConfig().cannons.explosion.optimiseProtectedRegions) {
++            Location location = new Location(this.level.getWorld(), this.x, this.y, this.z);
++            List<org.bukkit.block.Block> blocks = new ObjectArrayList<>(1);
++            blocks.add(location.getBlock());
++            EntityExplodeEvent event = new EntityExplodeEvent(this.source.getBukkitEntity(), location, blocks, 0.0f);
++            return event.callEvent() && !event.blockList().isEmpty();
++        }
++
++        return true;
++    }
++    // Sakura end - optimise protected explosions
+ 
+     private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
+         return (ExplosionDamageCalculator) (entity == null ? Explosion.EXPLOSION_DAMAGE_CALCULATOR : new EntityBasedExplosionDamageCalculator(entity));
+@@ -506,7 +521,7 @@ public class Explosion {
+             initialCache = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
+         }
+         // Sakura start - optimise paper explosions
+-        if (initialCache.resistance <= (this.radius * 1.3f) && this.interactsWithBlocks()) {
++        if (initialCache.resistance <= (this.radius * 1.3f) && this.interactsWithBlocks() && this.isRegionUnprotected()) { // Sakura - optimise protected explosions
+             this.searchForBlocks(blockCache, initialCache);
+         }
+         this.locateAndImpactEntities(blockCache);

@@ -360,7 +360,7 @@ index 0000000000000000000000000000000000000000..fa5d0c046d979901dd302ee3973df274
 +}
 diff --git a/src/main/java/me/samsuik/sakura/utils/tps/TickTracking.java b/src/main/java/me/samsuik/sakura/utils/tps/TickTracking.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..59765bb2f4ca16421027bdd0c3e03d890a90d3e1
+index 0000000000000000000000000000000000000000..6903863ad293a335a8ed1aeaa06fccb408593373
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/tps/TickTracking.java
 @@ -0,0 +1,53 @@
@@ -399,7 +399,7 @@ index 0000000000000000000000000000000000000000..59765bb2f4ca16421027bdd0c3e03d89
 +    public void secondSample(Collection<ServerLevel> server, double tps) {
 +        history.remove(history.size() - 1);
 +
-+        int entities = server.stream().mapToInt((world) -> world.entityTickList.entityCount()).sum();
++        int entities = server.stream().mapToInt((world) -> world.entityTickList.entities.size()).sum();
 +        int loaded = server.stream().mapToInt((world) -> world.chunkSource.getInternallyLoadedChunks()).sum();
 +
 +        double mspt = Arrays.stream(msptSamples).average().orElse(0.0);
@@ -475,22 +475,18 @@ index 5df1d01c52b527ff74778d8e4aa27b3b0b1e7a4b..55e0be135ec084ee7ebe6bc7bb932351
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
 diff --git a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
-index 83a39f900551e39d5af6f17a339a386ddee4feef..22782bbf76dc40d57bd6d59ff59356c07b702d8c 100644
+index 83a39f900551e39d5af6f17a339a386ddee4feef..172c8d9cc94ed6ddfd3f785ca97a6e6ebb58d2d9 100644
 --- a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
-@@ -11,6 +11,12 @@ import net.minecraft.world.entity.Entity;
- public class EntityTickList {
-     private final io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<Entity> entities = new io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<>(true); // Paper - rewrite this, always keep this updated - why would we EVER tick an entity that's not ticking?
+@@ -9,7 +9,7 @@ import javax.annotation.Nullable;
+ import net.minecraft.world.entity.Entity;
  
-+    // Sakura start
-+    public int entityCount() {
-+        return entities.size();
-+    }
-+    // Sakura end
-+
+ public class EntityTickList {
+-    private final io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<Entity> entities = new io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<>(true); // Paper - rewrite this, always keep this updated - why would we EVER tick an entity that's not ticking?
++    public final io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<Entity> entities = new io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<>(true); // Sakura - tps graph // Paper - rewrite this, always keep this updated - why would we EVER tick an entity that's not ticking?
+ 
      private void ensureActiveIsNotIterated() {
          // Paper - replace with better logic, do not delay removals
-     }
 diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
 index 6c260403d91d640da0473a3df56e1c5582459fde..2d2d1eeaeb9e7f36263b8cecc753adf721b96435 100644
 --- a/src/main/java/org/spigotmc/SpigotConfig.java

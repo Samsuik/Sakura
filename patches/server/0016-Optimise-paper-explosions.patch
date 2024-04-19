@@ -1,0 +1,215 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 19 Apr 2024 22:20:03 +0100
+Subject: [PATCH] Optimise paper explosions
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 8fd87dc8f925a160bf390b05040110735f2a145b..e5335d64799005a4cdd2cb11cef637f250880b0c 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -111,6 +111,41 @@ public class Explosion {
+         this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
+     }
+ 
++    // Sakura start - optimise paper explosions
++    /*
++     * Sort the explosion rays to better utilise the chunk and block cache.
++     *   x +   Vanilla     Sorted
++     * z @ z      8           5
++     * - x      6   7       6   4
++     *        4   @   5   7   @   3
++     *          2   3       8   2
++     *            1           1
++     */
++    private static final java.util.Comparator<double[]> SORT_EXPLOSION_RAYS = java.util.Comparator.comparingDouble(vec -> {
++        double sign = Math.signum(vec[0]);
++        double dir = (sign - 1) / 2;
++        return sign + 8 + vec[2] * dir;
++    });
++
++    private static double[] sortExplosionRays(final it.unimi.dsi.fastutil.doubles.DoubleArrayList rayCoords) {
++        List<double[]> explosionRays = new ArrayList<>();
++
++        for (int i = 0; i < rayCoords.size(); i += 3) {
++            double[] ray = new double[3];
++            rayCoords.getElements(i, ray, 0, 3);
++            explosionRays.add(ray);
++        }
++
++        rayCoords.clear();
++        explosionRays.sort(SORT_EXPLOSION_RAYS);
++
++        double[] rays = new double[explosionRays.size() * 3];
++        for (int i = 0; i < explosionRays.size() * 3; i++) {
++            rays[i] = explosionRays.get(i / 3)[i % 3];
++        }
++        return rays;
++    }
++    // Sakura end - optimise paper explosions
+     // Paper start - optimise collisions
+     private static final double[] CACHED_RAYS;
+     static {
+@@ -136,7 +171,7 @@ public class Explosion {
+             }
+         }
+ 
+-        CACHED_RAYS = rayCoords.toDoubleArray();
++        CACHED_RAYS = sortExplosionRays(rayCoords); // Sakura - optimise paper explosions
+     }
+ 
+     private static final int CHUNK_CACHE_SHIFT = 2;
+@@ -430,7 +465,7 @@ public class Explosion {
+         }
+         // CraftBukkit end
+         this.level.gameEvent(this.source, GameEvent.EXPLODE, new Vec3(this.x, this.y, this.z));
+-        Set<BlockPos> set = Sets.newHashSet();
++        // Sakura - moved into searchForBlocks
+         boolean flag = true;
+ 
+         int i;
+@@ -456,6 +491,17 @@ public class Explosion {
+ 
+             initialCache = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
+         }
++        // Sakura start - optimise paper explosions
++        if (initialCache.resistance <= (this.radius * 1.3f) && this.interactsWithBlocks()) {
++            this.searchForBlocks(blockCache, initialCache);
++        }
++        this.locateAndImpactEntities(blockCache);
++        this.clearBlockCache();
++    }
++
++    protected final void searchForBlocks(final ExplosionBlockCache[] blockCache, final ExplosionBlockCache initialCache) {
++        Set<BlockPos> set = Sets.newHashSet();
++        // Sakura end - optimise paper explosions
+         // only ~1/3rd of the loop iterations in vanilla will result in a ray, as it is iterating the perimeter of
+         // a 16x16x16 cube
+         // we can cache the rays and their normals as well, so that we eliminate the excess iterations / checks and
+@@ -541,23 +587,63 @@ public class Explosion {
+         }
+ 
+         this.toBlow.addAll(set);
+-        float f2 = this.radius * 2.0F;
++        // Sakura start - optimise paper explosions
++    }
+ 
+-        i = Mth.floor(this.x - (double) f2 - 1.0D);
+-        j = Mth.floor(this.x + (double) f2 + 1.0D);
++    protected final AABB getExplosionBounds(float f2) {
++        // Sakura - moved into locateAndImpactEntities
++
++        int i = Mth.floor(this.x - (double) f2 - 1.0D);
++        int j = Mth.floor(this.x + (double) f2 + 1.0D);
+         int l = Mth.floor(this.y - (double) f2 - 1.0D);
+         int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
+         int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
+         int k1 = Mth.floor(this.z + (double) f2 + 1.0D);
+-        List<Entity> list = this.level.getEntities(this.source, new AABB((double) i, (double) l, (double) j1, (double) j, (double) i1, (double) k1), (com.google.common.base.Predicate<Entity>) entity -> entity.isAlive() && !entity.isSpectator()); // Paper - Fix lag from explosions processing dead entities
+-        Vec3 vec3d = new Vec3(this.x, this.y, this.z);
+-        Iterator iterator = list.iterator();
++        return new AABB((double) i, (double) l, (double) j1, (double) j, (double) i1, (double) k1);
++    }
+ 
++    protected final void locateAndImpactEntities(final ExplosionBlockCache[] blockCache) {
++        float f2 = this.radius * 2.0F;
++
++        Vec3 vec3d = new Vec3(this.x, this.y, this.z);
+         final BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos(); // Paper - optimise explosions
+ 
+-        while (iterator.hasNext()) {
+-            Entity entity = (Entity) iterator.next();
++        int minSection = io.papermc.paper.util.WorldUtil.getMinSection(this.level);
++        int maxSection = io.papermc.paper.util.WorldUtil.getMaxSection(this.level);
++
++        int minChunkX = Mth.floor(this.x - f2) >> 4;
++        int maxChunkX = Mth.floor(this.x + f2) >> 4;
++        int minChunkY = Mth.clamp(Mth.floor(this.y - f2) >> 4, minSection, maxSection);
++        int maxChunkY = Mth.clamp(Mth.floor(this.y + f2) >> 4, minSection, maxSection);
++        int minChunkZ = Mth.floor(this.z - f2) >> 4;
++        int maxChunkZ = Mth.floor(this.z + f2) >> 4;
+ 
++        io.papermc.paper.chunk.system.entity.EntityLookup entityLookup = ((net.minecraft.server.level.ServerLevel) this.level).getEntityLookup();
++
++        for (int chunkX = minChunkX; chunkX <= maxChunkX; ++chunkX) {
++            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; ++chunkZ) {
++                io.papermc.paper.world.ChunkEntitySlices chunk = entityLookup.getChunk(chunkX, chunkZ);
++                if (chunk == null) continue; // empty slice
++
++                for (int chunkY = minChunkY; chunkY <= maxChunkY; ++chunkY) {
++                    this.impactEntities(blockCache, blockPos, f2, vec3d, chunk.getSectionEntities(chunkY));
++                }
++            }
++        }
++    }
++
++    protected final void impactEntities(final ExplosionBlockCache[] blockCache, final BlockPos.MutableBlockPos blockPos, float f2, Vec3 vec3d, Entity[] entities) {
++        for (int i = 0; i < entities.length; i++) {
++            Entity entity = entities[i];
++            if (entity == null) break;      // end of entity section
++            this.impactEntity(blockCache, blockPos, f2, vec3d, entity);
++            if (entity != entities[i]) i--; // entities can be removed mid-explosion
++        }
++    }
++
++    protected final void impactEntity(final ExplosionBlockCache[] blockCache, final BlockPos.MutableBlockPos blockPos, float f2, Vec3 vec3d, Entity entity) {
++        if (entity.isAlive() && !entity.isSpectator()) { // Paper - Fix lag from explosions processing dead entities
++            // Sakura end - optimise paper explosions
+             if (!entity.ignoreExplosion(this)) {
+                 double d7 = Math.sqrt(entity.distanceToSqr(vec3d)) / (double) f2;
+ 
+@@ -581,24 +667,27 @@ public class Explosion {
+                             // - Damaging EntityEnderDragon does nothing
+                             // - EntityEnderDragon hitbock always covers the other parts and is therefore always present
+                             if (entity instanceof EnderDragonPart) {
+-                                continue;
++                                return; // Sakura - optimise paper explosions
+                             }
+ 
+                             entity.lastDamageCancelled = false;
+ 
+                             if (entity instanceof EnderDragon) {
++                                // Sakura start - optimise paper explosions
++                                AABB bounds = this.getExplosionBounds(f2);
+                                 for (EnderDragonPart entityComplexPart : ((EnderDragon) entity).subEntities) {
+                                     // Calculate damage separately for each EntityComplexPart
+-                                    if (list.contains(entityComplexPart)) {
+-                                        entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entityComplexPart, getSeenFraction(vec3d, entityComplexPart, blockCache, blockPos))); // Paper - actually optimise explosions and use the right entity to calculate the damage
++                                    if (entityComplexPart.getBoundingBox().intersects(bounds)) {
++                                        entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entityComplexPart, getBlockDensity(vec3d, entityComplexPart, blockCache, blockPos))); // Paper - actually optimise explosions and use the right entity to calculate the damage
+                                     }
+                                 }
+                             } else {
+-                                entity.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, getSeenFraction(vec3d, entity, blockCache, blockPos))); // Paper - actually optimise explosions
++                                entity.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, getBlockDensity(vec3d, entity, blockCache, blockPos))); // Paper - actually optimise explosions
++                                // Sakura end - optimise paper explosions
+                             }
+ 
+                             if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled
+-                                continue;
++                                return; // Sakura - optimise paper explosions
+                             }
+                             // CraftBukkit end
+                         }
+@@ -631,7 +720,7 @@ public class Explosion {
+                                 final org.bukkit.entity.Entity hitBy = this.damageSource.getEntity() != null ? this.damageSource.getEntity().getBukkitEntity() : this.source.getBukkitEntity();
+                                 com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent paperEvent = new com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent(((LivingEntity) entity).getBukkitLivingEntity(), hitBy, (float) event.getForce(), org.bukkit.craftbukkit.util.CraftVector.toBukkit(vec3d1));
+                                 if (!paperEvent.callEvent()) {
+-                                    continue;
++                                    return; // Sakura - optimise paper explosions
+                                 }
+                                 vec3d1 = org.bukkit.craftbukkit.util.CraftVector.toNMS(paperEvent.getAcceleration());
+                             }
+@@ -653,8 +742,12 @@ public class Explosion {
+                     }
+                 }
+             }
++            // Sakura start - optimise paper explosions
+         }
++    }
+ 
++    protected void clearBlockCache() {
++        // Sakura end - optimise paper explosions
+         this.blockCache = null; // Paper - optimise explosions
+         this.chunkPosCache = null; // Paper - optimise explosions
+         this.chunkCache = null; // Paper - optimise explosions

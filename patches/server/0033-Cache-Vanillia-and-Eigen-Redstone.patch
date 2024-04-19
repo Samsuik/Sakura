@@ -341,24 +341,24 @@ index 0000000000000000000000000000000000000000..c4150b062ee1a15f1938fea2da926699
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 8f5c2d979a6d902d142ba57a824beddf857f54b4..4cd97c07481ea5e9bcb5c69091f1e8d40255e218 100644
+index 622ab8f82f1b641f32912788ce44381b88f46093..4d16f579d7c73e2374230df519ca3f56c7c14dd5 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -1751,6 +1751,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
-             worldserver.densityCache.clear(); // Sakura
+             worldserver.densityCache.clear(currentTickLong); // Sakura - explosion density cache
              worldserver.durabilityManager.expire(currentTickLong); // Sakura
 +            worldserver.redstoneTracker.expire(currentTickLong); // Sakura
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index fb0b9b33494cc1f4fa45709ee97747d85d62f417..d54fb6906d66a6feeea3463cb2f38d10b52d2e41 100644
+index d424337f7ee70d6b488dcb8b59a1bd59b87e3e53..8e5bd44b93cfd4b3abdb76a5ee6dd6eb4e714223 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -232,6 +232,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
-     public final me.samsuik.sakura.explosion.DensityCache densityCache = new me.samsuik.sakura.explosion.DensityCache(); // Sakura - specialised density cache for swinging explosions
+     public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
 +    public final me.samsuik.sakura.redstone.RedstoneTracker redstoneTracker = new me.samsuik.sakura.redstone.RedstoneTracker(this); // Sakura - cache vanilla and eigen redstone
  

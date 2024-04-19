@@ -67,59 +67,47 @@ index 19086bbfdf3a015eafec5ca868c8d2451f554ef0..510d722fffd4bdcee2db42aefa662c49
  
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
-diff --git a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
-index cecc88aa129e201ebe85f7ca9cfd73bc25f2f902..78b08a9557e9fd98251714dce9ba1180d5e1ce5a 100644
---- a/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
-+++ b/src/main/java/me/samsuik/sakura/explosion/SakuraExplosion.java
-@@ -167,7 +167,7 @@ public final class SakuraExplosion extends Explosion {
- 
-         // update explosion position
-         x = source.getX();
--        y = source.getY(0.0625D);
-+        y = physics.before(1_10_0) ? source.getY() + (double) 0.49f : source.getY(0.0625D);
-         z = source.getZ();
-     }
- 
-@@ -260,10 +260,17 @@ public final class SakuraExplosion extends Explosion {
-             if (distanceFromBottom > 1.0) continue;
- 
-             double x = entity.getX() - pos.x;
--            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - pos.y;
-+            double y = entity.getEyeY() - pos.y; // Sakura - remove tnt special case
-             double z = entity.getZ() - pos.z;
-             double distance = Math.sqrt(x * x + y * y + z * z);
- 
-+            // Sakura start
-+            if (this.physics.before(1_17_0)) {
-+                distanceFromBottom  = (float) distanceFromBottom;
-+                distance = (float) distance;
-+            }
-+            // Sakura end
-+
-             if (distance == 0.0D) continue;
- 
-             x /= distance;
-@@ -308,10 +315,17 @@ public final class SakuraExplosion extends Explosion {
+diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
+index 929231896288c8355c17ba878d3dc296e9b258da..ca7819aa341529d8515e9db7ffe3b9d9186e05f3 100644
+--- a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
++++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
+@@ -169,9 +169,15 @@ public abstract class SpecialisedExplosion<T extends Entity> extends Explosion {
  
          if (distanceFromBottom <= 1.0) {
              double x = entity.getX() - pos.x;
--            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - pos.y;
-+            double y = entity.getEyeY() - pos.y; // Sakura - remove tnt special case
+-            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - this.y;
++            double y = entity.getEyeY() - pos.y; // Sakura - physics version api
              double z = entity.getZ() - pos.z;
              double distance = Math.sqrt(x * x + y * y + z * z);
- 
-+            // Sakura start
++            // Sakura start - physics version api
 +            if (this.physics.before(1_17_0)) {
-+                distanceFromBottom  = (float) distanceFromBottom;
++                distanceFromBottom = (float) distanceFromBottom;
 +                distance = (float) distance;
 +            }
-+            // Sakura end
-+
++            // Sakura end - physics version api
+ 
              if (distance != 0.0D) {
                  x /= distance;
-                 y /= distance;
+diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
+index b94861d545cefb0e68a83efa6812a1ff4a381027..26e03034f037ff236b8be781a433fdfe69eb0764 100644
+--- a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
++++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
+@@ -36,6 +36,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
+         this.bounds = new AABB(x, y, z, x, y, z);
+     }
+ 
++    // Sakura start - physics version api
++    @Override
++    protected double getExplosionOffset() {
++        return this.physics.before(1_10_0) ? (double) 0.49f : super.getExplosionOffset();
++    }
++    // Sakura end - physics version api
++
+     @Override
+     protected void startExplosion() {
+         for (int i = this.calculateExplosionPotential() - 1; i >= 0; --i) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 07c4cb5d91d0f7549fb92bfc03d730145e63a7d5..445899d4664b3bba467c0f8e5e390e13a2744b4d 100644
+index e3b6ef30a3c983e7e9b6bd83bc7baa600b16d850..c7a47485fd056159c448b63217afb8d4cacb1429 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -380,7 +380,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -267,7 +255,7 @@ index 07c4cb5d91d0f7549fb92bfc03d730145e63a7d5..445899d4664b3bba467c0f8e5e390e13
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 2c51b5f927fc08b5077bd0e58b08ce2acbb0331a..f22b2c52aaeab6757b4a50accb8fb6c66ffd1c1f 100644
+index 05c5b6be55bf6a81ff454532b40a372f9b9c8e13..b5ecadeb96750cbdca2023eefe7778596a040c97 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -90,6 +90,8 @@ public class FallingBlockEntity extends Entity {
@@ -405,7 +393,7 @@ index 2c51b5f927fc08b5077bd0e58b08ce2acbb0331a..f22b2c52aaeab6757b4a50accb8fb6c6
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 19397e2556a3cdc7180a5f8889aefb5ef23715b7..26fc6a8018cfde3c219a7d828f743663e804d1c6 100644
+index 9493fbae91f0ef6c3aaf81e548c225748f6f83b5..8a7864943bf6b3baaa4a5ca5c2052411af3d23da 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -60,6 +60,13 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -422,7 +410,7 @@ index 19397e2556a3cdc7180a5f8889aefb5ef23715b7..26fc6a8018cfde3c219a7d828f743663
      }
  
      @Override
-@@ -130,12 +137,30 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -107,12 +114,30 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          }
      }
      // Sakura end
@@ -454,7 +442,7 @@ index 19397e2556a3cdc7180a5f8889aefb5ef23715b7..26fc6a8018cfde3c219a7d828f743663
          }
  
          this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
-@@ -145,15 +170,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -122,15 +147,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
              return;
          }
          // Paper end - Configurable TNT height nerf
@@ -477,7 +465,7 @@ index 19397e2556a3cdc7180a5f8889aefb5ef23715b7..26fc6a8018cfde3c219a7d828f743663
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              // this.discard();
              this.respawnMerged(); // Sakura
-@@ -206,7 +235,10 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -183,7 +212,10 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive)this.getBukkitEntity());
  
          if (!event.isCancelled()) {
@@ -489,7 +477,7 @@ index 19397e2556a3cdc7180a5f8889aefb5ef23715b7..26fc6a8018cfde3c219a7d828f743663
          }
          // CraftBukkit end
      }
-@@ -267,7 +299,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -244,7 +276,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      // Paper start - Option to prevent TNT from moving in water
      @Override
      public boolean isPushedByFluid() {
@@ -499,14 +487,14 @@ index 19397e2556a3cdc7180a5f8889aefb5ef23715b7..26fc6a8018cfde3c219a7d828f743663
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index b01930533e4c24d3fa4566a8462ac7ceeb9184f1..dfc30155d1b636ed8381a61fd61c74bc00b11b6d 100644
+index 71c2e458673372a8a332c49ab3cb0cf8560b970e..b52270ce23eb67d7b9acac53a4332191bb88f057 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -74,6 +74,7 @@ public class Explosion {
      public boolean wasCanceled = false;
      public float yield;
      // CraftBukkit end
-+    protected final me.samsuik.sakura.physics.PhysicsVersion physics; // Sakura - physics version
++    protected final me.samsuik.sakura.physics.PhysicsVersion physics; // Sakura - physics version api
  
      public static DamageSource getDefaultDamageSource(Level world, @Nullable Entity source) {
          return world.damageSources().explosion(source, Explosion.getIndirectSourceEntityInternal(source));
@@ -514,31 +502,25 @@ index b01930533e4c24d3fa4566a8462ac7ceeb9184f1..dfc30155d1b636ed8381a61fd61c74bc
          this.largeExplosionParticles = emitterParticle;
          this.explosionSound = soundEvent;
          this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
-+        this.physics = entity != null ? entity.physics() : world.localConfig().config(BlockPos.containing(x, y, z)).physicsVersion; // Sakura
++        this.physics = entity != null ? entity.physics() : world.localConfig().config(BlockPos.containing(x, y, z)).physicsVersion; // Sakura - physics version api
      }
  
-     // Paper start - optimise collisions
-@@ -486,9 +488,17 @@ public class Explosion {
-                         Vec3 vec3d1 = new Vec3(d8 + d3, d9, d10 + d4);
- 
-                         // Sakura start
-+                        final net.minecraft.world.phys.HitResult.Type hitResult;
-                         if (data != null && data.isExpandable() && data.has(vec3d1)) {
--                            i += (int) data.density();
--                        } else if (entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
-+                            hitResult = data.density() == 1.0 ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
-+                        } else {
-+                            if (entity.physics().before(1_14_0)) {
-+                                hitResult = entity.level().rayTrace(vec3d1, source);
-+                            } else {
-+                                hitResult = entity.level().clip(new ClipContext(vec3d1, source, entity.physics().afterOrEqual(1_16_0) ? ClipContext.Block.COLLIDER : ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, entity)).getType();
-+                            }
-+                        }
-+                        if (hitResult == net.minecraft.world.phys.HitResult.Type.MISS) {
-                             // Sakura end
-                             ++i;
+     // Sakura start - optimise paper explosions
+@@ -503,8 +505,12 @@ public class Explosion {
+                         final float density = entity.level().densityCache.getKnownDensity(vec3d1);
+                         if (density != me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
+                             hitResult = density != 0.0f ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
++                            // Sakura start - physics version api
++                        } else if (entity.physics().before(1_14_0)) {
++                            hitResult = entity.level().rayTrace(vec3d1, source);
+                         } else {
+-                            hitResult = entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType();
++                            hitResult = entity.level().clip(new ClipContext(vec3d1, source, entity.physics().afterOrEqual(1_16_0) ? ClipContext.Block.COLLIDER : ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, entity)).getType();
++                            // Sakura end - physics version api
                          }
-@@ -602,6 +612,14 @@ public class Explosion {
+                         if (hitResult == HitResult.Type.MISS) {
+                             // Sakura end - replace density cache
+@@ -609,6 +615,14 @@ public class Explosion {
                              }
  
                              if (cachedBlock.outOfWorld) {
@@ -553,43 +535,52 @@ index b01930533e4c24d3fa4566a8462ac7ceeb9184f1..dfc30155d1b636ed8381a61fd61c74bc
                                  break;
                              }
  
-@@ -672,10 +690,17 @@ public class Explosion {
+@@ -714,9 +728,15 @@ public class Explosion {
  
                  if (d7 <= 1.0D) {
                      double d8 = entity.getX() - this.x;
 -                    double d9 = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - this.y;
-+                    double d9 = entity.getEyeY() - this.y; // Sakura - remove tnt special case
++                    double d9 = entity.getEyeY() - this.y; // Sakura - physics version api
                      double d10 = entity.getZ() - this.z;
                      double d11 = Math.sqrt(d8 * d8 + d9 * d9 + d10 * d10);
- 
-+                    // Sakura start
++                    // Sakura start - physics version api
 +                    if (this.physics.before(1_17_0)) {
 +                        d7  = (float) d7;
 +                        d11 = (float) d11;
 +                    }
-+                    // Sakura end
-+
++                    // Sakura end - physics version api
+ 
                      if (d11 != 0.0D) {
                          d8 /= d11;
-                         d9 /= d11;
-@@ -1003,7 +1028,14 @@ public class Explosion {
-             return data.density();
+@@ -1048,7 +1068,7 @@ public class Explosion {
+         // Sakura start - replace density cache
+         float blockDensity = this.level.densityCache.getDensity(vec3d, entity);
+         if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
+-            blockDensity = this.getSeenFraction(vec3d, entity, blockCache, blockPos); // Paper - optimise explosions;
++            blockDensity = this.getSeenPercent(vec3d, entity, blockCache, blockPos); // Sakura - physics version api // Paper - optimise explosions;
+             this.level.densityCache.putDensity(vec3d, entity, blockDensity);
+             // Sakura end - replace density cache
          }
+@@ -1056,6 +1076,17 @@ public class Explosion {
+         return blockDensity;
+     }
  
--        float blockDensity = this.getSeenFraction(vec3d, entity, data, blockCache, blockPos); // Paper - optimise explosions;
-+        // Sakura start - physics version api
-+        final float blockDensity;
++    // Sakura start - physics version api
++    private float getSeenPercent(Vec3 vec3d, Entity entity, ExplosionBlockCache[] blockCache, BlockPos.MutableBlockPos blockPos) {
 +        if (this.physics.afterOrEqual(1_16_0)) {
-+            blockDensity = this.getSeenFraction(vec3d, entity, data, blockCache, blockPos); // Paper - optimise explosions;
++            // Papers impl is untouched, intended to be used as a fast path.
++            return this.getSeenFraction(vec3d, entity, blockCache, blockPos);
 +        } else {
-+            blockDensity = getSeenPercent(vec3d, entity, data);
++            return getSeenPercent(vec3d, entity);
 +        }
-+        // Sakura end
- 
-         if (data == null || !data.isExpandable() && (blockDensity == 0.0f || blockDensity == 1.0f)) {
-             level.densityCache.createCache(key, entity, vec3d, blockDensity);
++    }
++    // Sakura end - physics version api
++
+     static class CacheKey {
+         private final Level world;
+         private final double posX, posY, posZ;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index d54fb6906d66a6feeea3463cb2f38d10b52d2e41..19b50f4f68c3a389f1169cf072dfd0a896475fe3 100644
+index 8e5bd44b93cfd4b3abdb76a5ee6dd6eb4e714223..ea15ef94540b78029c8f78021ace6998f62a701a 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -266,6 +266,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
