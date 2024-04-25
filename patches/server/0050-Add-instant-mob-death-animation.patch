@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Fri, 8 Dec 2023 18:21:56 +0000
+Subject: [PATCH] Add instant mob death animation
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index faa95807bb2afbeb90b31f8bee0d30b590a10075..9fa79ba7f50fa20f3794fd955db1a4cc0fa8ee02 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -1776,6 +1776,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
+ 
+             // Paper start
+             if (this.dead) { // Paper
++                // Sakura start
++                if (level().sakuraConfig().entity.instantDeathAnimation && !(this instanceof Player)) {
++                    this.deathTime = 20;
++                    return;
++                }
++                // Sakura end
+                 this.level().broadcastEntityEvent(this, (byte) 3);
+             this.setPose(Pose.DYING);
+             }

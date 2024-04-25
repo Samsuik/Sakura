@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 22 Jan 2024 15:52:33 +0000
+Subject: [PATCH] Calculate biome noise once per chunk section
+
+
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+index 796bbef3544e06b8e7aac7e8ac5f740a2613f4bd..27ba0a6d3439b9b4dfae3b9c49975879c4295443 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+@@ -227,12 +227,18 @@ public class LevelChunkSection {
+ 
+     public void fillBiomesFromNoise(BiomeResolver biomeSupplier, Climate.Sampler sampler, int x, int y, int z) {
+         PalettedContainer<Holder<Biome>> datapaletteblock = this.biomes.recreate();
++        Holder<Biome> biome = null; // Sakura
+         boolean flag = true;
+ 
+         for (int l = 0; l < 4; ++l) {
+             for (int i1 = 0; i1 < 4; ++i1) {
+                 for (int j1 = 0; j1 < 4; ++j1) {
+-                    datapaletteblock.getAndSetUnchecked(l, i1, j1, biomeSupplier.getNoiseBiome(x + l, y + i1, z + j1, sampler));
++                    // Sakura start - calculate biome noise once per chunk section
++                    if (biome == null || !me.samsuik.sakura.configuration.GlobalConfiguration.get().environment.calculateBiomeNoiseOncePerChunkSection) {
++                        biome = biomeSupplier.getNoiseBiome(x + l, y + i1, z + j1, sampler);
++                    }
++                    datapaletteblock.getAndSetUnchecked(l, i1, j1, biome);
++                    // Sakura end
+                 }
+             }
+         }

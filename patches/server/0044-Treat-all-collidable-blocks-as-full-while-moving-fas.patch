@@ -1,0 +1,79 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sun, 26 Nov 2023 17:57:50 +0000
+Subject: [PATCH] Treat all collidable blocks as full while moving fast
+
+
+diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
+index 510d722fffd4bdcee2db42aefa662c49563ffa81..37b6d16f0b1e000eb4082a530c7f713482d25a1d 100644
+--- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
++++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
+@@ -1592,6 +1592,7 @@ public final class CollisionUtil {
+     public static final int COLLISION_FLAG_CHECK_BORDER = 1 << 2;
+     public static final int COLLISION_FLAG_CHECK_ONLY = 1 << 3;
+     public static final int COLLISION_FLAG_ADD_TICKET = 1 << 4; // Sakura
++    public static final int COLLISION_FLAG_FULL_BLOCKS = 1 << 5; // Sakura
+ 
+     public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
+                                                               final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
+@@ -1643,6 +1644,7 @@ public final class CollisionUtil {
+ 
+         final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
+         final boolean addTicket  = (collisionFlags & COLLISION_FLAG_ADD_TICKET) != 0; // Sakura
++        final boolean fullBlocks = (collisionFlags & COLLISION_FLAG_FULL_BLOCKS) != 0; // Sakura
+         final ServerChunkCache chunkSource = (ServerChunkCache)world.getChunkSource();
+ 
+         for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
+@@ -1684,7 +1686,7 @@ public final class CollisionUtil {
+                         continue;
+                     }
+ 
+-                    final boolean hasSpecial = section.getSpecialCollidingBlocks() != 0;
++                    final boolean hasSpecial = !fullBlocks && section.getSpecialCollidingBlocks() != 0; // Sakura
+                     final int sectionAdjust = !hasSpecial ? 1 : 0;
+ 
+                     final PalettedContainer<BlockState> blocks = section.states;
+@@ -1718,12 +1720,20 @@ public final class CollisionUtil {
+                                 }
+ 
+                                 if (edgeCount == 0 || ((edgeCount != 1 || blockData.hasLargeCollisionShape()) && (edgeCount != 2 || blockData.getBlock() == Blocks.MOVING_PISTON))) {
+-                                    VoxelShape blockCollision = blockData.getConstantCollisionShape();
++                                    // Sakura start - if flag is set treat all block as full
++                                    VoxelShape blockCollision;
+ 
+-                                    if (blockCollision == null) {
+-                                        mutablePos.set(blockX, blockY, blockZ);
+-                                        blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
++                                    if (fullBlocks) {
++                                        blockCollision = Shapes.block();
++                                    } else {
++                                        blockCollision = blockData.getConstantCollisionShape();
++
++                                        if (blockCollision == null) {
++                                            mutablePos.set(blockX, blockY, blockZ);
++                                            blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
++                                        }
+                                     }
++                                    // Sakura end
+ 
+                                     AABB singleAABB = blockCollision.getSingleAABBRepresentation();
+                                     if (singleAABB != null) {
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 445899d4664b3bba467c0f8e5e390e13a2744b4d..9f1e0fd02ff2fcddf0d3e768167350fd4068da05 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -581,6 +581,14 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+             flags |= io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_LOAD_CHUNKS | io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_ADD_TICKET;
+         }
+ 
++        if (this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMoving && (this.isPrimedTNT || this.isFallingBlock)) {
++            this.syncDeltaMovement();
++            double horizontalMovementSqr = this.movementX*this.movementX + this.movementZ*this.movementZ;
++            if (horizontalMovementSqr > Math.pow(this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMovingFasterThan, 2.0)) {
++                flags |= io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_FULL_BLOCKS;
++            }
++        }
++
+         return flags;
+     }
+     // Sakura end - load chunks on cannon entity movement

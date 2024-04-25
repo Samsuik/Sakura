@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Fri, 13 Oct 2023 20:02:04 +0100
+Subject: [PATCH] isPushedByFluid API
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 11b137cad5455a46064fafe73fd0ab60ffb537a3..36692db781dc7c3a1cff6302ebdd257e0075e91c 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -714,6 +714,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+         }
+     }
+     // Sakura end - cannon entity merging
++    public boolean pushedByFluid = true; // Sakura - entity pushed by fluid api
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+@@ -4252,7 +4253,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+     }
+ 
+     public boolean isPushedByFluid() {
+-        return true;
++        return pushedByFluid; // Sakura
+     }
+ 
+     public static double getViewScale() {
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index e8e4489bcd64fde1b3226bdc7a7cc612508bda3f..4731d10dd5e493af9564d38d8bf1ff223390bd75 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -201,6 +201,18 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+         return this.entity.isInWater();
+     }
+ 
++    // Sakura start
++    @Override
++    public boolean isPushedByFluid() {
++        return getHandle().isPushedByFluid();
++    }
++
++    @Override
++    public void setPushedByFluid(boolean push) {
++        getHandle().pushedByFluid = push;
++    }
++    // Sakura end
++
+     @Override
+     public World getWorld() {
+         return this.entity.level().getWorld();

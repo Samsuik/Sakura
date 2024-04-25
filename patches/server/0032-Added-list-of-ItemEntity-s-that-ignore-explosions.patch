@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Hermelijn15 <j.s.dekker-1@student.utwente.nl>
+Date: Fri, 17 Nov 2023 20:09:03 +0100
+Subject: [PATCH] Added list of ItemEntity's that ignore explosions
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+index 29ce703a79f7893ac990ad80e0f1c1cf63546e6c..b658dc82397ed32aacda77d725d15f3d6ccc666c 100644
+--- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+@@ -579,6 +579,17 @@ public class ItemEntity extends Entity implements TraceableEntity {
+ 
+     }
+ 
++    // Sakura start
++    @Override
++    public boolean ignoreExplosion(net.minecraft.world.level.Explosion explosion) {
++        if (this.level().sakuraConfig().entity.items.explosionResistantItems.contains(this.getItem().getItem())) {
++            return true;
++        } else {
++            return super.ignoreExplosion(explosion);
++        }
++    }
++    // Sakura end
++
+     public void setTarget(@Nullable UUID owner) {
+         this.target = owner;
+     }

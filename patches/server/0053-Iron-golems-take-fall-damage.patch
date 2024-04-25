@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sat, 9 Dec 2023 16:10:29 +0000
+Subject: [PATCH] Iron golems take fall damage
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/animal/IronGolem.java b/src/main/java/net/minecraft/world/entity/animal/IronGolem.java
+index 6cfe0d6c46caa122db107c607d27a2bdcd82f7a8..fdfb04589869fc06908b61899c225cccb168e117 100644
+--- a/src/main/java/net/minecraft/world/entity/animal/IronGolem.java
++++ b/src/main/java/net/minecraft/world/entity/animal/IronGolem.java
+@@ -240,6 +240,20 @@ public class IronGolem extends AbstractGolem implements NeutralMob {
+ 
+     }
+ 
++    // Sakura start
++    @Override
++    protected int calculateFallDamage(float fallDistance, float damageMultiplier) {
++        if (!this.level().sakuraConfig().entity.ironGolemsTakeFalldamage) {
++            return super.calculateFallDamage(fallDistance, damageMultiplier);
++        } else {
++            net.minecraft.world.effect.MobEffectInstance mobeffect = this.getEffect(net.minecraft.world.effect.MobEffects.JUMP);
++            float f2 = mobeffect == null ? 0.0F : (float) (mobeffect.getAmplifier() + 1);
++
++            return net.minecraft.util.Mth.ceil((fallDistance - 3.0F - f2) * damageMultiplier);
++        }
++    }
++    // Sakura end
++
+     public int getAttackAnimationTick() {
+         return this.attackAnimationTick;
+     }

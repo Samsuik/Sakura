@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sat, 18 Nov 2023 17:24:19 +0000
+Subject: [PATCH] Reduce living entity sensing
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java b/src/main/java/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
+index 5a059e1ec232d82e8e891ae78fea962bec2f878e..43a5d969595e8ecb3da3cf2ac949f042a7015578 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
++++ b/src/main/java/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java
+@@ -15,8 +15,21 @@ public class NearestLivingEntitySensor<T extends LivingEntity> extends Sensor<T>
+     @Override
+     protected void doTick(ServerLevel world, T entity) {
+         AABB aABB = entity.getBoundingBox().inflate((double)this.radiusXZ(), (double)this.radiusY(), (double)this.radiusXZ());
+-        List<LivingEntity> list = world.getEntitiesOfClass(LivingEntity.class, aABB, e -> e != entity && e.isAlive());
+-        list.sort(Comparator.comparingDouble(entity::distanceToSqr));
++        // Sakura start - reduce nearest living entity sensing
++        var distanceMap = new it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap<>();
++        distanceMap.defaultReturnValue(Double.MAX_VALUE);
++        List<LivingEntity> list = world.getLimitedEntitiesOfClass(LivingEntity.class, aABB, (e) -> {
++            if (e == entity || !e.isAlive())
++                return false;
++            double stored = distanceMap.getDouble(e.getType());
++            double distance = e.distanceToSqr(entity);
++            if (stored < distance)
++                return false;
++            distanceMap.put(e.getType(), distance);
++            return true;
++        }, 12, Integer.MAX_VALUE);
++        java.util.Collections.reverse(list);
++        // Sakura end - reduce nearest living entity sensing
+         Brain<?> brain = entity.getBrain();
+         brain.setMemory(MemoryModuleType.NEAREST_LIVING_ENTITIES, list);
+         brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, new NearestVisibleLivingEntities(entity, list));

@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Mon, 16 Oct 2023 22:41:12 +0100
+Subject: [PATCH] Cache MovingBlockEntity collision shape
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+index 9f45dda6ff45ac1ffb7ac99575b7d09bdc61c56a..c89e1fe5fafac46d82b2b20d27586c6997ce8906 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+@@ -41,6 +41,11 @@ public class PistonMovingBlockEntity extends BlockEntity {
+     private float progressO;
+     private long lastTicked;
+     private int deathTicks;
++    // Sakura start
++    private VoxelShape collisionShape = Shapes.empty();
++    private Direction shapeDirection = null;
++    private float shapeProgress = Float.MIN_VALUE;
++    // Sakura end
+ 
+     public PistonMovingBlockEntity(BlockPos pos, BlockState state) {
+         super(BlockEntityType.PISTON, pos, state);
+@@ -348,6 +353,18 @@ public class PistonMovingBlockEntity extends BlockEntity {
+     }
+ 
+     public VoxelShape getCollisionShape(BlockGetter world, BlockPos pos) {
++        // Sakura start
++        var direction = NOCLIP.get();
++        if (progress == shapeProgress && direction == shapeDirection) {
++            return collisionShape;
++        } else {
++            shapeProgress = progress;
++            shapeDirection = direction;
++            return collisionShape = createCollisionShape(world, pos);
++        }
++    }
++    private VoxelShape createCollisionShape(BlockGetter world, BlockPos pos) {
++        // Sakura end
+         VoxelShape voxelShape;
+         if (!this.extending && this.isSourcePiston && this.movedState.getBlock() instanceof PistonBaseBlock) {
+             voxelShape = this.movedState.setValue(PistonBaseBlock.EXTENDED, Boolean.valueOf(true)).getCollisionShape(world, pos);

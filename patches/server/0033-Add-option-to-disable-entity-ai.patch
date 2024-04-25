@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sat, 18 Nov 2023 15:12:14 +0000
+Subject: [PATCH] Add option to disable entity ai
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Mob.java b/src/main/java/net/minecraft/world/entity/Mob.java
+index d2c92df28475f0a32a0134324eb0a5609a9afb99..61f93498759e722279a10f750ba2a6e14ab90048 100644
+--- a/src/main/java/net/minecraft/world/entity/Mob.java
++++ b/src/main/java/net/minecraft/world/entity/Mob.java
+@@ -898,7 +898,7 @@ public abstract class Mob extends LivingEntity implements Targeting {
+     protected final void serverAiStep() {
+         ++this.noActionTime;
+         // Paper start - Allow nerfed mobs to jump and float
+-        if (!this.aware) {
++        if (!this.aware || this.level().sakuraConfig().entity.disableMobAi) { // Sakura
+             if (goalFloat != null) {
+                 if (goalFloat.canUse()) goalFloat.tick();
+                 this.getJumpControl().tick();

@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sun, 24 Dec 2023 16:54:07 +0000
+Subject: [PATCH] Optimise check inside blocks and fluids
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 9f1e0fd02ff2fcddf0d3e768167350fd4068da05..a7d57d6549e6e233dcac6f3fd61a1aee83b8acd4 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -1997,18 +1997,37 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+         BlockPos blockposition1 = BlockPos.containing(axisalignedbb.maxX - offset, axisalignedbb.maxY - offset, axisalignedbb.maxZ - offset);
+         // Sakura end
+ 
+-        if (this.level().hasChunksAt(blockposition, blockposition1)) {
++        // Sakura start - optimise check inside blocks
++        if (blockposition1.getY() >= level.getMinBuildHeight() || blockposition.getY() < level.getMaxBuildHeight()) {
+             BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
+ 
++            net.minecraft.world.level.chunk.ChunkAccess chunk = null;
++            int lastChunkX = Integer.MIN_VALUE;
++            int lastChunkZ = Integer.MIN_VALUE;
++
+             for (int i = blockposition.getX(); i <= blockposition1.getX(); ++i) {
+-                for (int j = blockposition.getY(); j <= blockposition1.getY(); ++j) {
+-                    for (int k = blockposition.getZ(); k <= blockposition1.getZ(); ++k) {
++                final int chunkX = i >> 4;
++                for (int k = blockposition.getZ(); k <= blockposition1.getZ(); ++k) {
++                    final int chunkZ = k >> 4;
++
++                    if (lastChunkX != chunkX || lastChunkZ != chunkZ) {
++                        chunk = level.getChunkIfLoadedImmediately(chunkX, chunkZ);
++                        lastChunkX = chunkX;
++                        lastChunkZ = chunkZ;
++                    }
++
++                    if (chunk == null) {
++                        continue;
++                    }
++
++                    for (int j = blockposition.getY(); j <= blockposition1.getY(); ++j) {
+                         if (!this.isAlive()) {
+                             return;
+                         }
+ 
+                         blockposition_mutableblockposition.set(i, j, k);
+-                        BlockState iblockdata = this.level().getBlockState(blockposition_mutableblockposition);
++                        BlockState iblockdata = chunk.getBlockState(blockposition_mutableblockposition);
++                        // Sakura end
+ 
+                         try {
+                             iblockdata.entityInside(this.level(), blockposition_mutableblockposition, this);
+@@ -4796,7 +4815,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+     }
+ 
+     public boolean updateFluidHeightAndDoFluidPushing(TagKey<Fluid> tag, double speed) {
+-        if (this.touchingUnloadedChunk()) {
++        if (false) { // Sakura
+             return false;
+         } else {
+             AABB axisalignedbb = this.getBoundingBox().deflate(0.001D);
+@@ -4813,11 +4832,30 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+             int k1 = 0;
+             BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
+ 
++            // Sakura start
++            net.minecraft.world.level.chunk.ChunkAccess chunk = null;
++            int lastChunkX = Integer.MIN_VALUE;
++            int lastChunkZ = Integer.MIN_VALUE;
++
+             for (int l1 = i; l1 < j; ++l1) {
+-                for (int i2 = k; i2 < l; ++i2) {
+-                    for (int j2 = i1; j2 < j1; ++j2) {
++                final int chunkX = l1 >> 4;
++                for (int j2 = i1; j2 < j1; ++j2) {
++                    final int chunkZ = j2 >> 4;
++
++                    if (chunkX != lastChunkX || chunkZ != lastChunkZ) {
++                        chunk = level.getChunkIfLoadedImmediately(chunkX, chunkZ);
++                        lastChunkX = chunkX;
++                        lastChunkZ = chunkZ;
++                    }
++
++                    if (chunk == null) {
++                        return false;
++                    }
++
++                    for (int i2 = k; i2 < l; ++i2) {
+                         blockposition_mutableblockposition.set(l1, i2, j2);
+-                        FluidState fluid = this.level().getFluidState(blockposition_mutableblockposition);
++                        FluidState fluid = chunk.getFluidState(blockposition_mutableblockposition);
++                        // Sakura end
+ 
+                         if (fluid.is(tag)) {
+                             double d2 = (double) ((float) i2 + fluid.getHeight(this.level(), blockposition_mutableblockposition));

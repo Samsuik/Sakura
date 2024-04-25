@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Wed, 16 Aug 2023 22:34:49 +0100
+Subject: [PATCH] Store Entity Data/State
+
+
+diff --git a/src/main/java/me/samsuik/sakura/entity/EntityState.java b/src/main/java/me/samsuik/sakura/entity/EntityState.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c9f2c5ae57878283e8c8bc3847fe63b98f4e8d10
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/entity/EntityState.java
+@@ -0,0 +1,41 @@
++package me.samsuik.sakura.entity;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.Vec3;
++
++import java.util.Optional;
++
++public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed, Optional<BlockPos> supportingPos, boolean onGround, float fallDistance) {
++
++    public static EntityState of(Entity entity) {
++        return new EntityState(entity.position(), entity.getDeltaMovement(), entity.getBoundingBox(), entity.stuckSpeedMultiplier(), entity.mainSupportingBlockPos, entity.onGround(), entity.fallDistance);
++    }
++
++    public void apply(Entity entity) {
++        entity.setPos(position);
++        entity.setDeltaMovement(momentum);
++        entity.setBoundingBox(bb);
++        // null here is only safe for our use case (tnt and sand)
++        //noinspection DataFlowIssue
++        entity.makeStuckInBlock(null, stuckSpeed);
++        entity.onGround = onGround;
++        entity.mainSupportingBlockPos = supportingPos;
++        entity.fallDistance = fallDistance;
++    }
++
++    public void position(Entity entity) {
++        entity.setPos(position);
++        entity.setBoundingBox(bb);
++    }
++
++    public boolean isCurrentState(Entity entity) {
++        return entity.position().equals(position)
++            && entity.getDeltaMovement().equals(momentum);
++            // 1.14+ versions seem to correct morphed bounding boxes after a gametick.
++            // If there are any related issues uncomment this line of code.
++            // && entity.getBoundingBox().equals(bb);
++    }
++
++}
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 95137b2a064e98e476ef1bc56b0d2b2920f18d17..e657b5f88195f1db2cb9a9a97f255ff23992cadd 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -584,6 +584,25 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+         return flags;
+     }
+     // Sakura end - load chunks on cannon entity movement
++    // Sakura start - store entity data/state
++    private @Nullable me.samsuik.sakura.entity.EntityState entityState = null;
++
++    public final Vec3 stuckSpeedMultiplier() {
++        return stuckSpeedMultiplier;
++    }
++
++    public final void storeEntityState() {
++        entityState = me.samsuik.sakura.entity.EntityState.of(this);
++    }
++
++    public final @Nullable me.samsuik.sakura.entity.EntityState entityState() {
++        return entityState;
++    }
++
++    public final boolean compareState(Entity to) {
++        return to.entityState() != null && to.entityState().isCurrentState(this);
++    }
++    // Sakura end - store entity data/state
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index dc8d34adac1a2834777a8fe1fe7f142e0b13c0bf..684fd53a34fae43cd916a6f0a5cf38a2505d9bfe 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -1330,6 +1330,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+ 
+     public <T extends Entity> void guardEntityTick(Consumer<T> tickConsumer, T entity) {
+         try {
++            entity.storeEntityState(); // Sakura - store entity state
+             tickConsumer.accept(entity);
+             MinecraftServer.getServer().executeMidTickTasks(); // Paper - execute chunk tasks mid tick
+         } catch (Throwable throwable) {

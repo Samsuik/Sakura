@@ -1,0 +1,506 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sun, 19 Sep 2021 01:10:02 +0100
+Subject: [PATCH] TPS Graph Command
+
+
+diff --git a/src/main/java/me/samsuik/sakura/command/SakuraCommands.java b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
+index 22676ec7a7ae9494b198e5e65e6be6d32e0feb85..6edc5195c3b496a12b17b2b9b528505d37ffdb12 100644
+--- a/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
++++ b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
+@@ -4,6 +4,7 @@ import io.papermc.paper.command.PaperPluginsCommand;
+ import me.samsuik.sakura.command.subcommands.ConfigCommand;
+ import me.samsuik.sakura.command.subcommands.FPSCommand;
+ import me.samsuik.sakura.command.subcommands.VisualCommand;
++import me.samsuik.sakura.command.subcommands.TPSCommand;
+ import me.samsuik.sakura.player.visibility.Visibility;
+ import net.minecraft.server.MinecraftServer;
+ import org.bukkit.command.Command;
+@@ -21,6 +22,7 @@ public final class SakuraCommands {
+         COMMANDS.put("tntvisibility", new VisualCommand(Visibility.Setting.TNT_VISIBILITY, "tnttoggle"));
+         COMMANDS.put("sandvisibility", new VisualCommand(Visibility.Setting.SAND_VISIBILITY, "sandtoggle"));
+         COMMANDS.put("minimal", new VisualCommand(Visibility.Setting.MINIMAL, "minimaltnt", "tntlag"));
++        COMMANDS.put("tps", new TPSCommand("tps"));
+     }
+ 
+     public static void registerCommands(final MinecraftServer server) {
+diff --git a/src/main/java/me/samsuik/sakura/command/subcommands/TPSCommand.java b/src/main/java/me/samsuik/sakura/command/subcommands/TPSCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7bd4c5696911730170320060c273f3a7f6a610be
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/subcommands/TPSCommand.java
+@@ -0,0 +1,67 @@
++package me.samsuik.sakura.command.subcommands;
++
++import me.samsuik.sakura.command.BaseSubCommand;
++import me.samsuik.sakura.utils.tps.TPSGraph;
++import me.samsuik.sakura.utils.tps.TickTracking;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.format.TextDecoration;
++import net.kyori.adventure.text.minimessage.MiniMessage;
++import net.kyori.adventure.text.minimessage.tag.Tag;
++import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
++import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.util.Mth;
++import org.bukkit.command.CommandSender;
++
++public final class TPSCommand extends BaseSubCommand {
++
++    public TPSCommand(String name) {
++        super(name);
++        this.description = "Gets the current ticks per second for the server";
++    }
++
++    @Override
++    public void execute(CommandSender sender, String[] args) {
++        var tracking = MinecraftServer.tickTracking;
++
++        var average = tracking.averageTps(10) * 1.75;
++        int lines = 10;
++
++        try {
++            average = Double.parseDouble(args[0]);
++            lines = Mth.clamp(Integer.parseInt(args[1]), 1, 18);
++        } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {}
++
++        sender.sendMessage(Component.text(".", NamedTextColor.DARK_PURPLE));
++        sender.sendMessage(createInformationComponent(tracking));
++
++        // Create the graph
++        var graph = new TPSGraph(tracking, lines, 75, average);
++        graph.map();
++
++        // Send the graph to the user
++        for (var component : graph.components()) {
++            sender.sendMessage(Component.text("| ", NamedTextColor.DARK_PURPLE).append(component));
++        }
++
++        sender.sendMessage(Component.text("| ", NamedTextColor.DARK_PURPLE).append(Component.text(" ".repeat(75), NamedTextColor.GRAY, TextDecoration.STRIKETHROUGH)));
++        sender.sendMessage(Component.text("'", NamedTextColor.DARK_PURPLE));
++    }
++
++    private Component createInformationComponent(TickTracking tracking) {
++        return MiniMessage.miniMessage().deserialize("<dark_purple>| <gray>-------------- <dark_gray>( <white>Now</white>: <tps>, <white>Mem</white>: <memory><gray>%</gray> ) </dark_gray>---------------",
++            Placeholder.component("tps", Component.text("%.1f".formatted(tracking.averageTps(1)), TPSGraph.colour(tracking.averageTps(1) / 20.0))),
++            Placeholder.component("memory", Component.text("%.1f".formatted(memoryUsage() * 100), TPSGraph.colour(1.0 - memoryUsage())))
++        );
++    }
++
++    private double memoryUsage() {
++        Runtime runtime = Runtime.getRuntime();
++        double free  = runtime.freeMemory();
++        double max   = runtime.maxMemory();
++        double alloc = runtime.totalMemory();
++        return (alloc - free) / max;
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/utils/tps/TPSGraph.java b/src/main/java/me/samsuik/sakura/utils/tps/TPSGraph.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..fa5d0c046d979901dd302ee3973df27442172add
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/utils/tps/TPSGraph.java
+@@ -0,0 +1,255 @@
++package me.samsuik.sakura.utils.tps;
++
++import me.samsuik.sakura.utils.tps.TickTracking.Point;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.TextComponent;
++import net.kyori.adventure.text.event.HoverEvent;
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.format.TextColor;
++import net.kyori.adventure.text.format.TextDecoration;
++import net.kyori.adventure.text.minimessage.MiniMessage;
++import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
++import net.minecraft.util.Mth;
++
++public final class TPSGraph {
++
++    private final Parts[][] parts;
++    private final TickTracking tracked;
++    private final int lines;
++    private final int length;
++    private final double ceiling;
++
++    public TPSGraph(TickTracking tracked, int lines, int length, double ceiling) {
++        this.parts = new Parts[lines][length];
++        this.tracked = tracked;
++        this.length = length;
++        this.lines = lines;
++        this.ceiling = ceiling;
++    }
++
++    public void map() {
++        // Create the background
++        for (var line = 0; line < lines; ++line) {
++            for (var column = 0; column < length; ++column) {
++                parts[line][column] = Parts.BACKGROUND;
++            }
++        }
++
++        // Create normal points on the graph
++        for (var column = 0; column < length; ++column) {
++            var tps = tracked.point(column).tps();
++            // Likely the server has just started
++            if (tps == 0.0) break;
++            // Create normal point for column
++            var line = getLine(tps);
++            var lineParts = parts[line];
++            lineParts[column] = Parts.NORMAL;
++        }
++
++        // Create spikes on the graph, what is a spike?
++        // By spike I am referring to a situation where
++        // the normal point would be "moving" more than
++        // 2 lines, which looks terrible.
++        for (var column = 0; column < length; ++column) {
++            var nextTps = tracked.point(column + 1).tps();
++            // Likely the server has just started
++            if (nextTps == 0.0) break;
++            var curr = getLine(tracked.point(column).tps());
++            var prev = getLine(tracked.point(Math.max(column - 1, 0)).tps());
++            var next = getLine(nextTps);
++            var min  = Math.min(curr, next);
++            var max  = Math.max(curr, next);
++
++            if (max - min < 2) {
++                continue;
++            }
++
++            // Create vertical parts between the two points
++            for (var line = min; line < max; ++line) {
++                parts[line][column] = Parts.VERTICAL;
++            }
++
++            parts[min][column] = Parts.TOP;
++            parts[max][column] = Parts.BOTTOM;
++
++            if (column + 1 < length) {
++                // dodgy hack because the previous value can change +/- 1
++                // causing the spike to not correctly line up.
++                // this isn't a problem in the other direction
++                if (prev == curr + 1 && next < curr) {
++                    parts[max][column] = Parts.SPIKE_TOP_RIGHT;
++                }
++
++                if (min == next) {
++                    parts[min][column] = Parts.SPIKE_BOTTOM_LEFT; // '!
++                } else if (prev <= min) { // has to be <= due to the issue I noted above
++                    parts[min][column] = Parts.SPIKE_BOTTOM_RIGHT; // !'
++                }
++
++                // cone on the top of a spike
++                if (max == curr && Math.abs(next - max) > 1 && Math.abs(prev - max) > 1 && prev < max) {
++                    parts[max][column - 1] = Parts.SPIKE_TOP_LEFT;
++                    parts[max][column] = Parts.SPIKE_TOP_RIGHT;
++                }
++
++                // cone on the bottom of a spike
++                if (min == curr && Math.abs(next - min) > 1 && Math.abs(prev - min) > 1 && prev > min) {
++                    parts[min][column - 1] = Parts.SPIKE_BOTTOM_LEFT;
++                    parts[min][column] = Parts.SPIKE_BOTTOM_RIGHT;
++                }
++            }
++        }
++
++        // Create special points on the graph, this
++        // is to handle slopes and slight differences
++        // that show up, anything else should be too
++        // extreme and get treated as a spike instead.
++        for (var column = 0; column < length; ++column) {
++            var tps = tracked.point(column).tps();
++            // Likely the server has just started
++            if (tps == 0.0) continue;
++            var curr = getLine(tps);
++            var prev = getLine(tracked.point(Math.max(column - 1, 0)).tps());
++            var next = getLine(tracked.point(column + 1).tps());
++
++            // Ignore spikes, it'd mess up and be a waste of time
++            if (Math.abs(curr - next) >= 2) {
++                continue;
++            }
++
++            // SANITY: positive = rising, negative = declining
++            var direction = next - prev;
++            var change = Math.abs(direction);
++
++            if (change >= 2 && Math.max(next, prev) == curr + 1) {
++                // Create slopes, only requirement is that the highest point
++                // and the current are one line away from one another.
++                if (direction < 0) {
++                    parts[curr][column] = Parts.DECLINING;
++                } else {
++                    parts[curr][column] = Parts.RISING;
++                }
++            } else if (Math.abs(curr - next) == 1 || direction == 0) {
++                // if we have no direction always do this as a special case for slight dips and rises
++                if (curr < next) {
++                    parts[curr][column] = Parts.TOP;
++                } else if (curr > next) {
++                    parts[curr][column] = Parts.BOTTOM;
++                }
++            } else if (Math.abs(curr - prev) == 1) {
++                if (prev > curr) {
++                    parts[curr][column] = Parts.TOP;
++                } else if (prev < curr) {
++                    parts[curr][column] = Parts.BOTTOM;
++                }
++            }
++        }
++    }
++
++    private int getLine(double tps) {
++        var per = (ceiling / 10); // How many lines 1 tick should display
++        var line = (int) (tps / per);
++        return Mth.clamp(line, 0, lines - 1);
++    }
++
++    public Component[] components() {
++        // Create graph component array
++        var graph = new TextComponent.Builder[lines];
++
++        // Initialise graph components
++        for (var line = 0; line < graph.length; ++line) {
++            graph[line] = Component.text();
++        }
++
++        // Write the graph
++        for (var line = 0; line < parts.length; line++) {
++            writeLine(graph[line], parts[parts.length - line - 1]);
++        }
++
++        // Create built component array
++        var parts = new Component[graph.length];
++
++        // Store built components
++        for (var i = 0; i < graph.length; i++) {
++            parts[i] = graph[i].build();
++        }
++
++        return parts;
++    }
++
++    private void writeLine(TextComponent.Builder builder, Parts[] lineParts) {
++        for (var column = 0; column < lineParts.length; column++) {
++            var point = tracked.point(column);
++            var part  = lineParts[column];
++
++            var colour = colour(point.tps() / 20.0);
++            var component = part.getPart();
++
++            if (part != Parts.BACKGROUND) {
++                component = component.color(colour);
++            }
++
++            // Display information from the current point
++            builder.append(appendHoverEvent(component, point, colour));
++        }
++    }
++
++    private Component appendHoverEvent(Component in, Point point, TextColor colour) {
++        return in.hoverEvent(HoverEvent.showText(MiniMessage.miniMessage().deserialize("""
++            TPS: <tps>
++            MS: (<ms>, <highest>)
++            Chunks: <chunks>
++            Entities: <entities>""",
++            Placeholder.component("tps", Component.text("%.1f".formatted(point.tps()), colour)),
++            Placeholder.component("ms", Component.text("%.1f".formatted(point.mspt()), colour)),
++            Placeholder.component("highest", Component.text("%.1f".formatted(point.highest()), colour)),
++            Placeholder.unparsed("chunks", String.valueOf(point.chunks())),
++            Placeholder.unparsed("entities", String.valueOf(point.entities()))
++        )));
++    }
++
++    public static TextColor colour(double percentage) {
++        if (percentage > 0.75) return shift(percentage, 1.0, 0.75, NamedTextColor.GREEN, NamedTextColor.YELLOW);
++        if (percentage > 0.6) return shift(percentage, 0.75, 0.6, NamedTextColor.YELLOW, NamedTextColor.GOLD);
++        if (percentage > 0.4) return shift(percentage, 0.6, 0.4, NamedTextColor.GOLD, NamedTextColor.RED);
++        if (percentage > 0.2) return shift(percentage, 0.4, 0.2, NamedTextColor.RED, NamedTextColor.DARK_GRAY);
++        return shift(percentage, 0.2, 0.0, NamedTextColor.DARK_GRAY, NamedTextColor.BLACK);
++    }
++
++    private static TextColor shift(double percentage, double from, double to, TextColor fromColour, TextColor toColour) {
++        var f = (float) ((percentage - from) / (to - from));
++        return TextColor.lerp(Math.max(f, 0.0f), fromColour, toColour);
++    }
++
++    public static double format(double num, int decimals) {
++        var pow = Math.pow(10, decimals);
++        return Math.round(num * pow) / pow;
++    }
++
++    private enum Parts {
++        // Adventure doesn't have a Component.text(String, TextDecoration)
++        BACKGROUND(Component.text("::", NamedTextColor.BLACK)),
++        NORMAL(Component.text(" ").decorate(TextDecoration.STRIKETHROUGH)),
++        VERTICAL(Component.text("||")),
++        RISING(Component.text(".").decorate(TextDecoration.STRIKETHROUGH).append(Component.text("'").decoration(TextDecoration.STRIKETHROUGH, false))),
++        DECLINING(Component.text("'").append(Component.text(".").decorate(TextDecoration.STRIKETHROUGH))),
++        SPIKE_TOP_LEFT(Component.text(".!")),
++        SPIKE_TOP_RIGHT(Component.text("!.")),
++        SPIKE_BOTTOM_LEFT(Component.text("'!")),
++        SPIKE_BOTTOM_RIGHT(Component.text("!'")),
++        TOP(Component.text("''")),
++        BOTTOM(Component.text("..")),
++        ;
++
++        private final Component part;
++
++        Parts(Component component) {
++            part = component;
++        }
++
++        public Component getPart() {
++            return part;
++        }
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/utils/tps/TickTracking.java b/src/main/java/me/samsuik/sakura/utils/tps/TickTracking.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..59765bb2f4ca16421027bdd0c3e03d890a90d3e1
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/utils/tps/TickTracking.java
+@@ -0,0 +1,53 @@
++package me.samsuik.sakura.utils.tps;
++
++import net.minecraft.server.level.ServerLevel;
++
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.Collection;
++import java.util.List;
++import java.util.stream.IntStream;
++
++public final class TickTracking {
++
++    private final List<Point> history = new ArrayList<>();
++    private final double[] msptSamples = new double[20];
++
++    public TickTracking(int samples) {
++        for (int i = 0; i < samples; ++i) {
++            history.add(new Point(0.0, 0.0,0.0, 0, 0));
++        }
++    }
++
++    Point point(int at) {
++        return history.get(at);
++    }
++
++    public double averageTps(int samples) {
++        return IntStream.range(0, samples)
++                .mapToDouble(i -> history.get(i).tps)
++                .average()
++                .orElse(0.0);
++    }
++
++    public void secondSample(Collection<ServerLevel> server, double tps) {
++        history.remove(history.size() - 1);
++
++        int entities = server.stream().mapToInt((world) -> world.entityTickList.entityCount()).sum();
++        int loaded = server.stream().mapToInt((world) -> world.chunkSource.getInternallyLoadedChunks()).sum();
++
++        double mspt = Arrays.stream(msptSamples).average().orElse(0.0);
++        double max = Arrays.stream(msptSamples).max().orElse(0.0);
++
++        history.add(0, new Point(tps, mspt, max, entities, loaded));
++    }
++
++    public void tickSample(long mspt) {
++        for (int i = msptSamples.length - 2; i >= 0; --i)
++            msptSamples[i + 1] = msptSamples[i];
++        msptSamples[0] = mspt;
++    }
++
++    public record Point(double tps, double mspt, double highest, int entities, int chunks) {}
++
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 8e2ee508d2290ace16714ed9927983f29a230304..3c98362624e1b02b6b028db95564254e044c7b0d 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1125,6 +1125,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         }
+     }
+     private static final java.math.BigDecimal TPS_BASE = new java.math.BigDecimal(1E9).multiply(new java.math.BigDecimal(SAMPLE_INTERVAL));
++    public static final me.samsuik.sakura.utils.tps.TickTracking tickTracking = new me.samsuik.sakura.utils.tps.TickTracking(120); // Sakura - tps graph command
+     // Paper end
+     // Spigot End
+ 
+@@ -1203,6 +1204,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                 if (++MinecraftServer.currentTick % MinecraftServer.SAMPLE_INTERVAL == 0) {
+                     final long diff = currentTime - tickSection;
+                     final java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
++                    tickTracking.secondSample(levels.values(), currentTps.doubleValue()); // Sakura
+                     tps1.add(currentTps, diff);
+                     tps5.add(currentTps, diff);
+                     tps15.add(currentTps, diff);
+@@ -1231,6 +1233,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                 this.tickServer(flag ? () -> {
+                     return false;
+                 } : this::haveTime);
++                tickTracking.tickSample((System.nanoTime() - currentTime) / 1_000_000L); // Sakura
+                 this.profiler.popPush("nextTickWait");
+                 this.mayHaveDelayedTasks = true;
+                 this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
+diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+index 366c0c9b45a819f7f94ebe3e49b8ab7f9edf9ce7..3662c364d0bf04c9d5ef3af84bceb4263c47df7f 100644
+--- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
++++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+@@ -92,6 +92,11 @@ public class ServerChunkCache extends ChunkSource {
+         this.clearCache();
+     }
+ 
++    // Sakura start - tps graph command
++    public final int getInternallyLoadedChunks() {
++        return loadedChunkMap.size();
++    }
++    // Sakura end - tps graph command
+     // CraftBukkit start - properly implement isChunkLoaded
+     public boolean isChunkLoaded(int chunkX, int chunkZ) {
+         ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.asLong(chunkX, chunkZ));
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 5df1d01c52b527ff74778d8e4aa27b3b0b1e7a4b..55e0be135ec084ee7ebe6bc7bb9323519e0cd864 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -193,7 +193,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     public final ServerChunkCache chunkSource;
+     private final MinecraftServer server;
+     public final PrimaryLevelData serverLevelData; // CraftBukkit - type
+-    final EntityTickList entityTickList;
++    public final EntityTickList entityTickList; // Sakura - public!
+     //public final PersistentEntitySectionManager<Entity> entityManager; // Paper - rewrite chunk system
+     private final GameEventDispatcher gameEventDispatcher;
+     public boolean noSave;
+diff --git a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
+index 83a39f900551e39d5af6f17a339a386ddee4feef..22782bbf76dc40d57bd6d59ff59356c07b702d8c 100644
+--- a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
++++ b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
+@@ -11,6 +11,12 @@ import net.minecraft.world.entity.Entity;
+ public class EntityTickList {
+     private final io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<Entity> entities = new io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<>(true); // Paper - rewrite this, always keep this updated - why would we EVER tick an entity that's not ticking?
+ 
++    // Sakura start
++    public int entityCount() {
++        return entities.size();
++    }
++    // Sakura end
++
+     private void ensureActiveIsNotIterated() {
+         // Paper - replace with better logic, do not delay removals
+     }
+diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
+index 6c260403d91d640da0473a3df56e1c5582459fde..2d2d1eeaeb9e7f36263b8cecc753adf721b96435 100644
+--- a/src/main/java/org/spigotmc/SpigotConfig.java
++++ b/src/main/java/org/spigotmc/SpigotConfig.java
+@@ -283,7 +283,7 @@ public class SpigotConfig
+ 
+     private static void tpsCommand()
+     {
+-        SpigotConfig.commands.put( "tps", new TicksPerSecondCommand( "tps" ) );
++        // SpigotConfig.commands.put( "tps", new TicksPerSecondCommand( "tps" ) ); // Sakura - TPS Graph
+     }
+ 
+     public static int playerSample;

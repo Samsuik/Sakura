@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 30 Nov 2023 15:54:49 +0000
+Subject: [PATCH] Reduce entity tracker player updates
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 8a817dda325898b759de63ab6e4300b050286bf7..baec8d775957f3ef3224d743f961f0a23aee92ab 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -1145,6 +1145,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         try {
+             for (TrackedEntity tracker : this.entityMap.values()) {
+                 // update tracker entry
++                if (!tracker.shouldLookForPlayers()) continue; // Sakura - delay entities looking for nearby players
+                 tracker.updatePlayers(tracker.entity.getPlayersInTrackRange());
+             }
+         } finally {
+@@ -1311,14 +1312,34 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         private final int range;
+         SectionPos lastSectionPos;
+         public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
++        private final int playerSearchInterval; // Sakura - reduce entity tracker player updates
++        private Vec3 entityPosition; // Sakura - reduce entity tracker player updates
+ 
+         public TrackedEntity(Entity entity, int i, int j, boolean flag) {
+             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, j, flag, this::broadcast, this.seenBy); // CraftBukkit
+             this.entity = entity;
+             this.range = i;
+             this.lastSectionPos = SectionPos.of((EntityAccess) entity);
++            // Sakura start - reduce entities looking for nearby players
++            // Use a maximum of 20 ticks because stationary entities use Integer.MAX_VALUE
++            // which causes them to turn invisible after untracking.
++            this.playerSearchInterval = Math.min(j, 20);
++            this.entityPosition = entity.position();
+         }
+ 
++        final boolean shouldLookForPlayers() {
++            // We have to always update players otherwise they can turn invisible on teleports (why?)
++            if (entity instanceof net.minecraft.world.entity.player.Player || entity.tickCount % playerSearchInterval == 0) {
++                return true;
++            }
++
++            Vec3 lastPosition = entityPosition;
++            entityPosition = entity.position();
++
++            return entity.position().distanceToSqr(lastPosition) >= (double) range / 2.0;
++        }
++        // Sakura end - reduce entities looking for nearby players
++
+         // Paper start - use distance map to optimise tracker
+         com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> lastTrackerCandidates;
+ 

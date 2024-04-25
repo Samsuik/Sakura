@@ -1,0 +1,267 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Tue, 21 Nov 2023 23:24:24 +0000
+Subject: [PATCH] Local Config and Value Storage API
+
+
+diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a3a09b8d58589883c7c465597bc64502bbfa0d88
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
+@@ -0,0 +1,143 @@
++package me.samsuik.sakura.local.config;
++
++import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
++import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
++import it.unimi.dsi.fastutil.longs.Long2ObjectRBTreeMap;
++import it.unimi.dsi.fastutil.longs.Long2ObjectSortedMap;
++import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
++import me.samsuik.sakura.local.LocalRegion;
++import me.samsuik.sakura.local.storage.LocalStorageHandler;
++import me.samsuik.sakura.local.storage.LocalValueStorage;
++import me.samsuik.sakura.utils.objects.Expiry;
++import net.minecraft.core.BlockPos;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.level.ChunkPos;
++import net.minecraft.world.level.Level;
++import org.bukkit.Location;
++
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Map;
++
++public final class LocalConfigManager implements LocalStorageHandler {
++
++    private final Map<LocalRegion, LocalValueStorage> storageMap = new Object2ObjectOpenHashMap<>();
++    // tree is a tree. it may not be correct but it works.
++    private final Long2ObjectRBTreeMap<LocalRegion> regionTree = new Long2ObjectRBTreeMap<>();
++    private final Long2ObjectMap<LocalValueConfig> configMap = new Long2ObjectOpenHashMap<>();
++    private final Level level;
++
++    public LocalConfigManager(Level level) {
++        this.level = level;
++    }
++
++    @Override
++    public LocalRegion locate(Location location, int searchDistance) {
++        return this.locate(location.getBlockX(), location.getBlockZ(), searchDistance);
++    }
++
++    @Override
++    public synchronized LocalRegion locate(int x, int z, int searchDistance) {
++        long search = (long) searchDistance << 32;
++        long coordinate = ChunkPos.asLong(x, z);
++
++        // all regions below the coordinate (they're stored with the minX, minZ)
++        Long2ObjectSortedMap<LocalRegion> head = this.regionTree.headMap(coordinate);
++
++        if (head.isEmpty()) return null;
++
++        for (Long2ObjectMap.Entry<LocalRegion> entry : head.long2ObjectEntrySet()) {
++            // this has no respect for the x coordinate, but it works
++            if (coordinate - entry.getLongKey() > search) {
++                break;
++            }
++
++            // check if the region we found contains the position
++            if (entry.getValue().contains(x, z)) {
++                return entry.getValue();
++            }
++        }
++
++        return null;
++    }
++
++    @Override
++    public synchronized LocalValueStorage get(LocalRegion region) {
++        return this.storageMap.get(region);
++    }
++
++    @Override
++    public synchronized boolean has(LocalRegion region) {
++        return this.storageMap.containsKey(region);
++    }
++
++    @Override
++    public synchronized void put(LocalRegion region, LocalValueStorage storage) {
++        assert region  != null : "region cannot be null";
++        assert storage != null : "storage cannot be null";
++
++        long base = ChunkPos.asLong(region.minX(), region.minZ());
++        this.ensureNotOverlapping(region);
++
++        this.storageMap.put(region, storage);
++        this.regionTree.put(base, region);
++    }
++
++    @Override
++    public synchronized void remove(LocalRegion region) {
++        assert region != null : "region cannot be null";
++
++        long base = ChunkPos.asLong(region.minX(), region.minZ());
++
++        this.storageMap.remove(region);
++        this.regionTree.remove(base);
++    }
++
++    @Override
++    public synchronized List<LocalRegion> regions() {
++        return new ArrayList<>(this.storageMap.keySet());
++    }
++
++    public synchronized LocalValueConfig config(BlockPos position) {
++        long chunkKey = ChunkPos.asLong(position.getX() >> 4, position.getZ() >> 4);
++
++        LocalValueConfig local = this.configMap.computeIfAbsent(chunkKey, (key) -> {
++            LocalValueConfig config = new LocalValueConfig(new Expiry(MinecraftServer.currentTickLong, 600));
++
++            // defaults from sakura config
++            config.init(level);
++
++            // search the entire map if we have to for a region
++            LocalRegion region = this.locate(position.getX(), position.getZ(), Integer.MAX_VALUE);
++
++            if (region != null) {
++                // load local values
++                config.load(this.storageMap.get(region));
++            }
++
++            return config;
++        });
++
++        local.expiry().refresh(MinecraftServer.currentTickLong);
++        return local;
++    }
++
++    public synchronized void expire(long tick) {
++        if (tick % 200 != 0) return;
++
++        // remove expired
++        this.configMap.values().removeIf(obj -> obj.expiry().isExpired(tick));
++    }
++
++    private void ensureNotOverlapping(LocalRegion region) {
++        long top = ChunkPos.asLong(region.maxX(), region.maxZ());
++        Long2ObjectSortedMap<LocalRegion> head = this.regionTree.headMap(top);
++
++        for (LocalRegion present : head.values()) {
++            if (present != region && present.intersects(region)) {
++                throw new UnsupportedOperationException("overlapping regions");
++            }
++        }
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f0037f98e93fd1f0dea9c224ba402ebcacf9b21f
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
+@@ -0,0 +1,59 @@
++package me.samsuik.sakura.local.config;
++
++import io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation;
++import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
++import me.samsuik.sakura.explosion.durable.DurableMaterial;
++import me.samsuik.sakura.local.LocalValueKey;
++import me.samsuik.sakura.local.storage.LocalValueStorage;
++import me.samsuik.sakura.physics.PhysicsVersion;
++import me.samsuik.sakura.utils.objects.Expiry;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.Block;
++import org.bukkit.craftbukkit.util.CraftMagicNumbers;
++
++import java.util.Map;
++
++public final class LocalValueConfig {
++
++    private final Expiry expiry;
++    public Map<Block, DurableMaterial> durableMaterials;
++    public PhysicsVersion physicsVersion;
++    public RedstoneImplementation redstoneImplementation;
++
++    LocalValueConfig(Expiry expiry) {
++        this.expiry = expiry;
++    }
++
++    void init(Level level) {
++        // default materials
++        this.durableMaterials = new Reference2ObjectOpenHashMap<>(level.sakuraConfig().cannons.explosion.durableMaterials);
++
++        // physics version
++        this.physicsVersion = level.sakuraConfig().cannons.mechanics.physicsVersion;
++
++        // redstone implementation
++        this.redstoneImplementation = level.paperConfig().misc.redstoneImplementation;
++    }
++
++    void load(LocalValueStorage storage) {
++        // local materials
++        storage.value(LocalValueKey.DURABLE_MATERIALS, true).forEach(((material, entry) -> {
++            this.durableMaterials.put(CraftMagicNumbers.getBlock(material), new DurableMaterial(entry.getKey(), entry.getValue()));
++        }));
++
++        // physics version
++        if (storage.exists(LocalValueKey.PHYSICS_VERSION)) {
++            this.physicsVersion = storage.value(LocalValueKey.PHYSICS_VERSION);
++        }
++
++        // redstone implementation
++        if (storage.exists(LocalValueKey.REDSTONE_IMPLEMENTATION)) {
++            this.redstoneImplementation = RedstoneImplementation.values()[storage.value(LocalValueKey.REDSTONE_IMPLEMENTATION).ordinal()];
++        }
++    }
++
++    Expiry expiry() {
++        return expiry;
++    }
++
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index ca9013a7141a4e6b5b45651961dd977929a0756b..1f169b9bc09052137187654a7331033779694ad4 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1743,6 +1743,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             this.profiler.pop();
+             this.profiler.pop();
+             worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
++            worldserver.localConfig().expire(currentTickLong); // Sakura
+         }
+         this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
+ 
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index a0a68ff09689d457f3c6e17f3e5d6d595f84684a..702bd6f2468559d425a95f8ad2622e98c373c065 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -177,6 +177,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+         return this.sakuraConfig;
+     }
+     // Sakura end
++    // Sakura start
++    private final me.samsuik.sakura.local.config.LocalConfigManager localConfig = new me.samsuik.sakura.local.config.LocalConfigManager(this);
++    public final me.samsuik.sakura.local.config.LocalConfigManager localConfig() {
++        return this.localConfig;
++    }
++    // Sakura end
+ 
+     public final com.destroystokyo.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
+     public final co.aikar.timings.WorldTimingsHandler timings; // Paper
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 00357d78182b3ff87e3d9a45705b072af56739c8..a2c2e2a5c5225c136ed325e7ce8917a366f599d2 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -244,6 +244,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+     }
+     // Paper end
+ 
++    // Sakura start
++    @Override
++    public me.samsuik.sakura.local.storage.LocalStorageHandler getStorageHandler() {
++        return this.getHandle().localConfig();
++    }
++    // Sakura end
++
+     private static final Random rand = new Random();
+ 
+     public CraftWorld(ServerLevel world, ChunkGenerator gen, BiomeProvider biomeProvider, Environment env) {
