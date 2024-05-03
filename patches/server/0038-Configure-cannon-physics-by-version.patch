@@ -1028,7 +1028,7 @@ index d62cc6e8075b6c1564df29c1b15e8c0246ae786c..b8c33de8aff6c7df5e4e6b628a06d59e
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index c89e1fe5fafac46d82b2b20d27586c6997ce8906..ef35f0151252a1c1b09a73eecc7ed2f63820d763 100644
+index c89e1fe5fafac46d82b2b20d27586c6997ce8906..3ae9eea57de59c2d78a719412cdc6559d657ebb7 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 @@ -163,6 +163,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
@@ -1044,7 +1044,7 @@ index c89e1fe5fafac46d82b2b20d27586c6997ce8906..ef35f0151252a1c1b09a73eecc7ed2f6
                      for (AABB aABB2 : list2) {
                          AABB aABB3 = PistonMath.getMovementArea(moveByPositionAndProgress(pos, aABB2, blockEntity), direction, d);
                          AABB aABB4 = entity.getBoundingBox();
-@@ -292,14 +298,154 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -292,14 +298,167 @@ public class PistonMovingBlockEntity extends BlockEntity {
              }
          }
      }
@@ -1084,10 +1084,24 @@ index c89e1fe5fafac46d82b2b20d27586c6997ce8906..ef35f0151252a1c1b09a73eecc7ed2f6
 +                maxZ -= (float) dir.getStepZ() * progress;
 +            }
 +
-+            return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
++            return this.fixZeroWidthBB(new AABB(minX, minY, minZ, maxX, maxY, maxZ), dir);
 +        }
 +
 +        return null;
++    }
++
++    private AABB fixZeroWidthBB(AABB bb, Direction dir) {
++        // Legacy behaviour relied on entities being able to collide with zero width shapes
++        // This is no longer possible, so we have to create a difference here for it to work
++        double expandX = bb.getXsize() == 0.0 ? 1.0e-5 * dir.getStepX() : 0;
++        double expandY = bb.getYsize() == 0.0 ? 1.0e-5 * dir.getStepY() : 0;
++        double expandZ = bb.getZsize() == 0.0 ? 1.0e-5 * dir.getStepZ() : 0;
++
++        if (expandX != 0 || expandY != 0 || expandZ != 0) {
++            bb = bb.expandTowards(expandX, expandY, expandZ);
++        }
++
++        return bb;
 +    }
 +
 +    public final VoxelShape getCollisionShapeFromProgress(Level level, BlockPos pos) {
@@ -1098,7 +1112,6 @@ index c89e1fe5fafac46d82b2b20d27586c6997ce8906..ef35f0151252a1c1b09a73eecc7ed2f6
 +        }
 +
 +        AABB bb = this.getBoundsFromProgress(level, pos, this.movedState, progress, this.direction, false);
-+        // will never be null, but ide seems to think so hmm thinkge
 +        return bb == null ? Shapes.empty() : Shapes.create(bb);
 +    }
 +
@@ -1199,7 +1212,7 @@ index c89e1fe5fafac46d82b2b20d27586c6997ce8906..ef35f0151252a1c1b09a73eecc7ed2f6
                  world.removeBlockEntity(pos);
                  blockEntity.setRemoved();
                  if (world.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-@@ -319,12 +465,23 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -319,12 +478,23 @@ public class PistonMovingBlockEntity extends BlockEntity {
              }
          } else {
              float f = blockEntity.progress + 0.5F;
