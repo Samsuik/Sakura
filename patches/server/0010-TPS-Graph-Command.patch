@@ -418,10 +418,10 @@ index 0000000000000000000000000000000000000000..6903863ad293a335a8ed1aeaa06fccb4
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 8e2ee508d2290ace16714ed9927983f29a230304..3c98362624e1b02b6b028db95564254e044c7b0d 100644
+index 6e6ca00b20072e65370a47d38dded747fc0eb7c9..783367f380ad2a21418d102fbb6bc49a71148ee8 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1125,6 +1125,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1134,6 +1134,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
      private static final java.math.BigDecimal TPS_BASE = new java.math.BigDecimal(1E9).multiply(new java.math.BigDecimal(SAMPLE_INTERVAL));
@@ -429,7 +429,7 @@ index 8e2ee508d2290ace16714ed9927983f29a230304..3c98362624e1b02b6b028db95564254e
      // Paper end
      // Spigot End
  
-@@ -1203,6 +1204,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1212,6 +1213,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  if (++MinecraftServer.currentTick % MinecraftServer.SAMPLE_INTERVAL == 0) {
                      final long diff = currentTime - tickSection;
                      final java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
@@ -437,7 +437,7 @@ index 8e2ee508d2290ace16714ed9927983f29a230304..3c98362624e1b02b6b028db95564254e
                      tps1.add(currentTps, diff);
                      tps5.add(currentTps, diff);
                      tps15.add(currentTps, diff);
-@@ -1231,6 +1233,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1240,6 +1242,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  this.tickServer(flag ? () -> {
                      return false;
                  } : this::haveTime);
@@ -446,10 +446,10 @@ index 8e2ee508d2290ace16714ed9927983f29a230304..3c98362624e1b02b6b028db95564254e
                  this.mayHaveDelayedTasks = true;
                  this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 366c0c9b45a819f7f94ebe3e49b8ab7f9edf9ce7..3662c364d0bf04c9d5ef3af84bceb4263c47df7f 100644
+index b99f50604bafecbc68835974c9ed0caa91911a40..c912615ded011741f81c72739639e631f331710e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -92,6 +92,11 @@ public class ServerChunkCache extends ChunkSource {
+@@ -90,6 +90,11 @@ public class ServerChunkCache extends ChunkSource {
          this.clearCache();
      }
  
@@ -462,15 +462,15 @@ index 366c0c9b45a819f7f94ebe3e49b8ab7f9edf9ce7..3662c364d0bf04c9d5ef3af84bceb426
      public boolean isChunkLoaded(int chunkX, int chunkZ) {
          ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.asLong(chunkX, chunkZ));
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 5df1d01c52b527ff74778d8e4aa27b3b0b1e7a4b..55e0be135ec084ee7ebe6bc7bb9323519e0cd864 100644
+index bb1b891d917ed41ce5da6c2c9f470c5f49eff34a..b97217662434b67a62f7247c2b5187749f207880 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -193,7 +193,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
-     public final ServerChunkCache chunkSource;
+@@ -197,7 +197,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      private final MinecraftServer server;
      public final PrimaryLevelData serverLevelData; // CraftBukkit - type
+     private int lastSpawnChunkRadius;
 -    final EntityTickList entityTickList;
-+    public final EntityTickList entityTickList; // Sakura - public!
++    public final EntityTickList entityTickList; // Sakura - package-private -> public
      //public final PersistentEntitySectionManager<Entity> entityManager; // Paper - rewrite chunk system
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
@@ -488,7 +488,7 @@ index 83a39f900551e39d5af6f17a339a386ddee4feef..172c8d9cc94ed6ddfd3f785ca97a6e6e
      private void ensureActiveIsNotIterated() {
          // Paper - replace with better logic, do not delay removals
 diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
-index 6c260403d91d640da0473a3df56e1c5582459fde..2d2d1eeaeb9e7f36263b8cecc753adf721b96435 100644
+index 6c2a3813e7d63d57f07a8fa2edbb9d231221d818..a7333afe790be4ca876cb15c5f32a085dd13c3bb 100644
 --- a/src/main/java/org/spigotmc/SpigotConfig.java
 +++ b/src/main/java/org/spigotmc/SpigotConfig.java
 @@ -283,7 +283,7 @@ public class SpigotConfig

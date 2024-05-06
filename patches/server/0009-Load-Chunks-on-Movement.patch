@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index ee0331a6bc40cdde08d926fd8eb1dc642630c2e5..19086bbfdf3a015eafec5ca868c8d2451f554ef0 100644
+index ee8e9c0e3690e78f3cc621ddfca89ea4256d4803..299237a0c828e48425cc35a14d366020c78daefb 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
 @@ -1569,6 +1569,7 @@ public final class CollisionUtil {
@@ -51,10 +51,10 @@ index 658e63ebde81dc14c8ab5850fb246dc0aab25dea..f1ff1a67fee37ee7b241ceaa164fa4ee
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 5fbcdbaf4c0344dc3e8fff7bf31c2b021a0ae6cf..6e217474e7224cc5cc0a9818d39233c6757eca50 100644
+index 9aebb8f4c98eec7ece2eed012971d417062f76d0..495d8b5606457e9bfbe63199855dcd2140cd43f5 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -571,6 +571,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -573,6 +573,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      public boolean isPrimedTNT;
      public boolean isFallingBlock;
      // Sakura end - visibility api and command
@@ -74,7 +74,7 @@ index 5fbcdbaf4c0344dc3e8fff7bf31c2b021a0ae6cf..6e217474e7224cc5cc0a9818d39233c6
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -1514,7 +1527,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1556,7 +1569,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
  
          io.papermc.paper.util.CollisionUtil.getCollisions(
                  world, this, collisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
@@ -83,7 +83,7 @@ index 5fbcdbaf4c0344dc3e8fff7bf31c2b021a0ae6cf..6e217474e7224cc5cc0a9818d39233c6
                  null, null
          );
  
-@@ -4897,12 +4910,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4952,12 +4965,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
  
      @Override
      public boolean shouldBeSaved() {
@@ -99,7 +99,7 @@ index 5fbcdbaf4c0344dc3e8fff7bf31c2b021a0ae6cf..6e217474e7224cc5cc0a9818d39233c6
  
      public boolean mayInteract(Level world, BlockPos pos) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 91aa2714bae3f8f5d0fb76426b2b8cfc61941f54..aae2093c42d76af5bdb0d4bda3e5ee362a2143e3 100644
+index 7da6420aed597ee1bf544059c79a063512adcd40..d9668a752b06b560730973ebc82251d2cb8b7123 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -75,6 +75,7 @@ public class FallingBlockEntity extends Entity {
@@ -111,10 +111,10 @@ index 91aa2714bae3f8f5d0fb76426b2b8cfc61941f54..aae2093c42d76af5bdb0d4bda3e5ee36
  
      public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 5aa02f28b6be60688e340099b1637fb0ebfe7aa9..7a5ea7e0ea063eb0355dea89746a0e581548d131 100644
+index bbf6b4f705b3e9b289a7fdf82a78ef02f777297d..431b02599b7e3f2730841c8136460177aca37f3b 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -40,6 +40,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -38,6 +38,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          super(type, world);
          this.blocksBuilding = true;
          this.isPrimedTNT = true; // Sakura
@@ -123,10 +123,10 @@ index 5aa02f28b6be60688e340099b1637fb0ebfe7aa9..7a5ea7e0ea063eb0355dea89746a0e58
  
      public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 465458e8a7dbaf9afb32709a71c7b2620d1e1fd2..27b6baae9ac0feec2f2578540e29da6281593add 100644
+index 2a8609e33716949ff1877b6d10f64a9d7a7c81e9..f0233059d84c59a88572ae4d95e25c790640410a 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -218,6 +218,17 @@ public class LevelChunk extends ChunkAccess {
+@@ -220,6 +220,17 @@ public class LevelChunk extends ChunkAccess {
          }
      }
      // Paper end

@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise TNT fluid state and pushing
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 24dcf92c85d4453564d3ca51687a59497d8182fe..e3b6ef30a3c983e7e9b6bd83bc7baa600b16d850 100644
+index 3b0eecdac7eb63f3bf25af3db107cc6944fb672c..f3b264f38b8978a18b8849476ca31e96f38272a4 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -2199,7 +2199,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2258,7 +2258,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return this.isInWater() || flag;
      }
  
@@ -16,12 +16,12 @@ index 24dcf92c85d4453564d3ca51687a59497d8182fe..e3b6ef30a3c983e7e9b6bd83bc7baa60
 +    protected void updateInWaterStateAndDoWaterCurrentPushing() { // Sakura
          Entity entity = this.getVehicle();
  
-         if (entity instanceof Boat) {
+         if (entity instanceof Boat entityboat) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 403cfb14dff46a405a1476f6806020e9a2c9a941..b4b509bcdd470ff21bbe6e0c3f58848c168bc120 100644
+index 469bc508416ae44546c655a23d9bc2572078ccb5..bfe1b2debf94c54f923daf81ad51a7e9ca92d3d1 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -94,6 +94,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -92,6 +92,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      }
      // Sakura - specialised explosions
      // Sakura end
@@ -40,4 +40,4 @@ index 403cfb14dff46a405a1476f6806020e9a2c9a941..b4b509bcdd470ff21bbe6e0c3f58848c
 +    // Sakura end
  
      @Override
-     public void tick() {
+     protected double getDefaultGravity() {

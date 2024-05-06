@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise paper explosions
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 8fd87dc8f925a160bf390b05040110735f2a145b..e5335d64799005a4cdd2cb11cef637f250880b0c 100644
+index 482609cb5395e626f7fc5890a6db3570c6a07166..0a9683c2005ab85708bfb6bbb051f68bed133918 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -111,6 +111,41 @@ public class Explosion {
+@@ -112,6 +112,41 @@ public class Explosion {
          this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
      }
  
@@ -50,7 +50,7 @@ index 8fd87dc8f925a160bf390b05040110735f2a145b..e5335d64799005a4cdd2cb11cef637f2
      // Paper start - optimise collisions
      private static final double[] CACHED_RAYS;
      static {
-@@ -136,7 +171,7 @@ public class Explosion {
+@@ -137,7 +172,7 @@ public class Explosion {
              }
          }
  
@@ -59,16 +59,16 @@ index 8fd87dc8f925a160bf390b05040110735f2a145b..e5335d64799005a4cdd2cb11cef637f2
      }
  
      private static final int CHUNK_CACHE_SHIFT = 2;
-@@ -430,7 +465,7 @@ public class Explosion {
+@@ -431,7 +466,7 @@ public class Explosion {
          }
          // CraftBukkit end
-         this.level.gameEvent(this.source, GameEvent.EXPLODE, new Vec3(this.x, this.y, this.z));
+         this.level.gameEvent(this.source, (Holder) GameEvent.EXPLODE, new Vec3(this.x, this.y, this.z));
 -        Set<BlockPos> set = Sets.newHashSet();
 +        // Sakura - moved into searchForBlocks
          boolean flag = true;
  
          int i;
-@@ -456,6 +491,17 @@ public class Explosion {
+@@ -457,6 +492,17 @@ public class Explosion {
  
              initialCache = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
          }
@@ -86,7 +86,7 @@ index 8fd87dc8f925a160bf390b05040110735f2a145b..e5335d64799005a4cdd2cb11cef637f2
          // only ~1/3rd of the loop iterations in vanilla will result in a ray, as it is iterating the perimeter of
          // a 16x16x16 cube
          // we can cache the rays and their normals as well, so that we eliminate the excess iterations / checks and
-@@ -541,23 +587,63 @@ public class Explosion {
+@@ -542,23 +588,63 @@ public class Explosion {
          }
  
          this.toBlow.addAll(set);
@@ -158,7 +158,7 @@ index 8fd87dc8f925a160bf390b05040110735f2a145b..e5335d64799005a4cdd2cb11cef637f2
              if (!entity.ignoreExplosion(this)) {
                  double d7 = Math.sqrt(entity.distanceToSqr(vec3d)) / (double) f2;
  
-@@ -581,24 +667,27 @@ public class Explosion {
+@@ -582,24 +668,27 @@ public class Explosion {
                              // - Damaging EntityEnderDragon does nothing
                              // - EntityEnderDragon hitbock always covers the other parts and is therefore always present
                              if (entity instanceof EnderDragonPart) {
@@ -191,7 +191,7 @@ index 8fd87dc8f925a160bf390b05040110735f2a145b..e5335d64799005a4cdd2cb11cef637f2
                              }
                              // CraftBukkit end
                          }
-@@ -631,7 +720,7 @@ public class Explosion {
+@@ -635,7 +724,7 @@ public class Explosion {
                                  final org.bukkit.entity.Entity hitBy = this.damageSource.getEntity() != null ? this.damageSource.getEntity().getBukkitEntity() : this.source.getBukkitEntity();
                                  com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent paperEvent = new com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent(((LivingEntity) entity).getBukkitLivingEntity(), hitBy, (float) event.getForce(), org.bukkit.craftbukkit.util.CraftVector.toBukkit(vec3d1));
                                  if (!paperEvent.callEvent()) {
@@ -200,7 +200,7 @@ index 8fd87dc8f925a160bf390b05040110735f2a145b..e5335d64799005a4cdd2cb11cef637f2
                                  }
                                  vec3d1 = org.bukkit.craftbukkit.util.CraftVector.toNMS(paperEvent.getAcceleration());
                              }
-@@ -653,8 +742,12 @@ public class Explosion {
+@@ -659,8 +748,12 @@ public class Explosion {
                      }
                  }
              }

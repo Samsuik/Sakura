@@ -23,14 +23,15 @@ index 0fd814f1d65c111266a2b20f86561839a4cef755..932f7a0d030d2d4932e6e6d4a5805e9b
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..929231896288c8355c17ba878d3dc296e9b258da
+index 0000000000000000000000000000000000000000..688a2bbd0b0b60b9acbdb3e6da0b24efed2bfde9
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-@@ -0,0 +1,197 @@
+@@ -0,0 +1,198 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import io.papermc.paper.util.WorldUtil;
 +import net.minecraft.core.BlockPos;
++import net.minecraft.core.Holder;
 +import net.minecraft.core.particles.ParticleOptions;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.sounds.SoundEvent;
@@ -58,7 +59,7 @@ index 0000000000000000000000000000000000000000..929231896288c8355c17ba878d3dc296
 +    protected ExplosionBlockCache[] recentBlockCache;
 +    protected final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
 +
-+    public SpecialisedExplosion(Level world, T entity, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator behavior, double x, double y, double z, float power, boolean createFire, BlockInteraction destructionType, ParticleOptions particle, ParticleOptions emitterParticle, SoundEvent soundEvent) {
++    public SpecialisedExplosion(Level world, T entity, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator behavior, double x, double y, double z, float power, boolean createFire, BlockInteraction destructionType, ParticleOptions particle, ParticleOptions emitterParticle, Holder<SoundEvent> soundEvent) {
 +        super(world, entity, damageSource, behavior, x, y, z, power, createFire, destructionType, particle, emitterParticle, soundEvent);
 +        this.level = (ServerLevel) world;
 +        this.position = new Vec3(x, y, z);
@@ -226,10 +227,10 @@ index 0000000000000000000000000000000000000000..929231896288c8355c17ba878d3dc296
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b94861d545cefb0e68a83efa6812a1ff4a381027
+index 0000000000000000000000000000000000000000..71e1774a6db949ad6c01f1283a17a89ae6af8b02
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,179 @@
+@@ -0,0 +1,180 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
@@ -237,6 +238,7 @@ index 0000000000000000000000000000000000000000..b94861d545cefb0e68a83efa6812a1ff
 +import me.samsuik.sakura.entity.EntityState;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
++import net.minecraft.core.Holder;
 +import net.minecraft.core.particles.ParticleOptions;
 +import net.minecraft.sounds.SoundEvent;
 +import net.minecraft.util.Mth;
@@ -262,7 +264,7 @@ index 0000000000000000000000000000000000000000..b94861d545cefb0e68a83efa6812a1ff
 +    private int wrapped = 0;
 +    private int movement = 0;
 +
-+    public TntExplosion(Level world, PrimedTnt tnt, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator behavior, double x, double y, double z, float power, boolean createFire, BlockInteraction destructionType, ParticleOptions particle, ParticleOptions emitterParticle, SoundEvent soundEvent) {
++    public TntExplosion(Level world, PrimedTnt tnt, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator behavior, double x, double y, double z, float power, boolean createFire, BlockInteraction destructionType, ParticleOptions particle, ParticleOptions emitterParticle, Holder<SoundEvent> soundEvent) {
 +        super(world, tnt, damageSource, behavior, x, y, z, power, createFire, destructionType, particle, emitterParticle, soundEvent);
 +        this.originalPosition = this.position;
 +        this.bounds = new AABB(x, y, z, x, y, z);
@@ -410,10 +412,10 @@ index 0000000000000000000000000000000000000000..b94861d545cefb0e68a83efa6812a1ff
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 51fa57e8b9d5c9ee563ec3608a437c69da08d32c..ec7d7f22b267ae6572e6005f10221755cbb1a480 100644
+index a9cfdbd7d138763584ee3d2825fe6979241422db..3ca19140d8c7b28f73e80dcdbfd60536d74886ff 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1957,6 +1957,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1964,6 +1964,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
              explosion.clearToBlow();
          }
  
@@ -426,7 +428,7 @@ index 51fa57e8b9d5c9ee563ec3608a437c69da08d32c..ec7d7f22b267ae6572e6005f10221755
          Iterator iterator = this.players.iterator();
  
          while (iterator.hasNext()) {
-@@ -1967,7 +1973,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1974,7 +1980,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              }
          }
  
@@ -436,10 +438,10 @@ index 51fa57e8b9d5c9ee563ec3608a437c69da08d32c..ec7d7f22b267ae6572e6005f10221755
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 4f695305794c2564517d99b4edd3180d7ea07845..8acef487b0579febb3497cc88b23c4fc74492571 100644
+index 1860ffd3e11601983abbb85962dd9ef56992c9f5..f8e19ca5af5b313e887ce8b428e32a84a26a8927 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -86,28 +86,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -84,28 +84,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
              && (tnt.entityState().fallDistance() == fallDistance
                || tnt.entityState().fallDistance() > 2.5f && fallDistance > 2.5f);
      }
@@ -470,10 +472,10 @@ index 4f695305794c2564517d99b4edd3180d7ea07845..8acef487b0579febb3497cc88b23c4fc
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index c9cf9373d3eae4e54ae27fbb8993f858e91e98cc..8e80e602368d784a64c68a061505d4e08997566b 100644
+index d7e8dd148098de080c5bc0f76b36207501e1089f..7eb8da4075b4f1706f698a0b48206421bf4353c3 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -55,9 +55,11 @@ public class Explosion {
+@@ -56,9 +56,11 @@ public class Explosion {
      private final Explosion.BlockInteraction blockInteraction;
      private final RandomSource random;
      private final Level level;
@@ -488,7 +490,7 @@ index c9cf9373d3eae4e54ae27fbb8993f858e91e98cc..8e80e602368d784a64c68a061505d4e0
      @Nullable
      public final Entity source;
      private final float radius;
-@@ -185,7 +187,7 @@ public class Explosion {
+@@ -186,7 +188,7 @@ public class Explosion {
      // resistance = (res + 0.3F) * 0.3F;
      // so for resistance = 0, we need res = -0.3F
      private static final Float ZERO_RESISTANCE = Float.valueOf(-0.3f);
@@ -497,7 +499,7 @@ index c9cf9373d3eae4e54ae27fbb8993f858e91e98cc..8e80e602368d784a64c68a061505d4e0
  
      public static final class ExplosionBlockCache {
  
-@@ -212,7 +214,29 @@ public class Explosion {
+@@ -213,7 +215,29 @@ public class Explosion {
      private long[] chunkPosCache = null;
      private net.minecraft.world.level.chunk.LevelChunk[] chunkCache = null;
  
@@ -528,7 +530,7 @@ index c9cf9373d3eae4e54ae27fbb8993f858e91e98cc..8e80e602368d784a64c68a061505d4e0
                                                           final long key, final boolean calculateResistance) {
          ExplosionBlockCache ret = this.blockCache.get(key);
          if (ret != null) {
-@@ -501,14 +525,7 @@ public class Explosion {
+@@ -502,14 +526,7 @@ public class Explosion {
          int j;
  
          // Paper start - optimise explosions
@@ -544,7 +546,7 @@ index c9cf9373d3eae4e54ae27fbb8993f858e91e98cc..8e80e602368d784a64c68a061505d4e0
          // use initial cache value that is most likely to be used: the source position
          final ExplosionBlockCache initialCache;
          {
-@@ -998,7 +1015,7 @@ public class Explosion {
+@@ -1006,7 +1023,7 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions
@@ -554,10 +556,10 @@ index c9cf9373d3eae4e54ae27fbb8993f858e91e98cc..8e80e602368d784a64c68a061505d4e0
          float blockDensity = this.level.densityCache.getDensity(vec3d, entity);
          if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index d555ea21a6e53938003a45d5de2ce97c4986f9e7..ad4076dd0352eb4f62588e3c83ffb2c42b07a3e0 100644
+index e53f3b508eba942a6d61c1ad678ff0f5793c3f73..4553c252d3dd0a9413319a7a5dd5cce201b0fa72 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -1419,7 +1419,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1415,7 +1415,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          }
  
          Explosion.BlockInteraction explosion_effect1 = explosion_effect;

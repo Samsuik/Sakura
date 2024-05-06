@@ -5,13 +5,13 @@ Subject: [PATCH] Cache Vanillia and Eigen Redstone
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/util/RedstoneWireTurbo.java b/src/main/java/com/destroystokyo/paper/util/RedstoneWireTurbo.java
-index fa062e6543e8a0377e3d4715996955dba005ee80..ca8b5066e2db3dc5df97091fa8821493d91949da 100644
+index 9f17170179cc99d84ad25a1e838aff3d8cc66f93..a1fb1e286d66dde55682d899ded0e5d24715b642 100644
 --- a/src/main/java/com/destroystokyo/paper/util/RedstoneWireTurbo.java
 +++ b/src/main/java/com/destroystokyo/paper/util/RedstoneWireTurbo.java
 @@ -662,6 +662,7 @@ public class RedstoneWireTurbo {
                      // restores old behavior, at the cost of bypassing the
                      // max-chained-neighbor-updates server property.
-                     worldIn.getBlockState(upd.self).neighborChanged(worldIn, upd.self, wire, upd.parent, false);
+                     worldIn.getBlockState(upd.self).handleNeighborChanged(worldIn, upd.self, wire, upd.parent, false);
 +                    worldIn.redstoneTracker.trackUpdate(upd.self, upd.currentState, upd.parent); // Sakura
                  }
              }
@@ -341,10 +341,10 @@ index 0000000000000000000000000000000000000000..c4150b062ee1a15f1938fea2da926699
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 622ab8f82f1b641f32912788ce44381b88f46093..4d16f579d7c73e2374230df519ca3f56c7c14dd5 100644
+index 48f13cd41f68570b3b70e013ced3374bea251601..303d01e2861b960fd7e592c196944e3cd759f4f4 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1751,6 +1751,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1810,6 +1810,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
              worldserver.densityCache.clear(currentTickLong); // Sakura - explosion density cache
              worldserver.durabilityManager.expire(currentTickLong); // Sakura
@@ -353,10 +353,10 @@ index 622ab8f82f1b641f32912788ce44381b88f46093..4d16f579d7c73e2374230df519ca3f56
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index d424337f7ee70d6b488dcb8b59a1bd59b87e3e53..8e5bd44b93cfd4b3abdb76a5ee6dd6eb4e714223 100644
+index cbc20c6a367b373a7b503c21b09db818e14437e5..9060ce8bcbb82eea6bfa84180a887c04f0137ef5 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -232,6 +232,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -229,6 +229,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
@@ -364,7 +364,7 @@ index d424337f7ee70d6b488dcb8b59a1bd59b87e3e53..8e5bd44b93cfd4b3abdb76a5ee6dd6eb
  
      // Sakura start - add entity retrival methods with search limits
      public void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
-@@ -1009,6 +1010,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1002,6 +1003,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
              } else {
                  BlockState iblockdata2 = this.getBlockState(pos);
  
@@ -373,10 +373,10 @@ index d424337f7ee70d6b488dcb8b59a1bd59b87e3e53..8e5bd44b93cfd4b3abdb76a5ee6dd6eb
                  if (iblockdata2 == iblockdata) {
                      if (iblockdata1 != iblockdata2) {
 diff --git a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
-index b5a71fd4e2f55bf036c2c697da5d50cc90fc657c..93df0a39de85a5fa4b0ab680954405171646915d 100644
+index c131734cad123a35456d18f8a161f77a4ac9ac99..5b9e05b9c717df5a6685f64a6f672575555eb5a4 100644
 --- a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
-@@ -382,7 +382,15 @@ public class RedStoneWireBlock extends Block {
+@@ -381,7 +381,15 @@ public class RedStoneWireBlock extends Block {
          }
          if (oldPower != i) {
              // CraftBukkit end
@@ -392,7 +392,7 @@ index b5a71fd4e2f55bf036c2c697da5d50cc90fc657c..93df0a39de85a5fa4b0ab68095440517
                  world.setBlock(pos, (BlockState) state.setValue(RedStoneWireBlock.POWER, i), 2);
              }
  
-@@ -403,8 +411,17 @@ public class RedStoneWireBlock extends Block {
+@@ -402,8 +410,17 @@ public class RedStoneWireBlock extends Block {
              while (iterator.hasNext()) {
                  BlockPos blockposition1 = (BlockPos) iterator.next();
  

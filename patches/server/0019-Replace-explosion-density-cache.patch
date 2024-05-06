@@ -129,10 +129,10 @@ index 0000000000000000000000000000000000000000..d7e24638f07f243502004970ab4ce646
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index f78881fcf186c44da243c2f31ff855b878e172cf..62d54547fc8c1a9f7b19a2020b754a189ba7c52f 100644
+index 2db7dee8589425c805b148ef46827ce88ec38c4e..69b972a5b1ad62f1cfa759fd2e0d371a8745539b 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1749,6 +1749,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1808,6 +1808,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.localConfig().expire(currentTickLong); // Sakura
              worldserver.minimalTNT.clear(); // Sakura - visibility api
              worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
@@ -141,10 +141,10 @@ index f78881fcf186c44da243c2f31ff855b878e172cf..62d54547fc8c1a9f7b19a2020b754a18
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index e5335d64799005a4cdd2cb11cef637f250880b0c..e2d9d00427d35a21a4fc6804f5cd426ab58dce44 100644
+index 0a9683c2005ab85708bfb6bbb051f68bed133918..ead8ddd7fd9941d4349b9b94ad313bf9d46bdc0b 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -400,7 +400,12 @@ public class Explosion {
+@@ -401,7 +401,12 @@ public class Explosion {
                          Math.fma(dz, diffZ, offZ)
                      );
  
@@ -158,7 +158,7 @@ index e5335d64799005a4cdd2cb11cef637f250880b0c..e2d9d00427d35a21a4fc6804f5cd426a
                          ++missedRays;
                      }
                  }
-@@ -435,7 +440,16 @@ public class Explosion {
+@@ -436,7 +441,16 @@ public class Explosion {
                          double d10 = Mth.lerp(d7, axisalignedbb.minZ, axisalignedbb.maxZ);
                          Vec3 vec3d1 = new Vec3(d8 + d3, d9, d10 + d4);
  
@@ -176,7 +176,7 @@ index e5335d64799005a4cdd2cb11cef637f250880b0c..e2d9d00427d35a21a4fc6804f5cd426a
                              ++i;
                          }
  
-@@ -841,6 +855,11 @@ public class Explosion {
+@@ -849,6 +863,11 @@ public class Explosion {
                  });
              }
  
@@ -188,7 +188,7 @@ index e5335d64799005a4cdd2cb11cef637f250880b0c..e2d9d00427d35a21a4fc6804f5cd426a
              Iterator iterator = list.iterator();
  
              while (iterator.hasNext()) {
-@@ -965,14 +984,12 @@ public class Explosion {
+@@ -973,14 +992,12 @@ public class Explosion {
      }
      // Paper start - Optimize explosions
      private float getBlockDensity(Vec3 vec3d, Entity entity, ExplosionBlockCache[] blockCache, BlockPos.MutableBlockPos blockPos) { // Paper - optimise explosions
@@ -209,10 +209,10 @@ index e5335d64799005a4cdd2cb11cef637f250880b0c..e2d9d00427d35a21a4fc6804f5cd426a
  
          return blockDensity;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 9507b2419834ace4f71a781ad90284af5e4d8aa1..d555ea21a6e53938003a45d5de2ce97c4986f9e7 100644
+index 1b14de4b22bd6f7103be55af20df6f5d7a149e0b..e53f3b508eba942a6d61c1ad678ff0f5793c3f73 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -230,6 +230,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -227,6 +227,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
  
      public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
@@ -221,10 +221,10 @@ index 9507b2419834ace4f71a781ad90284af5e4d8aa1..d555ea21a6e53938003a45d5de2ce97c
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
 diff --git a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index 0d573c05f4f8838d4492f749ca473f7a9e8d60dd..88c2c2d9fbda662509b57535c718a0cb7aa72918 100644
+index 8b33e35c843e5c0b8988a2ef2a38a2673035292f..5ec557652558bb44e9be7d32fc214091d29aac78 100644
 --- a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
-@@ -108,6 +108,11 @@ public abstract class BasePressurePlateBlock extends Block {
+@@ -109,6 +109,11 @@ public abstract class BasePressurePlateBlock extends Block {
          if (output != j) {
              BlockState iblockdata1 = this.setSignalForState(state, j);
  
@@ -237,10 +237,10 @@ index 0d573c05f4f8838d4492f749ca473f7a9e8d60dd..88c2c2d9fbda662509b57535c718a0cb
              this.updateNeighbours(world, pos);
              world.setBlocksDirty(pos, state, iblockdata1);
 diff --git a/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java b/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
-index efd8d77a441fd334ea4c09c5e31c6d946c1ae0b7..b3ff822f97237be81edba4fc5aa90121307ede0b 100644
+index 76aca266d3f3222502ff4c196228f08fcd88c5f8..6a63e60d80ee53a4611dfcdd9ab974f8227fae59 100644
 --- a/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
-@@ -172,6 +172,11 @@ public class TripWireHookBlock extends Block {
+@@ -173,6 +173,11 @@ public class TripWireHookBlock extends Block {
                  blockposition1 = pos.relative(enumdirection, j);
                  Direction enumdirection1 = enumdirection.getOpposite();
  

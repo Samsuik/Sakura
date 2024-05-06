@@ -5,15 +5,15 @@ Subject: [PATCH] Remove spigot max tnt per tick
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index b4b509bcdd470ff21bbe6e0c3f58848c168bc120..9493fbae91f0ef6c3aaf81e548c225748f6f83b5 100644
+index bfe1b2debf94c54f923daf81ad51a7e9ca92d3d1..30443bc74abbe0a557b5d9d9bae0eb48ef1dd7d3 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -110,7 +110,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -113,7 +113,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
  
      @Override
      public void tick() {
 -        if (this.level().spigotConfig.maxTntTicksPerTick > 0 && ++this.level().spigotConfig.currentPrimedTnt > this.level().spigotConfig.maxTntTicksPerTick) { return; } // Spigot
 +        // Sakura - remove max tnt per tick
-         if (!this.isNoGravity()) {
-             this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
-         }
+         this.applyGravity();
+         this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
+         // Paper start - Configurable TNT height nerf

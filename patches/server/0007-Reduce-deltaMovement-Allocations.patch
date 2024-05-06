@@ -5,10 +5,10 @@ Subject: [PATCH] Reduce deltaMovement Allocations
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 7e4ed21080c56961713f35e219dd592f5f717d63..5fbcdbaf4c0344dc3e8fff7bf31c2b021a0ae6cf 100644
+index 6872b9624be78e252df54858d8b9cb5aae93ceda..9aebb8f4c98eec7ece2eed012971d417062f76d0 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1253,7 +1253,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1295,7 +1295,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  this.tryCheckInsideBlocks();
                  float f = this.getBlockSpeedFactor();
  
@@ -17,7 +17,16 @@ index 7e4ed21080c56961713f35e219dd592f5f717d63..5fbcdbaf4c0344dc3e8fff7bf31c2b02
                  // Paper start - remove expensive streams from here
                  boolean noneMatch = true;
                  AABB fireSearchBox = this.getBoundingBox().deflate(1.0E-6D);
-@@ -2069,6 +2069,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1832,7 +1832,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         double d0 = this.getGravity();
+ 
+         if (d0 != 0.0D) {
+-            this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -d0, 0.0D));
++            this.addDeltaMovement(0.0D, -d0, 0.0D); // Sakura - reduce movement allocations
+         }
+ 
+     }
+@@ -2124,6 +2124,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      public void moveTo(double x, double y, double z, float yaw, float pitch) {
          // Paper start - Fix Entity Teleportation and cancel velocity if teleported
          if (!preserveMotion) {
@@ -25,7 +34,7 @@ index 7e4ed21080c56961713f35e219dd592f5f717d63..5fbcdbaf4c0344dc3e8fff7bf31c2b02
              this.deltaMovement = Vec3.ZERO;
          } else {
              this.preserveMotion = false;
-@@ -3473,29 +3474,33 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -3520,29 +3521,33 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      public void onAboveBubbleCol(boolean drag) {
@@ -67,7 +76,7 @@ index 7e4ed21080c56961713f35e219dd592f5f717d63..5fbcdbaf4c0344dc3e8fff7bf31c2b02
          this.resetFallDistance();
      }
  
-@@ -4484,16 +4489,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4541,16 +4546,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                      vec3d = vec3d.normalize();
                  }
  
@@ -90,7 +99,7 @@ index 7e4ed21080c56961713f35e219dd592f5f717d63..5fbcdbaf4c0344dc3e8fff7bf31c2b02
              }
  
              this.fluidHeight.put(tag, d1);
-@@ -4564,11 +4572,53 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4621,11 +4629,53 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return this.chunkPosition;
      }
  
@@ -144,7 +153,7 @@ index 7e4ed21080c56961713f35e219dd592f5f717d63..5fbcdbaf4c0344dc3e8fff7bf31c2b02
          synchronized (this.posLock) { // Paper
          this.deltaMovement = velocity;
          } // Paper
-@@ -4579,7 +4629,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4636,7 +4686,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      public void setDeltaMovement(double x, double y, double z) {
@@ -158,19 +167,10 @@ index 7e4ed21080c56961713f35e219dd592f5f717d63..5fbcdbaf4c0344dc3e8fff7bf31c2b02
  
      public final int getBlockX() {
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 4f072853272bedd79bdf53d2a8373d8e0f6fdd29..91aa2714bae3f8f5d0fb76426b2b8cfc61941f54 100644
+index 28b8efdd224e4dbb32f3eac1c9e2c512e2695dc8..7da6420aed597ee1bf544059c79a063512adcd40 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -141,7 +141,7 @@ public class FallingBlockEntity extends Entity {
- 
-             ++this.time;
-             if (!this.isNoGravity()) {
--                this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.04D, 0.0D));
-+                this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
-             }
- 
-             this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -181,7 +181,7 @@ public class FallingBlockEntity extends Entity {
+@@ -183,7 +183,7 @@ public class FallingBlockEntity extends Entity {
                  } else {
                      BlockState iblockdata = this.level().getBlockState(blockposition);
  
@@ -179,7 +179,7 @@ index 4f072853272bedd79bdf53d2a8373d8e0f6fdd29..91aa2714bae3f8f5d0fb76426b2b8cfc
                      if (!iblockdata.is(Blocks.MOVING_PISTON)) {
                          if (!this.cancelDrop) {
                              boolean flag2 = iblockdata.canBeReplaced((BlockPlaceContext) (new DirectionalPlaceContext(this.level(), blockposition, Direction.DOWN, ItemStack.EMPTY, Direction.UP)));
-@@ -248,7 +248,7 @@ public class FallingBlockEntity extends Entity {
+@@ -250,7 +250,7 @@ public class FallingBlockEntity extends Entity {
                  }
              }
  
@@ -189,18 +189,9 @@ index 4f072853272bedd79bdf53d2a8373d8e0f6fdd29..91aa2714bae3f8f5d0fb76426b2b8cfc
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 2e6691b86e161616bb2dcf5ce0391ad57a3ef422..7890f84d7a69e2e6820ef0daa35f898534f7372f 100644
+index dace8dc0c051ce9355d878154466ee3a548a3832..fda88328472130df8317a84fc726a73c35850c3a 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -75,7 +75,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
-     public void tick() {
-         if (this.level().spigotConfig.maxTntTicksPerTick > 0 && ++this.level().spigotConfig.currentPrimedTnt > this.level().spigotConfig.maxTntTicksPerTick) { return; } // Spigot
-         if (!this.isNoGravity()) {
--            this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.04D, 0.0D));
-+            this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
-         }
- 
-         this.move(MoverType.SELF, this.getDeltaMovement());
 @@ -85,9 +85,9 @@ public class PrimedTnt extends Entity implements TraceableEntity {
              return;
          }
@@ -214,10 +205,10 @@ index 2e6691b86e161616bb2dcf5ce0391ad57a3ef422..7890f84d7a69e2e6820ef0daa35f8985
  
          int i = this.getFuse() - 1;
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index eeacf65ebb0ea7070de6e773d31651e4c190d592..8fd87dc8f925a160bf390b05040110735f2a145b 100644
+index 9ea24dc18f70e8e3c8998f6c2b5eb3ac885df54f..482609cb5395e626f7fc5890a6db3570c6a07166 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -617,10 +617,11 @@ public class Explosion {
+@@ -618,10 +618,11 @@ public class Explosion {
                          d8 *= d13;
                          d9 *= d13;
                          d10 *= d13;
@@ -230,7 +221,7 @@ index eeacf65ebb0ea7070de6e773d31651e4c190d592..8fd87dc8f925a160bf390b0504011073
                              Vec3 result = entity.getDeltaMovement().add(vec3d1);
                              org.bukkit.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity(), this.source, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.EXPLOSION, d13, vec3d1, result.x, result.y, result.z);
  
-@@ -635,9 +636,13 @@ public class Explosion {
+@@ -639,9 +640,13 @@ public class Explosion {
                                  vec3d1 = org.bukkit.craftbukkit.util.CraftVector.toNMS(paperEvent.getAcceleration());
                              }
                              // Paper end - call EntityKnockbackByEntityEvent for explosions
@@ -246,10 +237,10 @@ index eeacf65ebb0ea7070de6e773d31651e4c190d592..8fd87dc8f925a160bf390b0504011073
                              Player entityhuman = (Player) entity;
  
 diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
-index 22036ed3ea0629bc12981a8d91a03e55cc2117d6..73a453ef678ed90ebc1de4d1efc258ad81cf36b8 100644
+index cf8b8c8efd1c9c81eb5f02d75bd75875eb66771f..30e23f67a1a816dfb4f32cfe45bc8dd40938317a 100644
 --- a/src/main/java/net/minecraft/world/level/block/Block.java
 +++ b/src/main/java/net/minecraft/world/level/block/Block.java
-@@ -469,7 +469,7 @@ public class Block extends BlockBehaviour implements ItemLike {
+@@ -461,7 +461,7 @@ public class Block extends BlockBehaviour implements ItemLike {
      }
  
      public void updateEntityAfterFallOn(BlockGetter world, Entity entity) {

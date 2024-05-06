@@ -5,10 +5,10 @@ Subject: [PATCH] Reduce entity tracker player updates
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 8a817dda325898b759de63ab6e4300b050286bf7..baec8d775957f3ef3224d743f961f0a23aee92ab 100644
+index 34fdb52904a26bc7c4c95eee91882a3924ab037c..e372993dffc7012c6dfadacb99b2a7fc43b2aebd 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -1145,6 +1145,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1161,6 +1161,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          try {
              for (TrackedEntity tracker : this.entityMap.values()) {
                  // update tracker entry
@@ -16,14 +16,14 @@ index 8a817dda325898b759de63ab6e4300b050286bf7..baec8d775957f3ef3224d743f961f0a2
                  tracker.updatePlayers(tracker.entity.getPlayersInTrackRange());
              }
          } finally {
-@@ -1311,14 +1312,34 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1325,14 +1326,34 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          private final int range;
          SectionPos lastSectionPos;
          public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
 +        private final int playerSearchInterval; // Sakura - reduce entity tracker player updates
 +        private Vec3 entityPosition; // Sakura - reduce entity tracker player updates
  
-         public TrackedEntity(Entity entity, int i, int j, boolean flag) {
+         public TrackedEntity(final Entity entity, final int i, final int j, final boolean flag) {
              this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, j, flag, this::broadcast, this.seenBy); // CraftBukkit
              this.entity = entity;
              this.range = i;
