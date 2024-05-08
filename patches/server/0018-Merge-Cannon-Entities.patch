@@ -209,10 +209,10 @@ index b97217662434b67a62f7247c2b5187749f207880..a9cfdbd7d138763584ee3d2825fe6979
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index b87a07a5ac1da6803c7b61ef248a3dbecaedc3de..1229a62c40ce0814addbb9e731fec348667d9d20 100644
+index b87a07a5ac1da6803c7b61ef248a3dbecaedc3de..f08a3969c85f4ca1470c6fe9bcc3b4ae0e6920a3 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -605,6 +605,117 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -605,6 +605,116 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return to.entityState() != null && to.entityState().isCurrentState(this);
      }
      // Sakura end - store entity data/state
@@ -264,31 +264,30 @@ index b87a07a5ac1da6803c7b61ef248a3dbecaedc3de..1229a62c40ce0814addbb9e731fec348
 +    }
 +
 +    public final boolean tryMergeInto(@Nullable Entity entity) {
-+        if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.NON_STRICT) && tickCount == 0) {
++        if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.LENIENT) && tickCount == 0) {
 +            originData = level.mergeHistory.retrievePositions(this);
 +        }
 +
 +        Entity mergeEntity = null;
 +
 +        if (entity == null || entity.getType() != getType()) {
-+            // first entity in the tick loop, we have to let it into this method so that we can retrieve the originData
-+            return false;
++            return false; // First entity
 +        } else if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.SPAWN) && entity.isSafeToSpawnMerge(this)) {
-+            // On spawn merging, this merges entities immediately upon spawning after
-+            // it is considered "safe". We try to make sure it is safe by only retaining
-+            // positions that do not change when we're collecting information.
++            // "SPAWN" merges entities one gametick after they have spawned. Merging is
++            // only possible after it has been established that the entity is safe to
++            // merge by collecting information on the entities that merge together over time.
 +            mergeEntity = entity;
 +        } else {
-+            // Strict, simple merging
-+            // This merges entities that are in the exact same state and sequential.
-+            // Sane for most use cases but as it is merging entities plugins may misbehave.
++            // "STRICT" merges entities with the same properties, position, momentum and OOE.
++            // This is considered safe to use, and will not break cannon mechanics.
 +            if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.STRICT) && compareState(entity)) {
 +                mergeEntity = entity;
 +            }
 +
-+            // Non strict merging algorithm uses information collected after entities die
-+            // to be able to perform more aggressive merging by already knowing the OOE.
-+            if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.NON_STRICT) && mergeEntity == null && originData != null) {
++            // "LENIENT" merges entities aggressively by tracking the entities that have
++            // previously merged. This is a hybrid of "SPAWN" and "STRICT" merging, with the
++            // visuals of "STRICT" merging and better merging potential of "SPAWN" merging.
++            if (mergeLevel.atLeast(me.samsuik.sakura.entity.merge.MergeLevel.LENIENT) && mergeEntity == null && originData != null) {
 +                mergeEntity = originData.findFirstEntityInSamePosition(this);
 +            }
 +        }
@@ -330,7 +329,7 @@ index b87a07a5ac1da6803c7b61ef248a3dbecaedc3de..1229a62c40ce0814addbb9e731fec348
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -654,6 +765,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -654,6 +764,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          this.entityData = datawatcher_a.build();
          this.setPos(0.0D, 0.0D, 0.0D);
          this.eyeHeight = this.dimensions.eyeHeight();
@@ -338,7 +337,7 @@ index b87a07a5ac1da6803c7b61ef248a3dbecaedc3de..1229a62c40ce0814addbb9e731fec348
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -2592,6 +2704,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2592,6 +2703,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  nbttagcompound.putBoolean("Paper.FreezeLock", true);
              }
              // Paper end
@@ -350,7 +349,7 @@ index b87a07a5ac1da6803c7b61ef248a3dbecaedc3de..1229a62c40ce0814addbb9e731fec348
              return nbttagcompound;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2739,6 +2856,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2739,6 +2855,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  freezeLocked = nbt.getBoolean("Paper.FreezeLock");
              }
              // Paper end
@@ -362,7 +361,7 @@ index b87a07a5ac1da6803c7b61ef248a3dbecaedc3de..1229a62c40ce0814addbb9e731fec348
  
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
-@@ -4944,6 +5066,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4944,6 +5065,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          // Paper end - rewrite chunk system
          CraftEventFactory.callEntityRemoveEvent(this, cause);
          // CraftBukkit end

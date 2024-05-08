@@ -6,10 +6,10 @@ Subject: [PATCH] Merge Cannon Entities
 
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeLevel.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeLevel.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..16e68720eaf2eeedb2ba9bb906c21a16fc818e89
+index 0000000000000000000000000000000000000000..506ea3cb8c3b965661a65f9a91903999c1eba309
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeLevel.java
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,64 @@
 +package me.samsuik.sakura.entity.merge;
 +
 +import java.util.Locale;
@@ -20,21 +20,20 @@ index 0000000000000000000000000000000000000000..16e68720eaf2eeedb2ba9bb906c21a16
 +     */
 +    NONE(-1),
 +    /**
-+     * Merge entities with the same OOE, properties and position.
-+     * This is safe for all use cases and won't cause breakage.
++     * "STRICT" merges entities with the same properties, position, momentum and OOE.
++     * This is considered safe to use, and will not break cannon mechanics.
 +     */
 +    STRICT(1),
 +    /**
-+     * Merge entities with the same properties and position.
-+     * If the entities are known to have merged in the past
-+     * this will be able to merge them together regardless of OOE.
++     * "LENIENT" merges entities aggressively by tracking the entities that have
++     * previously merged. This is a hybrid of "SPAWN" and "STRICT" merging, with the
++     * visuals of "STRICT" merging and better merging potential of "SPAWN" merging.
 +     */
-+    NON_STRICT(2),
++    LENIENT(2),
 +    /**
-+     * This will make sure of Non-Strict as a base, once the cannon
-+     * has past the "on spawn" merge threshold it will be deemed safe
-+     * for on spawn merging. This will merge all entities together on
-+     * spawn that have merged together in the past.
++     * "SPAWN" merges entities one gametick after they have spawned. Merging is
++     * only possible after it has been established that the entity is safe to
++     * merge by collecting information on the entities that merge together over time.
 +     */
 +    SPAWN(3);
 +
@@ -95,7 +94,7 @@ index 0000000000000000000000000000000000000000..c241a3a359cad1d7c2cdb690649e0cac
 +    void setStacked(int stacked);
 +}
 diff --git a/src/main/java/org/bukkit/entity/FallingBlock.java b/src/main/java/org/bukkit/entity/FallingBlock.java
-index 95e75f5a4ccdedd3b26f8639f37de9450ed63d6b..be52a64e73e7880c6a28d8a6912923973b7cb13b 100644
+index 7904c716a3b0869ebf2f9b416536c59121a539a8..2479453b96a75fda2c307261f84c91034e73000d 100644
 --- a/src/main/java/org/bukkit/entity/FallingBlock.java
 +++ b/src/main/java/org/bukkit/entity/FallingBlock.java
 @@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
@@ -108,7 +107,7 @@ index 95e75f5a4ccdedd3b26f8639f37de9450ed63d6b..be52a64e73e7880c6a28d8a691292397
      /**
       * Get the Material of the falling block
 diff --git a/src/main/java/org/bukkit/entity/TNTPrimed.java b/src/main/java/org/bukkit/entity/TNTPrimed.java
-index 0813bd913c8fdb2001963ce3e82c07c2af105418..0bc227b6ba953c778ac950ec40f99276c77e880c 100644
+index 87e717c9ea61b0cbf536bc62fa829ddcfae5ad8c..ba84b3cbbd3358b16b21a18baa9c1812733fc144 100644
 --- a/src/main/java/org/bukkit/entity/TNTPrimed.java
 +++ b/src/main/java/org/bukkit/entity/TNTPrimed.java
 @@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
