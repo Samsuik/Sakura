@@ -388,10 +388,10 @@ index 0000000000000000000000000000000000000000..5296d4e0a1041932e36562f42fbf3e1d
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..04dc81634277d05894076a2cafde60ca35e1886e
+index 0000000000000000000000000000000000000000..f8770f97e3ad6c2746bc436b2b2c895cecd43996
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
-@@ -0,0 +1,251 @@
+@@ -0,0 +1,253 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.google.common.collect.Table;
@@ -417,6 +417,7 @@ index 0000000000000000000000000000000000000000..04dc81634277d05894076a2cafde60ca
 +import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
 +import me.samsuik.sakura.configuration.transformation.world.V3_RenameKnockback;
 +import me.samsuik.sakura.configuration.transformation.world.V2_VerticalKnockbackUseDefault;
++import me.samsuik.sakura.configuration.transformation.world.V4_RenameNonStrictMergeLevel;
 +import net.minecraft.core.RegistryAccess;
 +import net.minecraft.core.registries.Registries;
 +import net.minecraft.resources.ResourceLocation;
@@ -579,6 +580,7 @@ index 0000000000000000000000000000000000000000..04dc81634277d05894076a2cafde60ca
 +        final ConfigurationTransformation.VersionedBuilder versionedBuilder = Transformations.versionedBuilder();
 +        V2_VerticalKnockbackUseDefault.apply(versionedBuilder);
 +        V3_RenameKnockback.apply(versionedBuilder);
++        V4_RenameNonStrictMergeLevel.apply(versionedBuilder);
 +        // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
 +        versionedBuilder.build().apply(node);
 +    }
@@ -645,7 +647,7 @@ index 0000000000000000000000000000000000000000..04dc81634277d05894076a2cafde60ca
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a019905f4fb7ec8743136ca406584dbcc73801f5
+index 0000000000000000000000000000000000000000..0d015331a5143a0e45c4576e1ba51e50b2d46d87
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 @@ -0,0 +1,199 @@
@@ -680,7 +682,7 @@ index 0000000000000000000000000000000000000000..a019905f4fb7ec8743136ca406584dbc
 +public class WorldConfiguration extends ConfigurationPart {
 +
 +    private static final Logger LOGGER = LogUtils.getClassLogger();
-+    static final int CURRENT_VERSION = 3; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
++    static final int CURRENT_VERSION = 4; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
 +
 +    private transient final ResourceLocation worldKey;
 +    WorldConfiguration(ResourceLocation worldKey) {
@@ -916,6 +918,47 @@ index 0000000000000000000000000000000000000000..efba1f83cb079d0e75904adc439b715d
 +            transformationBuilder.addAction(entry.getKey(), rename(entry.getValue()));
 +        }
 +        builder.addVersion(VERSION, transformationBuilder.build());
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/transformation/world/V4_RenameNonStrictMergeLevel.java b/src/main/java/me/samsuik/sakura/configuration/transformation/world/V4_RenameNonStrictMergeLevel.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..198eb5f030ec5def4d93dec51dde352261654bb5
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/transformation/world/V4_RenameNonStrictMergeLevel.java
+@@ -0,0 +1,35 @@
++package me.samsuik.sakura.configuration.transformation.world;
++
++import org.checkerframework.checker.nullness.qual.Nullable;
++import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.ConfigurationNode;
++import org.spongepowered.configurate.NodePath;
++import org.spongepowered.configurate.transformation.ConfigurationTransformation;
++import org.spongepowered.configurate.transformation.TransformAction;
++
++import java.util.Locale;
++
++import static org.spongepowered.configurate.NodePath.path;
++
++public final class V4_RenameNonStrictMergeLevel implements TransformAction {
++    private static final int VERSION = 4;
++    private static final String OLD_LEVEL_NAME = "NON_STRICT";
++    private static final String NEW_LEVEL_NAME = "LENIENT";
++    private static final NodePath PATH = path("cannons", "merge-level");
++    private static final V4_RenameNonStrictMergeLevel INSTANCE = new V4_RenameNonStrictMergeLevel();
++
++    private V4_RenameNonStrictMergeLevel() {}
++
++    public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
++        builder.addVersion(VERSION, ConfigurationTransformation.builder().addAction(PATH, INSTANCE).build());
++    }
++
++    @Override
++    public Object @Nullable [] visitPath(NodePath path, ConfigurationNode value) throws ConfigurateException {
++        String level = value.getString();
++        if (level != null && OLD_LEVEL_NAME.equals(level.toUpperCase(Locale.ENGLISH))) {
++            value.set(NEW_LEVEL_NAME);
++        }
++        return null;
 +    }
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
