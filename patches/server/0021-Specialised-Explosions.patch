@@ -23,7 +23,7 @@ index 0fd814f1d65c111266a2b20f86561839a4cef755..932f7a0d030d2d4932e6e6d4a5805e9b
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..688a2bbd0b0b60b9acbdb3e6da0b24efed2bfde9
+index 0000000000000000000000000000000000000000..c50a0bb50698244373cbe4843bc800497f01ab77
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 @@ -0,0 +1,198 @@
@@ -210,13 +210,13 @@ index 0000000000000000000000000000000000000000..688a2bbd0b0b60b9acbdb3e6da0b24ef
 +                double density = this.getBlockDensity(pos, entity, this.recentBlockCache, this.mutablePos); // Paper - Optimize explosions // Paper - optimise explosions
 +                double exposure = (1.0D - distanceFromBottom) * density;
 +
-+                x *= exposure;
-+                y *= exposure;
-+                z *= exposure;
-+
 +                if (exposure == 0.0) {
 +                    return;
 +                }
++
++                x *= exposure;
++                y *= exposure;
++                z *= exposure;
 +
 +                for (int i = 0; i < potential; ++i) {
 +                    entity.addDeltaMovement(x, y, z);
@@ -227,10 +227,10 @@ index 0000000000000000000000000000000000000000..688a2bbd0b0b60b9acbdb3e6da0b24ef
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..71e1774a6db949ad6c01f1283a17a89ae6af8b02
+index 0000000000000000000000000000000000000000..13d87b08b1e12f7b5a6f59f545a4620cacae22ba
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,180 @@
+@@ -0,0 +1,187 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
@@ -250,6 +250,7 @@ index 0000000000000000000000000000000000000000..71e1774a6db949ad6c01f1283a17a89a
 +import net.minecraft.world.level.Level;
 +import net.minecraft.world.phys.AABB;
 +import net.minecraft.world.phys.Vec3;
++import org.bukkit.util.Vector;
 +import org.jetbrains.annotations.Nullable;
 +
 +import java.util.List;
@@ -336,8 +337,14 @@ index 0000000000000000000000000000000000000000..71e1774a6db949ad6c01f1283a17a89a
 +        }
 +    }
 +
++    private Vector getCauseOrigin() {
++        Vector origin = this.cause.getOriginVector();
++        return origin == null ? new Vector(this.x, this.y, this.z) : origin;
++    }
++
 +    private EntityState nextSourceVelocity() {
-+        PrimedTnt tnt = new PrimedTnt(EntityType.TNT, this.level);
++        Vector origin = this.getCauseOrigin(); // valid position to use while creating a temporary entity
++        PrimedTnt tnt = new PrimedTnt(this.level, origin.getX(), origin.getY(), origin.getZ(), null);
 +        this.cause.entityState().apply(tnt);
 +        this.impactCannonEntity(tnt, this.position, 1, this.radius() * 2.0f);
 +        return EntityState.of(tnt);
@@ -362,7 +369,7 @@ index 0000000000000000000000000000000000000000..71e1774a6db949ad6c01f1283a17a89a
 +        // iterate over the entityTickList to find entities that are exploding in the same position.
 +        while ((index = entities.advanceRawIterator(index)) != -1) {
 +            Entity foundEntity = entities.rawGet(index);
-+            if (!foundEntity.compareState(this.cause) || !foundEntity.isSafeToMergeInto(this.cause))
++            if (foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !foundEntity.isSafeToMergeInto(this.cause))
 +                break;
 +            base += foundEntity.getStacked();
 +            foundEntity.discard();
