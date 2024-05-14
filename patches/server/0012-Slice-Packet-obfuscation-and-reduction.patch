@@ -155,10 +155,10 @@ index 0f99733660f91280e4c6262cf75b3c9cae86f65a..ba9f8fe6fafc54bbdfb104de28af4b39
              return SynchedEntityData.DataValue.create(this.accessor, this.value);
          }
 diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
-index 2835f102559edcd6e7891a83125d84f5553565da..6ee16176563cf614df8bfc7c62d78fa1b4aa4412 100644
+index 4f103f731623a8570238a6867fda1c5f83fca4e4..842fe9b40efff7e36c97347b9d35f428044edb46 100644
 --- a/src/main/java/net/minecraft/server/level/ServerEntity.java
 +++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
-@@ -148,7 +148,7 @@ public class ServerEntity {
+@@ -141,7 +141,7 @@ public class ServerEntity {
              }
          }
  
@@ -167,38 +167,20 @@ index 2835f102559edcd6e7891a83125d84f5553565da..6ee16176563cf614df8bfc7c62d78fa1
              int i;
              int j;
  
-@@ -403,11 +403,23 @@ public class ServerEntity {
-     }
-     
-     // Sakura start - visibility api
--    private void broadcastEntityData(List<SynchedEntityData.DataValue<?>> packedValues) {
-+    private void broadcastEntityData(SynchedEntityData datawatcher, List<SynchedEntityData.DataValue<?>> packedValues) {
-         Packet<?> packet0 = new ClientboundSetEntityDataPacket(this.entity.getId(), packedValues);
-         Packet<?> packet1 = null;
- 
--        if (this.entity.isPrimedTNT) {
-+        // Slice start
-+        if (this.entity instanceof ServerPlayer serverPlayer) {
-+            serverPlayer.connection.send(packet0);
-+        }
-+
-+        packedValues = datawatcher.packForeignDirty(packedValues);
-+
-+        if (packedValues != null) {
-+            packet0 = new ClientboundSetEntityDataPacket(this.entity.getId(), packedValues);
-+        }
-+
-+        if (packedValues != null && this.entity.isPrimedTNT) {
-+            // Slice end
-             var copyOfDirtyItems = Lists.newArrayList(packedValues);
-             copyOfDirtyItems.removeIf((data) -> data.id() == 8);
- 
-@@ -434,7 +446,7 @@ public class ServerEntity {
+@@ -382,7 +382,15 @@ public class ServerEntity {
  
          if (list != null) {
              this.trackedDataValues = datawatcher.getNonDefaultValues();
--            this.broadcastEntityData(list); // Sakura - visibility api
-+            this.broadcastEntityData(datawatcher, list); // Sakura - visibility api
+-            this.broadcastAndSend(new ClientboundSetEntityDataPacket(this.entity.getId(), list));
++            // Slice start
++            if (!(this.entity instanceof ServerPlayer)) {
++                list = datawatcher.packForeignDirty(list);
++            }
++
++            if (list != null) {
++                this.broadcastAndSend(new ClientboundSetEntityDataPacket(this.entity.getId(), list));
++            }
++            // Slice end
          }
  
          if (this.entity instanceof LivingEntity) {
