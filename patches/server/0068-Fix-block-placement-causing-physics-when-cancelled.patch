@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Tue, 14 May 2024 19:26:58 +0100
+Subject: [PATCH] Fix block placement causing physics when cancelled
+
+
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 893efb2c4a07c33d41e934279dd914a9dbd4ef79..4c10a4213a5aa2b1e6884eee98568599f97f37dc 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -473,9 +473,16 @@ public final class ItemStack implements DataComponentHolder {
+                     world.capturedTileEntities.clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot
+                     // revert back all captured blocks
+                     world.preventPoiUpdated = true; // CraftBukkit - SPIGOT-5710
++                    // Sakura start - fix placement causing physics when event is cancelled
++                    world.preventNeighborUpdates = true;
++                    try {
+                     for (BlockState blockstate : blocks) {
+                         blockstate.update(true, false);
+                     }
++                    } finally {
++                        world.preventNeighborUpdates = false;
++                    }
++                    // Sakura end - fix placement causing physics when event is cancelled
+                     world.preventPoiUpdated = false;
+ 
+                     // Brute force all possible updates
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index e22488d017263b1105d4361fd9f744ca642b21e7..4d7955e5624b065d1e15ab561d1c3de0ac5bcb92 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -147,6 +147,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public boolean pvpMode;
+     public org.bukkit.generator.ChunkGenerator generator;
+ 
++    public boolean preventNeighborUpdates = false; // Sakura - fix placement causing physics when event is cancelled
+     public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
+     public boolean captureBlockStates = false;
+     public boolean captureTreeGeneration = false;
+diff --git a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
+index 337d2c020acf0565401d21bce3ba701c0da0ad99..c28545c4109f3da861eabe8f20c2d313143f4f12 100644
+--- a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
+@@ -498,7 +498,7 @@ public class RedStoneWireBlock extends Block {
+ 
+     @Override
+     protected void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean moved) {
+-        if (!moved && !state.is(newState.getBlock())) {
++        if (!moved && !state.is(newState.getBlock()) && !world.preventNeighborUpdates) { // Sakura - fix placement causing physics when event is cancelled
+             super.onRemove(state, world, pos, newState, moved);
+             if (!world.isClientSide) {
+                 Direction[] aenumdirection = Direction.values();
+diff --git a/src/main/java/net/minecraft/world/level/redstone/NeighborUpdater.java b/src/main/java/net/minecraft/world/level/redstone/NeighborUpdater.java
+index e679b40b9628b0eb7152978ef641f9c918c4c8b2..f095b51b5805d72373644ebe04332321e28b5468 100644
+--- a/src/main/java/net/minecraft/world/level/redstone/NeighborUpdater.java
++++ b/src/main/java/net/minecraft/world/level/redstone/NeighborUpdater.java
+@@ -52,6 +52,7 @@ public interface NeighborUpdater {
+ 
+     static void executeUpdate(Level world, BlockState state, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
+         try {
++            if (world.preventNeighborUpdates) { return; } // Sakura - fix placement causing physics when event is cancelled
+             // CraftBukkit start
+             CraftWorld cworld = ((ServerLevel) world).getWorld();
+             if (cworld != null) {
