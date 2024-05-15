@@ -6,11 +6,15 @@ Subject: [PATCH] Visibility API
 
 diff --git a/src/main/java/me/samsuik/sakura/player/visibility/Visibility.java b/src/main/java/me/samsuik/sakura/player/visibility/Visibility.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..01525d386e39709084344c5325793dacf41650fb
+index 0000000000000000000000000000000000000000..3df11f07ce533b8b911ec423be850374fcc8a7c1
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/player/visibility/Visibility.java
-@@ -0,0 +1,141 @@
+@@ -0,0 +1,198 @@
 +package me.samsuik.sakura.player.visibility;
++
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.format.TextColor;
++import org.bukkit.Material;
 +
 +import java.util.EnumSet;
 +import java.util.Locale;
@@ -57,9 +61,7 @@ index 0000000000000000000000000000000000000000..01525d386e39709084344c5325793dac
 +     * @param setting provided
 +     */
 +    public void toggle(Setting setting) {
-+        if (settings.contains(setting)) {
-+            settings.remove(setting);
-+        } else {
++        if (!settings.remove(setting)) {
 +            settings.add(setting);
 +        }
 +    }
@@ -119,34 +121,89 @@ index 0000000000000000000000000000000000000000..01525d386e39709084344c5325793dac
 +        return !settings.isEmpty();
 +    }
 +
++    /**
++     * Current visibility settings state.
++     *
++     * @return state
++     */
++    public State getState() {
++        if (this.settings.isEmpty()) {
++            return State.ENABLED;
++        } else if (this.settings.size() != Setting.values().length) {
++            return State.MODIFIED;
++        } else {
++            return State.DISABLED;
++        }
++    }
++
 +    public enum Setting {
-+        TNT_VISIBILITY("TNT Visibility", true),
-+        SAND_VISIBILITY("Sand Visibility", true),
-+        MINIMAL("Minimal TNT/Sand", false),
-+        EXPLOSIONS("Explosion Particles", true),
-+        ENCHANTMENT_GLINT("Enchantment Glint", true),
-+        SPAWNERS("Spawner Visibility", true),
-+        REDSTONE("Redstone Animations", true),
-+        PISTONS("Piston Animations", true);
++        TNT_VISIBILITY("TNT Visibility", Material.TNT, NamedTextColor.RED, true),
++        SAND_VISIBILITY("Sand Visibility", Material.SAND, NamedTextColor.YELLOW, true),
++        MINIMAL("Minimal TNT/Sand", Material.NETHER_BRICK_SLAB, NamedTextColor.GOLD, false),
++        EXPLOSIONS("Explosion Particles",  Material.COBWEB, NamedTextColor.WHITE, true),
++        ENCHANTMENT_GLINT("Enchantment Glint", Material.ENCHANTED_BOOK, NamedTextColor.DARK_PURPLE, true),
++        SPAWNERS("Spawner Visibility", Material.SPAWNER, NamedTextColor.DARK_GRAY, true),
++        REDSTONE("Redstone Animations", Material.REDSTONE, NamedTextColor.DARK_RED, true),
++        PISTONS("Piston Animations", Material.PISTON, NamedTextColor.GOLD, true);
 +
 +        private final String friendlyName;
++        private final Material material;
++        private final TextColor colour;
 +        private final boolean defaultValue;
 +
-+        Setting(String friendlyName, boolean defaultValue) {
++        Setting(String friendlyName, Material material, TextColor color, boolean defaultValue) {
 +            this.friendlyName = friendlyName;
++            this.material = material;
++            this.colour = color;
 +            this.defaultValue = defaultValue;
 +        }
 +
 +        public boolean getDefault() {
-+            return defaultValue;
++            return this.defaultValue;
 +        }
 +
 +        public String friendlyName() {
-+            return friendlyName;
++            return this.friendlyName;
++        }
++
++        public Material material() {
++            return this.material;
++        }
++
++        public TextColor colour() {
++            return this.colour;
 +        }
 +
 +        public String basicName() {
-+            return name().replace("_", "").toLowerCase(Locale.ROOT);
++            return this.name().replace("_", "").toLowerCase(Locale.ROOT);
++        }
++    }
++
++    public enum State {
++        ENABLED("Enabled", Material.GREEN_STAINED_GLASS_PANE, NamedTextColor.GREEN),
++        MODIFIED("Modified", Material.MAGENTA_STAINED_GLASS_PANE, NamedTextColor.LIGHT_PURPLE),
++        DISABLED("Disabled", Material.RED_STAINED_GLASS_PANE, NamedTextColor.RED);
++
++        private final String title;
++        private final Material material;
++        private final TextColor colour;
++
++        State(String name, Material material, TextColor colour) {
++            this.title = name;
++            this.material = material;
++            this.colour = colour;
++        }
++
++        public String title() {
++            return this.title;
++        }
++
++        public Material material() {
++            return material;
++        }
++
++        public TextColor colour() {
++            return colour;
 +        }
 +    }
 +

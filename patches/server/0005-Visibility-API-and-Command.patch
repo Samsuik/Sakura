@@ -114,10 +114,10 @@ index 0000000000000000000000000000000000000000..148a583279333eeb3e5db16652623082
 +}
 diff --git a/src/main/java/me/samsuik/sakura/player/visibility/VisibilityGUI.java b/src/main/java/me/samsuik/sakura/player/visibility/VisibilityGUI.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d61d47f9a473d072a160bc6b1cff8a8daf8929b6
+index 0000000000000000000000000000000000000000..6f74429456e78f17fa3e4426d9d9b5f008d8df42
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/player/visibility/VisibilityGUI.java
-@@ -0,0 +1,117 @@
+@@ -0,0 +1,123 @@
 +package me.samsuik.sakura.player.visibility;
 +
 +import me.samsuik.sakura.configuration.GlobalConfiguration;
@@ -125,7 +125,6 @@ index 0000000000000000000000000000000000000000..d61d47f9a473d072a160bc6b1cff8a8d
 +import me.samsuik.sakura.player.gui.PlayerGUI;
 +import net.kyori.adventure.text.Component;
 +import net.kyori.adventure.text.format.NamedTextColor;
-+import net.kyori.adventure.text.format.TextColor;
 +import net.kyori.adventure.text.format.TextDecoration;
 +import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 +import org.bukkit.Bukkit;
@@ -168,45 +167,49 @@ index 0000000000000000000000000000000000000000..d61d47f9a473d072a160bc6b1cff8a8d
 +
 +    @Override
 +    protected void register() {
-+        registerFPSIcon(Visibility.Setting.TNT_VISIBILITY, Material.TNT, NamedTextColor.RED, 12);
-+        registerFPSIcon(Visibility.Setting.SAND_VISIBILITY, Material.SAND, NamedTextColor.YELLOW, 14);
-+        registerFPSIcon(Visibility.Setting.MINIMAL, Material.NETHER_BRICK_SLAB, NamedTextColor.GOLD, 13);
-+        registerFPSIcon(Visibility.Setting.SPAWNERS, Material.SPAWNER, NamedTextColor.DARK_GRAY, 20);
-+        //registerFPSIcon(Visibility.Setting.FLASHING_TNT, Material.REDSTONE_LAMP, NamedTextColor.RED, 22);
-+        registerFPSIcon(Visibility.Setting.EXPLOSIONS, Material.COBWEB, NamedTextColor.WHITE, 24);
-+        registerFPSIcon(Visibility.Setting.PISTONS, Material.PISTON, NamedTextColor.GOLD, 30);
-+        registerFPSIcon(Visibility.Setting.REDSTONE, Material.REDSTONE, NamedTextColor.DARK_RED, 31);
-+        registerFPSIcon(Visibility.Setting.ENCHANTMENT_GLINT, Material.ENCHANTED_BOOK, NamedTextColor.DARK_PURPLE, 32);
++        registerFPSIcon(Visibility.Setting.TNT_VISIBILITY, 12);
++        registerFPSIcon(Visibility.Setting.SAND_VISIBILITY, 14);
++        registerFPSIcon(Visibility.Setting.MINIMAL, 13);
++        registerFPSIcon(Visibility.Setting.SPAWNERS, 20);
++        // ...22
++        registerFPSIcon(Visibility.Setting.EXPLOSIONS, 24);
++        registerFPSIcon(Visibility.Setting.PISTONS, 30);
++        registerFPSIcon(Visibility.Setting.REDSTONE, 31);
++        registerFPSIcon(Visibility.Setting.ENCHANTMENT_GLINT, 32);
 +
-+        registerIcon(new ItemIcon(
-+            player -> {
-+                ItemStack itemstack = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
-+                Component title = Component.text("Toggle all", NamedTextColor.GREEN);
-+                
-+                itemstack.editMeta(meta -> meta.displayName(title.decoration(TextDecoration.ITALIC, false)));
-+                return itemstack;
-+            },
-+            player -> {
-+                player.getVisibility().toggleAll();
++        registerIcon(new ItemIcon(player -> {
++            Visibility.State state = player.getVisibility().getState();
++            ItemStack itemstack = new ItemStack(state.material());
 +
-+                // refresh icons after toggling
-+                this.refresh(player);
-+            },
-+            26
-+        ));
++            itemstack.editMeta(meta -> {
++                Component title = Component.text("Toggle all", state.colour());
++
++                // italic is default
++                title = title.decoration(TextDecoration.ITALIC, false);
++
++                meta.displayName(title.append(Component.space())
++                    .append(Component.text(state.title(), NamedTextColor.GRAY)));
++            });
++
++            return itemstack;
++        }, player -> {
++            player.getVisibility().toggleAll();
++            // refresh icons after toggling
++            this.refresh(player);
++        }, 26));
 +    }
 +
-+    private void registerFPSIcon(Visibility.Setting setting, Material material, TextColor colour, int slot) {
++    private void registerFPSIcon(Visibility.Setting setting, int slot) {
 +        registerIcon(new ItemIcon(player -> {
 +            Visibility visibility = player.getVisibility();
-+            ItemStack itemstack = new ItemStack(material);
++            ItemStack itemstack = new ItemStack(setting.material());
 +
 +            itemstack.editMeta(meta -> {
 +                // Get the current state as a string
 +                String state = visibility.isEnabled(setting) ? "Enabled" : "Disabled";
 +
 +                // Friendly name as a component
-+                Component title = Component.text(setting.friendlyName(), colour);
++                Component title = Component.text(setting.friendlyName(), setting.colour());
 +
 +                // Display names are italic by default
 +                title = title.decoration(TextDecoration.ITALIC, false);
@@ -231,6 +234,9 @@ index 0000000000000000000000000000000000000000..d61d47f9a473d072a160bc6b1cff8a8d
 +                Placeholder.unparsed("name", setting.friendlyName()),
 +                Placeholder.unparsed("state", state)
 +            );
++
++            // Update toggle all icon
++            this.refreshSlot(player, 26);
 +        }, slot));
 +    }
 +

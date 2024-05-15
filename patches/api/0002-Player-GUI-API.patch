@@ -21,10 +21,10 @@ index 0000000000000000000000000000000000000000..cc0645aa27e6e96922f26242e71fef5d
 +public record ItemIcon(Function<Player, ItemStack> itemUpdate, Consumer<Player> onClick, int slot) {}
 diff --git a/src/main/java/me/samsuik/sakura/player/gui/PlayerGUI.java b/src/main/java/me/samsuik/sakura/player/gui/PlayerGUI.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1619a55dcdb8da143c82489419650f12dfbdf0a3
+index 0000000000000000000000000000000000000000..8eec1182c82ea9f1ca88998494280ad1d7b7d653
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/player/gui/PlayerGUI.java
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,122 @@
 +package me.samsuik.sakura.player.gui;
 +
 +import org.bukkit.entity.Player;
@@ -70,6 +70,14 @@ index 0000000000000000000000000000000000000000..1619a55dcdb8da143c82489419650f12
 +        }
 +    }
 +
++    protected void refreshSlot(Player player, int slot) {
++        Inventory inventory = player.getOpenInventory().getTopInventory();
++
++        if (inventory.getHolder() instanceof Holder && iconMap.containsKey(slot)) {
++            updateIcon(player, iconMap.get(slot), inventory);
++        }
++    }
++
 +    public void unregister() {
 +        REGISTERED_GUIS.remove(this);
 +        registered = false;
@@ -95,7 +103,7 @@ index 0000000000000000000000000000000000000000..1619a55dcdb8da143c82489419650f12
 +
 +        if (icon != null) {
 +            icon.onClick()
-+                .andThen((p) -> updateIcon(player, icon, inventory))
++                .andThen(p -> updateIcon(player, icon, inventory))
 +                .accept(player);
 +        }
 +    }
