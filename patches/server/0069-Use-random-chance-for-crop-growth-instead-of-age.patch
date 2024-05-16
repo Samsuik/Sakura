@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 16 May 2024 21:20:52 +0100
+Subject: [PATCH] Use random chance for crop growth instead of age
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/CactusBlock.java b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
+index ff4dda48116a2969704b355ff96407ba869b466e..aac74ac6aae9e9435680f1f8b34074760b674cb1 100644
+--- a/src/main/java/net/minecraft/world/level/block/CactusBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
+@@ -52,6 +52,18 @@ public class CactusBlock extends Block {
+ 
+     @Override
+     protected void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // Sakura start - use random chance for crop growth
++        if (world.sakuraConfig().environment.crops.useRandomChanceToGrow) {
++            int modifier = world.spigotConfig.cactusModifier;
++            if (random.nextFloat() >= modifier / (100.0f * 16)) {
++                return;
++            }
++            world.setBlock(pos, state.setValue(CactusBlock.AGE, AGE.max), 16);
++        }
++        this.ageAndGrow(state, world, pos, random);
++    }
++    private void ageAndGrow(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // Sakura end - use random chance for crop growth
+         BlockPos blockposition1 = pos.above();
+ 
+         if (world.isEmptyBlock(blockposition1)) {
+@@ -71,6 +83,7 @@ public class CactusBlock extends Block {
+ 
+                     world.setBlock(pos, iblockdata1, 4);
+                     world.neighborChanged(iblockdata1, blockposition1, this, pos, false);
++                    // Sakura - conflict on change
+                 } else if (modifier == 100 || random.nextFloat() < (modifier / (100.0f * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                     world.setBlock(pos, (BlockState) state.setValue(CactusBlock.AGE, j + 1), 4);
+                 }
+diff --git a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+index c48c622e92cedeaa46b929c7adfedec98dd5a3fb..7622a661480cd094d527f309d1fe57851952aea3 100644
+--- a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+@@ -52,6 +52,18 @@ public class SugarCaneBlock extends Block {
+ 
+     @Override
+     protected void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // Sakura start - use random chance for crop growth
++        if (world.sakuraConfig().environment.crops.useRandomChanceToGrow) {
++            int modifier = world.spigotConfig.caneModifier;
++            if (random.nextFloat() >= modifier / (100.0f * 16)) {
++                return;
++            }
++            world.setBlock(pos, state.setValue(SugarCaneBlock.AGE, AGE.max), 16);
++        }
++        this.ageAndGrow(state, world, pos, random);
++    }
++    private void ageAndGrow(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // Sakura end - use random chance for crop growth
+         if (world.isEmptyBlock(pos.above())) {
+             int i;
+ 
+@@ -66,6 +78,7 @@ public class SugarCaneBlock extends Block {
+                 if (j >= 15 || (modifier != 100 && random.nextFloat() < (modifier / (100.0f * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                     org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(world, pos.above(), this.defaultBlockState()); // CraftBukkit
+                     world.setBlock(pos, (BlockState) state.setValue(SugarCaneBlock.AGE, 0), 4);
++                    // Sakura - conflict on change
+                 } else if (modifier == 100 || random.nextFloat() < (modifier / (100.0f * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                     world.setBlock(pos, (BlockState) state.setValue(SugarCaneBlock.AGE, j + 1), 4);
+                 }
