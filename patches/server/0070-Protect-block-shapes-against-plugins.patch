@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Wed, 22 May 2024 23:40:02 +0100
+Subject: [PATCH] Protect block shapes against plugins
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/CarpetBlock.java b/src/main/java/net/minecraft/world/level/block/CarpetBlock.java
+index 4e831f460a8bd98a3ab0de29e5483d9ab37947d3..734cba4b48c7a70664e1307dc03d94d67bb8c3e2 100644
+--- a/src/main/java/net/minecraft/world/level/block/CarpetBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CarpetBlock.java
+@@ -14,6 +14,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
+ public class CarpetBlock extends Block {
+     public static final MapCodec<CarpetBlock> CODEC = simpleCodec(CarpetBlock::new);
+     protected static final VoxelShape SHAPE = Block.box(0.0, 0.0, 0.0, 16.0, 1.0, 16.0);
++    private static final VoxelShape SHAPE_COPY = SHAPE; // Sakura - protect block shapes
+ 
+     @Override
+     public MapCodec<? extends CarpetBlock> codec() {
+@@ -26,7 +27,7 @@ public class CarpetBlock extends Block {
+ 
+     @Override
+     public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+-        return SHAPE;
++        return SHAPE_COPY; // Sakura - protect block shapes
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/level/block/LadderBlock.java b/src/main/java/net/minecraft/world/level/block/LadderBlock.java
+index 86ed1e1cdbab5004a767831bcb0b34d2b2c3adf8..4af202db3348af3a214b1d6faf43f45a5d91b5bf 100644
+--- a/src/main/java/net/minecraft/world/level/block/LadderBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/LadderBlock.java
+@@ -28,6 +28,12 @@ public class LadderBlock extends Block implements SimpleWaterloggedBlock {
+     protected static final VoxelShape WEST_AABB = Block.box(13.0, 0.0, 0.0, 16.0, 16.0, 16.0);
+     protected static final VoxelShape SOUTH_AABB = Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 3.0);
+     protected static final VoxelShape NORTH_AABB = Block.box(0.0, 0.0, 13.0, 16.0, 16.0, 16.0);
++    // Sakura start - protect block shapes
++    private static final VoxelShape EAST_AABB_COPY = EAST_AABB;
++    private static final VoxelShape WEST_AABB_COPY = WEST_AABB;
++    private static final VoxelShape SOUTH_AABB_COPY = SOUTH_AABB;
++    private static final VoxelShape NORTH_AABB_COPY = NORTH_AABB;
++    // Sakura end - protect block shapes
+     // Sakura start - physics version api
+     protected static final VoxelShape LEGACY_EAST_AABB = Block.box(0.0, 0.0, 0.0, 2.0, 16.0, 16.0);
+     protected static final VoxelShape LEGACY_WEST_AABB = Block.box(14.0, 0.0, 0.0, 16.0, 16.0, 16.0);
+@@ -68,14 +74,16 @@ public class LadderBlock extends Block implements SimpleWaterloggedBlock {
+         // Sakura end - physics version api
+         switch ((Direction)state.getValue(FACING)) {
+             case NORTH:
+-                return NORTH_AABB;
++                // Sakura start - protect block shapes
++                return NORTH_AABB_COPY;
+             case SOUTH:
+-                return SOUTH_AABB;
++                return SOUTH_AABB_COPY;
+             case WEST:
+-                return WEST_AABB;
++                return WEST_AABB_COPY;
+             case EAST:
+             default:
+-                return EAST_AABB;
++                return EAST_AABB_COPY;
++                // Sakura end - protect block shapes
+         }
+     }
+ 
