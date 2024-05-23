@@ -5,14 +5,14 @@ Subject: [PATCH] Protect block shapes against plugins
 
 
 diff --git a/src/main/java/net/minecraft/world/level/block/CarpetBlock.java b/src/main/java/net/minecraft/world/level/block/CarpetBlock.java
-index 4e831f460a8bd98a3ab0de29e5483d9ab37947d3..734cba4b48c7a70664e1307dc03d94d67bb8c3e2 100644
+index 4e831f460a8bd98a3ab0de29e5483d9ab37947d3..365f666ae050cf9ae25f8f7982c172216a28e370 100644
 --- a/src/main/java/net/minecraft/world/level/block/CarpetBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CarpetBlock.java
 @@ -14,6 +14,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  public class CarpetBlock extends Block {
      public static final MapCodec<CarpetBlock> CODEC = simpleCodec(CarpetBlock::new);
      protected static final VoxelShape SHAPE = Block.box(0.0, 0.0, 0.0, 16.0, 1.0, 16.0);
-+    private static final VoxelShape SHAPE_COPY = SHAPE; // Sakura - protect block shapes
++    private static final VoxelShape SHAPE_COPY = SHAPE.copy(); // Sakura - protect block shapes
  
      @Override
      public MapCodec<? extends CarpetBlock> codec() {
@@ -26,7 +26,7 @@ index 4e831f460a8bd98a3ab0de29e5483d9ab37947d3..734cba4b48c7a70664e1307dc03d94d6
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/LadderBlock.java b/src/main/java/net/minecraft/world/level/block/LadderBlock.java
-index 86ed1e1cdbab5004a767831bcb0b34d2b2c3adf8..4af202db3348af3a214b1d6faf43f45a5d91b5bf 100644
+index 86ed1e1cdbab5004a767831bcb0b34d2b2c3adf8..9025c909ae392b6953ab35f765a8dfe32eda2670 100644
 --- a/src/main/java/net/minecraft/world/level/block/LadderBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/LadderBlock.java
 @@ -28,6 +28,12 @@ public class LadderBlock extends Block implements SimpleWaterloggedBlock {
@@ -34,10 +34,10 @@ index 86ed1e1cdbab5004a767831bcb0b34d2b2c3adf8..4af202db3348af3a214b1d6faf43f45a
      protected static final VoxelShape SOUTH_AABB = Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 3.0);
      protected static final VoxelShape NORTH_AABB = Block.box(0.0, 0.0, 13.0, 16.0, 16.0, 16.0);
 +    // Sakura start - protect block shapes
-+    private static final VoxelShape EAST_AABB_COPY = EAST_AABB;
-+    private static final VoxelShape WEST_AABB_COPY = WEST_AABB;
-+    private static final VoxelShape SOUTH_AABB_COPY = SOUTH_AABB;
-+    private static final VoxelShape NORTH_AABB_COPY = NORTH_AABB;
++    private static final VoxelShape EAST_AABB_COPY = EAST_AABB.copy();
++    private static final VoxelShape WEST_AABB_COPY = WEST_AABB.copy();
++    private static final VoxelShape SOUTH_AABB_COPY = SOUTH_AABB.copy();
++    private static final VoxelShape NORTH_AABB_COPY = NORTH_AABB.copy();
 +    // Sakura end - protect block shapes
      // Sakura start - physics version api
      protected static final VoxelShape LEGACY_EAST_AABB = Block.box(0.0, 0.0, 0.0, 2.0, 16.0, 16.0);
@@ -63,3 +63,20 @@ index 86ed1e1cdbab5004a767831bcb0b34d2b2c3adf8..4af202db3348af3a214b1d6faf43f45a
          }
      }
  
+diff --git a/src/main/java/net/minecraft/world/phys/shapes/VoxelShape.java b/src/main/java/net/minecraft/world/phys/shapes/VoxelShape.java
+index 24c1caa060e7c41eac81c19f873ac9273c6b84c2..6de2496807c1701510d3637d6817f6e9438a2362 100644
+--- a/src/main/java/net/minecraft/world/phys/shapes/VoxelShape.java
++++ b/src/main/java/net/minecraft/world/phys/shapes/VoxelShape.java
+@@ -481,6 +481,12 @@ public abstract class VoxelShape {
+         return new OffsetDoubleList(src, by);
+     }
+     // Paper end - optimise collisions
++    // Sakura start - protect block shapes
++    public final VoxelShape copy() {
++        this.cachedToAABBs = null;
++        return this.move(0.0, 0.0, 0.0);
++    }
++    // Sakura end - protect block shapes
+ 
+     public VoxelShape move(double x, double y, double z) {
+         // Paper start - optimise collisions
