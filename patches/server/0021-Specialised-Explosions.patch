@@ -23,10 +23,10 @@ index 0fd814f1d65c111266a2b20f86561839a4cef755..932f7a0d030d2d4932e6e6d4a5805e9b
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c50a0bb50698244373cbe4843bc800497f01ab77
+index 0000000000000000000000000000000000000000..d15eb10fa203236060b90c5fc1364564dec8753f
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-@@ -0,0 +1,198 @@
+@@ -0,0 +1,200 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import io.papermc.paper.util.WorldUtil;
@@ -120,9 +120,11 @@ index 0000000000000000000000000000000000000000..c50a0bb50698244373cbe4843bc80049
 +    }
 +
 +    protected void postExplosion(List<BlockPos> foundBlocks, boolean destroyedBlocks) {
-+        // The purpose of this is to make sure papers blockCache doesn't become outdated
-+        // by removing stale entries from the block cache map and the recent cache array.
-+        if (!foundBlocks.isEmpty() && !destroyedBlocks) {
++        // optimisation: Keep the block cache across explosions and invalidate any found blocks.
++        // This can help reduce block retrievals while block searching when there's a durable block,
++        // and when ray tracing for obstructions. This is disabled by default because plugins can
++        // change blocks in the explosion event.
++        if (this.level.sakuraConfig().cannons.explosion.useBlockCacheAcrossExplosions && !foundBlocks.isEmpty() && !destroyedBlocks) {
 +            this.markBlocksInCacheAsExplodable(foundBlocks);
 +        } else {
 +            super.blockCache.clear();
@@ -479,7 +481,7 @@ index 1860ffd3e11601983abbb85962dd9ef56992c9f5..f8e19ca5af5b313e887ce8b428e32a84
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index d7e8dd148098de080c5bc0f76b36207501e1089f..7eb8da4075b4f1706f698a0b48206421bf4353c3 100644
+index d7e8dd148098de080c5bc0f76b36207501e1089f..7de806ca3b923e657187b185b492f8e64a850b24 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -56,9 +56,11 @@ public class Explosion {
@@ -537,6 +539,15 @@ index d7e8dd148098de080c5bc0f76b36207501e1089f..7eb8da4075b4f1706f698a0b48206421
                                                           final long key, final boolean calculateResistance) {
          ExplosionBlockCache ret = this.blockCache.get(key);
          if (ret != null) {
+@@ -311,7 +335,7 @@ public class Explosion {
+                     (currZ & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT + BLOCK_EXPLOSION_CACHE_SHIFT);
+             ExplosionBlockCache cachedBlock = blockCache[cacheKey];
+             if (cachedBlock == null || cachedBlock.key != key) {
+-                blockCache[cacheKey] = cachedBlock = this.getOrCacheExplosionBlock(currX, currY, currZ, key, false);
++                blockCache[cacheKey] = cachedBlock = this.getOrCacheExplosionBlock(currX, currY, currZ, key, this.level.sakuraConfig().cannons.explosion.useBlockCacheAcrossExplosions); // Sakura - specialised explosions
+             }
+ 
+             final BlockState blockState = cachedBlock.blockState;
 @@ -502,14 +526,7 @@ public class Explosion {
          int j;
  
