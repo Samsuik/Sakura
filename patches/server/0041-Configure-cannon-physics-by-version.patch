@@ -255,7 +255,7 @@ index b9d91310268088b43c432e7fb4d669cc9ddae527..f6a4c34a47d4ca46681d694798f61959
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index d22c1357006d2785ff2a0e9465a214cf5a262cb1..b0a6d829a9790744a030cd4b230b71a752e546d0 100644
+index 779a6686d491a8c4c95d5b8087fc55ee2f184f38..c01ed76846ad9ab893b0a7cdeadc077ccd829f1a 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -90,6 +90,8 @@ public class FallingBlockEntity extends Entity {
@@ -391,7 +391,7 @@ index d22c1357006d2785ff2a0e9465a214cf5a262cb1..b0a6d829a9790744a030cd4b230b71a7
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 30443bc74abbe0a557b5d9d9bae0eb48ef1dd7d3..f775f881b6d89670b3e3900f3023918d6ababe01 100644
+index df2a37e57012333a618937e61cb5a99c3ef4a0f9..62d40333c42f673479db5e6312343161aacf7078 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -58,6 +58,13 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -481,26 +481,26 @@ index 30443bc74abbe0a557b5d9d9bae0eb48ef1dd7d3..f775f881b6d89670b3e3900f3023918d
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 3b5c6aa1e211bf8f16f0b8d11c4169b2978f52dc..383639ee1e25c36f656bf3b3908b1dac11319695 100644
+index f7e01cb367b5b75f1f267d727b539066845d6e14..c5db31bd92a441eccd0f4c5ea1b8c7f17a00de65 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -75,6 +75,7 @@ public class Explosion {
-     public boolean wasCanceled = false;
+@@ -76,6 +76,7 @@ public class Explosion {
      public float yield;
      // CraftBukkit end
+     private final boolean consistentRadius; // Sakura - consistent explosion radius
 +    protected final me.samsuik.sakura.physics.PhysicsVersion physics; // Sakura - physics version api
  
      public static DamageSource getDefaultDamageSource(Level world, @Nullable Entity source) {
          return world.damageSources().explosion(source, Explosion.getIndirectSourceEntityInternal(source));
-@@ -112,6 +113,7 @@ public class Explosion {
-         this.largeExplosionParticles = emitterParticle;
+@@ -114,6 +115,7 @@ public class Explosion {
          this.explosionSound = soundEvent;
          this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
+         this.consistentRadius = world.localConfig().config(BlockPos.containing(x, y, z)).consistentRadius; // Sakura - consistent explosion radius
 +        this.physics = entity != null ? entity.physics() : world.localConfig().config(BlockPos.containing(x, y, z)).physicsVersion; // Sakura - physics version api
      }
  
      // Sakura start - optimise paper explosions
-@@ -504,8 +506,12 @@ public class Explosion {
+@@ -506,8 +508,12 @@ public class Explosion {
                          final float density = entity.level().densityCache.getKnownDensity(vec3d1);
                          if (density != me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
                              hitResult = density != 0.0f ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
@@ -514,7 +514,7 @@ index 3b5c6aa1e211bf8f16f0b8d11c4169b2978f52dc..383639ee1e25c36f656bf3b3908b1dac
                          }
                          if (hitResult == HitResult.Type.MISS) {
                              // Sakura end - replace density cache
-@@ -610,6 +616,14 @@ public class Explosion {
+@@ -612,6 +618,14 @@ public class Explosion {
                              }
  
                              if (cachedBlock.outOfWorld) {
@@ -529,7 +529,7 @@ index 3b5c6aa1e211bf8f16f0b8d11c4169b2978f52dc..383639ee1e25c36f656bf3b3908b1dac
                                  break;
                              }
  
-@@ -715,9 +729,15 @@ public class Explosion {
+@@ -717,9 +731,15 @@ public class Explosion {
  
                  if (d7 <= 1.0D) {
                      double d8 = entity.getX() - this.x;
@@ -546,7 +546,7 @@ index 3b5c6aa1e211bf8f16f0b8d11c4169b2978f52dc..383639ee1e25c36f656bf3b3908b1dac
  
                      if (d11 != 0.0D) {
                          d8 /= d11;
-@@ -1056,7 +1076,7 @@ public class Explosion {
+@@ -1058,7 +1078,7 @@ public class Explosion {
          // Sakura start - replace density cache
          float blockDensity = this.level.densityCache.getDensity(vec3d, entity);
          if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
@@ -555,7 +555,7 @@ index 3b5c6aa1e211bf8f16f0b8d11c4169b2978f52dc..383639ee1e25c36f656bf3b3908b1dac
              this.level.densityCache.putDensity(vec3d, entity, blockDensity);
              // Sakura end - replace density cache
          }
-@@ -1064,6 +1084,17 @@ public class Explosion {
+@@ -1066,6 +1086,17 @@ public class Explosion {
          return blockDensity;
      }
  
