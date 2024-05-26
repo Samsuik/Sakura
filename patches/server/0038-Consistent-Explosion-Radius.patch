@@ -5,15 +5,31 @@ Subject: [PATCH] Consistent Explosion Radius
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 9f4fbb9475ab011ab6b19e709b6673cd5c9d0895..085ea33ed1ce47d3eaa5dc72d3baea44991f2c06 100644
+index 779285b59fec13274bb8de9927407e3145b110ac..e2a560846ed479309b18d8474b3c9f9d1f89bd5c 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -584,7 +584,7 @@ public class Explosion {
+@@ -74,6 +74,7 @@ public class Explosion {
+     public boolean wasCanceled = false;
+     public float yield;
+     // CraftBukkit end
++    private final boolean consistentRadius; // Sakura - consistent explosion radius
+ 
+     public static DamageSource getDefaultDamageSource(Level world, @Nullable Entity source) {
+         return world.damageSources().explosion(source, Explosion.getIndirectSourceEntityInternal(source));
+@@ -111,6 +112,7 @@ public class Explosion {
+         this.largeExplosionParticles = emitterParticle;
+         this.explosionSound = soundEvent;
+         this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
++        this.consistentRadius = world.localConfig().config(BlockPos.containing(x, y, z)).consistentRadius; // Sakura - consistent explosion radius
+     }
+ 
+     // Sakura start - optimise paper explosions
+@@ -584,7 +586,7 @@ public class Explosion {
                          double d2 = CACHED_RAYS[ray + 2];
                          ray += 3;
                          // Paper end - optimise explosions
 -                        float f = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
-+                        float f = this.radius * (0.7F + (this.level.sakuraConfig().cannons.explosion.consistentRadius ? 0.7F : this.level.random.nextFloat()) * 0.6F); // Sakura - consistent explosion radius
++                        float f = this.radius * (0.7F + (consistentRadius ? 0.7F : this.level.random.nextFloat()) * 0.6F); // Sakura - consistent explosion radius
                          double d4 = this.x;
                          double d5 = this.y;
                          double d6 = this.z;

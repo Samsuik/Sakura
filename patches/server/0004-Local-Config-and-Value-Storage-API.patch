@@ -155,10 +155,10 @@ index 0000000000000000000000000000000000000000..a3a09b8d58589883c7c465597bc64502
 +}
 diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f0037f98e93fd1f0dea9c224ba402ebcacf9b21f
+index 0000000000000000000000000000000000000000..dd61d4e8811ffb1e8a842df1db6ac6ce5a8258c6
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,68 @@
 +package me.samsuik.sakura.local.config;
 +
 +import io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation;
@@ -180,6 +180,7 @@ index 0000000000000000000000000000000000000000..f0037f98e93fd1f0dea9c224ba402ebc
 +    public Map<Block, DurableMaterial> durableMaterials;
 +    public PhysicsVersion physicsVersion;
 +    public RedstoneImplementation redstoneImplementation;
++    public boolean consistentRadius;
 +
 +    LocalValueConfig(Expiry expiry) {
 +        this.expiry = expiry;
@@ -194,6 +195,9 @@ index 0000000000000000000000000000000000000000..f0037f98e93fd1f0dea9c224ba402ebc
 +
 +        // redstone implementation
 +        this.redstoneImplementation = level.paperConfig().misc.redstoneImplementation;
++
++        // consistent explosion radius
++        this.consistentRadius = level.sakuraConfig().cannons.explosion.consistentRadius;
 +    }
 +
 +    void load(LocalValueStorage storage) {
@@ -210,6 +214,11 @@ index 0000000000000000000000000000000000000000..f0037f98e93fd1f0dea9c224ba402ebc
 +        // redstone implementation
 +        if (storage.exists(LocalValueKey.REDSTONE_IMPLEMENTATION)) {
 +            this.redstoneImplementation = RedstoneImplementation.values()[storage.value(LocalValueKey.REDSTONE_IMPLEMENTATION).ordinal()];
++        }
++
++        // consistent explosion radius
++        if (storage.exists(LocalValueKey.CONSISTENT_EXPLOSION_RADIUS)) {
++            this.consistentRadius = storage.value(LocalValueKey.CONSISTENT_EXPLOSION_RADIUS);
 +        }
 +    }
 +
