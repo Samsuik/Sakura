@@ -5,7 +5,7 @@ Subject: [PATCH] Reduce entity tracker player updates
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 8a817dda325898b759de63ab6e4300b050286bf7..baec8d775957f3ef3224d743f961f0a23aee92ab 100644
+index 8a817dda325898b759de63ab6e4300b050286bf7..64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -1145,6 +1145,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -35,16 +35,16 @@ index 8a817dda325898b759de63ab6e4300b050286bf7..baec8d775957f3ef3224d743f961f0a2
 +            this.entityPosition = entity.position();
          }
  
-+        final boolean shouldLookForPlayers() {
++        public final boolean shouldLookForPlayers() {
 +            // We have to always update players otherwise they can turn invisible on teleports (why?)
-+            if (entity instanceof net.minecraft.world.entity.player.Player || entity.tickCount % playerSearchInterval == 0) {
++            if (this.entity instanceof net.minecraft.world.entity.player.Player || this.entity.tickCount % this.playerSearchInterval == 0) {
 +                return true;
 +            }
 +
-+            Vec3 lastPosition = entityPosition;
-+            entityPosition = entity.position();
++            Vec3 lastPosition = this.entityPosition;
++            this.entityPosition = this.entity.position();
 +
-+            return entity.position().distanceToSqr(lastPosition) >= (double) range / 2.0;
++            return this.entity.position().distanceToSqr(lastPosition) >= (double) this.range / 2.0;
 +        }
 +        // Sakura end - reduce entities looking for nearby players
 +
