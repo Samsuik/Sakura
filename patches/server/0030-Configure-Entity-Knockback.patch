@@ -5,7 +5,7 @@ Subject: [PATCH] Configure Entity Knockback
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 361b6fd6cae71a5c079c9dd9d8224f10c30cbf80..1766a599850a674a00ba26afe231c0982a6cb653 100644
+index 52302b84fe4ea59fbc7f485401fe932c19f7ebfa..1486f0a6afe2c862aa2792ca3cb0773ebdeee98d 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 @@ -1568,7 +1568,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
@@ -56,7 +56,7 @@ index 361b6fd6cae71a5c079c9dd9d8224f10c30cbf80..1766a599850a674a00ba26afe231c098
                  return;
              }
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index 4d81892f890e144a69dfda7a118cbcb18004a3e0..e039212df79a22a46a87b518ced8b01b067e0153 100644
+index 74130ccef989757b81507f084cc30a0e593ecaf3..898c3e44f36462acab9068c9665d08a345ee1b81 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
 +++ b/src/main/java/net/minecraft/world/entity/player/Player.java
 @@ -195,6 +195,7 @@ public abstract class Player extends LivingEntity {
@@ -67,21 +67,37 @@ index 4d81892f890e144a69dfda7a118cbcb18004a3e0..e039212df79a22a46a87b518ced8b01b
  
      // CraftBukkit start
      public boolean fauxSleeping;
-@@ -1340,10 +1341,20 @@ public abstract class Player extends LivingEntity {
+@@ -1290,7 +1291,7 @@ public abstract class Player extends LivingEntity {
+                         int i = 0;
+ 
+                         i += EnchantmentHelper.getKnockbackBonus(this);
+-                        if (this.isSprinting() && flag) {
++                        if (this.isSprinting() && (!level().sakuraConfig().players.knockback.sprinting.requireFullAttack || flag)) { // Sakura - configure entity knockback
+                             sendSoundEffect(this, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_KNOCKBACK, this.getSoundSource(), 1.0F, 1.0F); // Paper - send while respecting visibility
+                             ++i;
+                             flag1 = true;
+@@ -1340,10 +1341,26 @@ public abstract class Player extends LivingEntity {
  
                          if (flag5) {
                              if (i > 0) {
+-                                if (target instanceof LivingEntity) {
+-                                    ((LivingEntity) target).knockback((double) ((float) i * 0.5F), (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this, EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // CraftBukkit
 +                                // Sakura start - configure extra sprinting knockback
 +                                float extraKnockback = (float) i * 0.5F;
 +                                long millis = System.currentTimeMillis();
 +                                long sinceLastKnockback = millis - this.lastSprintKnockback;
-+
-+                                if (flag1 && sinceLastKnockback >= this.level().sakuraConfig().players.knockback.sprinting.knockbackDelay.value().orElse(0)) {
-+                                    extraKnockback += -0.5F + (float) this.level().sakuraConfig().players.knockback.sprinting.extraKnockback;
-+                                    this.lastSprintKnockback = millis;
++                                if (flag1) { // attackHasExtraKnockback
++                                    double knockbackToApply = 0.0;
++                                    if (sinceLastKnockback >= this.level().sakuraConfig().players.knockback.sprinting.knockbackDelay.value().orElse(0)) {
++                                        knockbackToApply = this.level().sakuraConfig().players.knockback.sprinting.extraKnockback;
++                                        this.lastSprintKnockback = millis;
++                                    }
++                                    // -0.5 is to negate the vanilla sprinting knockback
++                                    extraKnockback += -0.5F + (float) knockbackToApply;
 +                                }
-                                 if (target instanceof LivingEntity) {
--                                    ((LivingEntity) target).knockback((double) ((float) i * 0.5F), (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this, EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // CraftBukkit
++                                if (extraKnockback == 0.0) {
++                                    // required
++                                } else if (target instanceof LivingEntity) {
 +                                    ((LivingEntity) target).knockback((double) (extraKnockback), (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this, EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // CraftBukkit
                                  } else {
 -                                    target.push((double) (-Mth.sin(this.getYRot() * 0.017453292F) * (float) i * 0.5F), 0.1D, (double) (Mth.cos(this.getYRot() * 0.017453292F) * (float) i * 0.5F), this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
@@ -90,7 +106,7 @@ index 4d81892f890e144a69dfda7a118cbcb18004a3e0..e039212df79a22a46a87b518ced8b01b
                                  }
  
                                  this.setDeltaMovement(this.getDeltaMovement().multiply(0.6D, 1.0D, 0.6D));
-@@ -1365,7 +1376,7 @@ public abstract class Player extends LivingEntity {
+@@ -1365,7 +1382,7 @@ public abstract class Player extends LivingEntity {
                                      if (entityliving != this && entityliving != target && !this.isAlliedTo((Entity) entityliving) && (!(entityliving instanceof ArmorStand) || !((ArmorStand) entityliving).isMarker()) && this.distanceToSqr((Entity) entityliving) < 9.0D) {
                                          // CraftBukkit start - Only apply knockback if the damage hits
                                          if (entityliving.hurt(this.damageSources().playerAttack(this).sweep().critical(flag2), f4)) { // Paper - add critical damage API
