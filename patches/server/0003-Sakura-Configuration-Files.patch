@@ -388,10 +388,10 @@ index 0000000000000000000000000000000000000000..5296d4e0a1041932e36562f42fbf3e1d
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b5c2471a2982f5a5ab64620e906766460498095c
+index 0000000000000000000000000000000000000000..dd5a70f70c2e7bdc30b8f5655b0b7a082c1b472b
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
-@@ -0,0 +1,255 @@
+@@ -0,0 +1,253 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.google.common.collect.Table;
@@ -415,10 +415,7 @@ index 0000000000000000000000000000000000000000..b5c2471a2982f5a5ab64620e90676646
 +import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 +import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 +import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
-+import me.samsuik.sakura.configuration.transformation.world.V3_RenameKnockback;
-+import me.samsuik.sakura.configuration.transformation.world.V2_VerticalKnockbackUseDefault;
-+import me.samsuik.sakura.configuration.transformation.world.V4_RenameNonStrictMergeLevel;
-+import me.samsuik.sakura.configuration.transformation.world.V5_CombineLoadChunksOptions;
++import me.samsuik.sakura.configuration.transformation.world.*;
 +import net.minecraft.core.RegistryAccess;
 +import net.minecraft.core.registries.Registries;
 +import net.minecraft.resources.ResourceLocation;
@@ -583,6 +580,7 @@ index 0000000000000000000000000000000000000000..b5c2471a2982f5a5ab64620e90676646
 +        V3_RenameKnockback.apply(versionedBuilder);
 +        V4_RenameNonStrictMergeLevel.apply(versionedBuilder);
 +        V5_CombineLoadChunksOptions.apply(versionedBuilder);
++        V6_FixIncorrectExtraKnockback.apply(versionedBuilder);
 +        // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
 +        versionedBuilder.build().apply(node);
 +    }
@@ -649,7 +647,7 @@ index 0000000000000000000000000000000000000000..b5c2471a2982f5a5ab64620e90676646
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f9fe1024c3e5681abe9823d71582d83b50d3c6b0
+index 0000000000000000000000000000000000000000..bfac7683f768fbd27ba7f45cdbf964f1dcd0c174
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 @@ -0,0 +1,204 @@
@@ -684,7 +682,7 @@ index 0000000000000000000000000000000000000000..f9fe1024c3e5681abe9823d71582d83b
 +public class WorldConfiguration extends ConfigurationPart {
 +
 +    private static final Logger LOGGER = LogUtils.getClassLogger();
-+    static final int CURRENT_VERSION = 5; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
++    static final int CURRENT_VERSION = 6; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
 +
 +    private transient final ResourceLocation worldKey;
 +    WorldConfiguration(ResourceLocation worldKey) {
@@ -787,7 +785,7 @@ index 0000000000000000000000000000000000000000..f9fe1024c3e5681abe9823d71582d83b
 +            public Sprinting sprinting = new Sprinting();
 +            public class Sprinting extends ConfigurationPart {
 +                public boolean requireFullAttack = true;
-+                public double extraKnockback = 1.0;
++                public double extraKnockback = 0.5;
 +                @Comment("Delay between extra knockback hits in milliseconds")
 +                public IntOr.Default knockbackDelay = IntOr.Default.USE_DEFAULT;
 +            }
@@ -1015,6 +1013,42 @@ index 0000000000000000000000000000000000000000..3d647a3db0862232f158d823da9a797d
 +        }
 +
 +        value.node(NAME).set(shouldLoadChunks);
++        return null;
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/transformation/world/V6_FixIncorrectExtraKnockback.java b/src/main/java/me/samsuik/sakura/configuration/transformation/world/V6_FixIncorrectExtraKnockback.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f9fdf1a87420c78136deccf8822f5cf177b41aed
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/transformation/world/V6_FixIncorrectExtraKnockback.java
+@@ -0,0 +1,30 @@
++package me.samsuik.sakura.configuration.transformation.world;
++
++import org.checkerframework.checker.nullness.qual.Nullable;
++import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.ConfigurationNode;
++import org.spongepowered.configurate.NodePath;
++import org.spongepowered.configurate.transformation.ConfigurationTransformation;
++import org.spongepowered.configurate.transformation.TransformAction;
++
++import static org.spongepowered.configurate.NodePath.path;
++
++public final class V6_FixIncorrectExtraKnockback implements TransformAction {
++    private static final int VERSION = 6;
++    private static final NodePath PATH = path("players", "knockback", "sprinting", "extra-knockback");
++    private static final V6_FixIncorrectExtraKnockback INSTANCE = new V6_FixIncorrectExtraKnockback();
++
++    private V6_FixIncorrectExtraKnockback() {}
++
++    public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
++        builder.addVersion(VERSION, ConfigurationTransformation.builder().addAction(PATH, INSTANCE).build());
++    }
++
++    @Override
++    public Object @Nullable [] visitPath(NodePath path, ConfigurationNode value) throws ConfigurateException {
++        if (value.getDouble() == 1.0) {
++            value.set(0.5);
++        }
 +        return null;
 +    }
 +}
