@@ -329,46 +329,46 @@ index 8fcaa00e461c7f4413bf655ddd8165a2b908f900..404b99def4562942e036089085a66797
              if (this.count == 0) {
                  return;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 4553c252d3dd0a9413319a7a5dd5cce201b0fa72..1a150fc2e875860ed25dcda99394c8809d87bb04 100644
+index 507d676c58daf2297eb729543a7f86c896a984d6..d041ad1e52c78c553da4d92745d2b07fc3eab522 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -229,6 +229,39 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -221,6 +221,39 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
  
 +    // Sakura start - add entity retrival methods with search limits
-+    public void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
++    public final void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
 +        ((ServerLevel)this).getEntityLookup().getLimitedEntities(except, box, into, predicate, limit, search);
 +    }
 +
-+    public <T extends Entity> List<T> getLimitedEntities(net.minecraft.world.entity.EntityType<?> filter, AABB box, Predicate<? super T> predicate, int limit, int search) {
++    public final <T extends Entity> List<T> getLimitedEntities(net.minecraft.world.entity.EntityType<?> filter, AABB box, Predicate<? super T> predicate, int limit, int search) {
 +        List<T> ret = new java.util.ArrayList<>();
 +        ((ServerLevel)this).getEntityLookup().getLimitedEntities(filter, box, ret, predicate, limit, search);
 +        return ret;
 +    }
 +
-+    public <T> void getLimitedEntitiesByClass(Class<? extends T> clazz, Entity except, final AABB box, List<? super T> into,
++    public final <T> void getLimitedEntitiesByClass(Class<? extends T> clazz, Entity except, final AABB box, List<? super T> into,
 +                                              Predicate<? super T> predicate, int limit, int search) {
 +        ((ServerLevel)this).getEntityLookup().getLimitedEntities((Class)clazz, except, box, (List)into, (Predicate)predicate, limit, search);
 +    }
 +
-+    public <T extends Entity> List<T> getLimitedEntitiesOfClass(Class<T> entityClass, AABB box, Predicate<? super T> predicate, int limit, int search) {
++    public final <T extends Entity> List<T> getLimitedEntitiesOfClass(Class<T> entityClass, AABB box, Predicate<? super T> predicate, int limit, int search) {
 +        List<T> ret = new java.util.ArrayList<>();
 +        ((ServerLevel)this).getEntityLookup().getLimitedEntities(entityClass, null, box, ret, predicate, limit, search);
 +        return ret;
 +    }
 +
-+    public List<Entity> getLimitedEntities(@Nullable Entity except, AABB box, Predicate<? super Entity> predicate, int limit, int search) {
++    public final List<Entity> getLimitedEntities(@Nullable Entity except, AABB box, Predicate<? super Entity> predicate, int limit, int search) {
 +        List<Entity> list = Lists.newArrayList();
 +        getLimitedEntities(except, box, predicate, list, limit, search);
 +        return list;
 +    }
 +
-+    public List<Entity> getLimitedEntities(@Nullable Entity except, AABB box, int limit, int search) {
++    public final List<Entity> getLimitedEntities(@Nullable Entity except, AABB box, int limit, int search) {
 +        return this.getLimitedEntities(except, box, net.minecraft.world.entity.EntitySelector.NO_SPECTATORS, limit, search);
 +    }
 +    // Sakura end - add entity retrival methods with search limits
 +
-     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura - sakura configuration files // Paper - create paper world config; Async-Anti-Xray: Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
          this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config

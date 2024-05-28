@@ -5,19 +5,19 @@ Subject: [PATCH] Customise Version Command
 
 
 diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
-index 5d1b55fdbcbe63f6b42b694d05211a3cc691a09d..7b014bcdc0a4b02f3e0852c46a9965c592913883 100644
+index 9a219b255b63f10005fc68faacb771dd32f61ac2..63f8ca44f6066294cb1f996bfb89b0ce8b1e0afb 100644
 --- a/src/main/java/org/bukkit/Bukkit.java
 +++ b/src/main/java/org/bukkit/Bukkit.java
-@@ -131,6 +131,20 @@ public final class Bukkit {
+@@ -124,6 +124,20 @@ public final class Bukkit {
          // Paper end
      }
  
 +    // Sakura start - expose git info
 +    @NotNull
 +    public static String getGitInformation() {
-+        final var manifest = JarManifests.manifest(Bukkit.getServer().getClass());
-+        final String gitBranch = manifest == null ? null : manifest.getMainAttributes().getValue("Git-Branch");
-+        final String gitCommit = manifest == null ? null : manifest.getMainAttributes().getValue("Git-Commit");
++        final io.papermc.paper.ServerBuildInfo version = io.papermc.paper.ServerBuildInfo.buildInfo();
++        final String gitBranch = version.gitBranch().orElse("Dev");
++        final String gitCommit = version.gitCommit().orElse("");
 +        String branchMsg = " on " + gitBranch;
 +        if ("master".equals(gitBranch) || "main".equals(gitBranch)) {
 +            branchMsg = "";  // Don't show branch on main/master

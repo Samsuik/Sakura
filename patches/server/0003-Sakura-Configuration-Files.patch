@@ -5,7 +5,7 @@ Subject: [PATCH] Sakura Configuration Files
 
 
 diff --git a/src/main/java/io/papermc/paper/configuration/Configurations.java b/src/main/java/io/papermc/paper/configuration/Configurations.java
-index 96142deb42700f888ea08689ab62c27ef2b881fd..87f4320a29506417d29e83b06245a3d4edcbb383 100644
+index 96142deb42700f888ea08689ab62c27ef2b881fd..92bbebf2d09225ac67685bec1a724f1d3ae25fe9 100644
 --- a/src/main/java/io/papermc/paper/configuration/Configurations.java
 +++ b/src/main/java/io/papermc/paper/configuration/Configurations.java
 @@ -96,7 +96,7 @@ public abstract class Configurations<G, W> {
@@ -13,7 +13,7 @@ index 96142deb42700f888ea08689ab62c27ef2b881fd..87f4320a29506417d29e83b06245a3d4
      }
  
 -    static <T> CheckedFunction<ConfigurationNode, T, SerializationException> reloader(Class<T> type, T instance) {
-+    public static <T> CheckedFunction<ConfigurationNode, T, SerializationException> reloader(Class<T> type, T instance) { // Sakura - public
++    public static <T> CheckedFunction<ConfigurationNode, T, SerializationException> reloader(Class<T> type, T instance) { // Sakura - package-protected -> public
          return node -> {
              ObjectMapper.Factory factory = (ObjectMapper.Factory) Objects.requireNonNull(node.options().serializers().get(type));
              ObjectMapper.Mutable<T> mutable = (ObjectMapper.Mutable<T>) factory.get(type);
@@ -27,7 +27,7 @@ index 96142deb42700f888ea08689ab62c27ef2b881fd..87f4320a29506417d29e83b06245a3d4
          } else {
              this.verifyWorldConfigVersion(contextMap, worldNode);
 diff --git a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
-index 83a726bcf8b7dce73a361b0d79dbd63a0afc7a12..d43267fe2718b6016fe44c3bbf8196f8efc49ef1 100644
+index 83a726bcf8b7dce73a361b0d79dbd63a0afc7a12..6efe0ed8600e3703bd83d46545bba88791d3bcd6 100644
 --- a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
 +++ b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
 @@ -457,7 +457,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
@@ -35,52 +35,10 @@ index 83a726bcf8b7dce73a361b0d79dbd63a0afc7a12..d43267fe2718b6016fe44c3bbf8196f8
  
      // Symlinks are not correctly checked in createDirectories
 -    static void createDirectoriesSymlinkAware(Path path) throws IOException {
-+    public static void createDirectoriesSymlinkAware(Path path) throws IOException { // Sakura - make public
++    public static void createDirectoriesSymlinkAware(Path path) throws IOException { // Sakura - package-protected -> public
          if (!Files.isDirectory(path)) {
              Files.createDirectories(path);
          }
-diff --git a/src/main/java/io/papermc/paper/configuration/mapping/InnerClassInstanceFactory.java b/src/main/java/io/papermc/paper/configuration/mapping/InnerClassInstanceFactory.java
-index cec678ae24a7d99a46fa672be907f4c28fe4da96..9906ef363c72ade71c16d8141a0d6d79d72d4eff 100644
---- a/src/main/java/io/papermc/paper/configuration/mapping/InnerClassInstanceFactory.java
-+++ b/src/main/java/io/papermc/paper/configuration/mapping/InnerClassInstanceFactory.java
-@@ -11,13 +11,13 @@ import org.spongepowered.configurate.serialize.SerializationException;
- 
- import static io.leangen.geantyref.GenericTypeReflector.erase;
- 
--final class InnerClassInstanceFactory implements FieldDiscoverer.MutableInstanceFactory<Map<Field, Object>> {
-+public final class InnerClassInstanceFactory implements FieldDiscoverer.MutableInstanceFactory<Map<Field, Object>> { // Sakura
- 
-     private final InnerClassInstanceSupplier instanceSupplier;
-     private final FieldDiscoverer.MutableInstanceFactory<Map<Field, Object>> fallback;
-     private final AnnotatedType targetType;
- 
--    InnerClassInstanceFactory(final InnerClassInstanceSupplier instanceSupplier, final FieldDiscoverer.MutableInstanceFactory<Map<Field, Object>> fallback, final AnnotatedType targetType) {
-+    public InnerClassInstanceFactory(final InnerClassInstanceSupplier instanceSupplier, final FieldDiscoverer.MutableInstanceFactory<Map<Field, Object>> fallback, final AnnotatedType targetType) { // Sakura
-         this.instanceSupplier = instanceSupplier;
-         this.fallback = fallback;
-         this.targetType = targetType;
-diff --git a/src/main/java/io/papermc/paper/configuration/mapping/InnerClassInstanceSupplier.java b/src/main/java/io/papermc/paper/configuration/mapping/InnerClassInstanceSupplier.java
-index 8d8bc050441c02cf65dfcb6400978363d6b8ef10..5872095a811452037cc0772ba2a31bf9a795cc82 100644
---- a/src/main/java/io/papermc/paper/configuration/mapping/InnerClassInstanceSupplier.java
-+++ b/src/main/java/io/papermc/paper/configuration/mapping/InnerClassInstanceSupplier.java
-@@ -19,7 +19,7 @@ import static io.leangen.geantyref.GenericTypeReflector.erase;
-  * {@link ConfigurationPart}. Only 1 instance of each {@link ConfigurationPart} should be present for each instance
-  * of the field discoverer this is used in.
-  */
--final class InnerClassInstanceSupplier implements CheckedFunction<AnnotatedType, @Nullable Supplier<Object>, SerializationException> {
-+public final class InnerClassInstanceSupplier implements CheckedFunction<AnnotatedType, @Nullable Supplier<Object>, SerializationException> { // Sakua - :<
- 
-     private final Map<Class<?>, Object> instanceMap = new HashMap<>();
-     private final Map<Class<?>, Object> initialOverrides;
-@@ -27,7 +27,7 @@ final class InnerClassInstanceSupplier implements CheckedFunction<AnnotatedType,
-     /**
-      * @param initialOverrides map of types to objects to preload the config objects with.
-      */
--    InnerClassInstanceSupplier(final Map<Class<?>, Object> initialOverrides) {
-+    public InnerClassInstanceSupplier(final Map<Class<?>, Object> initialOverrides) { // Sakura
-         this.initialOverrides = initialOverrides;
-     }
- 
 diff --git a/src/main/java/me/samsuik/sakura/command/BaseSubCommand.java b/src/main/java/me/samsuik/sakura/command/BaseSubCommand.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..9b5af05f7a4593eb44f36fff90d94e98d6999c7f
@@ -1033,10 +991,10 @@ index 0000000000000000000000000000000000000000..4024f9738e039ffffd560a07a2210f75
 +public record DurableMaterial(int durability, float resistance) {
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index db709ec011e2ad002c7b08cb7dd8ed8b84aeee37..91d3224cb30f62008a116fa4f913b06928d43c0a 100644
+index 0ed42fa899721f83b598db05be1b5f321af3614a..48648f73925c79282df19158ef52678d10608f44 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -313,6 +313,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -310,6 +310,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      public final double[] recentTps = new double[ 3 ];
      // Spigot end
      public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
@@ -1044,7 +1002,7 @@ index db709ec011e2ad002c7b08cb7dd8ed8b84aeee37..91d3224cb30f62008a116fa4f913b069
      public static long currentTickLong = 0L; // Paper - track current tick as a long
      public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
-@@ -422,6 +423,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -418,6 +419,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
          // CraftBukkit end
          this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
@@ -1056,23 +1014,23 @@ index db709ec011e2ad002c7b08cb7dd8ed8b84aeee37..91d3224cb30f62008a116fa4f913b069
  
      private void readScoreboard(DimensionDataStorage persistentStateManager) {
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index eb4fc900164d1fb3a78653ae8bc42ea30323f5b7..4af33141f6c9169a016978cf74dc2d33ebd011e8 100644
+index 2eb9c584cc77237f1c82d880a51a3f8b51008d73..fbbd168198459d9d4d84c2554558453c63b2c2f4 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -234,6 +234,11 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -233,6 +233,11 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         io.papermc.paper.command.PaperCommands.registerCommands(this); // Paper - setup /paper command
          com.destroystokyo.paper.Metrics.PaperMetrics.startMetrics(); // Paper - start metrics
          com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
-         io.papermc.paper.brigadier.PaperBrigadierProviderImpl.INSTANCE.getClass(); // Paper - init PaperBrigadierProvider
-+        // Sakura start
++        // Sakura start - sakura configuration files
 +        sakuraConfigurations.initializeGlobalConfiguration(this.registryAccess());
 +        sakuraConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
 +        me.samsuik.sakura.command.SakuraCommands.registerCommands(this);
-+        // Sakura end
++        // Sakura end - sakura configuration files
  
          this.setPvpAllowed(dedicatedserverproperties.pvp);
          this.setFlightAllowed(dedicatedserverproperties.allowFlight);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 0981d440d0dbfe4df668d1f3f1b5706a93bc4434..cffdb530be035d177ccfd13a9e560c544f3acaac 100644
+index ca56a0b596976448da6bb2a0e82b3d5cd4133e12..b5a66132f7ec10feb4682db38c80e5064e78f9f3 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -697,7 +697,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -1080,52 +1038,52 @@ index 0981d440d0dbfe4df668d1f3f1b5706a93bc4434..cffdb530be035d177ccfd13a9e560c54
  
          // Objects.requireNonNull(minecraftserver); // CraftBukkit - decompile error
 -        super(iworlddataserver, resourcekey, minecraftserver.registryAccess(), worlddimension.type(), minecraftserver::getProfiler, false, flag, i, minecraftserver.getMaxChainedNeighborUpdates(), gen, biomeProvider, env, spigotConfig -> minecraftserver.paperConfigurations.createWorldConfig(io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(convertable_conversionsession.levelDirectory.path(), iworlddataserver.getLevelName(), resourcekey.location(), spigotConfig, minecraftserver.registryAccess(), iworlddataserver.getGameRules())), executor); // Paper - create paper world configs; Async-Anti-Xray: Pass executor
-+        super(iworlddataserver, resourcekey, minecraftserver.registryAccess(), worlddimension.type(), minecraftserver::getProfiler, false, flag, i, minecraftserver.getMaxChainedNeighborUpdates(), gen, biomeProvider, env, spigotConfig -> minecraftserver.paperConfigurations.createWorldConfig(io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(convertable_conversionsession.levelDirectory.path(), iworlddataserver.getLevelName(), resourcekey.location(), spigotConfig, minecraftserver.registryAccess(), iworlddataserver.getGameRules())), () -> minecraftserver.sakuraConfigurations.createWorldConfig(me.samsuik.sakura.configuration.SakuraConfigurations.createWorldContextMap(convertable_conversionsession.levelDirectory.path(), iworlddataserver.getLevelName(), resourcekey.location(), minecraftserver.registryAccess())), executor); // Sakura // Paper - create paper world configs; Async-Anti-Xray: Pass executor
++        super(iworlddataserver, resourcekey, minecraftserver.registryAccess(), worlddimension.type(), minecraftserver::getProfiler, false, flag, i, minecraftserver.getMaxChainedNeighborUpdates(), gen, biomeProvider, env, spigotConfig -> minecraftserver.paperConfigurations.createWorldConfig(io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(convertable_conversionsession.levelDirectory.path(), iworlddataserver.getLevelName(), resourcekey.location(), spigotConfig, minecraftserver.registryAccess(), iworlddataserver.getGameRules())), () -> minecraftserver.sakuraConfigurations.createWorldConfig(me.samsuik.sakura.configuration.SakuraConfigurations.createWorldContextMap(convertable_conversionsession.levelDirectory.path(), iworlddataserver.getLevelName(), resourcekey.location(), minecraftserver.registryAccess())), executor); // Sakura - sakura configuration files // Paper - create paper world configs; Async-Anti-Xray: Pass executor
          this.pvpMode = minecraftserver.isPvpAllowed();
          this.convertable = convertable_conversionsession;
          this.uuid = WorldUUID.getUUID(convertable_conversionsession.levelDirectory.path().toFile());
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index b4ef3ad2c17168085372f1fe46809f02d9dfe74a..3a30562a4ec500eade01b646aacbdfbba39f547b 100644
+index 14281a4e72f49dc4eb2ca3da8479c1f81a3a175d..f2cd3046fdd280b03586e645216ccef15fc4b116 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -168,6 +168,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -169,6 +169,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          return this.paperConfig;
      }
      // Paper end - add paper world config
-+    // Sakura start
++    // Sakura start - sakura configuration files
 +    private final me.samsuik.sakura.configuration.WorldConfiguration sakuraConfig;
 +    public final me.samsuik.sakura.configuration.WorldConfiguration sakuraConfig() {
 +        return this.sakuraConfig;
 +    }
-+    // Sakura end
++    // Sakura end - sakura configuration files
  
      public final com.destroystokyo.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
      public final co.aikar.timings.WorldTimingsHandler timings; // Paper
-@@ -213,9 +219,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -205,9 +211,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
  
      public abstract ResourceKey<LevelStem> getTypeKey();
  
 -    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, java.util.concurrent.Executor executor) { // Paper - create paper world config; Async-Anti-Xray: Pass executor
-+    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
++    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura - sakura configuration files // Paper - create paper world config; Async-Anti-Xray: Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
          this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
-+        this.sakuraConfig = sakuraWorldConfigCreator.get(); // Sakura
++        this.sakuraConfig = sakuraWorldConfigCreator.get(); // Sakura - sakura configuration files
          this.generator = gen;
          this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 6d01828434b8dce0359fe2a37b450e0aae916e3b..ec7c15ceb51388a7a349b2e852693f09757c6cc5 100644
+index 94a31c8f903eb61eb6d203e8e6fe8fb0beca28b1..33dbc9b263578525c9a7f7a7fd85214a96623032 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -1054,6 +1054,7 @@ public final class CraftServer implements Server {
+@@ -1033,6 +1033,7 @@ public final class CraftServer implements Server {
  
          org.spigotmc.SpigotConfig.init((File) this.console.options.valueOf("spigot-settings")); // Spigot
          this.console.paperConfigurations.reloadConfigs(this.console);
-+        this.console.sakuraConfigurations.reloadConfigs(this.console); // Sakura - missing comment above
++        this.console.sakuraConfigurations.reloadConfigs(this.console); // Sakura - missing comment above :<
          for (ServerLevel world : this.console.getAllLevels()) {
              // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
              world.setSpawnSettings(world.serverLevelData.getDifficulty() != Difficulty.PEACEFUL && config.spawnMonsters, config.spawnAnimals); // Paper - per level difficulty (from MinecraftServer#setDifficulty(ServerLevel, Difficulty, boolean))
-@@ -1084,6 +1085,7 @@ public final class CraftServer implements Server {
+@@ -1064,6 +1065,7 @@ public final class CraftServer implements Server {
          this.reloadData();
          org.spigotmc.SpigotConfig.registerCommands(); // Spigot
          io.papermc.paper.command.PaperCommands.registerCommands(this.console); // Paper
@@ -1134,20 +1092,20 @@ index 6d01828434b8dce0359fe2a37b450e0aae916e3b..ec7c15ceb51388a7a349b2e852693f09
          this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index c988afa496d25314451435eedd64079a0d87cef0..2453abb371c6a7ba407ff2d906391d6a13ed5d6b 100644
+index e02102280ed1dc300191d19bbca8f00e17701753..a4637ca09b4054fde4fbef25d502d5e98cbfe4b5 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -175,6 +175,14 @@ public class Main {
+@@ -176,6 +176,14 @@ public class Main {
                          .describedAs("Jar file");
                  // Paper end
  
-+                // Sakura start
++                // Sakura start - sakura configuration files
 +                acceptsAll(asList("sakura-dir", "sakura-settings-directory"), "Directory for Sakura settings")
 +                    .withRequiredArg()
 +                    .ofType(File.class)
 +                    .defaultsTo(new File(me.samsuik.sakura.configuration.SakuraConfigurations.CONFIG_DIR))
 +                    .describedAs("Config directory");
-+                // Sakura end
++                // Sakura end - sakura configuration files
 +
                  // Paper start
                  acceptsAll(asList("server-name"), "Name of the server")

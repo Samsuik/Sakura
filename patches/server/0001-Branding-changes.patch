@@ -6,59 +6,50 @@ Subject: [PATCH] Branding changes
 From ForkPaper.
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index 5d448d8a7cf6626a11791f30ad52baf41a099272..8096e25f2928ab1765dab3b393dd9dda01f1aad5 100644
+index 4998aff0b7cb084dcda15c6a18bbe45e99b6000a..6d51c23912fe14bfda7539d4bb9b3457c5591e8b 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
-@@ -12,8 +12,12 @@ configurations.named(log4jPlugins.compileClasspathConfigurationName) {
+@@ -13,7 +13,7 @@ configurations.named(log4jPlugins.compileClasspathConfigurationName) {
  val alsoShade: Configuration by configurations.creating
  
  dependencies {
 -    implementation(project(":paper-api"))
--    implementation(project(":paper-mojangapi"))
-+    // Sakura start
-+    implementation(project(":sakura-api"))
-+    implementation("io.papermc.paper:paper-mojangapi:1.20.6-R0.1-SNAPSHOT") {
-+        exclude("io.papermc.paper", "paper-api")
-+    }
-+    // Sakura end
++    implementation(project(":sakura-api")) // Sakura
      // Paper start
      implementation("org.jline:jline-terminal-jansi:3.21.0")
      implementation("net.minecrell:terminalconsoleappender:1.3.0")
-@@ -79,7 +83,7 @@ tasks.jar {
+@@ -80,14 +80,14 @@ tasks.jar {
+         val gitBranch = git("rev-parse", "--abbrev-ref", "HEAD").getText().trim() // Paper
          attributes(
              "Main-Class" to "org.bukkit.craftbukkit.Main",
-             "Implementation-Title" to "CraftBukkit",
--            "Implementation-Version" to "git-Paper-$implementationVersion",
-+            "Implementation-Version" to "git-Sakura-$implementationVersion", // Sakura
+-            "Implementation-Title" to "Paper",
++            "Implementation-Title" to "Sakura", // Sakura
+             "Implementation-Version" to implementationVersion,
              "Implementation-Vendor" to date, // Paper
-             "Specification-Title" to "Bukkit",
+-            "Specification-Title" to "Paper",
++            "Specification-Title" to "Sakura", // Sakura
              "Specification-Version" to project.version,
-diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 8dc2f9df367c849ca333bf1a1fd92ff91617b548..db709ec011e2ad002c7b08cb7dd8ed8b84aeee37 100644
---- a/src/main/java/net/minecraft/server/MinecraftServer.java
-+++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1924,7 +1924,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             "Specification-Vendor" to "Paper Team",
+-            "Brand-Id" to "papermc:paper",
+-            "Brand-Name" to "Paper",
++            "Brand-Id" to "samsuik:sakura", // Sakura
++            "Brand-Name" to "Sakura", // Sakura
+             "Build-Number" to (build ?: ""),
+             "Build-Time" to Instant.now().toString(),
+             "Git-Branch" to gitBranch, // Paper
+diff --git a/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java b/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
+index 790bad0494454ca12ee152e3de6da3da634d9b20..57f9545e7d94365a1db175ef463fd71dcf508bfd 100644
+--- a/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
++++ b/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
+@@ -61,7 +61,7 @@ public record ServerBuildInfoImpl(
  
-     @DontObfuscate
-     public String getServerModName() {
--        return "Paper"; // Paper
-+        return "Sakura"; // Sakura // Paper
+     @Override
+     public boolean isBrandCompatible(final @NotNull Key brandId) {
+-        return brandId.equals(this.brandId);
++        return brandId.equals(this.brandId) || brandId.equals(BRAND_PAPER_ID); // Sakura
      }
  
-     public SystemReport fillSystemReport(SystemReport details) {
-diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 57db399bc1d3b6b015740b059987bc8d9bcc3101..6d01828434b8dce0359fe2a37b450e0aae916e3b 100644
---- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-+++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -268,7 +268,7 @@ import javax.annotation.Nullable; // Paper
- import javax.annotation.Nonnull; // Paper
- 
- public final class CraftServer implements Server {
--    private final String serverName = "Paper"; // Paper
-+    private final String serverName = "Sakura"; // Sakura // Paper
-     private final String serverVersion;
-     private final String bukkitVersion = Versioning.getBukkitVersion();
-     private final Logger logger = Logger.getLogger("Minecraft");
+     @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 index 774556a62eb240da42e84db4502e2ed43495be17..1941fd2dbdc7a10ddf17e2543a038dbd7fe8c88c 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java

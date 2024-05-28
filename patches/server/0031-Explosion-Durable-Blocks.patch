@@ -74,10 +74,10 @@ index 0000000000000000000000000000000000000000..c58e52f7cc012babf4235e405e5fb501
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 69b972a5b1ad62f1cfa759fd2e0d371a8745539b..48f13cd41f68570b3b70e013ced3374bea251601 100644
+index 6cf33610cb6740ad3192d0180cccf17be761730f..786a08850dcb31dc1d08b16391e40914bb4c6235 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1809,6 +1809,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1805,6 +1805,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.minimalTNT.clear(); // Sakura - visibility api
              worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
              worldserver.densityCache.clear(currentTickLong); // Sakura - explosion density cache
@@ -124,7 +124,7 @@ index a8008c7550488be34b51f4280f5569170b1ebd1d..2e5a46b9d27b930870c68dbde93d8731
      public String getDescriptionId() {
          return this.getOrCreateDescriptionId();
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 7eb8da4075b4f1706f698a0b48206421bf4353c3..243ac586aad29e3a145eec3c9a85b24901450121 100644
+index ba2588188e15806052d52dca62547c8a6d3a2152..473573e37ac5ecff2655126a08011aff66997019 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -262,7 +262,7 @@ public class Explosion {
@@ -176,14 +176,14 @@ index 7eb8da4075b4f1706f698a0b48206421bf4353c3..243ac586aad29e3a145eec3c9a85b249
                      Entity sourceEntity = this.source == null ? null : this.source;
                      BlockPos sourceBlock = sourceEntity == null ? BlockPos.containing(this.x, this.y, this.z) : null;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 1a150fc2e875860ed25dcda99394c8809d87bb04..cbc20c6a367b373a7b503c21b09db818e14437e5 100644
+index d041ad1e52c78c553da4d92745d2b07fc3eab522..1901081678b25fd50d9eb2b9a51c99672d239ea3 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -228,6 +228,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -220,6 +220,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
 +    public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
  
      // Sakura start - add entity retrival methods with search limits
-     public void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
+     public final void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {

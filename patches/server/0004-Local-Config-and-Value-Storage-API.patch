@@ -228,48 +228,48 @@ index 0000000000000000000000000000000000000000..dd61d4e8811ffb1e8a842df1db6ac6ce
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 91d3224cb30f62008a116fa4f913b06928d43c0a..6aacf5ff736bcbbb8582b6ae11e7dfc6ff265c08 100644
+index 48648f73925c79282df19158ef52678d10608f44..9677324fc698789e9cd880705985d6112c6bd9bb 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1802,6 +1802,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1798,6 +1798,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              this.profiler.pop();
              this.profiler.pop();
              worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
-+            worldserver.localConfig().expire(currentTickLong); // Sakura
++            worldserver.localConfig().expire(currentTickLong); // Sakura - add local config
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 3a30562a4ec500eade01b646aacbdfbba39f547b..62d39dd63e33c2781c39d3241130b32c18093fcf 100644
+index f2cd3046fdd280b03586e645216ccef15fc4b116..1059530bb6f817352c8304f6a1544aeb5ac14b30 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -174,6 +174,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -175,6 +175,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          return this.sakuraConfig;
      }
-     // Sakura end
-+    // Sakura start
+     // Sakura end - sakura configuration files
++    // Sakura start - add local config
 +    private final me.samsuik.sakura.local.config.LocalConfigManager localConfig = new me.samsuik.sakura.local.config.LocalConfigManager(this);
 +    public final me.samsuik.sakura.local.config.LocalConfigManager localConfig() {
 +        return this.localConfig;
 +    }
-+    // Sakura end
++    // Sakura end - add local config
  
      public final com.destroystokyo.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
      public final co.aikar.timings.WorldTimingsHandler timings; // Paper
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index f2b20ed5063a293f0b464548f590d652170cd1d8..b9c1fb2d1a185dc460bb6ba8b3d833fec40865e5 100644
+index f2b20ed5063a293f0b464548f590d652170cd1d8..91ad056cd98d799caf811defde57dbdcecc07700 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -252,6 +252,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      }
      // Paper end
  
-+    // Sakura start
++    // Sakura start - add local config
 +    @Override
-+    public me.samsuik.sakura.local.storage.LocalStorageHandler getStorageHandler() {
++    public final me.samsuik.sakura.local.storage.LocalStorageHandler getStorageHandler() {
 +        return this.getHandle().localConfig();
 +    }
-+    // Sakura end
++    // Sakura end - add local config
 +
      private static final Random rand = new Random();
  

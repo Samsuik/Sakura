@@ -341,10 +341,10 @@ index 0000000000000000000000000000000000000000..c4150b062ee1a15f1938fea2da926699
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 48f13cd41f68570b3b70e013ced3374bea251601..303d01e2861b960fd7e592c196944e3cd759f4f4 100644
+index 786a08850dcb31dc1d08b16391e40914bb4c6235..1a6466d655f981b19bbcaa3ff1724a8d99044289 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1810,6 +1810,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1806,6 +1806,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannoning entities
              worldserver.densityCache.clear(currentTickLong); // Sakura - explosion density cache
              worldserver.durabilityManager.expire(currentTickLong); // Sakura
@@ -353,18 +353,18 @@ index 48f13cd41f68570b3b70e013ced3374bea251601..303d01e2861b960fd7e592c196944e3c
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index cbc20c6a367b373a7b503c21b09db818e14437e5..9060ce8bcbb82eea6bfa84180a887c04f0137ef5 100644
+index 1901081678b25fd50d9eb2b9a51c99672d239ea3..ef37c34036bc79505786ee38ab5472a45effa4a3 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -229,6 +229,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -221,6 +221,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
 +    public final me.samsuik.sakura.redstone.RedstoneTracker redstoneTracker = new me.samsuik.sakura.redstone.RedstoneTracker(this); // Sakura - cache vanilla and eigen redstone
  
      // Sakura start - add entity retrival methods with search limits
-     public void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
-@@ -1002,6 +1003,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public final void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
+@@ -994,6 +995,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
              } else {
                  BlockState iblockdata2 = this.getBlockState(pos);
  
