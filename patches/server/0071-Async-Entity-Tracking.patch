@@ -282,6 +282,35 @@ index 2a9a6a9f00343f614a0d2430095a17088861eb1f..8d27289aa81aa60ba6bdde57b74fc4a0
                              gameprofilerfiller.pop();
                          }
                      }
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index d6e60e4e7b5410f30b47e6b9b57b390837368dfc..3583a897912f4ae15111c909284c9b98aa55954c 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -335,8 +335,10 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+         this.player.xo = this.player.getX();
+         this.player.yo = this.player.getY();
+         this.player.zo = this.player.getZ();
++        synchronized (this.player) { // Sakura - async entity tracking
+         this.player.doTick();
+         this.player.absMoveTo(this.firstGoodX, this.firstGoodY, this.firstGoodZ, this.player.getYRot(), this.player.getXRot());
++        } // Sakura - async entity tracking
+         ++this.tickCount;
+         this.knownMovePacketCount = this.receivedMovePacketCount;
+         if (this.clientIsFloating && !this.player.isSleeping() && !this.player.isPassenger() && !this.player.isDeadOrDying()) {
+@@ -2090,11 +2092,13 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+ 
+         this.player.disconnect();
+         // Paper start - Adventure
++        synchronized (this.player) { // Sakura - async entity tracking
+         quitMessage = quitMessage == null ? this.server.getPlayerList().remove(this.player) : this.server.getPlayerList().remove(this.player, quitMessage); // Paper - pass in quitMessage to fix kick message not being used
+         if ((quitMessage != null) && !quitMessage.equals(net.kyori.adventure.text.Component.empty())) {
+             this.server.getPlayerList().broadcastSystemMessage(PaperAdventure.asVanilla(quitMessage), false);
+             // Paper end
+         }
++        } // Sakura - async entity tracking
+         // CraftBukkit end
+         this.player.getTextFilter().leave();
+     }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
 index 08d33295967f66051b9e846d854ffac6fe885281..520f158dba52c22a33166e0ad88cffab31c426b4 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
