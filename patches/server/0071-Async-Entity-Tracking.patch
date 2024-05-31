@@ -4,23 +4,44 @@ Date: Mon, 27 May 2024 18:02:27 +0100
 Subject: [PATCH] Async Entity Tracking
 
 
+diff --git a/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java b/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
+index 41b9405d6759d865e0d14dd4f95163e9690e967d..9767c1fcdbd5737c31e36fd9c39e89631ce8ee1c 100644
+--- a/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
++++ b/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
+@@ -26,7 +26,7 @@ public abstract class AreaMap<E> {
+ 
+     // we use linked for better iteration.
+     // map of: coordinate to set of objects in coordinate
+-    protected final Long2ObjectOpenHashMap<PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<E>> areaMap = new Long2ObjectOpenHashMap<>(1024, 0.7f);
++    protected Long2ObjectOpenHashMap<PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<E>> areaMap = new Long2ObjectOpenHashMap<>(1024, 0.7f); // Sakura - async entity tracking
+     protected final PooledLinkedHashSets<E> pooledHashSets;
+ 
+     protected final ChangeCallback<E> addCallback;
+diff --git a/src/main/java/com/destroystokyo/paper/util/misc/PlayerAreaMap.java b/src/main/java/com/destroystokyo/paper/util/misc/PlayerAreaMap.java
+index 46954db7ecd35ac4018fdf476df7c8020d7ce6c8..183c3d13835a4f4bf6e3a4fa6eb2df0f21b8c882 100644
+--- a/src/main/java/com/destroystokyo/paper/util/misc/PlayerAreaMap.java
++++ b/src/main/java/com/destroystokyo/paper/util/misc/PlayerAreaMap.java
+@@ -5,7 +5,7 @@ import net.minecraft.server.level.ServerPlayer;
+ /**
+  * @author Spottedleaf
+  */
+-public final class PlayerAreaMap extends AreaMap<ServerPlayer> {
++public class PlayerAreaMap extends AreaMap<ServerPlayer> { // Sakura - async entity tracking
+ 
+     public PlayerAreaMap() {
+         super();
 diff --git a/src/main/java/me/samsuik/sakura/player/tracking/AsyncEntityTracker.java b/src/main/java/me/samsuik/sakura/player/tracking/AsyncEntityTracker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..54422e6e4bf0860ea504414141821cca7c072b28
+index 0000000000000000000000000000000000000000..ca24b6fb2d4e8d4ff284f6b19c971f186e00cc38
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/player/tracking/AsyncEntityTracker.java
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,83 @@
 +package me.samsuik.sakura.player.tracking;
 +
-+import com.google.common.collect.Iterators;
-+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 +import net.minecraft.server.level.ChunkMap;
-+import org.jetbrains.annotations.NotNull;
++import org.spigotmc.AsyncCatcher;
 +
-+import java.util.ArrayList;
-+import java.util.Iterator;
-+import java.util.List;
-+import java.util.Set;
++import java.util.*;
 +import java.util.concurrent.ExecutorService;
 +import java.util.concurrent.Executors;
 +import java.util.concurrent.ThreadFactory;
@@ -30,6 +51,7 @@ index 0000000000000000000000000000000000000000..54422e6e4bf0860ea504414141821cca
 +    private static final ThreadFactory THREAD_FACTORY = EntityTrackerThread::new;
 +    private static ExecutorService TRACKER_EXECUTOR = null;
 +
++    private final Queue<Runnable> tasks = new ArrayDeque<>();
 +    private final ChunkMap chunkMap;
 +    private volatile boolean processingTick;
 +
@@ -43,16 +65,29 @@ index 0000000000000000000000000000000000000000..54422e6e4bf0860ea504414141821cca
 +        }
 +    }
 +
++    public void scheduleForNextCycle(Runnable runnable) {
++        AsyncCatcher.catchOp("scheduled task off-main");
++        this.tasks.offer(runnable);
++    }
++
++    private void runScheduledTasks() {
++        Runnable runnable;
++        while ((runnable = this.tasks.poll()) != null) {
++            runnable.run();
++        }
++    }
++
 +    public void cycle() {
 +        if (this.processingTick) {
++            // Could this cause issues with players on teleports?
 +            return; // uh oh.
 +        }
 +
 +        tryStartService();
 +        this.processingTick = true;
++        this.runScheduledTasks();
 +
-+        TrackedEntities trackedEntities = new TrackedEntities(this.chunkMap);
-+        this.updatePlayersInParallel(trackedEntities);
++        List<ChunkMap.TrackedEntity> trackedEntities = new ArrayList<>(this.chunkMap.entityMap.values());
 +
 +        TRACKER_EXECUTOR.execute(() -> {
 +            try {
@@ -63,21 +98,17 @@ index 0000000000000000000000000000000000000000..54422e6e4bf0860ea504414141821cca
 +        });
 +    }
 +
-+    private void updatePlayersInParallel(TrackedEntities trackedEntities) {
-+        trackedEntities.getEntities().parallelStream().forEach(tracker -> {
-+            if (!tracker.isActive) return; // removed entity
++    private void processEntities(List<ChunkMap.TrackedEntity> trackedEntities) {
++        // update players (seenBy)
++        for (ChunkMap.TrackedEntity tracker : trackedEntities) {
++            if (!tracker.isActive) continue; // removed entity
 +            synchronized (tracker.entity) {
 +                if (tracker.shouldLookForPlayers()) {
 +                    tracker.updatePlayers(tracker.entity.getPlayersInTrackRange());
 +                }
 +            }
-+            if (tracker.entity.isPassengersDirty.getAndSet(false)) {
-+                trackedEntities.markEntityAsUpdated(tracker);
-+            }
-+        });
-+    }
-+
-+    private void processEntities(TrackedEntities trackedEntities) {
++        }
++        // send changes
 +        for (ChunkMap.TrackedEntity tracker : trackedEntities) {
 +            if (!tracker.isActive) continue; // removed entity
 +            tracker.seenByLock.readLock().lock();
@@ -87,53 +118,98 @@ index 0000000000000000000000000000000000000000..54422e6e4bf0860ea504414141821cca
 +            tracker.seenByLock.readLock().unlock();
 +        }
 +    }
-+
-+    private static class TrackedEntities implements Iterable<ChunkMap.TrackedEntity> {
-+        private final List<ChunkMap.TrackedEntity> entities;
-+        private final Set<ChunkMap.TrackedEntity> alreadyUpdated;
-+
-+        public TrackedEntities(ChunkMap chunkMap) {
-+            this.entities = new ArrayList<>(chunkMap.entityMap.values());
-+            this.alreadyUpdated = new ReferenceOpenHashSet<>();
-+        }
-+
-+        public void markEntityAsUpdated(ChunkMap.TrackedEntity trackedEntity) {
-+            this.alreadyUpdated.add(trackedEntity);
-+        }
-+
-+        public List<ChunkMap.TrackedEntity> getEntities() {
-+            return this.entities;
-+        }
-+
-+        @Override
-+        public @NotNull Iterator<ChunkMap.TrackedEntity> iterator() {
-+            return Iterators.filter(this.entities.iterator(), e -> !this.alreadyUpdated.contains(e));
-+        }
-+    }
 +}
 diff --git a/src/main/java/me/samsuik/sakura/player/tracking/EntityTrackerThread.java b/src/main/java/me/samsuik/sakura/player/tracking/EntityTrackerThread.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a4736257bee2f2c6c51363ca54269d477ae42464
+index 0000000000000000000000000000000000000000..ac95e188335419cb3db37e62a3e83f87ffc8ee9d
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/player/tracking/EntityTrackerThread.java
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,13 @@
 +package me.samsuik.sakura.player.tracking;
++
++import io.papermc.paper.util.TickThread;
 +
 +import java.util.concurrent.atomic.AtomicInteger;
 +
-+public final class EntityTrackerThread extends Thread {
++public final class EntityTrackerThread extends TickThread {
 +    private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
 +
 +    public EntityTrackerThread(Runnable runnable) {
-+        super(runnable);
-+        this.setName("Entity Tracker Thread " + THREAD_COUNTER.getAndIncrement());
++        super(runnable, "Entity Tracker Thread " + THREAD_COUNTER.getAndIncrement());
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/player/tracking/ThreadSafePlayerAreaMap.java b/src/main/java/me/samsuik/sakura/player/tracking/ThreadSafePlayerAreaMap.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..aa6cdfecb6461c1ce3baf34abe9fd061028b7e78
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/player/tracking/ThreadSafePlayerAreaMap.java
+@@ -0,0 +1,35 @@
++package me.samsuik.sakura.player.tracking;
++
++import com.destroystokyo.paper.util.misc.PlayerAreaMap;
++import com.destroystokyo.paper.util.misc.PooledLinkedHashSets;
++import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
++import net.minecraft.server.level.ServerPlayer;
++
++public final class ThreadSafePlayerAreaMap extends PlayerAreaMap {
++    public ThreadSafePlayerAreaMap(final PooledLinkedHashSets<ServerPlayer> pooledHashSets) {
++        super(pooledHashSets);
++        this.areaMap = new SynchonizedLong2ObjectOpenHashMap<>();
++    }
++
++    private static class SynchonizedLong2ObjectOpenHashMap<E> extends Long2ObjectOpenHashMap<PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<E>> {
++        @Override
++        public synchronized PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<E> put(long k, PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<E> ePooledObjectLinkedOpenHashSet) {
++            return super.put(k, ePooledObjectLinkedOpenHashSet);
++        }
++
++        @Override
++        public synchronized PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<E> putIfAbsent(long k, PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<E> ePooledObjectLinkedOpenHashSet) {
++            return super.putIfAbsent(k, ePooledObjectLinkedOpenHashSet);
++        }
++
++        @Override
++        public synchronized boolean remove(Object key, Object value) {
++            return super.remove(key, value);
++        }
++
++        @Override
++        public synchronized PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<E> get(long k) {
++            return super.get(k);
++        }
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf595905bb8 100644
+index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..b2ddb8910fe20be83d4b67142854a008fbd26eb0 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -1163,8 +1163,14 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -338,7 +338,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             int trackRange = (configuredSpigotValue >>> 4) + ((configuredSpigotValue & 15) != 0 ? 1 : 0);
+             this.entityTrackerTrackRanges[ordinal] = trackRange;
+ 
+-            this.playerEntityTrackerTrackMaps[ordinal] = new com.destroystokyo.paper.util.misc.PlayerAreaMap(this.pooledLinkedPlayerHashSets);
++            this.playerEntityTrackerTrackMaps[ordinal] = new me.samsuik.sakura.player.tracking.ThreadSafePlayerAreaMap(this.pooledLinkedPlayerHashSets); // Sakura - async entity tracking
+         }
+         // Paper end - use distance map to optimise entity tracker
+     }
+@@ -1095,7 +1095,16 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+ 
+                     entity.tracker = playerchunkmap_entitytracker; // Paper - Fast access to tracker
+                     this.entityMap.put(entity.getId(), playerchunkmap_entitytracker);
++                    // Sakura start - async entity tracking
++                    Runnable updatePlayers = () -> {
+                     playerchunkmap_entitytracker.updatePlayers(entity.getPlayersInTrackRange()); // Paper - don't search all players
++                    };
++                    if (this.level.asyncEntityTracking) {
++                        this.asyncEntityTracker.scheduleForNextCycle(updatePlayers);
++                    } else {
++                        updatePlayers.run();
++                    }
++                    // Sakura end - async entity tracking
+                     if (entity instanceof ServerPlayer) {
+                         ServerPlayer entityplayer = (ServerPlayer) entity;
+ 
+@@ -1163,8 +1172,14 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          }
      }
      // Paper end - optimised tracker
@@ -141,7 +217,7 @@ index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf5
 +    // Sakura start - async entity tracking
 +    private final me.samsuik.sakura.player.tracking.AsyncEntityTracker asyncEntityTracker = new me.samsuik.sakura.player.tracking.AsyncEntityTracker(this);
      protected void tick() {
-+        if (this.level.sakuraConfig().players.entityTracker.asyncTracking) {
++        if (this.level.asyncEntityTracking) {
 +            this.asyncEntityTracker.cycle();
 +            return;
 +        }
@@ -149,7 +225,7 @@ index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf5
          // Paper start - optimized tracker
          if (true) {
              this.processTrackQueue();
-@@ -1308,12 +1314,14 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1308,12 +1323,14 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      public class TrackedEntity {
  
          public final ServerEntity serverEntity;
@@ -165,7 +241,7 @@ index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf5
  
          public TrackedEntity(Entity entity, int i, int j, boolean flag) {
              this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, j, flag, this::broadcast, this.seenBy); // CraftBukkit
-@@ -1343,7 +1351,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1343,7 +1360,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          // Paper start - use distance map to optimise tracker
          com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> lastTrackerCandidates;
  
@@ -174,7 +250,7 @@ index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf5
              com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> oldTrackerCandidates = this.lastTrackerCandidates;
              this.lastTrackerCandidates = newTrackerCandidates;
  
-@@ -1355,7 +1363,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1355,7 +1372,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                          continue;
                      }
                      ServerPlayer player = (ServerPlayer)raw;
@@ -183,7 +259,7 @@ index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf5
                  }
              }
  
-@@ -1370,7 +1378,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1370,7 +1387,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
  
              for (ServerPlayerConnection conn : this.seenBy.toArray(new ServerPlayerConnection[0])) { // avoid CME
                  if (newTrackerCandidates == null || !newTrackerCandidates.contains(conn.getPlayer())) {
@@ -192,11 +268,21 @@ index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf5
                  }
              }
          }
-@@ -1412,18 +1420,26 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1404,6 +1421,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         }
+ 
+         public void broadcastRemoved() {
++            this.isActive = false; // Sakura - async entity tracking
++            this.seenByLock.readLock().lock(); // Sakura - async entity tracking
+             Iterator iterator = this.seenBy.iterator();
+ 
+             while (iterator.hasNext()) {
+@@ -1411,19 +1430,27 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+ 
                  this.serverEntity.removePairing(serverplayerconnection.getPlayer());
              }
++            this.seenByLock.readLock().unlock(); // Sakura - async entity tracking
  
-+            this.isActive = false; // Sakura - async entity tracking
          }
  
          public void removePlayer(ServerPlayer player) {
@@ -219,7 +305,7 @@ index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf5
              if (player != this.entity) {
                  // Paper start - remove allocation of Vec3D here
                  // Vec3 vec3d = player.position().subtract(this.entity.position());
-@@ -1466,6 +1482,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1466,6 +1493,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                      flag = false;
                  }
                  // CraftBukkit end
@@ -227,7 +313,7 @@ index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf5
                  if (flag) {
                      if (this.seenBy.add(player.connection)) {
                          // Paper start - entity tracking events
-@@ -1477,6 +1494,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1477,6 +1505,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                  } else if (this.seenBy.remove(player.connection)) {
                      this.serverEntity.removePairing(player);
                  }
@@ -235,37 +321,6 @@ index 64bf4398a8a0b429e5a7483cf8a24a02c58b7fb3..c9c1f69f942d58304ec592e62d678cf5
  
              }
          }
-diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
-index b37f568fbd39be15f08e00f4ea5f28738a1d99fe..aab41f2bc51d2a3766170293e6262f9bb7d3072a 100644
---- a/src/main/java/net/minecraft/server/level/ServerEntity.java
-+++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
-@@ -94,6 +94,11 @@ public class ServerEntity {
-     }
- 
-     public void sendChanges() {
-+        // Sakura start - async entity tracking
-+        this.sendChanges(this.entity.isPassengersDirty.getAndSet(false));
-+    }
-+    private void updateDirtyPassengers() {
-+        // Sakura end - async entity tracking
-         List<Entity> list = this.entity.getPassengers();
- 
-         if (!list.equals(this.lastPassengers)) {
-@@ -108,7 +113,13 @@ public class ServerEntity {
-             });
-             this.lastPassengers = list;
-         }
--
-+        // Sakura start - async entity tracking
-+    }
-+    public final void sendChanges(boolean isPassengersDirty) {
-+        if (isPassengersDirty) {
-+            this.updateDirtyPassengers();
-+        }
-+        // Sakura end - async entity tracking
-         Entity entity = this.entity;
- 
-         if (!this.trackedPlayers.isEmpty() && entity instanceof ItemFrame) { // Paper - Perf: Only tick item frames if players can see it
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index 2a9a6a9f00343f614a0d2430095a17088861eb1f..8d27289aa81aa60ba6bdde57b74fc4a0a76df4e5 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
@@ -312,33 +367,53 @@ index d6e60e4e7b5410f30b47e6b9b57b390837368dfc..3583a897912f4ae15111c909284c9b98
          this.player.getTextFilter().leave();
      }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 08d33295967f66051b9e846d854ffac6fe885281..520f158dba52c22a33166e0ad88cffab31c426b4 100644
+index 08d33295967f66051b9e846d854ffac6fe885281..febc3242b6aa112b1fad1b5559e5ccf7b50b4adc 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -301,6 +301,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
-     private int id;
-     public boolean blocksBuilding;
-     public ImmutableList<Entity> passengers;
-+    public final java.util.concurrent.atomic.AtomicBoolean isPassengersDirty = new java.util.concurrent.atomic.AtomicBoolean(); // Sakura - aysnc entity tracking
-     protected int boardingCooldown;
-     @Nullable
-     private Entity vehicle;
-@@ -3421,6 +3422,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -3418,7 +3418,9 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+                     list.add(passenger);
+                 }
+ 
++                synchronized (this) { // Sakura - async entity tracking
                  this.passengers = ImmutableList.copyOf(list);
++                } // Sakura - async entity tracking
              }
  
-+            this.isPassengersDirty.set(true); // Sakura - async entity tracking
              this.gameEvent(GameEvent.ENTITY_MOUNT, passenger);
-         }
-     }
-@@ -3469,6 +3471,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -3460,6 +3462,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+                 return false;
              }
+             // CraftBukkit end
++            synchronized (this) { // Sakura - async entity tracking
+             if (this.passengers.size() == 1 && this.passengers.get(0) == entity) {
+                 this.passengers = ImmutableList.of();
+             } else {
+@@ -3467,6 +3470,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+                     return entity1 != entity;
+                 }).collect(ImmutableList.toImmutableList());
+             }
++            } // Sakura - async entity tracking
  
              entity.boardingCooldown = 60;
-+            this.isPassengersDirty.set(true); // Sakura - async entity tracking
              this.gameEvent(GameEvent.ENTITY_DISMOUNT, entity);
-         }
-         return true; // CraftBukkit
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index c2c0d80adb6fa8cb74fa5fe3ce5bc7ac0609abba..7c821e890243d7ab0975a78f29f107cb5199f973 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -466,11 +466,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+         return x >= bb.minX && x <= bb.maxX && y >= bb.minY && y <= bb.maxY;
+     }
+     // Sakura end - physics version api
++    public final boolean asyncEntityTracking; // Sakura - async entity tracking
+ 
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
+         this.sakuraConfig = sakuraWorldConfigCreator.get(); // Sakura
++        this.asyncEntityTracking = this.sakuraConfig().players.entityTracker.asyncTracking; // Sakura - async entity tracking
+         this.generator = gen;
+         this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
+ 
 diff --git a/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java b/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
 index 45269115e63cfc3bd7dc740a5694e2cc7c35bcb1..fd782a72f934e2de943d664568ccc7293b980e69 100644
 --- a/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
