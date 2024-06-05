@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 23 Feb 2024 02:07:03 +0000
+Subject: [PATCH] Imitiate blocking using shields
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index e6bee839520fbb38d23e2283177f553b8cb55142..3f383e3f9e29a11e7ae29b156e016542db9b353d 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -2210,7 +2210,13 @@ public abstract class LivingEntity extends Entity implements Attackable {
+             Function<Double, Double> blocking = new Function<Double, Double>() {
+                 @Override
+                 public Double apply(Double f) {
++                    // Sakura start - imitate blocking using shields
++                    if (!level().sakuraConfig().players.combat.imitateBlockingUsingShields || damagesource.getDirectEntity() instanceof AbstractArrow) {
+                     return -((LivingEntity.this.isDamageSourceBlocked(damagesource)) ? f : 0.0);
++                    } else {
++                        return LivingEntity.this.isBlocking() ? f * 0.5 : 0.0;
++                    }
++                    // Sakura end - imitate blocking using shields
+                 }
+             };
+             float blockingModifier = blocking.apply((double) f).floatValue();
