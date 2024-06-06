@@ -156,7 +156,7 @@ index 9fa79ba7f50fa20f3794fd955db1a4cc0fa8ee02..532fef2f50a0904a7c64bac30aa61dc7
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index 8493566fec47ecef3fd7423b993d9e6e378df7e5..cef878d0876cf5eef8ce4bf220b50d21f64ad597 100644
+index 8493566fec47ecef3fd7423b993d9e6e378df7e5..7f2b778706bdc1d24b97c53ac9278439a4a03d36 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
 +++ b/src/main/java/net/minecraft/world/entity/player/Player.java
 @@ -1255,7 +1255,7 @@ public abstract class Player extends LivingEntity {
@@ -183,6 +183,15 @@ index 8493566fec47ecef3fd7423b993d9e6e378df7e5..cef878d0876cf5eef8ce4bf220b50d21
                  // this.resetAttackCooldown(); // CraftBukkit - Moved to EntityLiving to reset the cooldown after the damage is dealt
                  if (f > 0.0F || f1 > 0.0F) {
                      boolean flag = f2 > 0.9F;
+@@ -1284,7 +1290,7 @@ public abstract class Player extends LivingEntity {
+                     boolean flag2 = flag && this.fallDistance > 0.0F && !this.onGround() && !this.onClimbable() && !this.isInWater() && !this.hasEffect(MobEffects.BLINDNESS) && !this.isPassenger() && target instanceof LivingEntity; // Paper - Add critical damage API; diff on change
+ 
+                     flag2 = flag2 && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
+-                    flag2 = flag2 && !this.isSprinting();
++                    flag2 = flag2 && (this.level().sakuraConfig().players.combat.legacyCombatMechanics || !this.isSprinting()); // Sakura - legacy combat mechanics
+                     if (flag2) {
+                         f *= 1.5F;
+                     }
 @@ -1476,6 +1482,27 @@ public abstract class Player extends LivingEntity {
          }
      }
