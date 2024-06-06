@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 23 Feb 2024 14:40:32 +0000
+Subject: [PATCH] Old enchanted golden apples
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index a41e63a7672ae526062a86f03ddda82bee4e1fdb..78fb078bad84a984624ee17d0b060fd9d3cfb146 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -4498,6 +4498,11 @@ public abstract class LivingEntity extends Entity implements Attackable {
+ 
+     public ItemStack eat(Level world, ItemStack stack) {
+         FoodProperties foodinfo = (FoodProperties) stack.get(DataComponents.FOOD);
++        // Sakura start - old enchanted golden apple
++        if (this.level().sakuraConfig().players.combat.oldEnchantedGoldenApple && foodinfo == net.minecraft.world.food.Foods.ENCHANTED_GOLDEN_APPLE) {
++            foodinfo = net.minecraft.world.food.Foods.LEGACY_ENCHANTED_GOLDEN_APPLE;
++        }
++        // Sakura end - old enchanted golden apple
+ 
+         if (foodinfo != null) {
+             world.playSound((net.minecraft.world.entity.player.Player) null, this.getX(), this.getY(), this.getZ(), this.getEatingSound(stack), SoundSource.NEUTRAL, 1.0F, 1.0F + (world.random.nextFloat() - world.random.nextFloat()) * 0.4F);
+diff --git a/src/main/java/net/minecraft/world/food/Foods.java b/src/main/java/net/minecraft/world/food/Foods.java
+index 60fd0e89552aeaa78b98dda32caa6766097d3108..7ced9d09ad09b53979214dae57a6347620e55569 100644
+--- a/src/main/java/net/minecraft/world/food/Foods.java
++++ b/src/main/java/net/minecraft/world/food/Foods.java
+@@ -36,6 +36,15 @@ public class Foods {
+         .effect(new MobEffectInstance(MobEffects.ABSORPTION, 2400, 3), 1.0F)
+         .alwaysEdible()
+         .build();
++    public static final FoodProperties LEGACY_ENCHANTED_GOLDEN_APPLE = new FoodProperties.Builder()
++        .nutrition(4)
++        .saturationModifier(1.2F)
++        .effect(new MobEffectInstance(MobEffects.REGENERATION, 600, 4), 1.0F)
++        .effect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 6000, 0), 1.0F)
++        .effect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 6000, 0), 1.0F)
++        .effect(new MobEffectInstance(MobEffects.ABSORPTION, 2400, 0), 1.0F)
++        .alwaysEdible()
++        .build();
+     public static final FoodProperties GOLDEN_APPLE = new FoodProperties.Builder()
+         .nutrition(4)
+         .saturationModifier(1.2F)
