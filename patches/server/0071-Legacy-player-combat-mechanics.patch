@@ -48,17 +48,16 @@ index 0000000000000000000000000000000000000000..6cda6ba8e29587fd04b727ef18848476
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 9fa79ba7f50fa20f3794fd955db1a4cc0fa8ee02..241bd21a9500989d22df54827f90e93381c333ed 100644
+index 9fa79ba7f50fa20f3794fd955db1a4cc0fa8ee02..532fef2f50a0904a7c64bac30aa61dc71fcfc7dd 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-@@ -276,6 +276,65 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -276,6 +276,64 @@ public abstract class LivingEntity extends Entity implements Attackable {
          ++this.noActionTime; // Above all the floats
      }
      // Spigot end
 +    // Sakura start - legacy combat mechanics
-+    private static final UUID LEGACY_ATTACK_SPEED_UUID = UUID.fromString("84ef96f8-9f48-4ae4-a26c-e04551324816");
-+    private static final UUID LEGACY_ATTACK_DAMAGE_UUID = UUID.fromString("bcfaeeb7-f9bc-410c-9915-b5841936d41d");
-+    private static final AttributeModifier LEGACY_ATTACK_SPEED_MODIFIER = new AttributeModifier(LEGACY_ATTACK_SPEED_UUID, "Legacy attack speed", 100.0, AttributeModifier.Operation.ADDITION);
++    private static final UUID LEGACY_COMBAT_MECHANICS_UUID = UUID.fromString("84ef96f8-9f48-4ae4-a26c-e04551324816");
++    private static final AttributeModifier LEGACY_ATTACK_SPEED_MODIFIER = new AttributeModifier(LEGACY_COMBAT_MECHANICS_UUID, "Legacy attack speed", 100.0, AttributeModifier.Operation.ADDITION);
 +
 +    private void updateAttackSpeedModifier() {
 +        AttributeInstance attackSpeed = this.getAttribute(Attributes.ATTACK_SPEED);
@@ -108,7 +107,7 @@ index 9fa79ba7f50fa20f3794fd955db1a4cc0fa8ee02..241bd21a9500989d22df54827f90e933
 +            double attackDifference = (double) legacyAttack - baseAttack;
 +
 +            if (baseAttack != 0.0f && legacyAttack != Float.MIN_VALUE) {
-+                return new AttributeModifier(LEGACY_ATTACK_DAMAGE_UUID, "Legacy attack damage", attackDifference, AttributeModifier.Operation.ADDITION);
++                return new AttributeModifier(LEGACY_COMBAT_MECHANICS_UUID, "Legacy attack damage", attackDifference, AttributeModifier.Operation.ADDITION);
 +            }
 +        }
 +        return null;
@@ -117,12 +116,12 @@ index 9fa79ba7f50fa20f3794fd955db1a4cc0fa8ee02..241bd21a9500989d22df54827f90e933
  
      protected LivingEntity(EntityType<? extends LivingEntity> type, Level world) {
          super(type, world);
-@@ -2145,7 +2204,16 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -2145,7 +2203,16 @@ public abstract class LivingEntity extends Entity implements Attackable {
      protected float getDamageAfterArmorAbsorb(DamageSource source, float amount) {
          if (!source.is(DamageTypeTags.BYPASSES_ARMOR)) {
              // this.hurtArmor(damagesource, f); // CraftBukkit - Moved into actuallyHurt(DamageSource, float)
 +            // Sakura start - legacy combat mechanics
-+            if (!level().sakuraConfig().players.combat.legacyCombatMechanics) {
++            if (!this.level().sakuraConfig().players.combat.legacyCombatMechanics) {
              amount = CombatRules.getDamageAfterAbsorb(amount, (float) this.getArmorValue(), (float) this.getAttributeValue(Attributes.ARMOR_TOUGHNESS));
 +            } else {
 +                // See: applyArmorModifier(DamageSource, float)
@@ -134,7 +133,7 @@ index 9fa79ba7f50fa20f3794fd955db1a4cc0fa8ee02..241bd21a9500989d22df54827f90e933
          }
  
          return amount;
-@@ -3201,6 +3269,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -3201,6 +3268,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
                  if (!itemstack1.isEmpty()) {
                      this.getAttributes().addTransientAttributeModifiers(itemstack1.getAttributeModifiers(enumitemslot));
                  }
@@ -147,7 +146,7 @@ index 9fa79ba7f50fa20f3794fd955db1a4cc0fa8ee02..241bd21a9500989d22df54827f90e933
              }
          }
  
-@@ -3354,7 +3428,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -3354,7 +3427,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
          this.lastArmorItemStacks.set(slot.getIndex(), armor);
      }
  
