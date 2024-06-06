@@ -647,10 +647,10 @@ index 0000000000000000000000000000000000000000..dd5a70f70c2e7bdc30b8f5655b0b7a08
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..bfac7683f768fbd27ba7f45cdbf964f1dcd0c174
+index 0000000000000000000000000000000000000000..c52187c77d1012e8be494c5171915af4d7c202e4
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
-@@ -0,0 +1,204 @@
+@@ -0,0 +1,217 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.mojang.logging.LogUtils;
@@ -773,6 +773,15 @@ index 0000000000000000000000000000000000000000..bfac7683f768fbd27ba7f45cdbf964f1
 +
 +    public Players players;
 +    public class Players extends ConfigurationPart {
++        public Combat combat = new Combat();
++        public class Combat extends ConfigurationPart {
++            public boolean legacyCombatMechanics = false;
++            public boolean allowSweepAttacks = true;
++            public boolean shieldDamageReduction = false;
++            public boolean oldEnchantedGoldenApple = false;
++            public boolean fastHealthRegen = true;
++        }
++
 +        public Knockback knockback = new Knockback();
 +        public class Knockback extends ConfigurationPart {
 +            public DoubleOr.Default knockbackVertical = DoubleOr.Default.USE_DEFAULT;
@@ -790,6 +799,9 @@ index 0000000000000000000000000000000000000000..bfac7683f768fbd27ba7f45cdbf964f1
 +                public IntOr.Default knockbackDelay = IntOr.Default.USE_DEFAULT;
 +            }
 +
++            @NestedSetting({"projectiles", "fishing-hooks-apply-knockback"})
++            public boolean fishingHooksApplyKnockback;
++
 +            @Comment("Knockback resistance attribute modifier")
 +            public double knockbackResistanceModifier = 1.0;
 +            @Comment("Received by attacking a shielded enemy")
@@ -798,6 +810,7 @@ index 0000000000000000000000000000000000000000..bfac7683f768fbd27ba7f45cdbf964f1
 +
 +        @Comment("Prevents players swimming using elytra or riptide to enter holes")
 +        public boolean posesShrinkCollisionBox = true;
++        public boolean fishingHooksPullEntities = true;
 +    }
 +
 +    public Entity entity;
