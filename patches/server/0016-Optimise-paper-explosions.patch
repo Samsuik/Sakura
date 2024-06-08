@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise paper explosions
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 482609cb5395e626f7fc5890a6db3570c6a07166..0a9683c2005ab85708bfb6bbb051f68bed133918 100644
+index 6565709b2c8467db919c04faf4a854ccc3f00973..63a3da501f054308fbcd20fd02808315a4d5faa3 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -112,6 +112,41 @@ public class Explosion {
@@ -191,16 +191,7 @@ index 482609cb5395e626f7fc5890a6db3570c6a07166..0a9683c2005ab85708bfb6bbb051f68b
                              }
                              // CraftBukkit end
                          }
-@@ -635,7 +724,7 @@ public class Explosion {
-                                 final org.bukkit.entity.Entity hitBy = this.damageSource.getEntity() != null ? this.damageSource.getEntity().getBukkitEntity() : this.source.getBukkitEntity();
-                                 com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent paperEvent = new com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent(((LivingEntity) entity).getBukkitLivingEntity(), hitBy, (float) event.getForce(), org.bukkit.craftbukkit.util.CraftVector.toBukkit(vec3d1));
-                                 if (!paperEvent.callEvent()) {
--                                    continue;
-+                                    return; // Sakura - optimise paper explosions
-                                 }
-                                 vec3d1 = org.bukkit.craftbukkit.util.CraftVector.toNMS(paperEvent.getAcceleration());
-                             }
-@@ -659,8 +748,12 @@ public class Explosion {
+@@ -646,8 +735,12 @@ public class Explosion {
                      }
                  }
              }
