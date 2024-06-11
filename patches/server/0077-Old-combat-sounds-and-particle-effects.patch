@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Tue, 11 Jun 2024 13:37:51 +0100
+Subject: [PATCH] Old combat sounds and particle effects
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
+index 7453ba523f1e0fac5192e6afe737f89bf6eab4f0..019f843ce65a115cf5157a5730c133e8908b8dbb 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Player.java
++++ b/src/main/java/net/minecraft/world/entity/player/Player.java
+@@ -1457,7 +1457,7 @@ public abstract class Player extends LivingEntity {
+                                 // CraftBukkit end
+                             }
+ 
+-                            if (this.level() instanceof ServerLevel && f5 > 2.0F) {
++                            if (this.level() instanceof ServerLevel && f5 > 2.0F && !this.level().sakuraConfig().players.combat.oldSoundsAndParticleEffects) { // Sakura - old combat sounds and particles
+                                 int k = (int) ((double) f5 * 0.5D);
+ 
+                                 ((ServerLevel) this.level()).sendParticles(ParticleTypes.DAMAGE_INDICATOR, target.getX(), target.getY(0.5D), target.getZ(), k, 0.1D, 0.0D, 0.1D, 0.2D);
+@@ -1906,6 +1906,7 @@ public abstract class Player extends LivingEntity {
+     }
+     // Paper start - send while respecting visibility
+     private static void sendSoundEffect(Player fromEntity, double x, double y, double z, SoundEvent soundEffect, SoundSource soundCategory, float volume, float pitch) {
++        if (fromEntity.level().sakuraConfig().players.combat.oldSoundsAndParticleEffects) return; // Sakura - old combat sounds and particles
+         fromEntity.level().playSound(fromEntity, x, y, z, soundEffect, soundCategory, volume, pitch); // This will not send the effect to the entity himself
+         if (fromEntity instanceof ServerPlayer) {
+             ((ServerPlayer) fromEntity).connection.send(new net.minecraft.network.protocol.game.ClientboundSoundPacket(net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT.wrapAsHolder(soundEffect), soundCategory, x, y, z, volume, pitch, fromEntity.random.nextLong()));
