@@ -229,10 +229,10 @@ index 0000000000000000000000000000000000000000..d15eb10fa203236060b90c5fc1364564
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f88ec33d34f38e4094d88d716f666245281ad0d5
+index 0000000000000000000000000000000000000000..1690428df289ac55a5a6eaf406a7accc3e6143af
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,189 @@
+@@ -0,0 +1,191 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
@@ -246,7 +246,6 @@ index 0000000000000000000000000000000000000000..f88ec33d34f38e4094d88d716f666245
 +import net.minecraft.util.Mth;
 +import net.minecraft.world.damagesource.DamageSource;
 +import net.minecraft.world.entity.Entity;
-+import net.minecraft.world.entity.EntityType;
 +import net.minecraft.world.entity.item.PrimedTnt;
 +import net.minecraft.world.level.ExplosionDamageCalculator;
 +import net.minecraft.world.level.Level;
@@ -353,12 +352,15 @@ index 0000000000000000000000000000000000000000..f88ec33d34f38e4094d88d716f666245
 +    }
 +
 +    private void updateExplosionPosition(EntityState entityState, boolean destroyedBlocks) {
++        // Before setting entity state, otherwise we might cause issues.
++        final boolean hasMoved = !this.position.equals(this.cause.position()) && (this.movement != 1 || !this.originalPosition.equals(this.position));
++
 +        // Keep track of entity state
 +        entityState.apply(this.cause);
 +        this.cause.storeEntityState();
 +
 +        // Ticking is always required after destroying a block.
-+        if (destroyedBlocks || !this.position.equals(this.cause.position()) && (this.movement != 1 || !this.originalPosition.equals(this.position))) {
++        if (destroyedBlocks || hasMoved) {
 +            this.cause.setFuse(100);
 +            this.cause.tick();
 +            this.movement++;
