@@ -111,10 +111,10 @@ index 0000000000000000000000000000000000000000..5c971fb4266f46de258767fccaf7fe55
 +}
 diff --git a/src/main/java/me/samsuik/sakura/local/storage/LocalValueStorage.java b/src/main/java/me/samsuik/sakura/local/storage/LocalValueStorage.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0f7da96d434cd699470e050898712898b54fa356
+index 0000000000000000000000000000000000000000..de18836d1a2a6038a661cdc60161d3bacdcb8bfe
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/storage/LocalValueStorage.java
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,39 @@
 +package me.samsuik.sakura.local.storage;
 +
 +import me.samsuik.sakura.local.LocalValueKey;
@@ -123,7 +123,6 @@ index 0000000000000000000000000000000000000000..0f7da96d434cd699470e050898712898
 +import java.util.Map;
 +
 +public final class LocalValueStorage {
-+
 +    private final Map<LocalValueKey<?>, Object> map = new HashMap<>();
 +
 +    public boolean exists(LocalValueKey<?> key) {
@@ -134,13 +133,17 @@ index 0000000000000000000000000000000000000000..0f7da96d434cd699470e050898712898
 +        return (T) this.map.get(key);
 +    }
 +
-+    public <T> T value(LocalValueKey<T> key, boolean def) {
++    public <T> T value(LocalValueKey<T> key, boolean returnDefault) {
 +        T val = (T) this.map.get(key);
-+        if (!def || val != null)
++        if (!returnDefault || val != null)
 +            return val;
 +        // update value
 +        this.set(key, val = key.defaultSupplier().get());
 +        return val;
++    }
++
++    public <T> T getOrDefault(LocalValueKey<T> key, T def) {
++        return (T) this.map.getOrDefault(key, def);
 +    }
 +
 +    public <T> void set(LocalValueKey<T> key, T insert) {
@@ -150,10 +153,9 @@ index 0000000000000000000000000000000000000000..0f7da96d434cd699470e050898712898
 +    public void remove(LocalValueKey<?> key) {
 +        this.map.remove(key);
 +    }
-+
 +}
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index c5fe36050eeaff80cfb989fe2f38370215af6fe5..c91d6af3cc13a1b290e2b362a3017f6536046831 100644
+index e6f66d70d024cf4f0536a5bf8e51bf7b306335df..d554b1f54e706500153718527a6b60c7743901ea 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
 @@ -157,6 +157,10 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
