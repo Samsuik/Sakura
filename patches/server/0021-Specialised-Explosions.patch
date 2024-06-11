@@ -228,10 +228,10 @@ index 0000000000000000000000000000000000000000..0611555b4afb461e2045585e3d816014
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a4ef980b5d264ca2bb0bc930b75530c6be00e599
+index 0000000000000000000000000000000000000000..5a1a576625b265c9b6d2d0968efedebf4be79166
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,188 @@
+@@ -0,0 +1,191 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
@@ -351,12 +351,15 @@ index 0000000000000000000000000000000000000000..a4ef980b5d264ca2bb0bc930b75530c6
 +    }
 +
 +    private void updateExplosionPosition(EntityState entityState, boolean destroyedBlocks) {
++        // Before setting entity state, otherwise we might cause issues.
++        final boolean hasMoved = !this.position.equals(this.cause.position()) && (this.movement != 1 || !this.originalPosition.equals(this.position));
++
 +        // Keep track of entity state
 +        entityState.apply(this.cause);
 +        this.cause.storeEntityState();
 +
 +        // Ticking is always required after destroying a block.
-+        if (destroyedBlocks || !this.position.equals(this.cause.position()) && (this.movement != 1 || !this.originalPosition.equals(this.position))) {
++        if (destroyedBlocks || hasMoved) {
 +            this.cause.setFuse(100);
 +            this.cause.tick();
 +            this.movement++;
