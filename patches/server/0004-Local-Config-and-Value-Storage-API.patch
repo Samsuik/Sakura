@@ -155,10 +155,10 @@ index 0000000000000000000000000000000000000000..a3a09b8d58589883c7c465597bc64502
 +}
 diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..dd61d4e8811ffb1e8a842df1db6ac6ce5a8258c6
+index 0000000000000000000000000000000000000000..3f518f3f1241d3dc1f76fab42e9fd789fab4d53e
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,71 @@
 +package me.samsuik.sakura.local.config;
 +
 +import io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation;
@@ -181,6 +181,7 @@ index 0000000000000000000000000000000000000000..dd61d4e8811ffb1e8a842df1db6ac6ce
 +    public PhysicsVersion physicsVersion;
 +    public RedstoneImplementation redstoneImplementation;
 +    public boolean consistentRadius;
++    public boolean redstoneCache;
 +
 +    LocalValueConfig(Expiry expiry) {
 +        this.expiry = expiry;
@@ -198,6 +199,9 @@ index 0000000000000000000000000000000000000000..dd61d4e8811ffb1e8a842df1db6ac6ce
 +
 +        // consistent explosion radius
 +        this.consistentRadius = level.sakuraConfig().cannons.explosion.consistentRadius;
++
++        // redstone cache
++        this.redstoneCache = level.sakuraConfig().technical.redstone.redstoneCache;
 +    }
 +
 +    void load(LocalValueStorage storage) {
@@ -207,9 +211,7 @@ index 0000000000000000000000000000000000000000..dd61d4e8811ffb1e8a842df1db6ac6ce
 +        }));
 +
 +        // physics version
-+        if (storage.exists(LocalValueKey.PHYSICS_VERSION)) {
-+            this.physicsVersion = storage.value(LocalValueKey.PHYSICS_VERSION);
-+        }
++        this.physicsVersion = storage.getOrDefault(LocalValueKey.PHYSICS_VERSION, this.physicsVersion);
 +
 +        // redstone implementation
 +        if (storage.exists(LocalValueKey.REDSTONE_IMPLEMENTATION)) {
@@ -217,9 +219,10 @@ index 0000000000000000000000000000000000000000..dd61d4e8811ffb1e8a842df1db6ac6ce
 +        }
 +
 +        // consistent explosion radius
-+        if (storage.exists(LocalValueKey.CONSISTENT_EXPLOSION_RADIUS)) {
-+            this.consistentRadius = storage.value(LocalValueKey.CONSISTENT_EXPLOSION_RADIUS);
-+        }
++        this.consistentRadius = storage.getOrDefault(LocalValueKey.CONSISTENT_EXPLOSION_RADIUS, this.consistentRadius);
++
++        // redstone cache
++        this.redstoneCache = storage.getOrDefault(LocalValueKey.REDSTONE_CACHE, this.redstoneCache);
 +    }
 +
 +    Expiry expiry() {
