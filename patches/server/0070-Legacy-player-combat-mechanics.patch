@@ -50,10 +50,10 @@ index 0000000000000000000000000000000000000000..b1c55ef758f61914e6df9b2c8096bce6
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index c0a0a8808003d7e56c4de4f4ad1c494b15cc41a2..ec501831c187b6d3aaa9396325289d080647fb12 100644
+index c0a0a8808003d7e56c4de4f4ad1c494b15cc41a2..d0f5ace260a913bc5169ea7ea0481c3e3b4b5616 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-@@ -287,6 +287,72 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -287,6 +287,70 @@ public abstract class LivingEntity extends Entity implements Attackable {
          ++this.noActionTime; // Above all the floats
      }
      // Spigot end
@@ -94,11 +94,9 @@ index c0a0a8808003d7e56c4de4f4ad1c494b15cc41a2..ec501831c187b6d3aaa9396325289d08
 +
 +    private @Nullable AttributeModifier getLegacyAttackModifier() {
 +        ItemStack itemstack = this.getLastHandItem(EquipmentSlot.MAINHAND);
-+        net.minecraft.world.item.component.ItemAttributeModifiers modifiers = itemstack.get(DataComponents.ATTRIBUTE_MODIFIERS);
-+        if (modifiers == null || modifiers.modifiers().isEmpty()) {
-+            net.minecraft.world.item.component.ItemAttributeModifiers defaultModifiers = itemstack.getItem().getDefaultAttributeModifiers();
++        net.minecraft.world.item.component.ItemAttributeModifiers defaultModifiers = itemstack.getItem().components().get(DataComponents.ATTRIBUTE_MODIFIERS);
++        if (defaultModifiers != null && !defaultModifiers.modifiers().isEmpty()) { // exists
 +            double baseAttack = 0.0;
-+
 +            for (net.minecraft.world.item.component.ItemAttributeModifiers.Entry entry : defaultModifiers.modifiers()) {
 +                if (!entry.slot().test(EquipmentSlot.MAINHAND) || !entry.attribute().is(Attributes.ATTACK_DAMAGE))
 +                    continue;
@@ -126,7 +124,7 @@ index c0a0a8808003d7e56c4de4f4ad1c494b15cc41a2..ec501831c187b6d3aaa9396325289d08
  
      protected LivingEntity(EntityType<? extends LivingEntity> type, Level world) {
          super(type, world);
-@@ -2181,7 +2247,16 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -2181,7 +2245,16 @@ public abstract class LivingEntity extends Entity implements Attackable {
      protected float getDamageAfterArmorAbsorb(DamageSource source, float amount) {
          if (!source.is(DamageTypeTags.BYPASSES_ARMOR)) {
              // this.hurtArmor(damagesource, f); // CraftBukkit - Moved into actuallyHurt(DamageSource, float)
@@ -143,7 +141,7 @@ index c0a0a8808003d7e56c4de4f4ad1c494b15cc41a2..ec501831c187b6d3aaa9396325289d08
          }
  
          return amount;
-@@ -3277,6 +3352,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -3277,6 +3350,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
  
                      });
                  }
