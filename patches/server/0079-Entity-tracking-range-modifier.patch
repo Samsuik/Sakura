@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Tue, 18 Jun 2024 13:34:55 +0100
+Subject: [PATCH] Entity tracking range modifier
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index baec8d775957f3ef3224d743f961f0a23aee92ab..f89667bd9a3960a0f2c3bd6e99a9b0a6566b0f24 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -1431,7 +1431,10 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 double vec3d_dz = player.getZ() - this.entity.getZ();
+                 // Paper end - remove allocation of Vec3D here
+                 int i = ChunkMap.this.getPlayerViewDistance(player);
+-                double d0 = (double) Math.min(this.getEffectiveRange(), i * 16);
++                // Sakura start - entity tracking range modifier
++                double visibleRange = (double) this.getEffectiveRange() * player.trackingRangeModifier;
++                double d0 = (double) Math.min(visibleRange, i * 16);
++                // Sakura end - entity tracking range modifier
+                 double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
+                 double d2 = d0 * d0;
+                 boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player) && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index 68ea7cd8148ff4a80da761cf38e73bfa15f93b97..f7e7041366fe6dfd43299a0866962ddbbe5c2b29 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -329,6 +329,7 @@ public class ServerPlayer extends Player {
+     // Paper start - optimise chunk tick iteration
+     public double lastEntitySpawnRadiusSquared = -1.0;
+     // Paper end - optimise chunk tick iteration
++    public double trackingRangeModifier = 1.0; // Sakura - entity tracking range modifier
+ 
+     public ServerPlayer(MinecraftServer server, ServerLevel world, GameProfile profile, ClientInformation clientOptions) {
+         super(world, world.getSharedSpawnPos(), world.getSharedSpawnAngle(), profile);
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index 29f0c4c3fd9185bf8768572c135b50a9db34dbbe..80c8d59566e9e6f0a2ea89b075981a13b65883b0 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -2922,6 +2922,18 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+         return (this.getHandle().requestedViewDistance() == 0) ? Bukkit.getViewDistance() : this.getHandle().requestedViewDistance();
+     }
+ 
++    // Sakura start - entity tracking range modifier
++    @Override
++    public double getTrackingRangeModifier() {
++        return this.getHandle().trackingRangeModifier * 100.0;
++    }
++
++    @Override
++    public void setTrackingRangeModifier(double mod) {
++        this.getHandle().trackingRangeModifier = mod / 100.0;
++    }
++    // Sakura end - entity tracking range modifier
++
+     // Paper start
+     @Override
+     public java.util.Locale locale() {
