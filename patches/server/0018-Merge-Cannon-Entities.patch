@@ -169,7 +169,7 @@ index 0000000000000000000000000000000000000000..e63935c17e213bf60571d120ad9ce311
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index b72c796d30d4892e30d726c3b2a6b097b941979d..054783956aa6179f9f0813393b7a9afa41a6d54a 100644
+index 443ad714aaecd6e916e203bf09babc410c73b376..701dfa3017bdcc73d55f28ca0623f9791a4c712d 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -1803,6 +1803,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -209,7 +209,7 @@ index 4a3690c71eda93d2542e8c039442a51882f10475..ada18c755cee73620e6c0020674dd0a5
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index ce16878d3c9c52e8edd4b073916bb3f7fd595649..88964adf81cd03b26556b50b764caaddd49b59be 100644
+index 519632b483c5b86c98067890c0628484fd1c8eb6..a0dc1fa70590d7fc0d88f83094a6ec2c98e748e8 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -604,6 +604,116 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -514,6 +514,19 @@ index 829a21a6da2de36f38cae9e1a3920fcc732eac0e..557472039d6451d5a8471ff56609ce49
  
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura - sakura configuration files // Paper - create paper world config; Async-Anti-Xray: Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+diff --git a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
+index 05bf23bd9ec951840ffceb68638458de02ad0063..9a66120109e7be5620b36bbf7baa733aed1e44d1 100644
+--- a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
+@@ -57,7 +57,7 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+ 
+             // We only want to block turning the plate on if all events are cancelled
+             if (!cancellable.isCancelled()) {
+-                i++;
++                i += entity.getStacked(); // Sakura - cannon entity merging
+             }
+         }
+ 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
 index 1359d25a32b4a5d5e8e68ce737bd19f7b5afaf69..0afa2cfb04b5097788927076669e85fe24041df9 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
