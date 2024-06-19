@@ -374,7 +374,7 @@ index e657b5f88195f1db2cb9a9a97f255ff23992cadd..5e155cdf66701f96dd0b831603c714b5
          if (this.removalReason == null) {
              this.removalReason = entity_removalreason;
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 743aac4ba5d08ef3e6b67136bd4919b62411a7a0..99a0bec7eb5be527b41248b365b037a5e42a3270 100644
+index 4efdb2c114c96c32ce33593d35552c1c3da53e56..5ddb94427c2502953c5f08c8f7f7958c32208189 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -133,6 +133,59 @@ public class FallingBlockEntity extends Entity {
@@ -446,7 +446,7 @@ index 743aac4ba5d08ef3e6b67136bd4919b62411a7a0..99a0bec7eb5be527b41248b365b037a5
                                      ((ServerLevel) this.level()).getChunkSource().chunkMap.broadcast(this, new ClientboundBlockUpdatePacket(blockposition, this.level().getBlockState(blockposition)));
                                      this.discard(EntityRemoveEvent.Cause.DESPAWN);
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 90f10473ae441d68333cd497c718a3c982544533..4f695305794c2564517d99b4edd3180d7ea07845 100644
+index 7ebcd07c40e25fb909d7eec81820702181df1b5d..284ab0a2add55394f42fc0b5e62748ba1b629531 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -72,6 +72,44 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -514,6 +514,19 @@ index 684fd53a34fae43cd916a6f0a5cf38a2505d9bfe..9507b2419834ace4f71a781ad90284af
  
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+diff --git a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
+index 05bf23bd9ec951840ffceb68638458de02ad0063..9a66120109e7be5620b36bbf7baa733aed1e44d1 100644
+--- a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
+@@ -57,7 +57,7 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+ 
+             // We only want to block turning the plate on if all events are cancelled
+             if (!cancellable.isCancelled()) {
+-                i++;
++                i += entity.getStacked(); // Sakura - cannon entity merging
+             }
+         }
+ 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
 index 1359d25a32b4a5d5e8e68ce737bd19f7b5afaf69..0afa2cfb04b5097788927076669e85fe24041df9 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
