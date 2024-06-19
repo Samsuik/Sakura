@@ -666,6 +666,19 @@ index 4c3c6a04155fa4a0ea81beaa5bf2a2f53ab5dbbc..48cfc7b3358ec2a663d31af3638eda73
  
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura - sakura configuration files// Paper - create paper world config & Anti-Xray
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+diff --git a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
+index 05bf23bd9ec951840ffceb68638458de02ad0063..ef0f1bb4c93288a97c17125089ea1a223cea04c5 100644
+--- a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
+@@ -57,7 +57,7 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+ 
+             // We only want to block turning the plate on if all events are cancelled
+             if (!cancellable.isCancelled()) {
+-                i++;
++                i += entity instanceof me.samsuik.sakura.entity.merge.MergeableEntity mergeEntity ? mergeEntity.getMergeEntityData().getCount() : 1; // Sakura - merge cannon entities
+             }
+         }
+ 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
 index 1359d25a32b4a5d5e8e68ce737bd19f7b5afaf69..55f67c2ca07eca0d3e1522eebbb4ce37704bdd04 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
