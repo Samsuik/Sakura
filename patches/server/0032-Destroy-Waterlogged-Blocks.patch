@@ -5,17 +5,17 @@ Subject: [PATCH] Destroy Waterlogged Blocks
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 243ac586aad29e3a145eec3c9a85b24901450121..c2edd4021fe2bdf96f58f6d402b767f911801cf6 100644
+index f4b17c01ee6552df325ea02a2f6da22b14f6e78f..154b636f04f979f4a3a2bc3a02a54258d3cf7646 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -284,7 +284,11 @@ public class Explosion {
- 
+@@ -285,6 +285,11 @@ public class Explosion {
              if (material != null && material.resistance() >= 0.0f && (this.level.sakuraConfig().cannons.explosion.allowNonTntBreakingDurableBlocks || this.source instanceof net.minecraft.world.entity.item.PrimedTnt)) {
                  return Optional.of(material.resistance());
-+                // Sakura start - destroy water logged blocks
-+            } else if (!fluidState.isEmpty() && this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks) {
-+                return Optional.of(ZERO_RESISTANCE);
              }
++            // Sakura start - destroy water logged blocks
++            if (!fluidState.isEmpty() && this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks) {
++                return Optional.of(ZERO_RESISTANCE);
++            }
 +            // Sakura end - destroy water logged blocks
          }
  

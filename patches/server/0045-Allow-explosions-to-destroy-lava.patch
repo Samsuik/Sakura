@@ -5,15 +5,18 @@ Subject: [PATCH] Allow explosions to destroy lava
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index c5db31bd92a441eccd0f4c5ea1b8c7f17a00de65..fd53dff917b65b94eceb5796fc80b1a490454cc2 100644
+index 86f493c8e8ba8e5fcd986ca8e151a4bdcc3ac4b6..31cf85345c9638b72d2b2b218d48408a5988210b 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -289,7 +289,7 @@ public class Explosion {
-             if (material != null && material.resistance() >= 0.0f && (this.level.sakuraConfig().cannons.explosion.allowNonTntBreakingDurableBlocks || this.source instanceof net.minecraft.world.entity.item.PrimedTnt)) {
-                 return Optional.of(material.resistance());
-                 // Sakura start - destroy water logged blocks
--            } else if (!fluidState.isEmpty() && this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks) {
-+            } else if (!fluidState.isEmpty() && this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks || blockState.is(Blocks.LAVA) && this.level.sakuraConfig().cannons.explosion.explodeLava) { // Sakura - allow explosions to destroy lava
+@@ -294,6 +294,11 @@ public class Explosion {
                  return Optional.of(ZERO_RESISTANCE);
              }
              // Sakura end - destroy water logged blocks
++            // Sakura start - allow explosions to destroy lava
++            if (blockState.is(Blocks.LAVA) && this.level.sakuraConfig().cannons.explosion.explodeLava) {
++                return Optional.of(ZERO_RESISTANCE);
++            }
++            // Sakura end - allow explosions to destroy lava
+         }
+ 
+         return this.damageCalculator.getBlockExplosionResistance((Explosion)(Object)this, this.level, pos, blockState, fluidState);
