@@ -5,18 +5,18 @@ Subject: [PATCH] Protect scaffolding from creepers
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 22007aa4c85befa80938adf3126bda12b8ff58c9..bf3a05d9787eb64f384b67261ab9e04d7adf343f 100644
+index 035b5ea9570668fa8aaafd7b757458343fd26456..0f2fed57d94993d4f819a40b47503a62c60ac092 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -285,6 +285,11 @@ public class Explosion {
-             Block block = blockState.getBlock();
-             me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().config(pos).durableMaterials.get(block);
- 
+@@ -298,6 +298,11 @@ public class Explosion {
+                 return Optional.of(ZERO_RESISTANCE);
+             }
+             // Sakura end - allow explosions to destroy lava
 +            // Sakura start - protect scaffolding from creepers
 +            if (this.level.sakuraConfig().cannons.explosion.protectScaffoldingFromCreepers && blockState.is(Blocks.SCAFFOLDING) && this.source instanceof net.minecraft.world.entity.monster.Creeper) {
 +                return Optional.of(Blocks.BARRIER.getExplosionResistance());
 +            }
 +            // Sakura end - protect scaffolding from creepers
-             if (material != null && material.resistance() >= 0.0f && (this.level.sakuraConfig().cannons.explosion.allowNonTntBreakingDurableBlocks || this.source instanceof net.minecraft.world.entity.item.PrimedTnt)) {
-                 return Optional.of(material.resistance());
-                 // Sakura start - destroy water logged blocks
+         }
+ 
+         return this.damageCalculator.getBlockExplosionResistance((Explosion)(Object)this, this.level, pos, blockState, fluidState);
