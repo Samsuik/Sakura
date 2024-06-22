@@ -458,7 +458,7 @@ index 1fa332238999fd45b20bc2be2d6284329da909b6..d044262b2e1363151b8d076a9e3855db
          if (!(this instanceof ServerPlayer) && entity_removalreason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 0458d965ca266606f922bf1b03b729810a3948a4..172f82631e2ce3bfe791d7e8f2e841cca5a51667 100644
+index 0458d965ca266606f922bf1b03b729810a3948a4..b873f6fce87afb048128d642f7588c18fcc6f7f5 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -57,7 +57,7 @@ import org.bukkit.craftbukkit.event.CraftEventFactory;
@@ -470,7 +470,7 @@ index 0458d965ca266606f922bf1b03b729810a3948a4..172f82631e2ce3bfe791d7e8f2e841cc
  
      private static final Logger LOGGER = LogUtils.getLogger();
      public BlockState blockState;
-@@ -73,6 +73,57 @@ public class FallingBlockEntity extends Entity {
+@@ -73,6 +73,58 @@ public class FallingBlockEntity extends Entity {
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
  
@@ -497,6 +497,7 @@ index 0458d965ca266606f922bf1b03b729810a3948a4..172f82631e2ce3bfe791d7e8f2e841cc
 +
 +            // Try to stack the falling block
 +            this.entityState().apply(fallingBlock);
++            fallingBlock.blockState = this.blockState;
 +            fallingBlock.spawnReason = this.spawnReason;
 +            fallingBlock.time = this.time - 1;
 +            fallingBlock.tick();
@@ -528,7 +529,7 @@ index 0458d965ca266606f922bf1b03b729810a3948a4..172f82631e2ce3bfe791d7e8f2e841cc
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level world) {
          super(type, world);
          this.blockState = Blocks.SAND.defaultBlockState();
-@@ -80,6 +131,7 @@ public class FallingBlockEntity extends Entity {
+@@ -80,6 +132,7 @@ public class FallingBlockEntity extends Entity {
          this.fallDamageMax = 40;
          this.isFallingBlock = true; // Sakura
          this.loadChunks = world.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
@@ -536,7 +537,7 @@ index 0458d965ca266606f922bf1b03b729810a3948a4..172f82631e2ce3bfe791d7e8f2e841cc
      }
  
      public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
-@@ -207,6 +259,7 @@ public class FallingBlockEntity extends Entity {
+@@ -207,6 +260,7 @@ public class FallingBlockEntity extends Entity {
                                      return;
                                  }
                                  // CraftBukkit end
@@ -544,7 +545,7 @@ index 0458d965ca266606f922bf1b03b729810a3948a4..172f82631e2ce3bfe791d7e8f2e841cc
                                  if (this.level().setBlock(blockposition, this.blockState, 3)) {
                                      ((ServerLevel) this.level()).getChunkSource().chunkMap.broadcast(this, new ClientboundBlockUpdatePacket(blockposition, this.level().getBlockState(blockposition)));
                                      this.discard(EntityRemoveEvent.Cause.DESPAWN);
-@@ -326,6 +379,7 @@ public class FallingBlockEntity extends Entity {
+@@ -326,6 +380,7 @@ public class FallingBlockEntity extends Entity {
  
          nbt.putBoolean("CancelDrop", this.cancelDrop);
          if (!autoExpire) {nbt.putBoolean("Paper.AutoExpire", false);} // Paper - Expand FallingBlock API
@@ -552,7 +553,7 @@ index 0458d965ca266606f922bf1b03b729810a3948a4..172f82631e2ce3bfe791d7e8f2e841cc
      }
  
      @Override
-@@ -358,6 +412,11 @@ public class FallingBlockEntity extends Entity {
+@@ -358,6 +413,11 @@ public class FallingBlockEntity extends Entity {
              this.autoExpire = nbt.getBoolean("Paper.AutoExpire");
           }
          // Paper end - Expand FallingBlock API
