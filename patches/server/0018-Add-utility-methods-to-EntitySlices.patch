@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 3 Aug 2023 13:48:27 +0100
+Subject: [PATCH] Add utility methods to EntitySlices
+
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+index 01e29fc7c91aa7ffeb54584c8ca0989900235251..c140e3a73712d2123bc9ed09e9bab25e48c4420e 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
++++ b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+@@ -318,6 +318,12 @@ public final class ChunkEntitySlices {
+         return true;
+     }
+ 
++    // Sakura start
++    public Entity[] getSectionEntities(int sectionY) {
++        return this.allEntities.getSectionEntities(sectionY);
++    }
++    // Sakura end
++
+     public void getHardCollidingEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
+         this.hardCollidingEntities.getEntities(except, box, into, predicate);
+     }
+@@ -542,6 +548,18 @@ public final class ChunkEntitySlices {
+             }
+         }
+ 
++        // Sakura start
++        public Entity[] getSectionEntities(int sectionY) {
++            BasicEntityList<Entity> list = this.entitiesBySection[sectionY - this.slices.minSection];
++
++            if (list != null) {
++                return list.storage;
++            }
++
++            return new Entity[0];
++        }
++        // Sakura end
++
+         public void getEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
+             if (this.count == 0) {
+                 return;

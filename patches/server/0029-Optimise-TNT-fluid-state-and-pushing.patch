@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Mon, 16 Oct 2023 22:57:55 +0100
+Subject: [PATCH] Optimise TNT fluid state and pushing
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 6066121c7bd432228b0503c8200d2dbe891bce29..0946d71f8ef41f42db038c2efd527a319f55e069 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -2296,7 +2296,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         return this.isInWater() || flag;
+     }
+ 
+-    void updateInWaterStateAndDoWaterCurrentPushing() {
++    protected void updateInWaterStateAndDoWaterCurrentPushing() { // Sakura
+         Entity entity = this.getVehicle();
+ 
+         if (entity instanceof Boat entityboat) {
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index ffb453616a5b5664c5b5a8a6410f3096d6c7f4e0..1bebee482d0a5ca1a56474660888be01d257b231 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -112,6 +112,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+     }
+     // Sakura - specialised explosions
+     // Sakura end
++    // Sakura start
++    protected boolean updateInWaterStateAndDoFluidPushing() {
++        if (this.isPushedByFluid()) {
++            return super.updateInWaterStateAndDoFluidPushing();
++        } else {
++            // super method also handles lava fluid pushing
++            // we only need to search for water to negate fall distance
++            this.fluidHeight.clear();
++            this.updateInWaterStateAndDoWaterCurrentPushing();
++            return this.isInWater();
++        }
++    }
++    // Sakura end
+ 
+     @Override
+     protected double getDefaultGravity() {
