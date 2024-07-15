@@ -5,17 +5,16 @@ Subject: [PATCH] Reduce entity tracker player updates
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index ac00b69197964e5c82bc597594d28fcf74f87a02..6855e10e33ec09645dd770f4b9337cc7ca4f4932 100644
+index ac00b69197964e5c82bc597594d28fcf74f87a02..c276781231104b48de7b782b273722c25f463475 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -961,7 +961,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              if (tracker == null) {
                  continue;
              }
--            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(nearbyPlayers.getChunk(entity.chunkPosition()));
 +            // Sakura start - reduce entity tracker player updates
 +            if (tracker.shouldUpdatePlayers()) {
-+            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity) tracker).moonrise$tick(nearbyPlayers.getChunk(entity.chunkPosition()));
+             ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(nearbyPlayers.getChunk(entity.chunkPosition()));
 +            }
 +            // Sakura end - reduce entity tracker player updates
              tracker.serverEntity.sendChanges();
