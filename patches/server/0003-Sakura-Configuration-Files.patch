@@ -606,7 +606,7 @@ index 0000000000000000000000000000000000000000..a22139d6f6775b7b8d635e126d2ea2bf
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2ed95ba385e3937fde99d4ee3e7845e77591aa89
+index 0000000000000000000000000000000000000000..4a92dfb3e28ab4b97f000b67883d3320192745e3
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
 @@ -0,0 +1,219 @@
@@ -682,8 +682,8 @@ index 0000000000000000000000000000000000000000..2ed95ba385e3937fde99d4ee3e7845e7
 +            public boolean preventAtWorldHeight = false;
 +
 +            public boolean isFallingBlockInBounds(FallingBlockEntity entity) {
-+                return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isCollidingWithBorder(entity.level().getWorldBorder(), entity.getBoundingBox().inflate(0.01)))
-+                    && (!preventAtWorldHeight || entity.blockPosition().getY() < entity.level().getMaxBuildHeight() - 1);
++                return (!this.preventAgainstBorder || !ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isCollidingWithBorder(entity.level().getWorldBorder(), entity.getBoundingBox().inflate(0.01)))
++                    && (!this.preventAtWorldHeight || entity.blockPosition().getY() < entity.level().getMaxBuildHeight() - 1);
 +            }
 +        }
 +
@@ -1040,7 +1040,7 @@ index 0000000000000000000000000000000000000000..4024f9738e039ffffd560a07a2210f75
 +public record DurableMaterial(int durability, float resistance) {
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 68f60e77e0bfd42b6419491c1d59b6432974216b..1af29c2d6c591b11fd509821d54e6ea781c0929d 100644
+index 54e581db732c3a104142a2bbc228ecbe16aec0fc..49284f76714fea23b602d7fa6dd3fc468a851c00 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -317,6 +317,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -1051,7 +1051,7 @@ index 68f60e77e0bfd42b6419491c1d59b6432974216b..1af29c2d6c591b11fd509821d54e6ea7
      public static long currentTickLong = 0L; // Paper - track current tick as a long
      public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
-@@ -433,6 +434,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -496,6 +497,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
          // CraftBukkit end
          this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
@@ -1079,10 +1079,10 @@ index 7d82cc6b847124cf4225428ba310309544928148..2b718bb263780e9b942da0c3664e911b
          this.setPvpAllowed(dedicatedserverproperties.pvp);
          this.setFlightAllowed(dedicatedserverproperties.allowFlight);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 798016774df02c3f7ebf909c9cc125f8427a39be..993dcba233c4816d020d671d8bf3f6133a1e86a3 100644
+index 4e5fc39f3839d4d626925bcef1c83415376195f4..ae3756d1bc1a0e7c481fc929be7cee41ee40ebff 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -502,7 +502,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -536,7 +536,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
          // Holder holder = worlddimension.type(); // CraftBukkit - decompile error
  
          // Objects.requireNonNull(minecraftserver); // CraftBukkit - decompile error
@@ -1092,10 +1092,10 @@ index 798016774df02c3f7ebf909c9cc125f8427a39be..993dcba233c4816d020d671d8bf3f613
          this.convertable = convertable_conversionsession;
          this.uuid = WorldUUID.getUUID(convertable_conversionsession.levelDirectory.path().toFile());
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index fee155c81df385faa474e3aec777a30375ecb07d..e345fbcf798c0b663780d206ce337233e28dfc4e 100644
+index b16c3beda0fc7d7d06cfc82f450165096a88bade..54000bab9ac8199ad9e898cdc0db78372375cb05 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -170,6 +170,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -171,6 +171,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return this.paperConfig;
      }
      // Paper end - add paper world config
@@ -1108,9 +1108,9 @@ index fee155c81df385faa474e3aec777a30375ecb07d..e345fbcf798c0b663780d206ce337233
  
      public final com.destroystokyo.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
      public final co.aikar.timings.WorldTimingsHandler timings; // Paper
-@@ -258,9 +264,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -642,9 +648,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      }
-     // Paper end - rewrite chunk system
+     // Paper end - optimise collisions
  
 -    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, java.util.concurrent.Executor executor) { // Paper - create paper world config & Anti-Xray
 +    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura - sakura configuration files// Paper - create paper world config & Anti-Xray
@@ -1141,7 +1141,7 @@ index caf6ff33b42472d30f28629470e12889f50490cc..1e2dcd25fc9e605481c809fcb3121b41
          this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 6e1f92b45504cef0c4dcbbebf3df339ef4cad0a1..c361c408b0382ac7bffa960ba56c37157544c25f 100644
+index 1acc0a579804dee7bb3d0f755c24240413ed7540..870ceadca6d60bf2cd2a171e3f1532f45f9eeef2 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
 @@ -176,6 +176,14 @@ public class Main {

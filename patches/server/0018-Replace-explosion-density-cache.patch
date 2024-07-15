@@ -1,0 +1,288 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 22 Apr 2024 23:01:26 +0100
+Subject: [PATCH] Replace explosion density cache
+
+
+diff --git a/src/main/java/me/samsuik/sakura/explosion/density/BlockDensityCache.java b/src/main/java/me/samsuik/sakura/explosion/density/BlockDensityCache.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b760b03f9ddc1fb2aed135105030fc1b5dc2c9c9
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/explosion/density/BlockDensityCache.java
+@@ -0,0 +1,65 @@
++package me.samsuik.sakura.explosion.density;
++
++import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
++import net.minecraft.util.Mth;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.phys.Vec3;
++
++/**
++ * This is a replacement for papers explosion density cache to be more lenient and efficient.
++ */
++public final class BlockDensityCache {
++    public static final float UNKNOWN_DENSITY = -1.0f;
++
++    private final Int2ObjectOpenHashMap<DensityData> densityDataMap = new Int2ObjectOpenHashMap<>();
++    private DensityData data;
++    private int key;
++    private boolean knownSource;
++
++    public float getDensity(Vec3 explosion, Entity entity) {
++        int key = getKey(explosion, entity);
++        DensityData data = this.densityDataMap.get(key);
++
++        if (data != null && data.hasPosition(explosion, entity.getBoundingBox())) {
++            return data.density();
++        } else {
++            this.knownSource = data != null && data.complete() && data.isExplosionPosition(explosion);
++            this.data = data;
++            this.key = key;
++            return UNKNOWN_DENSITY;
++        }
++    }
++
++    public float getKnownDensity(Vec3 point) {
++        if (this.knownSource && this.data.isKnownPosition(point)) {
++            return this.data.density();
++        } else {
++            return UNKNOWN_DENSITY;
++        }
++    }
++
++    public void putDensity(Vec3 explosion, Entity entity, float density) {
++        if (this.data == null || !this.data.complete()) {
++            this.densityDataMap.put(this.key, new DensityData(explosion, entity, density));
++        } else if (this.data.density() == density) {
++            this.data.expand(explosion, entity);
++        }
++    }
++
++    public void clear(long tick) {
++        // trim size every 30 seconds
++        if (tick != -1 && tick % 600 == 0)
++            this.densityDataMap.trim();
++        this.densityDataMap.clear();
++    }
++
++    private static int getKey(Vec3 explosion, Entity entity) {
++        int key        = Mth.floor(explosion.x());
++        key = 31 * key + Mth.floor(explosion.y());
++        key = 31 * key + Mth.floor(explosion.z());
++        key = 31 * key + entity.getBlockX();
++        key = 31 * key + entity.getBlockY();
++        key = 31 * key + entity.getBlockZ();
++        return key;
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/explosion/density/DensityData.java b/src/main/java/me/samsuik/sakura/explosion/density/DensityData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d7e24638f07f243502004970ab4ce646cbe1e436
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/explosion/density/DensityData.java
+@@ -0,0 +1,47 @@
++package me.samsuik.sakura.explosion.density;
++
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.Vec3;
++
++public final class DensityData {
++    private AABB source;
++    private AABB known;
++    private AABB entity;
++    private final float density;
++    private final boolean complete;
++
++    public DensityData(Vec3 explosion, Entity entity, float density) {
++        this.source = new AABB(explosion, explosion);
++        this.known = new AABB(entity.position(), entity.position());
++        this.entity = entity.getBoundingBox();
++        this.density = density;
++        this.complete = Math.abs(density - 0.5f) == 0.5f;
++    }
++
++    public float density() {
++        return this.density;
++    }
++
++    public boolean complete() {
++        return this.complete;
++    }
++
++    public boolean hasPosition(Vec3 explosion, AABB entity) {
++        return this.isExplosionPosition(explosion) && this.entity.isAABBInBounds(entity);
++    }
++
++    public boolean isKnownPosition(Vec3 point) {
++        return this.entity.isVec3InBounds(point);
++    }
++
++    public boolean isExplosionPosition(Vec3 explosion) {
++        return this.source.isVec3InBounds(explosion);
++    }
++
++    public void expand(Vec3 explosion, Entity entity) {
++        this.source = this.source.expand(explosion);
++        this.known  = this.known.expand(entity.position());
++        this.entity = this.entity.minmax(entity.getBoundingBox());
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 0a6a39672859aa4b70dacafc168250941f8d96d8..4ee6b6177df48701bd3521e3489797e62a85511f 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1818,6 +1818,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             worldserver.localConfig().expire(currentTickLong); // Sakura - add local config
+             worldserver.minimalTNT.clear(); // Sakura - visibility api
+             worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannon entities
++            worldserver.densityCache.clear(currentTickLong); // Sakura - explosion density cache
+         }
+         this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
+ 
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 23549ea6ad18812e76f5d889d73cc143656842d0..03461922b9b42b4f6e9a62d1af1c1e1f6570cb09 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -305,7 +305,12 @@ public class Explosion {
+                         Math.fma(dz, diffZ, offZ)
+                     );
+ 
+-                    if (!this.clipsAnything(from, source, context, blockCache, blockPos)) {
++                    // Sakura start - replace density cache
++                    final float density = this.level.densityCache.getKnownDensity(from);
++                    if (density != me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
++                        missedRays += (int) density;
++                    } else if (!this.clipsAnything(from, source, context, blockCache, blockPos)) {
++                        // Sakura end - replace density cache
+                         ++missedRays;
+                     }
+                 }
+@@ -411,7 +416,16 @@ public class Explosion {
+                         double d10 = Mth.lerp(d7, axisalignedbb.minZ, axisalignedbb.maxZ);
+                         Vec3 vec3d1 = new Vec3(d8 + d3, d9, d10 + d4);
+ 
+-                        if (entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType() == HitResult.Type.MISS) {
++                        // Sakura start - replace density cache
++                        final net.minecraft.world.phys.HitResult.Type hitResult;
++                        final float density = entity.level().densityCache.getKnownDensity(vec3d1);
++                        if (density != me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
++                            hitResult = density != 0.0f ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
++                        } else {
++                            hitResult = entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType();
++                        }
++                        if (hitResult == HitResult.Type.MISS) {
++                            // Sakura end - replace density cache
+                             ++i;
+                         }
+ 
+@@ -810,6 +824,11 @@ public class Explosion {
+                 });
+             }
+ 
++            // Sakura start - explosion density cache
++            if (!this.toBlow.isEmpty() && !this.level.paperConfig().environment.optimizeExplosions) {
++                this.level.densityCache.clear(-1);
++            }
++            // Sakura end - explosion density cache
+             Iterator iterator = list.iterator();
+ 
+             while (iterator.hasNext()) {
+@@ -938,14 +957,12 @@ public class Explosion {
+     }
+     // Paper start - Optimize explosions
+     private float getBlockDensity(Vec3 vec3d, Entity entity, ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[] blockCache, BlockPos.MutableBlockPos blockPos) { // Paper - optimise collisions
+-        if (!this.level.paperConfig().environment.optimizeExplosions) {
+-            return this.getSeenFraction(vec3d, entity, blockCache, blockPos); // Paper - optimise collisions
+-        }
+-        CacheKey key = new CacheKey(this, entity.getBoundingBox());
+-        Float blockDensity = this.level.explosionDensityCache.get(key);
+-        if (blockDensity == null) {
+-            blockDensity = this.getSeenFraction(vec3d, entity, blockCache, blockPos); // Paper - optimise collisions
+-            this.level.explosionDensityCache.put(key, blockDensity);
++        // Sakura start - replace density cache
++        float blockDensity = this.level.densityCache.getDensity(vec3d, entity);
++        if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
++            blockDensity = this.getSeenFraction(vec3d, entity, blockCache, blockPos); // Paper - optimise explosions;
++            this.level.densityCache.putDensity(vec3d, entity, blockDensity);
++            // Sakura end - replace density cache
+         }
+ 
+         return blockDensity;
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 5ab7e3335448a262f892a3a7232179b19d91d78d..c33826219edf60a1349583d1dc7d0008ef4037b4 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -222,6 +222,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     // Paper start - rewrite chunk system
+     private ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup entityLookup;
+     public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
++    public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
+ 
+     @Override
+     public final ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup moonrise$getEntityLookup() {
+diff --git a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
+index 8b33e35c843e5c0b8988a2ef2a38a2673035292f..5ec557652558bb44e9be7d32fc214091d29aac78 100644
+--- a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
+@@ -109,6 +109,11 @@ public abstract class BasePressurePlateBlock extends Block {
+         if (output != j) {
+             BlockState iblockdata1 = this.setSignalForState(state, j);
+ 
++            // Sakura start - explosion density cache
++            if (!world.paperConfig().environment.optimizeExplosions) {
++                world.densityCache.clear(-1);
++            }
++            // Sakura end - explosion density cache
+             world.setBlock(pos, iblockdata1, 2);
+             this.updateNeighbours(world, pos);
+             world.setBlocksDirty(pos, state, iblockdata1);
+diff --git a/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java b/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
+index 76aca266d3f3222502ff4c196228f08fcd88c5f8..6a63e60d80ee53a4611dfcdd9ab974f8227fae59 100644
+--- a/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
+@@ -173,6 +173,11 @@ public class TripWireHookBlock extends Block {
+                 blockposition1 = pos.relative(enumdirection, j);
+                 Direction enumdirection1 = enumdirection.getOpposite();
+ 
++                // Sakura start - explosion density cache
++                if (!world.paperConfig().environment.optimizeExplosions) {
++                    world.densityCache.clear(-1);
++                }
++                // Sakura end - explosion density cache
+                 world.setBlock(blockposition1, (BlockState) iblockdata3.setValue(TripWireHookBlock.FACING, enumdirection1), 3);
+                 TripWireHookBlock.notifyNeighbors(block, world, blockposition1, enumdirection1);
+                 TripWireHookBlock.emitState(world, blockposition1, flag4, flag5, flag2, flag3);
+diff --git a/src/main/java/net/minecraft/world/phys/AABB.java b/src/main/java/net/minecraft/world/phys/AABB.java
+index 29123f3a2f211c08d1a9ccf62ca9bc9822f90111..a63bd7945eef572615b1aa4a4914fa385b25cad2 100644
+--- a/src/main/java/net/minecraft/world/phys/AABB.java
++++ b/src/main/java/net/minecraft/world/phys/AABB.java
+@@ -508,4 +508,28 @@ public class AABB {
+     public static AABB ofSize(Vec3 center, double dx, double dy, double dz) {
+         return new AABB(center.x - dx / 2.0, center.y - dy / 2.0, center.z - dz / 2.0, center.x + dx / 2.0, center.y + dy / 2.0, center.z + dz / 2.0);
+     }
++
++    // Sakura start - explosion density cache
++    public final boolean isAABBInBounds(AABB bb) {
++        return this.minX <= bb.minX && this.maxX >= bb.maxX
++            && this.minY <= bb.minY && this.maxY >= bb.maxY
++            && this.minZ <= bb.minZ && this.maxZ >= bb.maxZ;
++    }
++
++    public final boolean isVec3InBounds(Vec3 p) {
++        return this.minX <= p.x && this.maxX >= p.x
++            && this.minY <= p.y && this.maxY >= p.y
++            && this.minZ <= p.z && this.maxZ >= p.z;
++    }
++
++    public final AABB expand(Vec3 pos) {
++        double minX = Math.min(this.minX, pos.x);
++        double minY = Math.min(this.minY, pos.y);
++        double minZ = Math.min(this.minZ, pos.z);
++        double maxX = Math.max(this.maxX, pos.x);
++        double maxY = Math.max(this.maxY, pos.y);
++        double maxZ = Math.max(this.maxZ, pos.z);
++        return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
++    }
++    // Sakura end - explosion density cache
+ }

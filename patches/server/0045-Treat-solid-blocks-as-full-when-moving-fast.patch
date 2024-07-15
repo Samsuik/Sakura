@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sun, 26 Nov 2023 17:57:50 +0000
+Subject: [PATCH] Treat solid blocks as full when moving fast
+
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
+index 523cd7cfd5e883cc4758ab9ad13251c3c38584cb..bc70364df17b9e893c1c774fed61999993c90aa3 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
++++ b/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
+@@ -1597,6 +1597,7 @@ public final class CollisionUtil {
+     public static final int COLLISION_FLAG_CHECK_BORDER = 1 << 2;
+     public static final int COLLISION_FLAG_CHECK_ONLY = 1 << 3;
+     public static final int COLLISION_FLAG_ADD_TICKET = 1 << 4; // Sakura - load chunks on movement
++    public static final int COLLISION_FLAG_FULL_BLOCKS = 1 << 5; // Sakura - treat solid blocks as full when moving fast
+ 
+     public static boolean getCollisionsForBlocksOrWorldBorder(final net.minecraft.world.level.Level world, final net.minecraft.world.entity.Entity entity, final net.minecraft.world.phys.AABB aabb,
+                                                               final java.util.List<net.minecraft.world.phys.shapes.VoxelShape> intoVoxel, final java.util.List<net.minecraft.world.phys.AABB> intoAABB,
+@@ -1648,6 +1649,7 @@ public final class CollisionUtil {
+ 
+         final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
+         final boolean addTicket  = (collisionFlags & COLLISION_FLAG_ADD_TICKET) != 0; // Sakura
++        final boolean fullBlocks = (collisionFlags & COLLISION_FLAG_FULL_BLOCKS) != 0; // Sakura - treat solid blocks as full when moving fast
+         final net.minecraft.world.level.chunk.ChunkSource chunkSource = world.getChunkSource();
+ 
+         for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
+@@ -1688,7 +1690,7 @@ public final class CollisionUtil {
+                         continue;
+                     }
+ 
+-                    final boolean hasSpecial = ((ca.spottedleaf.moonrise.patches.collisions.world.CollisionLevelChunkSection)section).moonrise$getSpecialCollidingBlocks() != 0;
++                    final boolean hasSpecial = !fullBlocks && ((ca.spottedleaf.moonrise.patches.collisions.world.CollisionLevelChunkSection)section).moonrise$getSpecialCollidingBlocks() != 0; // Sakura - treat solid blocks as full when moving fast
+                     final int sectionAdjust = !hasSpecial ? 1 : 0;
+ 
+                     final net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState> blocks = section.states;
+@@ -1724,7 +1726,11 @@ public final class CollisionUtil {
+                                 net.minecraft.world.phys.shapes.VoxelShape blockCollision = ((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)blockData).moonrise$getConstantCollisionShape();
+ 
+                                 if (edgeCount == 0 || ((edgeCount != 1 || blockData.hasLargeCollisionShape()) && (edgeCount != 2 || blockData.getBlock() == net.minecraft.world.level.block.Blocks.MOVING_PISTON))) {
+-                                    if (blockCollision == null) {
++                                    // Sakura start - treat solid blocks as full when moving fast
++                                    if (fullBlocks) {
++                                        blockCollision = net.minecraft.world.phys.shapes.Shapes.block();
++                                    } else if (blockCollision == null) {
++                                        // Sakura end - treat solid blocks as full when moving fast
+                                         mutablePos.set(blockX, blockY, blockZ);
+                                         blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
+                                     }
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 183204d645f294a74049c5cf1501250b0552839a..d398bc33522e199ca912f460d6092464348b1a1e 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -565,6 +565,15 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+             flags |= ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_ADD_TICKET;
+         }
+ 
++        // Sakura start - treat solid blocks as full when moving fast
++        if (this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMoving && (this.isPrimedTNT || this.isFallingBlock)) {
++            this.syncDeltaMovement();
++            double horizontalMovementSqr = this.movementX*this.movementX + this.movementZ*this.movementZ;
++            if (horizontalMovementSqr > Math.pow(this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMovingFasterThan, 2.0)) {
++                flags |= ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_FULL_BLOCKS;
++            }
++        }
++        // Sakura end - treat solid blocks as full when moving fast
+         return flags;
+     }
+     // Sakura end - load chunks on movement

@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 30 Nov 2023 15:54:49 +0000
+Subject: [PATCH] Reduce entity tracker player updates
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index ac00b69197964e5c82bc597594d28fcf74f87a02..6855e10e33ec09645dd770f4b9337cc7ca4f4932 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -961,7 +961,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             if (tracker == null) {
+                 continue;
+             }
+-            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(nearbyPlayers.getChunk(entity.chunkPosition()));
++            // Sakura start - reduce entity tracker player updates
++            if (tracker.shouldUpdatePlayers()) {
++            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity) tracker).moonrise$tick(nearbyPlayers.getChunk(entity.chunkPosition()));
++            }
++            // Sakura end - reduce entity tracker player updates
+             tracker.serverEntity.sendChanges();
+         }
+ 
+@@ -1213,12 +1217,30 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             }
+         }
+         // Paper end - optimise entity tracker
++        // Sakura start - reduce entity tracker player updates
++        private final int playerUpdateInterval;
++        private Vec3 entityPosition;
++
++        public final boolean shouldUpdatePlayers() {
++            // We have to always update players otherwise they can turn invisible on teleports (why?)
++            if (this.entity instanceof net.minecraft.world.entity.player.Player || this.entity.tickCount % this.playerUpdateInterval == 0) {
++                return true;
++            }
++
++            Vec3 lastPosition = this.entityPosition;
++            this.entityPosition = this.entity.position();
++
++            return this.entity.position().distanceToSqr(lastPosition) >= (double) this.range / 2.0;
++        }
++        // Sakura start - reduce entity tracker player updates
+ 
+         public TrackedEntity(final Entity entity, final int i, final int j, final boolean flag) {
+             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, j, flag, this::broadcast, this.seenBy); // CraftBukkit
+             this.entity = entity;
+             this.range = i;
+             this.lastSectionPos = SectionPos.of((EntityAccess) entity);
++            this.playerUpdateInterval = Math.min(j, 20); // Sakura - reduce entity tracker player updates
++            this.entityPosition = entity.position(); // Sakura - reduce entity tracker player updates
+         }
+ 
+         public boolean equals(Object object) {

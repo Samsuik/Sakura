@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 23 Feb 2024 02:07:03 +0000
+Subject: [PATCH] Change shields to reduce damage
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index 72e435537f9b2cb3bd15deba0e5e9c49c8b19d3f..2f7e51b1509d3db78ed8dbd073e2f9ded820390b 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -2377,7 +2377,13 @@ public abstract class LivingEntity extends Entity implements Attackable {
+         Function<Double, Double> blocking = new Function<Double, Double>() {
+             @Override
+             public Double apply(Double f) {
++                    // Sakura start - shield damage reduction
++                    if (!level().sakuraConfig().players.combat.shieldDamageReduction || damagesource.getDirectEntity() instanceof AbstractArrow) {
+                 return -((LivingEntity.this.isDamageSourceBlocked(damagesource)) ? f : 0.0);
++                    } else {
++                        return -(LivingEntity.this.isBlocking() ? f * 0.5 : 0.0);
++                    }
++                    // Sakura end - shield damage reduction
+             }
+         };
+         float blockingModifier = blocking.apply((double) f).floatValue();

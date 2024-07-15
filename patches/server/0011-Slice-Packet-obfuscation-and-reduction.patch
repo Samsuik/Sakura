@@ -1,0 +1,238 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Cryptite <cryptite@gmail.com>
+Date: Wed, 6 Oct 2021 11:03:01 -0500
+Subject: [PATCH] (Slice) Packet obfuscation and reduction
+
+Minecraft is overzealous about packet updates for Entities. In Loka's case, we want to reduce as many unnecessary
+packet updates as possible. This patch is likely to be updated over and over in terms of reducing packet sends.
+
+In summary, this patch creates the concept of a "foreignValue" of a packet's data. We treat packets in two ways:
+1) The packet sent to the player itself (the normal way). This always has all of the values as usual.
+2) The packet data as seen by any other (foreign) players.
+
+This patch adds the ability to set a "foreignValue" for an entity value so as to obfuscate data received by other players.
+The current packets modified/obfuscated are the following:
+
+    # This reduces the amount of health packet updates as well which is great for players in combat.
+
+    # Air level packets are sent PER-TICK, and as such a player with any change in air level will only spam themselves
+    # with packets instead of every single player within tracking distance
+
+diff --git a/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java b/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java
+index 0f99733660f91280e4c6262cf75b3c9cae86f65a..ba9f8fe6fafc54bbdfb104de28af4b392feb4483 100644
+--- a/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java
++++ b/src/main/java/net/minecraft/network/syncher/SynchedEntityData.java
+@@ -22,6 +22,7 @@ public class SynchedEntityData {
+     private final SyncedDataHolder entity;
+     private final SynchedEntityData.DataItem<?>[] itemsById;
+     private boolean isDirty;
++    private boolean isForeignDirty; // Slice
+ 
+     SynchedEntityData(SyncedDataHolder trackedEntity, SynchedEntityData.DataItem<?>[] entries) {
+         this.entity = trackedEntity;
+@@ -63,6 +64,16 @@ public class SynchedEntityData {
+     }
+ 
+     public <T> void set(EntityDataAccessor<T> key, T value, boolean force) {
++        // Slice start
++        this.set(key, value, null, force);
++    }
++
++    public <T> void set(EntityDataAccessor<T> key, T value, T foreignValue) {
++        this.set(key, value, foreignValue, false);
++    }
++
++    public <T> void set(EntityDataAccessor<T> key, T value, T foreignValue, boolean force) {
++        // Slice end
+         SynchedEntityData.DataItem<T> datawatcher_item = this.getItem(key);
+ 
+         if (force || ObjectUtils.notEqual(value, datawatcher_item.getValue())) {
+@@ -72,6 +83,12 @@ public class SynchedEntityData {
+             this.isDirty = true;
+         }
+ 
++        // Slice start
++        if (foreignValue != null && ObjectUtils.notEqual(foreignValue, datawatcher_item.getForeignValue())) {
++            datawatcher_item.setForeignValue(foreignValue);
++            this.isForeignDirty = true;
++        }
++        // Slice end
+     }
+ 
+     // CraftBukkit start - add method from above
+@@ -81,6 +98,12 @@ public class SynchedEntityData {
+     }
+     // CraftBukkit end
+ 
++    // Slice start
++    public boolean isForeignDirty() {
++        return this.isForeignDirty;
++    }
++    // Slice end
++
+     public boolean isDirty() {
+         return this.isDirty;
+     }
+@@ -108,6 +131,29 @@ public class SynchedEntityData {
+         }
+     }
+ 
++    // Slice start
++    @Nullable
++    public List<SynchedEntityData.DataValue<?>> packForeignDirty(List<DataValue<?>> unpackedData) {
++        List<SynchedEntityData.DataValue<?>> list = null;
++
++        for (DataValue<?> dataItem : unpackedData) {
++            DataItem<?> item = this.itemsById[dataItem.id()];
++            if (item.isDirty(true)) {
++                item.setForeignDirty(false);
++
++                if (list == null) {
++                    list = new ArrayList<>();
++                }
++
++                list.add(item.copy(true));
++            }
++        }
++
++        this.isForeignDirty = false;
++        return list;
++    }
++    // Slice end
++
+     @Nullable
+     public List<SynchedEntityData.DataValue<?>> getNonDefaultValues() {
+         List<SynchedEntityData.DataValue<?>> list = null;
+@@ -171,11 +217,14 @@ public class SynchedEntityData {
+         T value;
+         private final T initialValue;
+         private boolean dirty;
++        @Nullable T foreignValue = null; // Slice
++        private boolean foreignDirty; // Slice
+ 
+         public DataItem(EntityDataAccessor<T> data, T value) {
+             this.accessor = data;
+             this.initialValue = value;
+             this.value = value;
++            this.foreignDirty = true; // Slice
+         }
+ 
+         public EntityDataAccessor<T> getAccessor() {
+@@ -202,6 +251,35 @@ public class SynchedEntityData {
+             return this.initialValue.equals(this.value);
+         }
+ 
++        // Slice start
++        public void setForeignValue(T foreignValue) {
++            this.foreignValue = foreignValue;
++            this.foreignDirty = true;
++        }
++
++        public @Nullable T getForeignValue() {
++            return this.foreignValue;
++        }
++
++        public boolean isDirty(boolean foreign) {
++            if (foreign) {
++                //There must be a foreign value in order for this to be dirty, otherwise we consider this a normal
++                //value and check the normal dirty flag.
++                return this.foreignValue == null || this.foreignDirty;
++            }
++
++            return this.dirty;
++        }
++
++        public void setForeignDirty(boolean dirty) {
++            this.foreignDirty = dirty;
++        }
++
++        public SynchedEntityData.DataValue<T> copy(boolean foreign) {
++            return SynchedEntityData.DataValue.create(this.accessor, this.accessor.serializer().copy((foreign && this.foreignValue != null ? this.foreignValue : this.value)));
++        }
++        // Slice end
++
+         public SynchedEntityData.DataValue<T> value() {
+             return SynchedEntityData.DataValue.create(this.accessor, this.value);
+         }
+diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
+index 8ea2f24695f5dad55e21f238b69442513e7a90c6..66ce58684d7a571ebcb33e62ef1d67fe3f1250e3 100644
+--- a/src/main/java/net/minecraft/server/level/ServerEntity.java
++++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
+@@ -152,7 +152,7 @@ public class ServerEntity {
+             }
+         }
+ 
+-        if (this.forceStateResync || this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) { // Paper - fix desync when a player is added to the tracker
++        if (this.forceStateResync || this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isForeignDirty()) { // Slice // Paper - fix desync when a player is added to the tracker
+             int i;
+             int j;
+ 
+@@ -411,7 +411,15 @@ public class ServerEntity {
+ 
+         if (list != null) {
+             this.trackedDataValues = datawatcher.getNonDefaultValues();
+-            this.broadcastAndSend(new ClientboundSetEntityDataPacket(this.entity.getId(), list));
++            // Slice start
++            if (!(this.entity instanceof ServerPlayer)) {
++                list = datawatcher.packForeignDirty(list);
++            }
++
++            if (list != null) {
++                this.broadcastAndSend(new ClientboundSetEntityDataPacket(this.entity.getId(), list));
++            }
++            // Slice end
+         }
+ 
+         if (this.entity instanceof LivingEntity) {
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 8cbbe924f56e2e3d3c0e48e14e3b9176e3ef714f..05d78fec35caee04241bb33808afb2d2d09f999c 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -3494,7 +3494,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+             this.entityData.markDirty(Entity.DATA_AIR_SUPPLY_ID);
+             return;
+         }
+-        this.entityData.set(Entity.DATA_AIR_SUPPLY_ID, event.getAmount());
++        this.entityData.set(Entity.DATA_AIR_SUPPLY_ID, event.getAmount(), getMaxAirSupply()); // Slice
+         // CraftBukkit end
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index c030d4e3e059227995c2f9a3a1c58d78d29ec41c..0458d965ca266606f922bf1b03b729810a3948a4 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -115,7 +115,7 @@ public class FallingBlockEntity extends Entity {
+     }
+ 
+     public void setStartPos(BlockPos pos) {
+-        this.entityData.set(FallingBlockEntity.DATA_START_POS, pos);
++        this.entityData.set(FallingBlockEntity.DATA_START_POS, pos, BlockPos.ZERO); // Slice
+     }
+ 
+     public BlockPos getStartPos() {
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index eeb3ef7a3f86a062e39e6978e97ab7bd71dfa574..af9bd6822f60ee46ff5cc173bc8bd76d13020a80 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -203,7 +203,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+     }
+ 
+     public void setFuse(int fuse) {
+-        this.entityData.set(PrimedTnt.DATA_FUSE_ID, fuse);
++        this.entityData.set(PrimedTnt.DATA_FUSE_ID, fuse, (fuse / 10) * 10); // Slice
+     }
+ 
+     public int getFuse() {
+diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
+index 09bcbc0ae36e4e69fee87a7e0c49acf496117a39..8b2b495f34b1ae96901ed8f2ca2d8d753b4eb2c8 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Player.java
++++ b/src/main/java/net/minecraft/world/entity/player/Player.java
+@@ -650,7 +650,7 @@ public abstract class Player extends LivingEntity {
+     public void increaseScore(int score) {
+         int j = this.getScore();
+ 
+-        this.entityData.set(Player.DATA_SCORE_ID, j + score);
++        this.entityData.set(Player.DATA_SCORE_ID, j + score, 0); // Slice
+     }
+ 
+     public void startAutoSpinAttack(int riptideTicks, float riptideAttackDamage, ItemStack stack) {

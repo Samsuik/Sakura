@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sat, 9 Dec 2023 00:11:48 +0000
+Subject: [PATCH] Configure fluids breaking redstone
+
+
+diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+index 70ff7e116e83ab3d4aaa39d2644a9ef3e5a89e95..eb7333d2740a666b2302ff3200020dddf3985532 100644
+--- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+@@ -466,6 +466,10 @@ public abstract class FlowingFluid extends Fluid {
+ 
+         if (block instanceof LiquidBlockContainer ifluidcontainer) {
+             return ifluidcontainer.canPlaceLiquid((Player) null, world, pos, state, fluid);
++            // Sakura start
++        } else if (world instanceof Level level && !level.sakuraConfig().technical.redstone.fluidsBreakRedstone && state.isSignalSource()) {
++            return false;
++            // Sakura end
+         } else {
+             return !(block instanceof DoorBlock) && !state.is(BlockTags.SIGNS) && !state.is(Blocks.LADDER) && !state.is(Blocks.SUGAR_CANE) && !state.is(Blocks.BUBBLE_COLUMN) ? (!state.is(Blocks.NETHER_PORTAL) && !state.is(Blocks.END_PORTAL) && !state.is(Blocks.END_GATEWAY) && !state.is(Blocks.STRUCTURE_VOID) ? !state.blocksMotion() : false) : false;
+         }

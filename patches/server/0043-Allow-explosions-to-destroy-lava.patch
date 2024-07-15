@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sat, 25 Nov 2023 21:14:45 +0000
+Subject: [PATCH] Allow explosions to destroy lava
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 665e96abe709587bdff15eab78bf9fd88b8ce9dc..72927b5f91a6cd6c5416fd077454b692ea56cf20 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -169,7 +169,7 @@ public class Explosion {
+             if (material != null && material.resistance() >= 0.0f && (this.level.sakuraConfig().cannons.explosion.allowNonTntBreakingDurableBlocks || this.source instanceof net.minecraft.world.entity.item.PrimedTnt)) {
+                 return Optional.of(material.resistance());
+                 // Sakura start - destroy water logged blocks
+-            } else if (!fluidState.isEmpty() && this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks) {
++            } else if (!fluidState.isEmpty() && this.level.sakuraConfig().cannons.explosion.destroyWaterloggedBlocks || blockState.is(Blocks.LAVA) && this.level.sakuraConfig().cannons.explosion.explodeLava) { // Sakura - allow explosions to destroy lava
+                 return Optional.of(ZERO_RESISTANCE);
+             }
+             // Sakura end - destroy water logged blocks

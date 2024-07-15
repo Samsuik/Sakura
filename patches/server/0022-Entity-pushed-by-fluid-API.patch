@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Fri, 13 Oct 2023 20:02:04 +0100
+Subject: [PATCH] Entity pushed by fluid API
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index a3483b79f2a2859a137c22fcb3fec5bc74835d82..526d54e3dc8473c6b1b67a9253b006cc27419ab2 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -697,6 +697,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         }
+     }
+     // Sakura end - merge cannon entities
++    public boolean pushedByFluid = true; // Sakura - entity pushed by fluid api
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+@@ -4277,7 +4278,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     }
+ 
+     public boolean isPushedByFluid() {
+-        return true;
++        return this.pushedByFluid; // Sakura - entity pushed by fluid api
+     }
+ 
+     public static double getViewScale() {
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index 2cde808bfa797256409879505ba205a71f381981..38e06c99478669e4fd247923bc6cd00bab835f54 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -203,6 +203,18 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+         return this.entity.isInWater();
+     }
+ 
++    // Sakura start - entity pushed by fluid api
++    @Override
++    public boolean isPushedByFluid() {
++        return this.getHandle().isPushedByFluid();
++    }
++
++    @Override
++    public void setPushedByFluid(boolean push) {
++        this.getHandle().pushedByFluid = push;
++    }
++    // Sakura end - entity pushed by fluid api
++
+     @Override
+     public World getWorld() {
+         return this.entity.level().getWorld();

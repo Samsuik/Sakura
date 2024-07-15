@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Mon, 16 Oct 2023 22:57:55 +0100
+Subject: [PATCH] Optimise TNT fluid state
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 526d54e3dc8473c6b1b67a9253b006cc27419ab2..729bf74fb06fe4fadeecbd0d879e35ecf33990c1 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -2246,7 +2246,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         return this.isInWater() || flag;
+     }
+ 
+-    void updateInWaterStateAndDoWaterCurrentPushing() {
++    protected void updateInWaterStateAndDoWaterCurrentPushing() { // Sakura
+         Entity entity = this.getVehicle();
+ 
+         if (entity instanceof Boat entityboat) {
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index 92662134c56540f6215edf3c772fffd9262fbcd0..8ffa6ea08c49c3481bf8717eda3f8fa3672706eb 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -117,6 +117,20 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         return true;
+     }
+     // Sakura end - merge cannon entities
++    // Sakura start - optimise tnt fluid state
++    @Override
++    protected boolean updateInWaterStateAndDoFluidPushing() {
++        if (this.isPushedByFluid()) {
++            return super.updateInWaterStateAndDoFluidPushing();
++        } else {
++            // super method also handles lava fluid pushing
++            // we only need to search for water to negate fall distance
++            this.fluidHeight.clear();
++            this.updateInWaterStateAndDoWaterCurrentPushing();
++            return this.isInWater();
++        }
++    }
++    // Sakura end - optimise tnt fluid state
+ 
+     @Override
+     protected double getDefaultGravity() {
