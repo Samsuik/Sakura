@@ -5,7 +5,7 @@ Subject: [PATCH] Add entity travel distance limits
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 5f09b0a94e6b1087c9207c333aa5595281a57985..d69439c51adb330066ddca62bda0e71ff36872ba 100644
+index e11805351af06e6f4752f758a31f63cfe7a4728b..f185f1fce6daf6677c4d7a09a9f5f08cd0ffebaf 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1260,6 +1260,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
@@ -21,10 +21,10 @@ index 5f09b0a94e6b1087c9207c333aa5595281a57985..d69439c51adb330066ddca62bda0e71f
          } else { entity.inactiveTick(); } // Paper - EAR 2
          this.getProfiler().pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index f7c619df4deacd9a9c559c582b388cdd900f0165..d90fc6c3057102b2f14687e3c3294f7f47e270b1 100644
+index 012dec6d31e3932ed4a50e8c5c64a9e7751690cd..b5dc81e3fb62e82b3524ab812d4d194cb5fe101e 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -714,6 +714,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -621,6 +621,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return this.physics;
      }
      // Sakura end - physics version api
@@ -44,11 +44,11 @@ index f7c619df4deacd9a9c559c582b388cdd900f0165..d90fc6c3057102b2f14687e3c3294f7f
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -764,6 +777,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -670,6 +683,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         this.entityData = datawatcher_a.build();
          this.setPos(0.0D, 0.0D, 0.0D);
          this.eyeHeight = this.dimensions.eyeHeight();
-         this.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura
-+        this.travelDistanceLimit = Math.pow(level.sakuraConfig().entity.chunkTravelLimit.getOrDefault(type, Integer.MAX_VALUE) * 16.0, 2); // Sakura - entity travel distance limits
++        this.travelDistanceLimit = Math.pow(this.level.sakuraConfig().entity.chunkTravelLimit.getOrDefault(type, Integer.MAX_VALUE) * 16.0, 2); // Sakura - entity travel distance limits
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {

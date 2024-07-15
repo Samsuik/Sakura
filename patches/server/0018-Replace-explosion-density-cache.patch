@@ -129,19 +129,19 @@ index 0000000000000000000000000000000000000000..d7e24638f07f243502004970ab4ce646
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 0a6a39672859aa4b70dacafc168250941f8d96d8..4ee6b6177df48701bd3521e3489797e62a85511f 100644
+index b0e95e1dbf3248101d63bd2c0f9ba05e720623c6..67ca905c0821deb279383811fd112f02c46a73a1 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -1818,6 +1818,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.localConfig().expire(currentTickLong); // Sakura - add local config
              worldserver.minimalTNT.clear(); // Sakura - visibility api
-             worldserver.mergeHistory.expire(currentTickLong); // Sakura - merge cannon entities
+             worldserver.mergeHandler.expire(currentTickLong); // Sakura - merge cannon entities
 +            worldserver.densityCache.clear(currentTickLong); // Sakura - explosion density cache
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 23549ea6ad18812e76f5d889d73cc143656842d0..03461922b9b42b4f6e9a62d1af1c1e1f6570cb09 100644
+index 94636b235eac944b955944425b44b9e864a319d0..3a4aa5930e0c2b560e00878d072989287b34ebc0 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -305,7 +305,12 @@ public class Explosion {
@@ -210,17 +210,17 @@ index 23549ea6ad18812e76f5d889d73cc143656842d0..03461922b9b42b4f6e9a62d1af1c1e1f
  
          return blockDensity;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 5ab7e3335448a262f892a3a7232179b19d91d78d..c33826219edf60a1349583d1dc7d0008ef4037b4 100644
+index 48cfc7b3358ec2a663d31af3638eda7334474241..68cc57b15d2536711429ee3836d32aff7cfd1cf3 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -222,6 +222,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     // Paper start - rewrite chunk system
-     private ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup entityLookup;
-     public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
+@@ -655,6 +655,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     // Paper end - optimise collisions
+     public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
+     public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
 +    public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
  
-     @Override
-     public final ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup moonrise$getEntityLookup() {
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura - sakura configuration files// Paper - create paper world config & Anti-Xray
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
 diff --git a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
 index 8b33e35c843e5c0b8988a2ef2a38a2673035292f..5ec557652558bb44e9be7d32fc214091d29aac78 100644
 --- a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java

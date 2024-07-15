@@ -5,43 +5,44 @@ Subject: [PATCH] Cannon Mechanics
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 22034ec50d32a120ef5b591b76af9eb46d20c87e..ad7aa58ee5966c5d56ff8bf8070697d039d4f503 100644
+index c2f56308492d1e5d56993e32db8daaba8e081274..00c17b86c69b73d751ca93b65a54c74b6ed8fa6f 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -72,6 +72,7 @@ public class FallingBlockEntity extends Entity {
+@@ -72,6 +72,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
      public boolean forceTickAfterTeleportToDuplicate;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
 +    public boolean heightParity; // Sakura - configure cannon mechanics
  
-     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level world) {
-         super(type, world);
-@@ -80,6 +81,7 @@ public class FallingBlockEntity extends Entity {
-         this.fallDamageMax = 40;
+     // Sakura start - merge cannon entities
+     private final me.samsuik.sakura.entity.merge.MergeEntityData mergeData = new me.samsuik.sakura.entity.merge.MergeEntityData(this);
+@@ -132,6 +133,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          this.isFallingBlock = true; // Sakura
          this.loadChunks = world.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
+         this.mergeData.setMergeLevel(world.sakuraConfig().cannons.mergeLevel); // Sakura - merge cannon entities
 +        this.heightParity = world.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
      }
  
      public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
-@@ -189,6 +191,12 @@ public class FallingBlockEntity extends Entity {
-         return itemEntity;
+@@ -189,6 +191,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+         return !this.isRemoved();
      }
-     // Sakura end - merge cannon entities
+ 
 +    // Sakura start - configure cannon mechanics
 +    @Override
 +    public final double getEyeY() {
 +        return this.heightParity ? this.getY() : super.getEyeY();
 +    }
 +    // Sakura end - configure cannon mechanics
- 
++
      @Override
      protected double getDefaultGravity() {
+         return 0.04D;
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 5a655606fd2dbc625696a0dc4331acd08d6dba88..92662134c56540f6215edf3c772fffd9262fbcd0 100644
+index cc2f2dbee1d717d54014005ec57e8b864c2a7241..7c2323bf7682254de14ed963e8d57b24dd55ad5f 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -72,6 +72,12 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -96,6 +96,12 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
          this.yo = y;
          this.zo = z;
          this.owner = igniter;
@@ -54,7 +55,7 @@ index 5a655606fd2dbc625696a0dc4331acd08d6dba88..92662134c56540f6215edf3c772fffd9
      }
  
      @Override
-@@ -260,7 +266,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -268,7 +274,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
      // Paper start - Option to prevent TNT from moving in water
      @Override
      public boolean isPushedByFluid() {
@@ -64,23 +65,24 @@ index 5a655606fd2dbc625696a0dc4331acd08d6dba88..92662134c56540f6215edf3c772fffd9
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
-index 0afa2cfb04b5097788927076669e85fe24041df9..8e678a811e232bbd78de45b80fae47964bdf8f98 100644
+index 55f67c2ca07eca0d3e1522eebbb4ce37704bdd04..2de0befc3948a23910cfc609fc25c57bbd0cb030 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
-@@ -34,6 +34,16 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
-     public void setStacked(int stacked) {
-         getHandle().setStacked(stacked);
+@@ -35,6 +35,17 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
+         this.getHandle().getMergeEntityData().setCount(stacked);
      }
-+    
+     // Sakura end - merge cannon entities
++    // Sakura start - cannon mechanics
 +    @Override
 +    public void setHeightParity(boolean parity) {
-+        getHandle().heightParity = parity;
++        this.getHandle().heightParity = parity;
 +    }
 +
 +    @Override
 +    public boolean getHeightParity() {
-+        return getHandle().heightParity;
++        return this.getHandle().heightParity;
 +    }
-     // Sakura end
++    // Sakura end - cannon mechanics
  
      @Override
+     public FallingBlockEntity getHandle() {

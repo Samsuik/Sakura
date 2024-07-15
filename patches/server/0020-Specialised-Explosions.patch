@@ -23,10 +23,10 @@ index c21e00812f1aaa1279834a0562d360d6b89e146c..442119e7c4670582556b067dfc03e39a
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2dc4704b50dc9ca1e918c0869a29e333db5575d2
+index 0000000000000000000000000000000000000000..cec9432c8c6bbdb0f45b73c480fe9edb8eeb8298
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-@@ -0,0 +1,201 @@
+@@ -0,0 +1,203 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache;
@@ -72,6 +72,8 @@ index 0000000000000000000000000000000000000000..2dc4704b50dc9ca1e918c0869a29e333
 +        return (double) this.cause.getBbHeight() * 0.0625D;
 +    }
 +
++    protected abstract int getExplosionCount();
++
 +    protected abstract void startExplosion();
 +
 +    @Override
@@ -85,7 +87,7 @@ index 0000000000000000000000000000000000000000..2dc4704b50dc9ca1e918c0869a29e333
 +    public final void explode() {
 +        if (this.radius() < 0.1F) {
 +            // (radius < 0.1F) in bukkit is assumed to not be able to find any blocks or entities.
-+            for (int i = 1; i < this.cause.getStacked(); ++i) {
++            for (int i = 1; i < this.getExplosionCount(); ++i) {
 +                this.finalizeExplosionAndParticles();
 +            }
 +        } else {
@@ -230,16 +232,17 @@ index 0000000000000000000000000000000000000000..2dc4704b50dc9ca1e918c0869a29e333
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c7c373fa24ee28f4bcd278816346171d0cdd35f2
+index 0000000000000000000000000000000000000000..2e3bcb3398c6875a5e0a7f6df07646948f852ab4
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,189 @@
+@@ -0,0 +1,195 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
 +import ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache;
 +import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 +import me.samsuik.sakura.entity.EntityState;
++import me.samsuik.sakura.entity.merge.MergeableEntity;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
 +import net.minecraft.core.Holder;
@@ -272,6 +275,11 @@ index 0000000000000000000000000000000000000000..c7c373fa24ee28f4bcd278816346171d
 +        super(world, tnt, damageSource, behavior, x, y, z, power, createFire, destructionType, particle, emitterParticle, soundEvent);
 +        this.originalPosition = this.position;
 +        this.bounds = new AABB(x, y, z, x, y, z);
++    }
++
++    @Override
++    protected int getExplosionCount() {
++        return this.cause.getMergeEntityData().getCount();
 +    }
 +
 +    @Override
@@ -369,14 +377,14 @@ index 0000000000000000000000000000000000000000..c7c373fa24ee28f4bcd278816346171d
 +
 +    private int calculateExplosionPotential() {
 +        IteratorSafeOrderedReferenceSet<Entity> entities = this.level.entityTickList.entities;
-+        int base = this.cause.getStacked();
++        int base = this.getExplosionCount();
 +        int index = entities.indexOf(this.cause);
 +        // iterate over the entityTickList to find entities that are exploding in the same position.
 +        while ((index = entities.advanceRawIterator(index)) != -1) {
 +            Entity foundEntity = entities.rawGet(index);
-+            if (foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !foundEntity.isSafeToMergeInto(this.cause))
++            if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, false))
 +                break;
-+            base += foundEntity.getStacked();
++            base += mergeEntity.getMergeEntityData().getCount();
 +            foundEntity.discard();
 +        }
 +
@@ -424,7 +432,7 @@ index 0000000000000000000000000000000000000000..c7c373fa24ee28f4bcd278816346171d
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index d58b95383f4bf5358f5d1c6d33c5539e77dd3798..5f09b0a94e6b1087c9207c333aa5595281a57985 100644
+index df0465e4e073af7cbcee4939175d8f8c4b280396..e11805351af06e6f4752f758a31f63cfe7a4728b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1771,6 +1771,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
@@ -450,18 +458,16 @@ index d58b95383f4bf5358f5d1c6d33c5539e77dd3798..5f09b0a94e6b1087c9207c333aa55952
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 6aaaed5899393046ff31cc65edf81ae27edf1319..170eff4c5b76d037e269f973f14a1f301c205ffd 100644
+index bdbee5ce0483a4fc4173c6ccf98d6a7a57f48867..767ad73a398e61b7b4a8c57078487252e70010a9 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -107,23 +107,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -73,20 +73,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
  
      @Override
-     protected final boolean respawnMerged() {
--        if (stacked <= 1) return false;
--
--        PrimedTnt tnt = new PrimedTnt(EntityType.TNT, level());
--
--        while (stacked-- > 1) {
+     public final void respawnEntity(int count) {
+-        PrimedTnt tnt = new PrimedTnt(EntityType.TNT, this.level());
+-        tnt.updateBukkitHandle(this); // update handle for plugins
+-        while (count-- > 1) {
 -            this.setFuse(100); // Prevent unwanted explosions while ticking
 -
 -            // Cause an explosion to affect this entity
@@ -473,13 +479,12 @@ index 6aaaed5899393046ff31cc65edf81ae27edf1319..170eff4c5b76d037e269f973f14a1f30
 -
 -            this.tick();
 -        }
--
-+        // Sakura - specialised explosions
-         return true;
++        this.mergeData.setCount(count); // Sakura - specialised explosions
      }
      // Sakura end - merge cannon entities
+ 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 5bf07349621d058739f12b9463bba47e9abfffd7..546c56d3465ca9c2358f1008d9db96f5fcdd6672 100644
+index a6cf8b00b707f10c34c32eef0c2acd7e9d78e6c9..315518ec8114b5b02778410c5e12b682e67cdc09 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -57,9 +57,11 @@ public class Explosion {
@@ -576,7 +581,7 @@ index 5bf07349621d058739f12b9463bba47e9abfffd7..546c56d3465ca9c2358f1008d9db96f5
          float blockDensity = this.level.densityCache.getDensity(vec3d, entity);
          if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index c33826219edf60a1349583d1dc7d0008ef4037b4..64e134138b1e1311239fa19da2c8cda26e1ebc84 100644
+index 68cc57b15d2536711429ee3836d32aff7cfd1cf3..4721b405edb561e496c9cbb04dca5d7e37bcff2e 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -1480,7 +1480,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

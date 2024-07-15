@@ -35,6 +35,66 @@ index 0000000000000000000000000000000000000000..54292c693f89ee1444f8b22f4c1488e9
 +    }
 +
 +}
+diff --git a/src/main/java/me/samsuik/sakura/utils/collections/FixedSizeCustomObjectTable.java b/src/main/java/me/samsuik/sakura/utils/collections/FixedSizeCustomObjectTable.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e97f3cc00945f79026af894685d6104dfc920a35
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/utils/collections/FixedSizeCustomObjectTable.java
+@@ -0,0 +1,54 @@
++package me.samsuik.sakura.utils.collections;
++
++import it.unimi.dsi.fastutil.HashCommon;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.function.ToIntFunction;
++
++public final class FixedSizeCustomObjectTable<T> {
++    private final ToIntFunction<T> keyFunction;
++    private final T[] contents;
++    private final int mask;
++
++    public FixedSizeCustomObjectTable(int size, @NotNull ToIntFunction<T> keyFunction) {
++        if (size < 0) {
++            throw new IllegalArgumentException("Table size cannot be negative");
++        } else {
++            int n = HashCommon.nextPowerOfTwo(size - 1);
++            this.keyFunction = keyFunction;
++            this.contents = (T[]) new Object[n];
++            this.mask = (n - 1);
++        }
++    }
++
++    private int key(T value) {
++        return this.keyFunction.applyAsInt(value);
++    }
++
++    public @Nullable T get(T value) {
++        return this.get(this.key(value));
++    }
++
++    public @Nullable T get(int key) {
++        return this.contents[key & this.mask];
++    }
++
++    public void write(int key, T value) {
++        this.contents[key & this.mask] = value;
++    }
++
++    public @Nullable T getAndWrite(T value) {
++        int key = this.key(value);
++        T found = this.get(key);
++        this.write(key, value);
++        return found;
++    }
++
++    public void clear() {
++        int size = this.contents.length;
++        for (int i = 0; i < size; ++i) {
++            this.contents[i] = null;
++        }
++    }
++}
 diff --git a/src/main/java/me/samsuik/sakura/utils/collections/OrderedComparatorList.java b/src/main/java/me/samsuik/sakura/utils/collections/OrderedComparatorList.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..239fc8823b32ae5c8f6e3bfd6ecdde0ccd1e5a8b

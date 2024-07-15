@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise TNT fluid state
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 526d54e3dc8473c6b1b67a9253b006cc27419ab2..729bf74fb06fe4fadeecbd0d879e35ecf33990c1 100644
+index 78821f286e5b0389d02dddbc1a9d8964a96c0af1..4ff172a89cbbaba96e5c1056f9d9356a4da13499 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -2246,7 +2246,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2152,7 +2152,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return this.isInWater() || flag;
      }
  
@@ -18,13 +18,13 @@ index 526d54e3dc8473c6b1b67a9253b006cc27419ab2..729bf74fb06fe4fadeecbd0d879e35ec
  
          if (entity instanceof Boat entityboat) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 92662134c56540f6215edf3c772fffd9262fbcd0..8ffa6ea08c49c3481bf8717eda3f8fa3672706eb 100644
+index 7c2323bf7682254de14ed963e8d57b24dd55ad5f..860aa93e2ae997beaacf3028e8fa7a8cfafece4e 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -117,6 +117,20 @@ public class PrimedTnt extends Entity implements TraceableEntity {
-         return true;
+@@ -120,6 +120,21 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+         return !this.isRemoved();
      }
-     // Sakura end - merge cannon entities
+ 
 +    // Sakura start - optimise tnt fluid state
 +    @Override
 +    protected boolean updateInWaterStateAndDoFluidPushing() {
@@ -39,6 +39,7 @@ index 92662134c56540f6215edf3c772fffd9262fbcd0..8ffa6ea08c49c3481bf8717eda3f8fa3
 +        }
 +    }
 +    // Sakura end - optimise tnt fluid state
- 
++
      @Override
      protected double getDefaultGravity() {
+         return 0.04D;
