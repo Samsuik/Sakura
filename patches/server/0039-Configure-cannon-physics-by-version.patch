@@ -67,14 +67,14 @@ index 740dc010cfd42941a6f9a2b2c543973429fdbfa3..523cd7cfd5e883cc4758ab9ad13251c3
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-index cec9432c8c6bbdb0f45b73c480fe9edb8eeb8298..92e85801ccc69be589667d59f949fa0af9467f38 100644
+index 268db3306a46cbd89bffb51f1bce8446aaed4175..2167156ff6d2dec2daee4052dec87a013663bb6e 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-@@ -175,9 +175,15 @@ public abstract class SpecialisedExplosion<T extends Entity> extends Explosion {
+@@ -177,9 +177,15 @@ public abstract class SpecialisedExplosion<T extends Entity> extends Explosion {
  
          if (distanceFromBottom <= 1.0) {
              double x = entity.getX() - pos.x;
--            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - this.y;
+-            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - pos.y;
 +            double y = entity.getEyeY() - pos.y; // Sakura - physics version api
              double z = entity.getZ() - pos.z;
              double distance = Math.sqrt(x * x + y * y + z * z);
@@ -88,7 +88,7 @@ index cec9432c8c6bbdb0f45b73c480fe9edb8eeb8298..92e85801ccc69be589667d59f949fa0a
              if (distance != 0.0D) {
                  x /= distance;
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-index 2e3bcb3398c6875a5e0a7f6df07646948f852ab4..1dd77891191845a8e47ad1c90a3ef807bf258a6a 100644
+index 605a0e78a19befeec902f3cb8bc84a55679e6904..07079e1d29cbc479dfd91956b8c6c2296959b428 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 @@ -39,6 +39,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {

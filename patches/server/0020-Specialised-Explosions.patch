@@ -23,12 +23,14 @@ index c21e00812f1aaa1279834a0562d360d6b89e146c..442119e7c4670582556b067dfc03e39a
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cec9432c8c6bbdb0f45b73c480fe9edb8eeb8298
+index 0000000000000000000000000000000000000000..268db3306a46cbd89bffb51f1bce8446aaed4175
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-@@ -0,0 +1,203 @@
+@@ -0,0 +1,205 @@
 +package me.samsuik.sakura.explosion.special;
 +
++import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
++import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup;
 +import ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache;
 +import io.papermc.paper.util.WorldUtil;
 +import net.minecraft.core.BlockPos;
@@ -158,10 +160,10 @@ index 0000000000000000000000000000000000000000..cec9432c8c6bbdb0f45b73c480fe9edb
 +        int maxChunkY = Mth.clamp(Mth.floor(bb.maxY) >> 4, minSection, maxSection);
 +        int maxChunkZ = Mth.floor(bb.maxZ) >> 4;
 +
-+        ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup entityLookup = this.level.moonrise$getEntityLookup();
++        EntityLookup entityLookup = this.level.moonrise$getEntityLookup();
 +        for (int chunkX = minChunkX; chunkX <= maxChunkX; ++chunkX) {
 +            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; ++chunkZ) {
-+                ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices chunk = entityLookup.getChunk(chunkX, chunkZ);
++                ChunkEntitySlices chunk = entityLookup.getChunk(chunkX, chunkZ);
 +
 +                if (chunk == null) {
 +                    continue;
@@ -179,7 +181,7 @@ index 0000000000000000000000000000000000000000..cec9432c8c6bbdb0f45b73c480fe9edb
 +            Entity entity = entities[i];
 +            if (entity == null) break;
 +
-+            if (entity != source && !entity.ignoreExplosion(this)) {
++            if (entity != this.source && !entity.ignoreExplosion(this)) {
 +                this.impactEntity(entity, position, potential, radius);
 +            }
 +
@@ -204,7 +206,7 @@ index 0000000000000000000000000000000000000000..cec9432c8c6bbdb0f45b73c480fe9edb
 +
 +        if (distanceFromBottom <= 1.0) {
 +            double x = entity.getX() - pos.x;
-+            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - this.y;
++            double y = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - pos.y;
 +            double z = entity.getZ() - pos.z;
 +            double distance = Math.sqrt(x * x + y * y + z * z);
 +
@@ -232,7 +234,7 @@ index 0000000000000000000000000000000000000000..cec9432c8c6bbdb0f45b73c480fe9edb
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2e3bcb3398c6875a5e0a7f6df07646948f852ab4
+index 0000000000000000000000000000000000000000..605a0e78a19befeec902f3cb8bc84a55679e6904
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 @@ -0,0 +1,195 @@
@@ -360,7 +362,7 @@ index 0000000000000000000000000000000000000000..2e3bcb3398c6875a5e0a7f6df0764694
 +
 +    private void updateExplosionPosition(EntityState entityState, boolean destroyedBlocks) {
 +        // Before setting entity state, otherwise we might cause issues.
-+        final boolean hasMoved = !this.position.equals(this.cause.position()) && (this.movement != 1 || !this.originalPosition.equals(this.position));
++        final boolean hasMoved = !this.position.equals(this.cause.position()) && (this.movement == 0 || !this.originalPosition.equals(this.position));
 +
 +        // Keep track of entity state
 +        entityState.apply(this.cause);
@@ -370,7 +372,7 @@ index 0000000000000000000000000000000000000000..2e3bcb3398c6875a5e0a7f6df0764694
 +        if (destroyedBlocks || hasMoved) {
 +            this.cause.setFuse(100);
 +            this.cause.tick();
-+            this.movement++;
++            this.movement += !destroyedBlocks ? 1 : 0;
 +            this.recalculateExplosionPosition();
 +        }
 +    }
@@ -432,7 +434,7 @@ index 0000000000000000000000000000000000000000..2e3bcb3398c6875a5e0a7f6df0764694
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index df0465e4e073af7cbcee4939175d8f8c4b280396..e11805351af06e6f4752f758a31f63cfe7a4728b 100644
+index df0465e4e073af7cbcee4939175d8f8c4b280396..a7ac1afc9db4daba86a492aea3a528806605231b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1771,6 +1771,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
@@ -453,7 +455,7 @@ index df0465e4e073af7cbcee4939175d8f8c4b280396..e11805351af06e6f4752f758a31f63cf
          }
  
 -        return explosion;
-+        // Sakura - return moved up into explode
++        // Sakura - specialised explosions; return moved up into explode
      }
  
      @Override
