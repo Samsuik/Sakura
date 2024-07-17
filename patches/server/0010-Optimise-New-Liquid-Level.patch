@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise New Liquid Level
 
 
 diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
-index 1c0712295695727ee9c4d430d4157b8e17cbd71f..9dda53434f72a14567fc77275726d67183f13317 100644
+index 1c0712295695727ee9c4d430d4157b8e17cbd71f..1c82ff348769655f20ba4fde7914a326e072afce 100644
 --- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
 @@ -137,7 +137,7 @@ public abstract class FlowingFluid extends Fluid {
@@ -13,7 +13,7 @@ index 1c0712295695727ee9c4d430d4157b8e17cbd71f..9dda53434f72a14567fc77275726d671
              BlockPos blockposition1 = fluidPos.below();
              BlockState iblockdata1 = world.getBlockState(blockposition1);
 -            FluidState fluid1 = this.getNewLiquid(world, blockposition1, iblockdata1);
-+            FluidState fluid1 = this.getLiquid(world, blockposition1, iblockdata1, fluidPos, iblockdata); // Sakura - optimise liquid level
++            FluidState fluid1 = this.getLiquid(world, blockposition1, iblockdata1, fluidPos, iblockdata); // Sakura - optimise new liquid level
  
              if (this.canSpreadTo(world, fluidPos, iblockdata, Direction.DOWN, blockposition1, iblockdata1, world.getFluidState(blockposition1), fluid1.getType())) {
                  // CraftBukkit start
@@ -21,7 +21,7 @@ index 1c0712295695727ee9c4d430d4157b8e17cbd71f..9dda53434f72a14567fc77275726d671
      }
  
      protected FluidState getNewLiquid(Level world, BlockPos pos, BlockState state) {
-+        // Sakura start - optimise liquid level
++        // Sakura start - optimise new liquid level
 +        BlockPos blockposition2 = pos.above();
 +        BlockState iblockdata3 = world.getBlockState(blockposition2);
 +
@@ -60,7 +60,7 @@ index 1c0712295695727ee9c4d430d4157b8e17cbd71f..9dda53434f72a14567fc77275726d671
 -            return k <= 0 ? Fluids.EMPTY.defaultFluidState() : this.getFlowing(k, false);
 -        }
 +        return k <= 0 ? Fluids.EMPTY.defaultFluidState() : this.getFlowing(k, false);
-+        // Sakura end
++        // Sakura end - optimise new liquid level
      }
  
      private boolean canPassThroughWall(Direction face, BlockGetter world, BlockPos pos, BlockState state, BlockPos fromPos, BlockState fromState) {
