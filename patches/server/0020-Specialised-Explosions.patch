@@ -234,10 +234,10 @@ index 0000000000000000000000000000000000000000..268db3306a46cbd89bffb51f1bce8446
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..605a0e78a19befeec902f3cb8bc84a55679e6904
+index 0000000000000000000000000000000000000000..2275999c5b6d9a6af59aa2539663e0edf575539f
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,195 @@
+@@ -0,0 +1,204 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
@@ -271,7 +271,7 @@ index 0000000000000000000000000000000000000000..605a0e78a19befeec902f3cb8bc84a55
 +    private final List<Vec3> explosions = new ObjectArrayList<>();
 +    private AABB bounds;
 +    private int wrapped = 0;
-+    private int movement = 0;
++    private boolean moved = false;
 +
 +    public TntExplosion(Level world, PrimedTnt tnt, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator behavior, double x, double y, double z, float power, boolean createFire, BlockInteraction destructionType, ParticleOptions particle, ParticleOptions emitterParticle, Holder<SoundEvent> soundEvent) {
 +        super(world, tnt, damageSource, behavior, x, y, z, power, createFire, destructionType, particle, emitterParticle, soundEvent);
@@ -362,7 +362,16 @@ index 0000000000000000000000000000000000000000..605a0e78a19befeec902f3cb8bc84a55
 +
 +    private void updateExplosionPosition(EntityState entityState, boolean destroyedBlocks) {
 +        // Before setting entity state, otherwise we might cause issues.
-+        final boolean hasMoved = !this.position.equals(this.cause.position()) && (this.movement == 0 || !this.originalPosition.equals(this.position));
++        final boolean hasMoved;
++        if (this.moved) {
++            hasMoved = true;
++        } else if (this.position.equals(this.cause.position())) {
++            hasMoved = false;
++        } else {
++            double newMomentum = entityState.momentum().lengthSqr();
++            double oldMomentum = this.cause.entityState().momentum().lengthSqr();
++            hasMoved = oldMomentum <= Math.pow(this.radius() * 2.0 + 1.0, 2.0) || newMomentum <= oldMomentum;
++        }
 +
 +        // Keep track of entity state
 +        entityState.apply(this.cause);
@@ -372,7 +381,7 @@ index 0000000000000000000000000000000000000000..605a0e78a19befeec902f3cb8bc84a55
 +        if (destroyedBlocks || hasMoved) {
 +            this.cause.setFuse(100);
 +            this.cause.tick();
-+            this.movement += !destroyedBlocks ? 1 : 0;
++            this.moved |= !this.position.equals(this.originalPosition);
 +            this.recalculateExplosionPosition();
 +        }
 +    }
@@ -460,7 +469,7 @@ index df0465e4e073af7cbcee4939175d8f8c4b280396..a7ac1afc9db4daba86a492aea3a52880
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index bdbee5ce0483a4fc4173c6ccf98d6a7a57f48867..767ad73a398e61b7b4a8c57078487252e70010a9 100644
+index 3e1aa60220ef67029f0d7679626d044dc84d8502..8e146df15dd0c86042fedf1d89396a74a59f30e7 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -73,20 +73,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
