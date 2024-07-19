@@ -229,10 +229,10 @@ index 0000000000000000000000000000000000000000..d15eb10fa203236060b90c5fc1364564
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1690428df289ac55a5a6eaf406a7accc3e6143af
+index 0000000000000000000000000000000000000000..604a2980f89764371e0410665d9be909a3ae2f9a
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,191 @@
+@@ -0,0 +1,200 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
@@ -264,7 +264,7 @@ index 0000000000000000000000000000000000000000..1690428df289ac55a5a6eaf406a7accc
 +    private final List<Vec3> explosions = new ObjectArrayList<>();
 +    private AABB bounds;
 +    private int wrapped = 0;
-+    private int movement = 0;
++    private boolean moved = false;
 +
 +    public TntExplosion(Level world, PrimedTnt tnt, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator behavior, double x, double y, double z, float power, boolean createFire, BlockInteraction destructionType, ParticleOptions particle, ParticleOptions emitterParticle, Holder<SoundEvent> soundEvent) {
 +        super(world, tnt, damageSource, behavior, x, y, z, power, createFire, destructionType, particle, emitterParticle, soundEvent);
@@ -307,7 +307,7 @@ index 0000000000000000000000000000000000000000..1690428df289ac55a5a6eaf406a7accc
 +        if (this.wrapped < ALL_DIRECTIONS) {
 +            Vec3 momentum = this.cause.entityState().momentum();
 +            for (Direction.Axis axis : Direction.Axis.VALUES) {
-+                double current  = momentum.get(axis);
++                double current = momentum.get(axis);
 +                double previous = previousMomentum.get(axis);
 +                if (current == previous || current * previous < 0) {
 +                    this.wrapped |= 1 << axis.ordinal();
@@ -353,7 +353,16 @@ index 0000000000000000000000000000000000000000..1690428df289ac55a5a6eaf406a7accc
 +
 +    private void updateExplosionPosition(EntityState entityState, boolean destroyedBlocks) {
 +        // Before setting entity state, otherwise we might cause issues.
-+        final boolean hasMoved = !this.position.equals(this.cause.position()) && (this.movement != 1 || !this.originalPosition.equals(this.position));
++        final boolean hasMoved;
++        if (this.moved) {
++            hasMoved = true;
++        } else if (this.position.equals(this.cause.position())) {
++            hasMoved = false;
++        } else {
++            double newMomentum = entityState.momentum().lengthSqr();
++            double oldMomentum = this.cause.entityState().momentum().lengthSqr();
++            hasMoved = oldMomentum <= Math.pow(this.radius() * 2.0 + 1.0, 2.0) || newMomentum <= oldMomentum;
++        }
 +
 +        // Keep track of entity state
 +        entityState.apply(this.cause);
@@ -363,7 +372,7 @@ index 0000000000000000000000000000000000000000..1690428df289ac55a5a6eaf406a7accc
 +        if (destroyedBlocks || hasMoved) {
 +            this.cause.setFuse(100);
 +            this.cause.tick();
-+            this.movement++;
++            this.moved |= !this.position.equals(this.originalPosition);
 +            this.recalculateExplosionPosition();
 +        }
 +    }
