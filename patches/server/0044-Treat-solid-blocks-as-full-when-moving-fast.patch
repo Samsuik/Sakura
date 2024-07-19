@@ -47,17 +47,16 @@ index 523cd7cfd5e883cc4758ab9ad13251c3c38584cb..bc70364df17b9e893c1c774fed619999
                                          blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
                                      }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 59635ea26387d3ea4c6bb5a64f32b7c5d9f1a5e2..85f1d44ba59d348d9c364ed684cc5df6a1eada29 100644
+index b81522bf1f7cc3745f275b1d3eedd80cecc01527..0886a33b036518083b86ca552521ef388d7055dd 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -565,6 +565,15 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -565,6 +565,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              flags |= ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_ADD_TICKET;
          }
  
 +        // Sakura start - treat solid blocks as full when moving fast
 +        if (this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMoving && (this.isPrimedTNT || this.isFallingBlock)) {
-+            this.syncDeltaMovement();
-+            double horizontalMovementSqr = this.movementX*this.movementX + this.movementZ*this.movementZ;
++            double horizontalMovementSqr = this.getDeltaMovement().horizontalDistanceSqr();
 +            if (horizontalMovementSqr > Math.pow(this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMovingFasterThan, 2.0)) {
 +                flags |= ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_FULL_BLOCKS;
 +            }

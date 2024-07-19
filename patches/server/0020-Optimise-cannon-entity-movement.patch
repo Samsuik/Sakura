@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise cannon entity movement
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index d044262b2e1363151b8d076a9e3855db2a27254c..387217247431bf971dd612f42831552366de0510 100644
+index 9e4ea632b757c187a32afecd0d6942b606ee96b3..f4bce733451105287b736df21f9ff934a09f0c5b 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1164,6 +1164,94 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -13,7 +13,7 @@ index d044262b2e1363151b8d076a9e3855db2a27254c..387217247431bf971dd612f428315523
      }
      // Paper end - detailed watchdog information
 +    // Sakura start - optimise cannon entity movement; stripped back movement method
-+    public void moveBasic(MoverType movementType, Vec3 movement) {
++    public final void moveStripped(MoverType movementType, Vec3 movement) {
 +        io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
 +
 +        if (this.noPhysics) {
@@ -94,7 +94,7 @@ index d044262b2e1363151b8d076a9e3855db2a27254c..387217247431bf971dd612f428315523
 +
 +                float f = this.getBlockSpeedFactor();
 +
-+                this.multiplyDeltaMovement((double) f, 1.0D, (double) f); // Sakura - reduce movement allocations
++                this.setDeltaMovement(this.getDeltaMovement().multiply((double) f, 1.0D, (double) f));
 +                this.level().getProfiler().pop();
 +            }
 +        }
@@ -200,7 +200,7 @@ index d044262b2e1363151b8d076a9e3855db2a27254c..387217247431bf971dd612f428315523
          // Paper start - optimise collisions
          final boolean xZero = movement.x == 0.0;
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index b873f6fce87afb048128d642f7588c18fcc6f7f5..7dd6f7df5927c55bcfdf3a4708155d49d207b5d4 100644
+index 19eed968884f79a7982d96ae8c3c378f00afbdf9..cc5ef63a99a18f093f600612bf972cf50722e3a5 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -204,7 +204,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -208,12 +208,12 @@ index b873f6fce87afb048128d642f7588c18fcc6f7f5..7dd6f7df5927c55bcfdf3a4708155d49
              ++this.time;
              this.applyGravity();
 -            this.move(MoverType.SELF, this.getDeltaMovement());
-+            this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise cannon entity movement
++            this.moveStripped(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise cannon entity movement
              // Paper start - Configurable falling blocks height nerf
              if (this.level().paperConfig().fixes.fallingBlockHeightNerf.test(v -> this.getY() > v)) {
                  if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 767ad73a398e61b7b4a8c57078487252e70010a9..cc2f2dbee1d717d54014005ec57e8b864c2a7241 100644
+index e048542cdd1fe9c807ce21e57af9cf59b4adb33f..fdbc990af4190f93f207c3309cf9f89613092c0a 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -124,7 +124,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -221,7 +221,7 @@ index 767ad73a398e61b7b4a8c57078487252e70010a9..cc2f2dbee1d717d54014005ec57e8b86
          this.handlePortal();
          this.applyGravity();
 -        this.move(MoverType.SELF, this.getDeltaMovement());
-+        this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise cannon entity movement
++        this.moveStripped(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise cannon entity movement
          // Paper start - Configurable TNT height nerf
          if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
              this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);

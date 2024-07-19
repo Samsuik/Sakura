@@ -23,10 +23,10 @@ index c21e00812f1aaa1279834a0562d360d6b89e146c..442119e7c4670582556b067dfc03e39a
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..268db3306a46cbd89bffb51f1bce8446aaed4175
+index 0000000000000000000000000000000000000000..709dc51ab4c9e8dad26cf883eebb3902a95bebf8
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-@@ -0,0 +1,205 @@
+@@ -0,0 +1,219 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
@@ -225,11 +225,25 @@ index 0000000000000000000000000000000000000000..268db3306a46cbd89bffb51f1bce8446
 +                y *= exposure;
 +                z *= exposure;
 +
-+                for (int i = 0; i < potential; ++i) {
-+                    entity.addDeltaMovement(x, y, z);
-+                }
++                this.applyEntityVelocity(entity, x, y, z, potential);
 +            }
 +        }
++    }
++
++    protected final void applyEntityVelocity(Entity entity, double x, double y, double z, int potential) {
++        Vec3 movement = entity.getDeltaMovement();
++
++        double moveX = movement.x();
++        double moveY = movement.y();
++        double moveZ = movement.z();
++
++        for (int i = 0; i < potential; ++i) {
++            moveX += x;
++            moveY += y;
++            moveZ += z;
++        }
++
++        entity.setDeltaMovement(moveX, moveY, moveZ);
 +    }
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
@@ -469,7 +483,7 @@ index df0465e4e073af7cbcee4939175d8f8c4b280396..a7ac1afc9db4daba86a492aea3a52880
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 3e1aa60220ef67029f0d7679626d044dc84d8502..8e146df15dd0c86042fedf1d89396a74a59f30e7 100644
+index 6fc9a352dbae57e867ae35f2a1f30eebe20073c7..e048542cdd1fe9c807ce21e57af9cf59b4adb33f 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -73,20 +73,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -495,7 +509,7 @@ index 3e1aa60220ef67029f0d7679626d044dc84d8502..8e146df15dd0c86042fedf1d89396a74
      // Sakura end - merge cannon entities
  
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index a6cf8b00b707f10c34c32eef0c2acd7e9d78e6c9..315518ec8114b5b02778410c5e12b682e67cdc09 100644
+index eaf2201301813c68b5c0826394120daffdee72f8..f412c39d7f3b95152e76c63a589e298250e9c438 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -57,9 +57,11 @@ public class Explosion {
@@ -582,7 +596,7 @@ index a6cf8b00b707f10c34c32eef0c2acd7e9d78e6c9..315518ec8114b5b02778410c5e12b682
          // use initial cache value that is most likely to be used: the source position
          final ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache initialCache;
          {
-@@ -972,7 +987,7 @@ public class Explosion {
+@@ -966,7 +981,7 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions

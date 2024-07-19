@@ -67,7 +67,7 @@ index 740dc010cfd42941a6f9a2b2c543973429fdbfa3..523cd7cfd5e883cc4758ab9ad13251c3
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-index 268db3306a46cbd89bffb51f1bce8446aaed4175..2167156ff6d2dec2daee4052dec87a013663bb6e 100644
+index 709dc51ab4c9e8dad26cf883eebb3902a95bebf8..db6e7f8a8faf38612dc5191001975333a9f2ca59 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 @@ -177,9 +177,15 @@ public abstract class SpecialisedExplosion<T extends Entity> extends Explosion {
@@ -88,7 +88,7 @@ index 268db3306a46cbd89bffb51f1bce8446aaed4175..2167156ff6d2dec2daee4052dec87a01
              if (distance != 0.0D) {
                  x /= distance;
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-index 605a0e78a19befeec902f3cb8bc84a55679e6904..07079e1d29cbc479dfd91956b8c6c2296959b428 100644
+index 2275999c5b6d9a6af59aa2539663e0edf575539f..43f26e1ec641f9dbaeba96ac3024d5cec1e8ed06 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 @@ -39,6 +39,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
@@ -106,7 +106,7 @@ index 605a0e78a19befeec902f3cb8bc84a55679e6904..07079e1d29cbc479dfd91956b8c6c229
      protected int getExplosionCount() {
          return this.cause.getMergeEntityData().getCount();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 4ff172a89cbbaba96e5c1056f9d9356a4da13499..59635ea26387d3ea4c6bb5a64f32b7c5d9f1a5e2 100644
+index f005e68998d30ec3ab062e3d562d9d4c2a89dc67..b81522bf1f7cc3745f275b1d3eedd80cecc01527 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -385,7 +385,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -252,7 +252,7 @@ index 4ff172a89cbbaba96e5c1056f9d9356a4da13499..59635ea26387d3ea4c6bb5a64f32b7c5
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index f4c84e47b673066ee9ddc7a33c5fabdca7b9c563..42481aae8b4eb6a3a25fa96f1187774493009e46 100644
+index b5ce3bbce3cc71bab5ec5e9c1c42e7b7a2cdefa3..bb6bd75645d18933f6d1b5c68a33f28e30b5ac2d 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -147,6 +147,8 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -337,14 +337,14 @@ index f4c84e47b673066ee9ddc7a33c5fabdca7b9c563..42481aae8b4eb6a3a25fa96f11877744
 +            // Sakura end - physics version api
              ++this.time;
              this.applyGravity();
-             this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise cannon entity movement
+             this.moveStripped(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise cannon entity movement
 @@ -225,8 +273,15 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              }
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
 +            // Sakura start - physics version api
 +            if (this.physics.before(1_12_0)) {
-+                this.scaleDeltaMovement(0.98F);
++                this.setDeltaMovement(this.getDeltaMovement().scale(0.98F));
 +            }
              if (!this.level().isClientSide && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
 -                BlockPos blockposition = this.blockPosition();
@@ -359,11 +359,11 @@ index f4c84e47b673066ee9ddc7a33c5fabdca7b9c563..42481aae8b4eb6a3a25fa96f11877744
                  } else {
                      BlockState iblockdata = this.level().getBlockState(blockposition);
  
--                    this.multiplyDeltaMovement(0.7D, -0.5D, 0.7D); // Sakura - reduce movement allocations
+-                    this.setDeltaMovement(this.getDeltaMovement().multiply(0.7D, -0.5D, 0.7D));
 -                    if (!iblockdata.is(Blocks.MOVING_PISTON)) {
 +                    // Sakura start - physics version api
 +                    double friction = this.physics.before(1_14_0) ? 0.7F : 0.7D;
-+                    this.multiplyDeltaMovement(friction, -0.5D, friction); // Sakura - reduce movement allocations
++                    this.setDeltaMovement(this.getDeltaMovement().multiply(friction, -0.5D, friction));
 +                    if (!iblockdata.is(Blocks.MOVING_PISTON) && (flag1 || !this.physics.isWithin(1_9_0, 1_12_0) || this.isAbleToStackOnBlock())) {
 +                        // Sakura end - physics version api
                          if (!this.cancelDrop) {
@@ -373,29 +373,29 @@ index f4c84e47b673066ee9ddc7a33c5fabdca7b9c563..42481aae8b4eb6a3a25fa96f11877744
                  }
              }
  
--            this.scaleDeltaMovement(0.98D); // Sakura - reduce movement allocations
+-            this.setDeltaMovement(this.getDeltaMovement().scale(0.98D));
 +            // Sakura start - physics version api
 +            if (this.physics.afterOrEqual(1_12_0)) {
 +                double drag = this.physics.before(1_14_0) ? 0.98F : 0.98D;
-+                this.scaleDeltaMovement(drag); // Sakura - reduce movement allocations
++                this.setDeltaMovement(this.getDeltaMovement().scale(drag));
 +            }
 +            // Sakura end - physics version api
          }
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 7d5fdcf1e0b3cd46e12e1ae102eadb8f198a68c4..a17491a826accc23fbafcdf07ed66293cd8ae5bf 100644
+index 56ad11f51e3ec395a88fa6d961cf8e99bde6b69f..095727d28139ffcda0da3be83b329ace6e28d551 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -102,6 +102,13 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
-             case Y -> this.multiplyDeltaMovement(0, 1, 0);
+             case Y -> this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 0.0));
          }
          // Sakura end - configure cannon mechanics
 +        // Sakura start - physics version api
 +        this.physics = world.localConfig().config(this.blockPosition()).physicsVersion;
 +        this.eyeHeight = this.physics.isLegacy() ? 0.49f : this.eyeHeight;
 +        if (this.physics.isLegacy()) {
-+            this.multiplyDeltaMovement(0.0, 1.0, 0.0);
++            this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 0.0));
 +        }
 +        // Sakura end - physics version api
      }
@@ -433,14 +433,14 @@ index 7d5fdcf1e0b3cd46e12e1ae102eadb8f198a68c4..a17491a826accc23fbafcdf07ed66293
              return;
          }
          // Paper end - Configurable TNT height nerf
--        this.scaleDeltaMovement(0.98D); // Sakura - reduce movement allocations
+-        this.setDeltaMovement(this.getDeltaMovement().scale(0.98D));
 +        // Sakura start - physics version api
 +        double drag = this.physics.before(1_14_0) ? 0.98F : 0.98D;
-+        this.scaleDeltaMovement(drag); // Sakura - reduce movement allocations
++        this.setDeltaMovement(this.getDeltaMovement().scale(drag));
          if (this.onGround()) {
--            this.multiplyDeltaMovement(0.7D, -0.5D, 0.7D); // Sakura - reduce movement allocations
+-            this.setDeltaMovement(this.getDeltaMovement().multiply(0.7D, -0.5D, 0.7D));
 +            double friction = this.physics.before(1_14_0) ? 0.7F : 0.7D;
-+            this.multiplyDeltaMovement(friction, -0.5D, friction); // Sakura - reduce movement allocations
++            this.setDeltaMovement(this.getDeltaMovement().multiply(friction, -0.5D, friction));
 +            // Sakura end - physics version api
          }
  
@@ -474,7 +474,7 @@ index 7d5fdcf1e0b3cd46e12e1ae102eadb8f198a68c4..a17491a826accc23fbafcdf07ed66293
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index f2543d250be7692dcebf29f19e34bd08961a60e0..bb16b526b512ebb15fedcc85c3f9b24693f7e00b 100644
+index 0dd0397036309c881f955b78ba3934e33bcf18fd..22fa16f67100c68668a99312e38475499acac38a 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -77,6 +77,7 @@ public class Explosion {
@@ -539,7 +539,7 @@ index f2543d250be7692dcebf29f19e34bd08961a60e0..bb16b526b512ebb15fedcc85c3f9b246
  
                      if (d11 != 0.0D) {
                          d8 /= d11;
-@@ -1023,7 +1043,7 @@ public class Explosion {
+@@ -1017,7 +1037,7 @@ public class Explosion {
          // Sakura start - replace density cache
          float blockDensity = this.level.densityCache.getDensity(vec3d, entity);
          if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
@@ -548,7 +548,7 @@ index f2543d250be7692dcebf29f19e34bd08961a60e0..bb16b526b512ebb15fedcc85c3f9b246
              this.level.densityCache.putDensity(vec3d, entity, blockDensity);
              // Sakura end - replace density cache
          }
-@@ -1031,6 +1051,17 @@ public class Explosion {
+@@ -1025,6 +1045,17 @@ public class Explosion {
          return blockDensity;
      }
  
@@ -1215,7 +1215,7 @@ index d555ad1dd2f648b84920eceec6cc99e8801334b3..b2ecc615379856f661ba87bdeb28f75a
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
-index 9dda53434f72a14567fc77275726d67183f13317..70ff7e116e83ab3d4aaa39d2644a9ef3e5a89e95 100644
+index 1c82ff348769655f20ba4fde7914a326e072afce..700226cc972693336987184c761c0c8808fd77ad 100644
 --- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
 @@ -514,7 +514,7 @@ public abstract class FlowingFluid extends Fluid {
