@@ -5,7 +5,7 @@ Subject: [PATCH] Treat solid blocks as full when moving fast
 
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 523cd7cfd5e883cc4758ab9ad13251c3c38584cb..bc70364df17b9e893c1c774fed61999993c90aa3 100644
+index 9a869fb472c7194742bdf8d38f0f97301b0a7b29..c19d2144fc0ebfa04c16d37c4b3e10ed26a4a55e 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1597,6 +1597,7 @@ public final class CollisionUtil {
@@ -28,8 +28,8 @@ index 523cd7cfd5e883cc4758ab9ad13251c3c38584cb..bc70364df17b9e893c1c774fed619999
                          continue;
                      }
  
--                    final boolean hasSpecial = ((ca.spottedleaf.moonrise.patches.collisions.world.CollisionLevelChunkSection)section).moonrise$getSpecialCollidingBlocks() != 0;
-+                    final boolean hasSpecial = !fullBlocks && ((ca.spottedleaf.moonrise.patches.collisions.world.CollisionLevelChunkSection)section).moonrise$getSpecialCollidingBlocks() != 0; // Sakura - treat solid blocks as full when moving fast
+-                    final boolean hasSpecial = ((ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection)section).moonrise$getSpecialCollidingBlocks() != 0;
++                    final boolean hasSpecial = !fullBlocks && ((ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection)section).moonrise$getSpecialCollidingBlocks() != 0; // Sakura - treat solid blocks as full when moving fast
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
  
                      final net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState> blocks = section.states;
@@ -47,7 +47,7 @@ index 523cd7cfd5e883cc4758ab9ad13251c3c38584cb..bc70364df17b9e893c1c774fed619999
                                          blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
                                      }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index b81522bf1f7cc3745f275b1d3eedd80cecc01527..0886a33b036518083b86ca552521ef388d7055dd 100644
+index a0c97506ae4ac7a8b1f0d8ea435995239a9afac0..d68e8a7408b50dcb07ecb5cc706f501cede474b6 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -565,6 +565,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess

@@ -23,16 +23,16 @@ index c21e00812f1aaa1279834a0562d360d6b89e146c..442119e7c4670582556b067dfc03e39a
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..709dc51ab4c9e8dad26cf883eebb3902a95bebf8
+index 0000000000000000000000000000000000000000..749795cfd2c9c7817c8578366a155db7dd6c3f08
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 @@ -0,0 +1,219 @@
 +package me.samsuik.sakura.explosion.special;
 +
++import ca.spottedleaf.moonrise.common.util.WorldUtil;
 +import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
 +import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup;
 +import ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache;
-+import io.papermc.paper.util.WorldUtil;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Holder;
 +import net.minecraft.core.particles.ParticleOptions;
@@ -457,10 +457,10 @@ index 0000000000000000000000000000000000000000..2275999c5b6d9a6af59aa2539663e0ed
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index df0465e4e073af7cbcee4939175d8f8c4b280396..a7ac1afc9db4daba86a492aea3a528806605231b 100644
+index cb051277557483e097272be1a84d1fef9ebbf35b..3982f8feeac19ba8f3563b24466f97e099e5158d 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1771,6 +1771,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -1839,6 +1839,12 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
              explosion.clearToBlow();
          }
  
@@ -473,7 +473,7 @@ index df0465e4e073af7cbcee4939175d8f8c4b280396..a7ac1afc9db4daba86a492aea3a52880
          Iterator iterator = this.players.iterator();
  
          while (iterator.hasNext()) {
-@@ -1781,7 +1787,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -1849,7 +1855,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
              }
          }
  
@@ -509,7 +509,7 @@ index 6fc9a352dbae57e867ae35f2a1f30eebe20073c7..e048542cdd1fe9c807ce21e57af9cf59
      // Sakura end - merge cannon entities
  
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index eaf2201301813c68b5c0826394120daffdee72f8..f412c39d7f3b95152e76c63a589e298250e9c438 100644
+index 7f9dcd27c31a97563dfb065d11f984cf688c9782..fef88549aa5dd2f4e4618ebe0bfb4e25c15117e2 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -57,9 +57,11 @@ public class Explosion {
@@ -596,7 +596,7 @@ index eaf2201301813c68b5c0826394120daffdee72f8..f412c39d7f3b95152e76c63a589e2982
          // use initial cache value that is most likely to be used: the source position
          final ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache initialCache;
          {
-@@ -966,7 +981,7 @@ public class Explosion {
+@@ -963,7 +978,7 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions
@@ -606,10 +606,10 @@ index eaf2201301813c68b5c0826394120daffdee72f8..f412c39d7f3b95152e76c63a589e2982
          float blockDensity = this.level.densityCache.getDensity(vec3d, entity);
          if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 68cc57b15d2536711429ee3836d32aff7cfd1cf3..4721b405edb561e496c9cbb04dca5d7e37bcff2e 100644
+index de4879ce1990a460d5a57287642c5010c8aed78a..70ce20d946287a7449da4efc958be5a9fa683afe 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -1480,7 +1480,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1522,7 +1522,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          }
  
          Explosion.BlockInteraction explosion_effect1 = explosion_effect;

@@ -129,10 +129,10 @@ index 0000000000000000000000000000000000000000..d7e24638f07f243502004970ab4ce646
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index b0e95e1dbf3248101d63bd2c0f9ba05e720623c6..67ca905c0821deb279383811fd112f02c46a73a1 100644
+index d1bd0536c902bacb8d57c1b7d51b571e906ee769..1e74195d97a3547fc33d0c0b3f5263c0b6680b2b 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1818,6 +1818,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1819,6 +1819,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.localConfig().expire(currentTickLong); // Sakura - add local config
              worldserver.minimalTNT.clear(); // Sakura - visibility api
              worldserver.mergeHandler.expire(currentTickLong); // Sakura - merge cannon entities
@@ -141,7 +141,7 @@ index b0e95e1dbf3248101d63bd2c0f9ba05e720623c6..67ca905c0821deb279383811fd112f02
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index e4061762e3a421197f25ddd58d49eea6076597d1..3572334f7594a284124d879b8165e9401e9d2aad 100644
+index 5d708ca40b10a55ce9cfc3e4bc8c7a1c5e578f3d..fec99538d681acf3e8eff58c9099f285dc6dc84b 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -305,7 +305,12 @@ public class Explosion {
@@ -176,7 +176,7 @@ index e4061762e3a421197f25ddd58d49eea6076597d1..3572334f7594a284124d879b8165e940
                              ++i;
                          }
  
-@@ -804,6 +818,11 @@ public class Explosion {
+@@ -801,6 +815,11 @@ public class Explosion {
                  });
              }
  
@@ -188,7 +188,7 @@ index e4061762e3a421197f25ddd58d49eea6076597d1..3572334f7594a284124d879b8165e940
              Iterator iterator = list.iterator();
  
              while (iterator.hasNext()) {
-@@ -932,14 +951,12 @@ public class Explosion {
+@@ -929,14 +948,12 @@ public class Explosion {
      }
      // Paper start - Optimize explosions
      private float getBlockDensity(Vec3 vec3d, Entity entity, ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[] blockCache, BlockPos.MutableBlockPos blockPos) { // Paper - optimise collisions
@@ -210,11 +210,11 @@ index e4061762e3a421197f25ddd58d49eea6076597d1..3572334f7594a284124d879b8165e940
  
          return blockDensity;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 48cfc7b3358ec2a663d31af3638eda7334474241..68cc57b15d2536711429ee3836d32aff7cfd1cf3 100644
+index ed43b7b1d7782e75c6b03cab5b75b282e5d96077..de4879ce1990a460d5a57287642c5010c8aed78a 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -655,6 +655,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     // Paper end - optimise collisions
+@@ -697,6 +697,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     // Paper end - optimise random ticking
      public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
 +    public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache

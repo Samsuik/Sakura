@@ -5,17 +5,16 @@ Subject: [PATCH] Optimise cannon entity movement
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 9e4ea632b757c187a32afecd0d6942b606ee96b3..f4bce733451105287b736df21f9ff934a09f0c5b 100644
+index 023500526ab0a42bf7cbf21e1773cf5369aa2323..00fcff6e934ec7bc7a7ba853cab4c6e69c42af99 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1164,6 +1164,94 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1164,6 +1164,93 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return this.moveStartZ;
      }
      // Paper end - detailed watchdog information
 +    // Sakura start - optimise cannon entity movement; stripped back movement method
 +    public final void moveStripped(MoverType movementType, Vec3 movement) {
-+        io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
-+
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
 +        if (this.noPhysics) {
 +            this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
 +        } else {
@@ -103,7 +102,7 @@ index 9e4ea632b757c187a32afecd0d6942b606ee96b3..f4bce733451105287b736df21f9ff934
  
      public void move(MoverType movementType, Vec3 movement) {
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
-@@ -1508,6 +1596,95 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1508,6 +1595,95 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return offsetFactor;
      }
  
