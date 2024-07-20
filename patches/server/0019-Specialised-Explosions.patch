@@ -5,28 +5,28 @@ Subject: [PATCH] Specialised Explosions
 
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
-index c21e00812f1aaa1279834a0562d360d6b89e146c..442119e7c4670582556b067dfc03e39add7c2c9d 100644
+index c21e00812f1aaa1279834a0562d360d6b89e146c..1e1329adde1457898a3002279b53b1bbb91c36d2 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
 @@ -107,6 +107,12 @@ public final class IteratorSafeOrderedReferenceSet<E> {
          }
      }
  
-+    // Sakura start - add indexOf method
++    // Sakura start - specialised explosions; add indexOf method
 +    public int indexOf(final E element) {
 +        return this.indexMap.getInt(element);
 +    }
-+    // Sakura end - add indexOf method
++    // Sakura end - specialised explosions; add indexOf method
 +
      public boolean remove(final E element) {
          final int index = this.indexMap.removeInt(element);
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..749795cfd2c9c7817c8578366a155db7dd6c3f08
+index 0000000000000000000000000000000000000000..58add5bd1afc2f3e89b9a7d0d9a325bf17b77a18
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-@@ -0,0 +1,219 @@
+@@ -0,0 +1,218 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import ca.spottedleaf.moonrise.common.util.WorldUtil;
@@ -41,7 +41,6 @@ index 0000000000000000000000000000000000000000..749795cfd2c9c7817c8578366a155db7
 +import net.minecraft.util.Mth;
 +import net.minecraft.world.damagesource.DamageSource;
 +import net.minecraft.world.entity.Entity;
-+import net.minecraft.world.entity.item.PrimedTnt;
 +import net.minecraft.world.level.Explosion;
 +import net.minecraft.world.level.ExplosionDamageCalculator;
 +import net.minecraft.world.level.Level;
@@ -248,10 +247,10 @@ index 0000000000000000000000000000000000000000..749795cfd2c9c7817c8578366a155db7
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2275999c5b6d9a6af59aa2539663e0edf575539f
+index 0000000000000000000000000000000000000000..e3a4e89c81a602d57fad58f6ac10d8ca5282ef4e
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,204 @@
+@@ -0,0 +1,210 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
@@ -404,13 +403,19 @@ index 0000000000000000000000000000000000000000..2275999c5b6d9a6af59aa2539663e0ed
 +        IteratorSafeOrderedReferenceSet<Entity> entities = this.level.entityTickList.entities;
 +        int base = this.getExplosionCount();
 +        int index = entities.indexOf(this.cause);
-+        // iterate over the entityTickList to find entities that are exploding in the same position.
-+        while ((index = entities.advanceRawIterator(index)) != -1) {
-+            Entity foundEntity = entities.rawGet(index);
-+            if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, false))
-+                break;
-+            base += mergeEntity.getMergeEntityData().getCount();
-+            foundEntity.discard();
++
++        try {
++            entities.createRawIterator();
++            // iterate over the entityTickList to find entities that are exploding in the same position.
++            while ((index = entities.advanceRawIterator(index)) != -1) {
++                Entity foundEntity = entities.rawGet(index);
++                if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, false))
++                    break;
++                base += mergeEntity.getMergeEntityData().getCount();
++                foundEntity.discard();
++            }
++        } finally {
++            entities.finishRawIterator();
 +        }
 +
 +        return base;
@@ -509,7 +514,7 @@ index 6fc9a352dbae57e867ae35f2a1f30eebe20073c7..e048542cdd1fe9c807ce21e57af9cf59
      // Sakura end - merge cannon entities
  
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 7f9dcd27c31a97563dfb065d11f984cf688c9782..fef88549aa5dd2f4e4618ebe0bfb4e25c15117e2 100644
+index da423a9211dd72bc531d7f0f65aab08b5c44f39c..d3ddf3c99cb6338cea6e1cad3d96c931885e5a20 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -57,9 +57,11 @@ public class Explosion {
@@ -606,7 +611,7 @@ index 7f9dcd27c31a97563dfb065d11f984cf688c9782..fef88549aa5dd2f4e4618ebe0bfb4e25
          float blockDensity = this.level.densityCache.getDensity(vec3d, entity);
          if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index de4879ce1990a460d5a57287642c5010c8aed78a..70ce20d946287a7449da4efc958be5a9fa683afe 100644
+index 67e5a3ae24b131ee1579a06d8b10ba9b0ac1ad41..d65a8857fd90063e277141d0e9fd553e39fc0880 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -1522,7 +1522,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

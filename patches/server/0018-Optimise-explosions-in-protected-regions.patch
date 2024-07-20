@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise explosions in protected regions
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 3572334f7594a284124d879b8165e9401e9d2aad..eaf2201301813c68b5c0826394120daffdee72f8 100644
+index 3ad6f5f19c9fae2f00c662971eaa613c1a0ddbcf..da423a9211dd72bc531d7f0f65aab08b5c44f39c 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -353,6 +353,22 @@ public class Explosion {
@@ -21,8 +21,8 @@ index 3572334f7594a284124d879b8165e9401e9d2aad..eaf2201301813c68b5c0826394120daf
 +            Location location = new Location(this.level.getWorld(), this.x, this.y, this.z);
 +            List<org.bukkit.block.Block> blocks = new ObjectArrayList<>(1);
 +            blocks.add(location.getBlock());
-+            EntityExplodeEvent event = new EntityExplodeEvent(this.source.getBukkitEntity(), location, blocks, 0.0f);
-+            return event.callEvent() && !event.blockList().isEmpty();
++            EntityExplodeEvent event = CraftEventFactory.callEntityExplodeEvent(this.source, blocks, 0.0f, this.blockInteraction);
++            return !event.isCancelled() && !event.blockList().isEmpty();
 +        }
 +
 +        return true;
