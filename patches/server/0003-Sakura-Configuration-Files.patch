@@ -1040,7 +1040,7 @@ index 0000000000000000000000000000000000000000..4024f9738e039ffffd560a07a2210f75
 +public record DurableMaterial(int durability, float resistance) {
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 8160c35368fc2c52d6f4a42df27adb2ef6eb87f3..f0f98f9b24a22086427b9f4d352e46176cba3b7c 100644
+index 9325d6f95165a7cee00d7de736af723681cc16b4..24356af82f9fd04c326d9c401219adbee7842e00 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -317,6 +317,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -1063,11 +1063,11 @@ index 8160c35368fc2c52d6f4a42df27adb2ef6eb87f3..f0f98f9b24a22086427b9f4d352e4617
  
      private void readScoreboard(DimensionDataStorage persistentStateManager) {
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index d43b98bdfcb00603737a309c0fb7793d42289b8c..919723bcae9336ccf30c6f1989cf0bbab53f7e3c 100644
+index dd56c8e041116ef3602a9f89c998c8208ab89b51..6cc0386531bea4ed11d9461c6810d7d119b37bf6 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -237,6 +237,11 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-         io.papermc.paper.command.PaperCommands.registerCommands(this); // Paper - setup /paper command
+@@ -239,6 +239,11 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         this.server.spark.registerCommandBeforePlugins(this.server); // Paper - spark
          com.destroystokyo.paper.Metrics.PaperMetrics.startMetrics(); // Paper - start metrics
          com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
 +        // Sakura start - sakura configuration files
@@ -1121,10 +1121,10 @@ index e2a0487089eb5a7bdc1433e4c75f69d8e9f9d5f9..7da2fc17f6e7bf888ef0c2a8eba0fc3b
          this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 3a91faeb6957e4e783b1de3e1145e7d1d164a857..89b6fd4076756f936db2f768509215fa0b06ea60 100644
+index c8b82bc41f2042bb4b067f06265a3a22e51f7629..e95957d6e6ceb29851e1e52226534dd058ca1409 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -1068,6 +1068,7 @@ public final class CraftServer implements Server {
+@@ -1070,6 +1070,7 @@ public final class CraftServer implements Server {
  
          org.spigotmc.SpigotConfig.init((File) this.console.options.valueOf("spigot-settings")); // Spigot
          this.console.paperConfigurations.reloadConfigs(this.console);
@@ -1132,16 +1132,16 @@ index 3a91faeb6957e4e783b1de3e1145e7d1d164a857..89b6fd4076756f936db2f768509215fa
          for (ServerLevel world : this.console.getAllLevels()) {
              // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
              world.setSpawnSettings(world.serverLevelData.getDifficulty() != Difficulty.PEACEFUL && config.spawnMonsters, config.spawnAnimals); // Paper - per level difficulty (from MinecraftServer#setDifficulty(ServerLevel, Difficulty, boolean))
-@@ -1099,6 +1100,7 @@ public final class CraftServer implements Server {
+@@ -1101,6 +1102,7 @@ public final class CraftServer implements Server {
          this.reloadData();
          org.spigotmc.SpigotConfig.registerCommands(); // Spigot
          io.papermc.paper.command.PaperCommands.registerCommands(this.console); // Paper
 +        me.samsuik.sakura.command.SakuraCommands.registerCommands(this.console); // Sakura
+         this.spark.registerCommandBeforePlugins(this); // Paper - spark
          this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
          this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
- 
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 38083fc6dc60673562f2d05aa354c365571baff8..185b2a85a9cce47cd4b00bdc361cc2412e802bba 100644
+index 618f4b2e1d012b647b3e7bf359c8ecdd7f159e63..59f8e11c8b3a2442e75bb085c6ed648c97887db5 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
 @@ -176,6 +176,14 @@ public class Main {
