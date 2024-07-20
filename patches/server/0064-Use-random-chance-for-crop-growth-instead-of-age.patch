@@ -5,10 +5,10 @@ Subject: [PATCH] Use random chance for crop growth instead of age
 
 
 diff --git a/src/main/java/net/minecraft/world/level/block/CactusBlock.java b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
-index ff4dda48116a2969704b355ff96407ba869b466e..aac74ac6aae9e9435680f1f8b34074760b674cb1 100644
+index ff4dda48116a2969704b355ff96407ba869b466e..1722cf05a980beb5f83e866cfc7aabecbd67a1ad 100644
 --- a/src/main/java/net/minecraft/world/level/block/CactusBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
-@@ -52,6 +52,18 @@ public class CactusBlock extends Block {
+@@ -52,6 +52,19 @@ public class CactusBlock extends Block {
  
      @Override
      protected void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -18,7 +18,8 @@ index ff4dda48116a2969704b355ff96407ba869b466e..aac74ac6aae9e9435680f1f8b3407476
 +            if (random.nextFloat() >= modifier / (100.0f * 16)) {
 +                return;
 +            }
-+            world.setBlock(pos, state.setValue(CactusBlock.AGE, AGE.max), 16);
++            // set crop age to max so it grows right away
++            state = state.setValue(CactusBlock.AGE, AGE.max);
 +        }
 +        this.ageAndGrow(state, world, pos, random);
 +    }
@@ -27,19 +28,24 @@ index ff4dda48116a2969704b355ff96407ba869b466e..aac74ac6aae9e9435680f1f8b3407476
          BlockPos blockposition1 = pos.above();
  
          if (world.isEmptyBlock(blockposition1)) {
-@@ -71,6 +83,7 @@ public class CactusBlock extends Block {
- 
+@@ -68,7 +81,11 @@ public class CactusBlock extends Block {
+                 if (j >= 15 || (modifier != 100 && random.nextFloat() < (modifier / (100.0f * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                     CraftEventFactory.handleBlockGrowEvent(world, blockposition1, this.defaultBlockState()); // CraftBukkit
+                     BlockState iblockdata1 = (BlockState) state.setValue(CactusBlock.AGE, 0);
+-
++                    // Sakura start - use random chance for crop growth
++                    if (world.sakuraConfig().environment.crops.useRandomChanceToGrow) {
++                        world.neighborShapeChanged(Direction.UP, state, blockposition1, pos, 4, 1);
++                    }
++                    // Sakura end - use random chance for crop growth
                      world.setBlock(pos, iblockdata1, 4);
                      world.neighborChanged(iblockdata1, blockposition1, this, pos, false);
-+                    // Sakura - conflict on change
                  } else if (modifier == 100 || random.nextFloat() < (modifier / (100.0f * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
-                     world.setBlock(pos, (BlockState) state.setValue(CactusBlock.AGE, j + 1), 4);
-                 }
 diff --git a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
-index c48c622e92cedeaa46b929c7adfedec98dd5a3fb..7622a661480cd094d527f309d1fe57851952aea3 100644
+index c48c622e92cedeaa46b929c7adfedec98dd5a3fb..38e91c4eb831810c27c31e3c5fa6c8b9c7cac0f3 100644
 --- a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
-@@ -52,6 +52,18 @@ public class SugarCaneBlock extends Block {
+@@ -52,6 +52,19 @@ public class SugarCaneBlock extends Block {
  
      @Override
      protected void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -49,7 +55,8 @@ index c48c622e92cedeaa46b929c7adfedec98dd5a3fb..7622a661480cd094d527f309d1fe5785
 +            if (random.nextFloat() >= modifier / (100.0f * 16)) {
 +                return;
 +            }
-+            world.setBlock(pos, state.setValue(SugarCaneBlock.AGE, AGE.max), 16);
++            // set crop age to max so it grows right away
++            state = state.setValue(SugarCaneBlock.AGE, AGE.max);
 +        }
 +        this.ageAndGrow(state, world, pos, random);
 +    }
@@ -58,7 +65,7 @@ index c48c622e92cedeaa46b929c7adfedec98dd5a3fb..7622a661480cd094d527f309d1fe5785
          if (world.isEmptyBlock(pos.above())) {
              int i;
  
-@@ -66,6 +78,7 @@ public class SugarCaneBlock extends Block {
+@@ -66,6 +79,7 @@ public class SugarCaneBlock extends Block {
                  if (j >= 15 || (modifier != 100 && random.nextFloat() < (modifier / (100.0f * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
                      org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(world, pos.above(), this.defaultBlockState()); // CraftBukkit
                      world.setBlock(pos, (BlockState) state.setValue(SugarCaneBlock.AGE, 0), 4);
