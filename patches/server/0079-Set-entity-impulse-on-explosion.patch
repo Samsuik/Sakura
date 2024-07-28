@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 29 Jul 2024 00:18:58 +0100
+Subject: [PATCH] Set entity impulse on explosion
+
+
+diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
+index d67f9d241f6070a2c391df52146d48434e7e096a..9388ae5d02cd9ea7e7cafd366704855898deeefb 100644
+--- a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
++++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
+@@ -197,6 +197,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends Explosion {
+                 y *= exposure;
+                 z *= exposure;
+ 
++                entity.hasImpulse = true; // Sakura - set entity impulse on explosion
+                 for (int i = 0; i < potential; ++i) {
+                     entity.addDeltaMovement(x, y, z);
+                 }
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 6c638f249eb16e3bb09f16b404c70c28fa5a0532..c485873524aae2ce36a4a9e432a18c70a84cca3a 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -821,6 +821,7 @@ public class Explosion {
+                             // Sakura end - reduce deltaMovement allocations
+                         }
+                         // CraftBukkit end
++                        entity.hasImpulse = true; // Sakura - set entity impulse on explosion
+                         // Sakura - moved up
+                         if (entity instanceof Player) {
+                             Player entityhuman = (Player) entity;
