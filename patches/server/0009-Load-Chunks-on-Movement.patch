@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index ee8e9c0e3690e78f3cc621ddfca89ea4256d4803..299237a0c828e48425cc35a14d366020c78daefb 100644
+index ee8e9c0e3690e78f3cc621ddfca89ea4256d4803..86dee868320531e0fa076b6a78f3ea476c64b376 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
 @@ -1569,6 +1569,7 @@ public final class CollisionUtil {
@@ -28,7 +28,7 @@ index ee8e9c0e3690e78f3cc621ddfca89ea4256d4803..299237a0c828e48425cc35a14d366020
                  final ChunkAccess chunk = loadChunks ? chunkSource.getChunk(currChunkX, currChunkZ, ChunkStatus.FULL, true) : chunkSource.getChunkAtIfLoadedImmediately(currChunkX, currChunkZ);
 +                // Sakura start - keep chunks loaded on movement
 +                if (addTicket && chunk instanceof net.minecraft.world.level.chunk.LevelChunk levelChunk && levelChunk.movementLoadTicketRequiresUpdate()) {
-+                    chunkSource.chunkMap.getDistanceManager().getChunkHolderManager().addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, currChunkX, currChunkZ, 33, CoordinateUtils.getChunkKey(currChunkX, currChunkZ));
++                    chunkSource.chunkMap.getDistanceManager().getChunkHolderManager().addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, currChunkX, currChunkZ, 31, CoordinateUtils.getChunkKey(currChunkX, currChunkZ));
 +                    // This is known to work, uncomment if any issues
 +                    // var pos = new net.minecraft.world.level.ChunkPos(currChunkX, currChunkZ);
 +                    // chunkSource.addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, pos, 33, pos.toLong());
@@ -51,7 +51,7 @@ index 658e63ebde81dc14c8ab5850fb246dc0aab25dea..f1ff1a67fee37ee7b241ceaa164fa4ee
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a2104fae2b288f4cbd9e810d73bf986be0b7b969..88d01e59869f8e6c528fb3ae1485cd86a23cb383 100644
+index 29e609be885944dbb4868e34e7eb83b8a136619c..3b43f2dcba8cf3303281cca05279f23530ea747f 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -572,6 +572,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
