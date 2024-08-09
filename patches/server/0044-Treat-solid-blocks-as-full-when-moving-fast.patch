@@ -5,7 +5,7 @@ Subject: [PATCH] Treat solid blocks as full when moving fast
 
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 9a869fb472c7194742bdf8d38f0f97301b0a7b29..c19d2144fc0ebfa04c16d37c4b3e10ed26a4a55e 100644
+index 9a869fb472c7194742bdf8d38f0f97301b0a7b29..e672400f26710fb7d7007b397aee9c08cde6182c 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1597,6 +1597,7 @@ public final class CollisionUtil {
@@ -33,13 +33,14 @@ index 9a869fb472c7194742bdf8d38f0f97301b0a7b29..c19d2144fc0ebfa04c16d37c4b3e10ed
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
  
                      final net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState> blocks = section.states;
-@@ -1724,7 +1726,11 @@ public final class CollisionUtil {
+@@ -1724,7 +1726,12 @@ public final class CollisionUtil {
                                  net.minecraft.world.phys.shapes.VoxelShape blockCollision = ((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)blockData).moonrise$getConstantCollisionShape();
  
                                  if (edgeCount == 0 || ((edgeCount != 1 || blockData.hasLargeCollisionShape()) && (edgeCount != 2 || blockData.getBlock() == net.minecraft.world.level.block.Blocks.MOVING_PISTON))) {
 -                                    if (blockCollision == null) {
 +                                    // Sakura start - treat solid blocks as full when moving fast
-+                                    if (fullBlocks) {
++                                    // todo: move this logic above emptyCollisionShape and consider all blocks as a solid except scaffolding and liquids
++                                    if (fullBlocks && blockData.moonrise$getConstantCollisionAABB() != null) {
 +                                        blockCollision = net.minecraft.world.phys.shapes.Shapes.block();
 +                                    } else if (blockCollision == null) {
 +                                        // Sakura end - treat solid blocks as full when moving fast
@@ -47,7 +48,7 @@ index 9a869fb472c7194742bdf8d38f0f97301b0a7b29..c19d2144fc0ebfa04c16d37c4b3e10ed
                                          blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
                                      }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a0c97506ae4ac7a8b1f0d8ea435995239a9afac0..d68e8a7408b50dcb07ecb5cc706f501cede474b6 100644
+index cacf0b267b5836f38520782c03f86ab698960860..4e0c83c251f362ef5b2d6fce6348d2469793a173 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -565,6 +565,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
