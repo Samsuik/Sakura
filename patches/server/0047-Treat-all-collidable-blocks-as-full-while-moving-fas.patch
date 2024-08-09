@@ -5,7 +5,7 @@ Subject: [PATCH] Treat all collidable blocks as full while moving fast
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index 510d722fffd4bdcee2db42aefa662c49563ffa81..37b6d16f0b1e000eb4082a530c7f713482d25a1d 100644
+index 510d722fffd4bdcee2db42aefa662c49563ffa81..1d2a51b13fb92ed35614790190b9b3b95dba3972 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
 @@ -1592,6 +1592,7 @@ public final class CollisionUtil {
@@ -33,33 +33,26 @@ index 510d722fffd4bdcee2db42aefa662c49563ffa81..37b6d16f0b1e000eb4082a530c7f7134
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
  
                      final PalettedContainer<BlockState> blocks = section.states;
-@@ -1718,12 +1720,20 @@ public final class CollisionUtil {
+@@ -1718,12 +1720,15 @@ public final class CollisionUtil {
                                  }
  
                                  if (edgeCount == 0 || ((edgeCount != 1 || blockData.hasLargeCollisionShape()) && (edgeCount != 2 || blockData.getBlock() == Blocks.MOVING_PISTON))) {
--                                    VoxelShape blockCollision = blockData.getConstantCollisionShape();
 +                                    // Sakura start - if flag is set treat all block as full
-+                                    VoxelShape blockCollision;
- 
+                                     VoxelShape blockCollision = blockData.getConstantCollisionShape();
+-
 -                                    if (blockCollision == null) {
--                                        mutablePos.set(blockX, blockY, blockZ);
--                                        blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
-+                                    if (fullBlocks) {
++                                    if (fullBlocks && blockCollision != null) {
 +                                        blockCollision = Shapes.block();
-+                                    } else {
-+                                        blockCollision = blockData.getConstantCollisionShape();
-+
-+                                        if (blockCollision == null) {
-+                                            mutablePos.set(blockX, blockY, blockZ);
-+                                            blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
-+                                        }
++                                    } else if (blockCollision == null) {
+                                         mutablePos.set(blockX, blockY, blockZ);
+                                         blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
                                      }
 +                                    // Sakura end
  
                                      AABB singleAABB = blockCollision.getSingleAABBRepresentation();
                                      if (singleAABB != null) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index c7a47485fd056159c448b63217afb8d4cacb1429..0ebe9db8b648f49819574ae8e495866d33394a57 100644
+index 413d129f44b48584b6b8dd59fae866838a01dfeb..78fc8b0d534d3682697424f4931836d9a26167ea 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -581,6 +581,14 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
