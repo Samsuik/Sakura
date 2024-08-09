@@ -6,10 +6,10 @@ Subject: [PATCH] Merge Cannon Entities
 
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/EntityMergeHandler.java b/src/main/java/me/samsuik/sakura/entity/merge/EntityMergeHandler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..211b65246169785bce3c69ebc4ac9b4f39231605
+index 0000000000000000000000000000000000000000..c8040daf71384d1fe7bd16478741b4c9cca1100c
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/EntityMergeHandler.java
-@@ -0,0 +1,67 @@
+@@ -0,0 +1,76 @@
 +package me.samsuik.sakura.entity.merge;
 +
 +import net.minecraft.world.entity.Entity;
@@ -31,7 +31,7 @@ index 0000000000000000000000000000000000000000..211b65246169785bce3c69ebc4ac9b4f
 +            MergeEntityData mergeEntityData = mergeEntity.getMergeEntityData();
 +            MergeStrategy strategy = MergeStrategy.from(mergeEntityData.getMergeLevel());
 +            Entity into = strategy.mergeEntity(entity, previous, this.trackedHistory);
-+            if (into instanceof MergeableEntity intoEntity && !into.isRemoved() && mergeEntity.isSafeToMergeInto(into, strategy.trackHistory())) {
++            if (into instanceof MergeableEntity intoEntity && !into.isRemoved() && mergeEntity.isSafeToMergeInto(intoEntity, strategy.trackHistory())) {
 +                return this.mergeEntity(mergeEntity, intoEntity);
 +            }
 +        }
@@ -48,7 +48,7 @@ index 0000000000000000000000000000000000000000..211b65246169785bce3c69ebc4ac9b4f
 +        if (entity instanceof MergeableEntity mergeEntity) {
 +            MergeEntityData mergeEntityData = mergeEntity.getMergeEntityData();
 +            MergeStrategy strategy = MergeStrategy.from(mergeEntityData.getMergeLevel());
-+            if (mergeEntityData.hasMerged() && strategy.trackHistory()) {
++            if (mergeEntityData.hasMerged() /*&& strategy.trackHistory()*/) {
 +                this.trackedHistory.trackHistory(entity, mergeEntityData);
 +            }
 +        }
@@ -65,7 +65,16 @@ index 0000000000000000000000000000000000000000..211b65246169785bce3c69ebc4ac9b4f
 +        }
 +    }
 +
-+    private boolean mergeEntity(@NotNull MergeableEntity mergeEntity, @NotNull MergeableEntity into) {
++    /**
++     * Merges the first entity into the second. The entity merge count can be retrieved through the {@link MergeEntityData}.
++     * <p>
++     * This method also updates the bukkit handle so that plugins reference the first entity after the second entity has been removed.
++     *
++     * @param mergeEntity the first entity
++     * @param into the entity to merge into
++     * @return if successful
++     */
++    public boolean mergeEntity(@NotNull MergeableEntity mergeEntity, @NotNull MergeableEntity into) {
 +        MergeEntityData entities = mergeEntity.getMergeEntityData();
 +        MergeEntityData mergeInto = into.getMergeEntityData();
 +        mergeInto.mergeWith(entities); // merge entities together
@@ -101,19 +110,22 @@ index 0000000000000000000000000000000000000000..6c0c224bc30c9c75d4b82508661117ce
 +}
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeEntityData.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeEntityData.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..db215f9d624fb484059db1f86609847ac7a2be0b
+index 0000000000000000000000000000000000000000..b13e3dcc333bcb53b4493e7087765fcca0a88604
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeEntityData.java
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,52 @@
 +package me.samsuik.sakura.entity.merge;
 +
 +import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 +import net.minecraft.world.entity.Entity;
 +import org.jetbrains.annotations.NotNull;
 +
++import java.util.List;
++
 +public final class MergeEntityData {
 +    private final Entity entity;
-+    private MergeEntityData linked;
++    private List<MergeEntityData> connected = new ObjectArrayList<>();
 +    private int count = 1;
 +    private MergeLevel mergeLevel = MergeLevel.NONE;
 +
@@ -122,22 +134,20 @@ index 0000000000000000000000000000000000000000..db215f9d624fb484059db1f86609847a
 +    }
 +
 +    public void mergeWith(@NotNull MergeEntityData mergeEntityData) {
-+        this.linked = mergeEntityData;
++        this.connected.add(mergeEntityData);
++        this.connected.addAll(mergeEntityData.connected);
 +        this.count += mergeEntityData.getCount();
 +        mergeEntityData.setCount(0);
 +    }
 +
 +    public LongOpenHashSet getOriginPositions() {
 +        LongOpenHashSet positions = new LongOpenHashSet();
-+        MergeEntityData next = this;
-+        do {
-+            positions.add(next.entity.getPackedOriginPosition());
-+        } while ((next = next.linked) != null);
++        this.connected.forEach(entityData -> positions.add(entityData.entity.getPackedOriginPosition()));
 +        return positions;
 +    }
 +
 +    public boolean hasMerged() {
-+        return this.linked != null;
++        return !this.connected.isEmpty() && this.count != 0;
 +    }
 +
 +    public void setMergeLevel(MergeLevel mergeLevel) {
@@ -282,19 +292,18 @@ index 0000000000000000000000000000000000000000..1ce8b8a54f80039c2f50496021494fbd
 +}
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeableEntity.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeableEntity.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..81b1aaa4d6718d92e4011501f55be2ab520198d9
+index 0000000000000000000000000000000000000000..3061c3a48f7c68f64a3348b9583f4b41c16429a9
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeableEntity.java
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,22 @@
 +package me.samsuik.sakura.entity.merge;
 +
-+import net.minecraft.world.entity.Entity;
 +import org.jetbrains.annotations.NotNull;
 +
 +public interface MergeableEntity {
 +    @NotNull MergeEntityData getMergeEntityData();
 +
-+    boolean isSafeToMergeInto(@NotNull Entity entity, boolean ticksLived);
++    boolean isSafeToMergeInto(@NotNull MergeableEntity entity, boolean ticksLived);
 +
 +    default boolean respawnEntity() {
 +        MergeEntityData mergeData = this.getMergeEntityData();
@@ -311,10 +320,10 @@ index 0000000000000000000000000000000000000000..81b1aaa4d6718d92e4011501f55be2ab
 +}
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/TrackedMergeHistory.java b/src/main/java/me/samsuik/sakura/entity/merge/TrackedMergeHistory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c78bf4fc13da8238f59bde7de9f04642eba074ae
+index 0000000000000000000000000000000000000000..12f12705678e260654c0af7e23e403e36f9a427d
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/TrackedMergeHistory.java
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,73 @@
 +package me.samsuik.sakura.entity.merge;
 +
 +import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -329,22 +338,29 @@ index 0000000000000000000000000000000000000000..c78bf4fc13da8238f59bde7de9f04642
 +    private final Long2ObjectMap<PositionHistory> historyMap = new Long2ObjectOpenHashMap<>();
 +
 +    public boolean hasPreviousMerged(@NotNull Entity entity, @NotNull Entity into) {
-+        long entityPosition = entity.getPackedOriginPosition();
-+        long intoPosition   = into.getPackedOriginPosition();
-+        PositionHistory positions = this.historyMap.get(intoPosition);
-+        return positions.has(entityPosition);
++        PositionHistory positions = this.getHistory(into);
++        return positions != null && positions.has(entity.getPackedOriginPosition());
 +    }
 +
 +    public void trackHistory(@NotNull Entity entity, @NotNull MergeEntityData mergeEntityData) {
 +        long originPosition = entity.getPackedOriginPosition();
++        boolean createHistory = !this.historyMap.containsKey(originPosition);
 +        PositionHistory positions = this.historyMap.computeIfAbsent(originPosition, p -> new PositionHistory());
-+        positions.trackPositions(mergeEntityData.getOriginPositions());
++        LongOpenHashSet originPositions = mergeEntityData.getOriginPositions();
++        if (createHistory) {
++            originPositions.forEach(pos -> this.historyMap.put(pos, positions));
++        }
++        positions.trackPositions(originPositions, !createHistory);
 +    }
 +
 +    public boolean hasMetCondition(@NotNull Entity entity, MergeCondition condition) {
-+        long originPosition = entity.getPackedOriginPosition();
-+        PositionHistory positions = this.historyMap.get(originPosition);
++        PositionHistory positions = this.getHistory(entity);
 +        return positions != null && positions.hasMetConditions(entity, condition);
++    }
++
++    private PositionHistory getHistory(Entity entity) {
++        long originPosition = entity.getPackedOriginPosition();
++        return this.historyMap.get(originPosition);
 +    }
 +
 +    public void expire(long tick) {
@@ -366,8 +382,12 @@ index 0000000000000000000000000000000000000000..c78bf4fc13da8238f59bde7de9f04642
 +            return this.positions.contains(position);
 +        }
 +
-+        public void trackPositions(LongOpenHashSet positions) {
-+            this.positions.addAll(positions);
++        public void trackPositions(LongOpenHashSet positions, boolean retain) {
++            if (retain) {
++                this.positions.retainAll(positions);
++            } else {
++                this.positions.addAll(positions);
++            }
 +            this.cycles++;
 +        }
 +
@@ -458,7 +478,7 @@ index 49ae460ba5b871f085d67a0c4abdc0e7096ca3e1..023500526ab0a42bf7cbf21e1773cf53
          if (!(this instanceof ServerPlayer) && entity_removalreason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 0891d4107c9a724522a7abbb6cf61298b18e42a6..19eed968884f79a7982d96ae8c3c378f00afbdf9 100644
+index 0891d4107c9a724522a7abbb6cf61298b18e42a6..53488a1d0c56e7da4cf93c08cab01a033fb4f1f8 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -57,7 +57,7 @@ import org.bukkit.craftbukkit.event.CraftEventFactory;
@@ -483,7 +503,7 @@ index 0891d4107c9a724522a7abbb6cf61298b18e42a6..19eed968884f79a7982d96ae8c3c378f
 +    }
 +
 +    @Override
-+    public final boolean isSafeToMergeInto(Entity entity, boolean ticksLived) {
++    public final boolean isSafeToMergeInto(me.samsuik.sakura.entity.merge.MergeableEntity entity, boolean ticksLived) {
 +        return entity instanceof FallingBlockEntity fbe
 +            && fbe.blockState.equals(this.blockState)
 +            && (!ticksLived || fbe.time - 1 == this.time);
@@ -566,7 +586,7 @@ index 0891d4107c9a724522a7abbb6cf61298b18e42a6..19eed968884f79a7982d96ae8c3c378f
  
      public void setHurtsEntities(float fallHurtAmount, int fallHurtMax) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 888d018a8e73234332455b7d3700e70e1a50c5db..6fc9a352dbae57e867ae35f2a1f30eebe20073c7 100644
+index 888d018a8e73234332455b7d3700e70e1a50c5db..a8e540c8a27135336fb2d6e37aec13d598b2000e 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -30,7 +30,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
@@ -591,7 +611,7 @@ index 888d018a8e73234332455b7d3700e70e1a50c5db..6fc9a352dbae57e867ae35f2a1f30eeb
 +    }
 +
 +    @Override
-+    public final boolean isSafeToMergeInto(Entity entity, boolean ticksLived) {
++    public final boolean isSafeToMergeInto(me.samsuik.sakura.entity.merge.MergeableEntity entity, boolean ticksLived) {
 +        return entity instanceof PrimedTnt tnt
 +            && tnt.getFuse() + 1 == this.getFuse()
 +            // required to prevent issues with powdered snow

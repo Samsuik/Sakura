@@ -88,10 +88,10 @@ index 58add5bd1afc2f3e89b9a7d0d9a325bf17b77a18..8ff4ce297e9e799b14d623b49493c5a4
              if (distance != 0.0D) {
                  x /= distance;
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-index e3a4e89c81a602d57fad58f6ac10d8ca5282ef4e..cf49deddc0e161bd4ae2a1023fef84ab38035567 100644
+index a5d13c6b0d8765e4a65b43f5835fd907738e1da4..19f0d8cf94a60b66cead3c129ded69fc3a2da0ce 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -39,6 +39,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
+@@ -40,6 +40,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
          this.bounds = new AABB(x, y, z, x, y, z);
      }
  
@@ -104,7 +104,7 @@ index e3a4e89c81a602d57fad58f6ac10d8ca5282ef4e..cf49deddc0e161bd4ae2a1023fef84ab
 +
      @Override
      protected int getExplosionCount() {
-         return this.cause.getMergeEntityData().getCount();
+         if (this.cause.getMergeEntityData().getMergeLevel() == MergeLevel.NONE) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
 index 18cefd77146cee72f1818cbb725dd1704ae5fec0..cacf0b267b5836f38520782c03f86ab698960860 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
@@ -252,7 +252,7 @@ index 18cefd77146cee72f1818cbb725dd1704ae5fec0..cacf0b267b5836f38520782c03f86ab6
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index b5ce3bbce3cc71bab5ec5e9c1c42e7b7a2cdefa3..bb6bd75645d18933f6d1b5c68a33f28e30b5ac2d 100644
+index 92d8b64f18cf7ac854a021e06102dad9932bfba0..a08123d67a43f9de5706dda22f3b59979f673ac4 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -147,6 +147,8 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -384,7 +384,7 @@ index b5ce3bbce3cc71bab5ec5e9c1c42e7b7a2cdefa3..bb6bd75645d18933f6d1b5c68a33f28e
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 56ad11f51e3ec395a88fa6d961cf8e99bde6b69f..095727d28139ffcda0da3be83b329ace6e28d551 100644
+index 4d0cfa1f96a04713cb1d51c7aaaf91374a0d6c17..96c43df6834e20a9e04eb095f36a644ec393c342 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -102,6 +102,13 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -474,7 +474,7 @@ index 56ad11f51e3ec395a88fa6d961cf8e99bde6b69f..095727d28139ffcda0da3be83b329ace
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 5e0cf3ccadf602a9300a4619333ece0b2c28b9a6..46895d9395e5fe6c75399f8e68f086f6a7bc5a64 100644
+index fd7063b4a3b90454d99680f679d3a8185d6981b9..8820c4cab2957368847c378d02026f52acf446e6 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -77,6 +77,7 @@ public class Explosion {

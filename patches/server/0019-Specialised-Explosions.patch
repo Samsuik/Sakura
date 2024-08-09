@@ -247,16 +247,17 @@ index 0000000000000000000000000000000000000000..58add5bd1afc2f3e89b9a7d0d9a325bf
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e3a4e89c81a602d57fad58f6ac10d8ca5282ef4e
+index 0000000000000000000000000000000000000000..a5d13c6b0d8765e4a65b43f5835fd907738e1da4
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,210 @@
+@@ -0,0 +1,207 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
 +import ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache;
 +import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 +import me.samsuik.sakura.entity.EntityState;
++import me.samsuik.sakura.entity.merge.MergeLevel;
 +import me.samsuik.sakura.entity.merge.MergeableEntity;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
@@ -294,12 +295,15 @@ index 0000000000000000000000000000000000000000..e3a4e89c81a602d57fad58f6ac10d8ca
 +
 +    @Override
 +    protected int getExplosionCount() {
++        if (this.cause.getMergeEntityData().getMergeLevel() == MergeLevel.NONE) {
++            this.mergeEntitiesBeforeExplosion();
++        }
 +        return this.cause.getMergeEntityData().getCount();
 +    }
 +
 +    @Override
 +    protected void startExplosion() {
-+        for (int i = this.calculateExplosionPotential() - 1; i >= 0; --i) {
++        for (int i = this.getExplosionCount() - 1; i >= 0; --i) {
 +            Vec3 previousMomentum = this.cause.entityState().momentum();
 +            boolean lastCycle = (i == 0);
 +            this.midExplosion(previousMomentum, lastCycle); // search for blocks and impact entities
@@ -399,26 +403,19 @@ index 0000000000000000000000000000000000000000..e3a4e89c81a602d57fad58f6ac10d8ca
 +        }
 +    }
 +
-+    private int calculateExplosionPotential() {
++    private void mergeEntitiesBeforeExplosion() {
 +        IteratorSafeOrderedReferenceSet<Entity> entities = this.level.entityTickList.entities;
-+        int base = this.getExplosionCount();
 +        int index = entities.indexOf(this.cause);
 +
-+        try {
-+            entities.createRawIterator();
-+            // iterate over the entityTickList to find entities that are exploding in the same position.
-+            while ((index = entities.advanceRawIterator(index)) != -1) {
-+                Entity foundEntity = entities.rawGet(index);
-+                if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, false))
-+                    break;
-+                base += mergeEntity.getMergeEntityData().getCount();
-+                foundEntity.discard();
-+            }
-+        } finally {
-+            entities.finishRawIterator();
++        entities.createRawIterator();
++        // iterate over the entityTickList to find entities that are exploding in the same position.
++        while ((index = entities.advanceRawIterator(index)) != -1) {
++            Entity foundEntity = entities.rawGet(index);
++            if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, true))
++                break;
++            this.level.mergeHandler.mergeEntity(mergeEntity, this.cause);
 +        }
-+
-+        return base;
++        entities.finishRawIterator();
 +    }
 +
 +    private void locateAndImpactEntitiesInBounds() {
@@ -488,7 +485,7 @@ index cb051277557483e097272be1a84d1fef9ebbf35b..3982f8feeac19ba8f3563b24466f97e0
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 6fc9a352dbae57e867ae35f2a1f30eebe20073c7..e048542cdd1fe9c807ce21e57af9cf59b4adb33f 100644
+index a8e540c8a27135336fb2d6e37aec13d598b2000e..e64c85bf8fbd3ad0d7e8a6e4a34aed8140f4f8bc 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -73,20 +73,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
