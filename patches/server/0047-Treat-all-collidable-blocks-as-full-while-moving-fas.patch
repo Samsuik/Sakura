@@ -5,7 +5,7 @@ Subject: [PATCH] Treat all collidable blocks as full while moving fast
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index 8014ebfb391825c31d9d1b39f5304a7e76b1ee44..d58d1fb1148db13c5d24422a1553e0b83677ab3d 100644
+index 8014ebfb391825c31d9d1b39f5304a7e76b1ee44..e6c1fffa1281c302b5201c1a6826f10df8a0e382 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
 @@ -1592,6 +1592,7 @@ public final class CollisionUtil {
@@ -33,33 +33,26 @@ index 8014ebfb391825c31d9d1b39f5304a7e76b1ee44..d58d1fb1148db13c5d24422a1553e0b8
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
  
                      final PalettedContainer<BlockState> blocks = section.states;
-@@ -1718,12 +1720,20 @@ public final class CollisionUtil {
+@@ -1718,12 +1720,15 @@ public final class CollisionUtil {
                                  }
  
                                  if (edgeCount == 0 || ((edgeCount != 1 || blockData.hasLargeCollisionShape()) && (edgeCount != 2 || blockData.getBlock() == Blocks.MOVING_PISTON))) {
--                                    VoxelShape blockCollision = blockData.getConstantCollisionShape();
 +                                    // Sakura start - if flag is set treat all block as full
-+                                    VoxelShape blockCollision;
- 
+                                     VoxelShape blockCollision = blockData.getConstantCollisionShape();
+-
 -                                    if (blockCollision == null) {
--                                        mutablePos.set(blockX, blockY, blockZ);
--                                        blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
-+                                    if (fullBlocks) {
++                                    if (fullBlocks && blockCollision != null) {
 +                                        blockCollision = Shapes.block();
-+                                    } else {
-+                                        blockCollision = blockData.getConstantCollisionShape();
-+
-+                                        if (blockCollision == null) {
-+                                            mutablePos.set(blockX, blockY, blockZ);
-+                                            blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
-+                                        }
++                                    } else if (blockCollision == null) {
+                                         mutablePos.set(blockX, blockY, blockZ);
+                                         blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
                                      }
 +                                    // Sakura end
  
                                      AABB singleAABB = blockCollision.getSingleAABBRepresentation();
                                      if (singleAABB != null) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 8c508df03a80d7f8fbb1bc50067f84090457511f..b4977a8b97f5417883cf3ffab5f89d98a6a6079b 100644
+index b336fe34b8d3e54dd300509812a6c4886105b299..b7f14516d3bb1356de709d528eca3aee1bb212ff 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -582,6 +582,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
