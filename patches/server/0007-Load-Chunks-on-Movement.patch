@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 3cbd02085cc3e2ddb15458faea4b553868cff39a..740dc010cfd42941a6f9a2b2c543973429fdbfa3 100644
+index 748ab4d637ce463272bae4fdbab6842a27385126..ea6e252053b8910141aacd5bb82108d6abf3fb96 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1574,6 +1574,7 @@ public final class CollisionUtil {
@@ -31,7 +31,7 @@ index 3cbd02085cc3e2ddb15458faea4b553868cff39a..740dc010cfd42941a6f9a2b2c5439734
 +                // Sakura start - load chunks on movement
 +                if (addTicket && chunk.movementTicketNeedsUpdate() && chunkSource instanceof net.minecraft.server.level.ServerChunkCache chunkCache) {
 +                    final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(currChunkX, currChunkZ);
-+                    chunkCache.chunkMap.getDistanceManager().getChunkHolderManager().addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, currChunkX, currChunkZ, 33, chunkKey);
++                    chunkCache.chunkMap.getDistanceManager().getChunkHolderManager().addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, currChunkX, currChunkZ, 31, chunkKey);
 +                    chunk.updatedMovementTicket();
 +                }
 +                // Sakura end - load chunks on movement
@@ -40,19 +40,19 @@ index 3cbd02085cc3e2ddb15458faea4b553868cff39a..740dc010cfd42941a6f9a2b2c5439734
  
                  // bound y
 diff --git a/src/main/java/net/minecraft/server/level/TicketType.java b/src/main/java/net/minecraft/server/level/TicketType.java
-index f56e5c0f53f9b52a9247b9be9265b949494fc924..5a480f36e709a5e9fea2cbb8ccc0a14d1e863f4c 100644
+index f56e5c0f53f9b52a9247b9be9265b949494fc924..f8e0746433057297c88f0237502da85622297cef 100644
 --- a/src/main/java/net/minecraft/server/level/TicketType.java
 +++ b/src/main/java/net/minecraft/server/level/TicketType.java
 @@ -25,6 +25,7 @@ public class TicketType<T> {
      public static final TicketType<ChunkPos> UNKNOWN = TicketType.create("unknown", Comparator.comparingLong(ChunkPos::toLong), 1);
      public static final TicketType<Unit> PLUGIN = TicketType.create("plugin", (a, b) -> 0); // CraftBukkit
      public static final TicketType<org.bukkit.plugin.Plugin> PLUGIN_TICKET = TicketType.create("plugin_ticket", (plugin1, plugin2) -> plugin1.getClass().getName().compareTo(plugin2.getClass().getName())); // CraftBukkit
-+    public static final TicketType<Long> ENTITY_MOVEMENT = create("entity_movement", Long::compareTo, 10 * 20); // Sakura - load chunks on movement
++    public static final TicketType<Long> ENTITY_MOVEMENT = TicketType.create("entity_movement", Long::compareTo, 10*20); // Sakura - load chunks on movement
  
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a04c417602c928e09b856d4ac73562a18a4995e4..067a0aa9a57628d0d7b41e419d91df5ece7ec3d3 100644
+index c677cccc35c8b01d93d44c291030f4bb1b131707..54032a0da3818b2ad54780dd71e49660ab5085eb 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -554,6 +554,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
