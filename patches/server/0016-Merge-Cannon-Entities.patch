@@ -398,10 +398,10 @@ index 0000000000000000000000000000000000000000..12f12705678e260654c0af7e23e403e3
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 78aae7e79953d7a4bfbdb35e1e303402f5360613..9833cb5b25d7a870c8a3da74684a7e9fa900afa9 100644
+index 5abe92349a31069b25a1020c3d518a1b0103bbc8..d2542876279eec14f952f0b20d4ea665c7de00f4 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1824,6 +1824,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1825,6 +1825,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
              worldserver.localConfig().expire(currentTickLong); // Sakura - add local config
              worldserver.minimalTNT.clear(); // Sakura - visibility api
@@ -410,10 +410,10 @@ index 78aae7e79953d7a4bfbdb35e1e303402f5360613..9833cb5b25d7a870c8a3da74684a7e9f
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 68276c1449b1930021ebbf9c10c617b73d8df636..cb051277557483e097272be1a84d1fef9ebbf35b 100644
+index ab8803d030353ec8ca1c727bc1c0502da00ff5fa..3e160ec5f14b57732f0fe66e2d3ef3a2e7ba1406 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -757,6 +757,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -714,6 +714,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
  
              org.spigotmc.ActivationRange.activateEntities(this); // Spigot
              this.timings.entityTick.startTiming(); // Spigot
@@ -421,7 +421,7 @@ index 68276c1449b1930021ebbf9c10c617b73d8df636..cb051277557483e097272be1a84d1fef
              this.entityTickList.forEach((entity) -> {
                  if (!entity.isRemoved()) {
                      if (false && this.shouldDiscardEntity(entity)) { // CraftBukkit - We prevent spawning in general, so this butchering is not needed
-@@ -776,6 +777,15 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -733,6 +734,15 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
                                  entity.stopRiding();
                              }
  
@@ -438,10 +438,10 @@ index 68276c1449b1930021ebbf9c10c617b73d8df636..cb051277557483e097272be1a84d1fef
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 49ae460ba5b871f085d67a0c4abdc0e7096ca3e1..023500526ab0a42bf7cbf21e1773cf5369aa2323 100644
+index 4435e0cd1370f3720102734ac3647674d5f46730..705730ccbe124efc6c1f8903403804bac02c1e0b 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -587,6 +587,23 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -586,6 +586,23 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return to.entityState() != null && to.entityState().isCurrentState(this);
      }
      // Sakura end - store entity data/state
