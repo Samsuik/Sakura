@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 9 Aug 2024 20:43:53 +0100
+Subject: [PATCH] Configurable left shooting and adjusting limits
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 33ba8ba3168425268825c24f0d9b7c9778b5b292..6755bd2073f5ad876470906d63cdbac2fbdd1f3a 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -632,6 +632,24 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         return Math.max(x, z) >= this.travelDistanceLimit;
+     }
+     // Sakura end - entity travel distance limits
++    // Sakura start - configurable left shooting and adjusting limits
++    public final void limitLeftShooting() {
++        Vec3 movement = this.getDeltaMovement();
++        int threshold = this.level.sakuraConfig().cannons.restrictions.leftShootingThreshold.or(-1);
++        if (threshold > 0 && (movement.x != 0.0 || movement.z != 0.0) && this.origin != null) {
++            double travelledX = Math.abs(this.getX() - this.origin.getX());
++            double travelledZ = Math.abs(this.getZ() - this.origin.getZ());
++            boolean xSmaller = travelledX < travelledZ; // intended
++
++            // Once entities have travelled past the threshold changing direction is restricted.
++            if (xSmaller && travelledX > threshold) {
++                this.setDeltaMovement(movement.multiply(1.0, 1.0, 0.0)); // limit z
++            } else if (!xSmaller && travelledZ > threshold) {
++                this.setDeltaMovement(movement.multiply(0.0, 1.0, 1.0)); // limit x
++            }
++        }
++    }
++    // Sakura end - configurable left shooting and adjusting limits
+ 
+     public Entity(EntityType<?> type, Level world) {
+         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
+@@ -1664,6 +1682,25 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         boolean xSmaller = this.physics == null || this.physics.afterOrEqual(1_14_0) ? Math.abs(x) < Math.abs(z)
+             : this.physics.isLegacy() && Math.abs(x) > Math.abs(z);
+         // Sakura end - physics version api
++        // Sakura start - configurable left shooting and adjusting limits
++        // NOTE: If scanAndCollide is made redundant by paper move this logic into CollisionUtil.
++        // This is being after xSmaller is intentional, we do not want to change the adjust direction.
++        int adjustDistance = this.level.sakuraConfig().cannons.restrictions.maxAdjustDistance.or(-1);
++        if (adjustDistance > 0) {
++            if (xSmaller) { // adjust z -> x
++                if (Math.abs(z) > adjustDistance) {
++                    // limit z adjust and remove momentum to replicate it hitting a block
++                    this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 1.0, 0.0));
++                    z = Math.floor(this.getZ() + Math.copySign(adjustDistance, z)) - this.getZ() + 0.5;
++                }
++            } else { // adjust x -> z
++                if (Math.abs(x) > adjustDistance) {
++                    this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 1.0));
++                    x = Math.floor(this.getX() + Math.copySign(adjustDistance, x)) - this.getX() + 0.5;
++                }
++            }
++        }
++        // Sakura end - configurable left shooting and adjusting limits
+ 
+         if (y != 0.0) {
+             y = this.scanY(currBoundingBox, y, voxelList, bbList);
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index 87a5e151895c7fac32afc3b44088e5e75856dcd7..d722542fd1295669208946daa839c12cdf6886a9 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -261,6 +261,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+             // Sakura end - physics version api
+             ++this.time;
+             this.applyGravity();
++            this.limitLeftShooting(); // Sakura - configurable left shooting and adjusting limits
+             this.moveStripped(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise cannon entity movement
+             // Paper start - Configurable falling blocks height nerf
+             if (this.level().paperConfig().fixes.fallingBlockHeightNerf.test(v -> this.getY() > v)) {
