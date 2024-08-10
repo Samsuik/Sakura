@@ -89,7 +89,7 @@ index 0611555b4afb461e2045585e3d81601420792c7c..ed492ba7df4ea041a1b5916a14eb2944
              if (distance != 0.0D) {
                  x /= distance;
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-index 5a1a576625b265c9b6d2d0968efedebf4be79166..6dbf75a5c2ed7cc86f24908d203460430ba616a7 100644
+index 51f6c04e2a3861369013a4fb2b193a9df6c961cf..2ef0151556d090e1e890edbe8c9f02991db00eaa 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 @@ -37,6 +37,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
@@ -107,7 +107,7 @@ index 5a1a576625b265c9b6d2d0968efedebf4be79166..6dbf75a5c2ed7cc86f24908d20346043
      protected void startExplosion() {
          for (int i = this.calculateExplosionPotential() - 1; i >= 0; --i) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87fa9383e96 100644
+index 499618b41531103456be9b7879198bd9105ca6b4..413d129f44b48584b6b8dd59fae866838a01dfeb 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -380,7 +380,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -119,7 +119,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
      public boolean isInPowderSnow;
      public boolean wasInPowderSnow;
      public boolean wasOnFire;
-@@ -714,6 +714,13 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -718,6 +718,13 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
      // Sakura end - cannon entity merging
      public boolean pushedByFluid = true; // Sakura - entity pushed by fluid api
@@ -133,7 +133,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -1181,7 +1188,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1185,7 +1192,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
      }
  
      protected void checkSupportingBlock(boolean onGround, @Nullable Vec3 movement) {
@@ -142,7 +142,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
              AABB axisalignedbb = this.getBoundingBox();
              AABB axisalignedbb1 = new AABB(axisalignedbb.minX, axisalignedbb.minY - 1.0E-6D, axisalignedbb.minZ, axisalignedbb.maxX, axisalignedbb.minY, axisalignedbb.maxZ);
              Optional<BlockPos> optional = this.level.findSupportingBlock(this, axisalignedbb1);
-@@ -1243,7 +1250,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1247,7 +1254,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          if (this.noPhysics) {
              this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
          } else {
@@ -151,7 +151,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
                  movement = this.limitPistonMovement(movement);
                  if (movement.equals(Vec3.ZERO)) {
                      return;
-@@ -1261,10 +1268,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1265,10 +1272,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              Vec3 vec3d1 = this.collideScan(movement);
              double d0 = vec3d1.lengthSqr();
  
@@ -164,7 +164,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
                      BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
  
                      if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
-@@ -1300,6 +1307,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1304,6 +1311,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  if (this.horizontalCollision) {
                      Vec3 vec3d2 = this.getDeltaMovement();
  
@@ -177,7 +177,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
                      this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
                  }
  
-@@ -1341,7 +1354,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1345,7 +1358,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
          } else {
              this.wasOnFire = this.isOnFire();
@@ -186,7 +186,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
                  this.activatedTick = Math.max(this.activatedTick, MinecraftServer.currentTick + 20); // Paper
                  this.activatedImmunityTick = Math.max(this.activatedImmunityTick, MinecraftServer.currentTick + 20);   // Paper
                  movement = this.limitPistonMovement(movement);
-@@ -1368,8 +1381,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1372,8 +1385,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              Vec3 vec3d1 = this.collide(movement);
              double d0 = vec3d1.lengthSqr();
  
@@ -197,7 +197,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
                      BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
  
                      if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
-@@ -1405,6 +1418,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1409,6 +1422,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  if (this.horizontalCollision) {
                      Vec3 vec3d2 = this.getDeltaMovement();
  
@@ -210,7 +210,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
                      this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
                  }
  
-@@ -1719,7 +1738,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1723,7 +1742,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          } else {
              final AABB bb = currBoundingBox.expandTowards(movement.x, movement.y, movement.z);
              collectCollisions(bb, potentialCollisionsVoxel, potentialCollisionsBB);
@@ -219,7 +219,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
          }
      }
  
-@@ -1728,7 +1747,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1732,7 +1751,10 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          double y = movement.y;
          double z = movement.z;
  
@@ -231,7 +231,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
  
          if (y != 0.0) {
              y = scanY(currBoundingBox, y, voxelList, bbList);
-@@ -1844,7 +1866,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1848,7 +1870,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
              return movement;
          }
  
@@ -240,7 +240,7 @@ index a4dc4154550bb4bd30d3e548f145cff5c693dc18..33ad3583a524bb61cc7116b50e0fc87f
  
          if (stepHeight > 0.0
                  && (onGround || (limitedMoveVector.y != movement.y && movement.y < 0.0))
-@@ -1960,8 +1982,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1964,8 +1986,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
  
      protected void checkInsideBlocks() {
          AABB axisalignedbb = this.getBoundingBox();
@@ -487,7 +487,7 @@ index 2db76425a1f295ad179aacfb3abb7efb1be647d9..e7dd0c8aab980d9850a2124598f8a036
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index cc936e4c842dfc84f134e5dc1e3d0cac30494b28..5dabcc79200067fc6e97e7ae72f1ccd092eec418 100644
+index 82cd70506adb7d3ca97c238a7e5304b98d568941..7b4f924379f529947f3f3a5ecc0ba3d8f0d97ccd 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -75,6 +75,7 @@ public class Explosion {
