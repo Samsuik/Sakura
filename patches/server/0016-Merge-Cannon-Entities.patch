@@ -687,16 +687,54 @@ index 7384c7f81e0f9bfe05c05561a1ec87f3fa17f010..9e426b7a588da307cbc42256f7255c95
  
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura - sakura configuration files// Paper - create paper world config & Anti-Xray
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+diff --git a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
+index 8b33e35c843e5c0b8988a2ef2a38a2673035292f..1aa36b456b1c635d3184aeab70d1d84266e22c4b 100644
+--- a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
+@@ -89,7 +89,7 @@ public abstract class BasePressurePlateBlock extends Block {
+     }
+ 
+     private void checkPressed(@Nullable Entity entity, Level world, BlockPos pos, BlockState state, int output) {
+-        int j = this.getSignalStrength(world, pos);
++        int j = this.getSignalStrength(world, pos, output == 0); // Sakura - merge cannon entities
+         boolean flag = output > 0;
+         boolean flag1 = j > 0;
+ 
+@@ -171,6 +171,12 @@ public abstract class BasePressurePlateBlock extends Block {
+         })); // CraftBukkit
+     }
+ 
++    // Sakura start - merge cannon entities
++    protected int getSignalStrength(Level world, BlockPos pos, boolean entityInside) {
++        return this.getSignalStrength(world, pos);
++    }
++    // Sakura end - merge cannon entities
++
+     protected abstract int getSignalStrength(Level world, BlockPos pos);
+ 
+     protected abstract int getSignalForState(BlockState state);
 diff --git a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
-index 05bf23bd9ec951840ffceb68638458de02ad0063..ef0f1bb4c93288a97c17125089ea1a223cea04c5 100644
+index 05bf23bd9ec951840ffceb68638458de02ad0063..f9c800e912ce966dba4f1026f2d5b702ae6549cd 100644
 --- a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
-@@ -57,7 +57,7 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+@@ -42,6 +42,11 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+ 
+     @Override
+     protected int getSignalStrength(Level world, BlockPos pos) {
++        // Sakura start - merge cannon entities
++        return this.getSignalStrength(world, pos, false);
++    }
++    protected final int getSignalStrength(Level world, BlockPos pos, boolean entityInside) {
++        // Sakura end - merge cannon entities
+         // CraftBukkit start
+         // int i = Math.min(getEntityCount(world, BlockPressurePlateWeighted.TOUCH_AABB.move(blockposition), Entity.class), this.maxWeight);
+         int i = 0;
+@@ -57,7 +62,7 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
  
              // We only want to block turning the plate on if all events are cancelled
              if (!cancellable.isCancelled()) {
 -                i++;
-+                i += entity instanceof me.samsuik.sakura.entity.merge.MergeableEntity mergeEntity ? mergeEntity.getMergeEntityData().getCount() : 1; // Sakura - merge cannon entities
++                i += !entityInside && entity instanceof me.samsuik.sakura.entity.merge.MergeableEntity mergeEntity ? mergeEntity.getMergeEntityData().getCount() : 1; // Sakura - merge cannon entities
              }
          }
  
