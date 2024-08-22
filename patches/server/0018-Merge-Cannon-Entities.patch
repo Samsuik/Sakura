@@ -519,16 +519,54 @@ index 684fd53a34fae43cd916a6f0a5cf38a2505d9bfe..9507b2419834ace4f71a781ad90284af
  
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+diff --git a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
+index 0d573c05f4f8838d4492f749ca473f7a9e8d60dd..b88dc572f6fbd7642f86196bf3525ad33686a64b 100644
+--- a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
+@@ -88,7 +88,7 @@ public abstract class BasePressurePlateBlock extends Block {
+     }
+ 
+     private void checkPressed(@Nullable Entity entity, Level world, BlockPos pos, BlockState state, int output) {
+-        int j = this.getSignalStrength(world, pos);
++        int j = this.getSignalStrength(world, pos, output == 0); // Sakura - cannon entity merging
+         boolean flag = output > 0;
+         boolean flag1 = j > 0;
+ 
+@@ -170,6 +170,12 @@ public abstract class BasePressurePlateBlock extends Block {
+         })); // CraftBukkit
+     }
+ 
++    // Sakura start - cannon entity merging
++    protected int getSignalStrength(Level world, BlockPos pos, boolean entityInside) {
++        return this.getSignalStrength(world, pos);
++    }
++    // Sakura end - cannon entity merging
++
+     protected abstract int getSignalStrength(Level world, BlockPos pos);
+ 
+     protected abstract int getSignalForState(BlockState state);
 diff --git a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
-index 05bf23bd9ec951840ffceb68638458de02ad0063..9a66120109e7be5620b36bbf7baa733aed1e44d1 100644
+index 05bf23bd9ec951840ffceb68638458de02ad0063..ade85fb5a26da9272d392f24318ce6360ceb6414 100644
 --- a/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
-@@ -57,7 +57,7 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+@@ -42,6 +42,11 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+ 
+     @Override
+     protected int getSignalStrength(Level world, BlockPos pos) {
++        // Sakura start - cannon entity merging
++        return this.getSignalStrength(world, pos, false);
++    }
++    protected final int getSignalStrength(Level world, BlockPos pos, boolean entityInside) {
++        // Sakura end - cannon entity merging
+         // CraftBukkit start
+         // int i = Math.min(getEntityCount(world, BlockPressurePlateWeighted.TOUCH_AABB.move(blockposition), Entity.class), this.maxWeight);
+         int i = 0;
+@@ -57,7 +62,7 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
  
              // We only want to block turning the plate on if all events are cancelled
              if (!cancellable.isCancelled()) {
 -                i++;
-+                i += entity.getStacked(); // Sakura - cannon entity merging
++                i += !entityInside ? entity.getStacked() : 1; // Sakura - cannon entity merging
              }
          }
  
