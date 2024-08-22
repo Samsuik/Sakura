@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 12 Aug 2024 15:35:57 +0100
+Subject: [PATCH] Cache hopper source container
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+index cab403efd471bb61835224eea4e99570d34dcaaa..e0519fdbabb5ad5b5d82c56994b3a8183c8121f5 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -548,7 +548,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     public static boolean suckInItems(Level world, Hopper hopper) {
+         BlockPos blockposition = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0D, hopper.getLevelZ());
+         BlockState iblockdata = world.getBlockState(blockposition);
+-        Container iinventory = HopperBlockEntity.getSourceContainer(world, hopper, blockposition, iblockdata);
++        Container iinventory = HopperBlockEntity.sakura_getSourceContainer(world, hopper, blockposition, iblockdata); // Sakura - cache hopper source container
+ 
+         if (iinventory != null) {
+             Direction enumdirection = Direction.DOWN;
+@@ -805,6 +805,35 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+         // CraftBukkit end
+     }
+ 
++    // Sakura start - cache hopper source container
++    private @Nullable BaseContainerBlockEntity containerEntity;
++
++    private static @Nullable Container sakura_getSourceContainer(Level world, Hopper hopper, BlockPos pos, BlockState state) {
++        if (hopper instanceof HopperBlockEntity hbe && HopperInventorySearchEvent.getHandlerList().getRegisteredListeners().length == 0) {
++            return hbe.getCachedSourceContainer(world, pos, state); // hopper block
++        } else {
++            return getSourceContainer(world, hopper, pos, state);   // hopper minecart
++        }
++    }
++
++    private @Nullable Container getCachedSourceContainer(Level world, BlockPos pos, BlockState state) {
++        if (this.containerEntity != null && !this.containerEntity.isRemoved() && this.containerEntity.isValidBlockState(state)) {
++            return this.containerEntity;
++        }
++        Container iinventory = HopperBlockEntity.getBlockContainer(world, pos, state);
++        if (iinventory instanceof BaseContainerBlockEntity blockEntity) {
++            this.containerEntity = blockEntity;
++            return blockEntity;
++        } else {
++            this.containerEntity = null;
++            if (iinventory == null) {
++                iinventory = HopperBlockEntity.getEntityContainer(world, this.getLevelX(), this.getLevelY() + 1.0D, this.getLevelZ());
++            }
++            return iinventory;
++        }
++    }
++    // Sakura end - cache hopper source container
++
+     @Nullable
+     private static Container getSourceContainer(Level world, Hopper hopper, BlockPos pos, BlockState state) {
+         // CraftBukkit start
