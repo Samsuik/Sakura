@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise hopper ticking
 
 
 diff --git a/src/main/java/net/minecraft/world/level/block/HopperBlock.java b/src/main/java/net/minecraft/world/level/block/HopperBlock.java
-index 86e5617d445ce762aa374e236a0ccdfe5901fce5..45a71752c36b683ba496bea6b1172108ea19a00c 100644
+index 86e5617d445ce762aa374e236a0ccdfe5901fce5..9283382b3880a8c53fa3b4dfaa880eff8c6f5d06 100644
 --- a/src/main/java/net/minecraft/world/level/block/HopperBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/HopperBlock.java
 @@ -145,6 +145,12 @@ public class HopperBlock extends BaseEntityBlock {
@@ -14,7 +14,7 @@ index 86e5617d445ce762aa374e236a0ccdfe5901fce5..45a71752c36b683ba496bea6b1172108
          if (bl != state.getValue(ENABLED)) {
 +            // Sakura start - optimise hopper ticking
 +            BlockEntity blockEntity = world.getBlockEntity(pos);
-+            if (blockEntity instanceof HopperBlockEntity hbe) {
++            if (blockEntity instanceof HopperBlockEntity hbe && world.sakuraConfig().technical.lazyHopperTicking) {
 +                hbe.setBlockEntityTicking(bl);
 +            }
 +            // Sakura end - optimise hopper ticking
@@ -22,15 +22,16 @@ index 86e5617d445ce762aa374e236a0ccdfe5901fce5..45a71752c36b683ba496bea6b1172108
          }
      }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..74dd250039f3a7e3d9bba7b1851c8e2c5770511a 100644
+index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..52b1eeac82f70d6e7cf7667736ee4d1848b2e687 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -54,6 +54,49 @@ public abstract class BlockEntity {
+@@ -54,6 +54,54 @@ public abstract class BlockEntity {
      private BlockState blockState;
      private DataComponentMap components;
  
 +    // Sakura start - optimise hopper ticking
 +    private final Set<BlockEntityChangeListener> listeners = new it.unimi.dsi.fastutil.objects.ReferenceArraySet<>(0);
++    private final java.util.List<BlockEntity> listeningBlocks = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(0);
 +    private boolean blockEntityTicking = true;
 +    private int tickCount = 0;
 +
@@ -49,7 +50,9 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..74dd250039f3a7e3d9bba7b1851c8e2c
 +    }
 +
 +    public final void addListener(BlockEntityChangeListener listener) {
-+        this.listeners.add(listener);
++        if (this.listeners.add(listener)) {
++            ((BlockEntity) listener).listeningBlocks.add(this);
++        }
 +    }
 +
 +    public final void updateListeners(boolean onRemove) {
@@ -61,6 +64,8 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..74dd250039f3a7e3d9bba7b1851c8e2c
 +            }
 +        }
 +        if (onRemove) {
++            this.listeningBlocks.forEach(blockEntity -> blockEntity.listeners.clear());
++            this.listeningBlocks.clear();
 +            this.listeners.clear();
 +        }
 +    }
@@ -75,7 +80,7 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..74dd250039f3a7e3d9bba7b1851c8e2c
      public BlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
          this.components = DataComponentMap.EMPTY;
          this.type = type;
-@@ -232,6 +275,7 @@ public abstract class BlockEntity {
+@@ -232,6 +280,7 @@ public abstract class BlockEntity {
          if (this.level != null) {
              if (ignoreTileUpdates) return; // Paper - Perf: Optimize Hoppers
              BlockEntity.setChanged(this.level, this.worldPosition, this.blockState);
@@ -83,7 +88,7 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..74dd250039f3a7e3d9bba7b1851c8e2c
          }
  
      }
-@@ -267,6 +311,7 @@ public abstract class BlockEntity {
+@@ -267,6 +316,7 @@ public abstract class BlockEntity {
  
      public void setRemoved() {
          this.remove = true;
@@ -92,7 +97,7 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..74dd250039f3a7e3d9bba7b1851c8e2c
  
      public void clearRemoved() {
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index cab403efd471bb61835224eea4e99570d34dcaaa..e4e45bac2687854b524d250d6d3823b7dd5fcb67 100644
+index cab403efd471bb61835224eea4e99570d34dcaaa..546ee66aa73a5ad345b737cb143fe6212b47c39c 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -42,7 +42,7 @@ import org.bukkit.event.inventory.InventoryPickupItemEvent;
@@ -104,13 +109,14 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..e4e45bac2687854b524d250d6d3823b7
  
      public static final int MOVE_ITEM_SPEED = 8;
      public static final int HOPPER_CONTAINER_SIZE = 5;
-@@ -81,6 +81,69 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -81,6 +81,62 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          this.maxStack = size;
      }
      // CraftBukkit end
 +    // Sakura start - optimise hopper ticking
-+    private @Nullable BaseContainerBlockEntity sourceContainer;   // into -> hopper
-+    private @Nullable BaseContainerBlockEntity attachedContainer; // hopper -> out
++    private static final int SOURCE_CONTAINER   = 1 << 0;
++    private static final int ATTACHED_CONTAINER = 1 << 1;
++    private int connectedContainers = 0;
 +
 +    @Override
 +    public final void neighborChange() {
@@ -119,8 +125,7 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..e4e45bac2687854b524d250d6d3823b7
 +
 +    @Override
 +    public final void neighborRemoved() {
-+        this.sourceContainer = null;
-+        this.attachedContainer = null;
++        this.connectedContainers = 0;
 +        this.startTicking();
 +    }
 +
@@ -130,7 +135,7 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..e4e45bac2687854b524d250d6d3823b7
 +    }
 +
 +    private void waitForChange(int fullState) {
-+        if ((fullState == HOPPER_IS_FULL || this.sourceContainer != null) && this.attachedContainer != null) {
++        if ((fullState == HOPPER_IS_FULL || (this.connectedContainers & SOURCE_CONTAINER) != 0) && (this.connectedContainers & ATTACHED_CONTAINER) != 0) {
 +            this.addListener(this);
 +            this.setBlockEntityTicking(false);
 +        }
@@ -139,51 +144,48 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..e4e45bac2687854b524d250d6d3823b7
 +    private static @Nullable Container sakura_getSourceContainer(Level level, Hopper hopper, BlockPos pos, BlockState state) {
 +        if (!(hopper instanceof HopperBlockEntity hbe) || HopperInventorySearchEvent.getHandlerList().getRegisteredListeners().length != 0) {
 +            return getSourceContainer(level, hopper, pos, state);
-+        } else if (hbe.sourceContainer != null && !hbe.sourceContainer.isRemoved()) {
-+            return hbe.sourceContainer;
 +        } else {
-+            Container container = getContainerAt(level, pos);
-+            if (container instanceof BaseContainerBlockEntity blockEntity) {
-+                blockEntity.addListener(hbe);
-+                hbe.sourceContainer = blockEntity;
-+            } else {
-+                hbe.sourceContainer = null;
-+            }
-+            return container;
++            return getContainerAndListenForChanges(level, pos, hbe, SOURCE_CONTAINER);
 +        }
 +    }
 +
 +    private static @Nullable Container sakura_getAttachedContainer(Level level, BlockPos pos, HopperBlockEntity hbe) {
 +        if (HopperInventorySearchEvent.getHandlerList().getRegisteredListeners().length != 0) {
 +            return getAttachedContainer(level, pos, hbe);
-+        } else if (hbe.attachedContainer != null && !hbe.attachedContainer.isRemoved()) {
-+            return hbe.attachedContainer;
 +        } else {
 +            BlockPos searchPosition = pos.relative(hbe.facing);
-+            Container container = getContainerAt(level, searchPosition);
-+            if (container instanceof BaseContainerBlockEntity blockEntity) {
-+                blockEntity.addListener(hbe);
-+                hbe.attachedContainer = blockEntity;
-+            } else {
-+                hbe.attachedContainer = null;
-+            }
-+            return container;
++            return getContainerAndListenForChanges(level, searchPosition, hbe, ATTACHED_CONTAINER);
 +        }
++    }
++
++    private static Container getContainerAndListenForChanges(Level level, BlockPos pos, HopperBlockEntity hbe, int type) {
++        Container container = getContainerAt(level, pos);
++        if (container instanceof BaseContainerBlockEntity blockEntity) {
++            blockEntity.addListener(hbe);
++            hbe.connectedContainers |= type;
++        } else {
++            hbe.connectedContainers ^= type;
++        }
++        return container;
 +    }
 +    // Sakura end - optimise hopper ticking
  
      public HopperBlockEntity(BlockPos pos, BlockState state) {
          super(BlockEntityType.HOPPER, pos, state);
-@@ -214,6 +277,8 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -214,6 +270,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
                      setChanged(world, pos, state);
                      return true;
                  }
 +
-+                blockEntity.waitForChange(fullState); // Sakura - optimise hopper ticking
++                // Sakura start - optimise hopper ticking
++                if (world.sakuraConfig().technical.lazyHopperTicking) {
++                    blockEntity.waitForChange(fullState);
++                }
++                // Sakura end - optimise hopper ticking
              }
  
              return false;
-@@ -433,7 +498,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -433,7 +495,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      // Paper end - Perf: Optimize Hoppers
  
      private static boolean ejectItems(Level world, BlockPos pos, HopperBlockEntity blockEntity) {
@@ -192,7 +194,7 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..e4e45bac2687854b524d250d6d3823b7
  
          if (iinventory == null) {
              return false;
-@@ -548,7 +613,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -548,7 +610,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      public static boolean suckInItems(Level world, Hopper hopper) {
          BlockPos blockposition = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0D, hopper.getLevelZ());
          BlockState iblockdata = world.getBlockState(blockposition);
