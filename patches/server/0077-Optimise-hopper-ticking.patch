@@ -4,6 +4,43 @@ Date: Mon, 12 Aug 2024 15:35:57 +0100
 Subject: [PATCH] Optimise hopper ticking
 
 
+diff --git a/src/main/java/net/minecraft/world/CompoundContainer.java b/src/main/java/net/minecraft/world/CompoundContainer.java
+index 241fec02e6869c638d3a160819b32173a081467b..dc15a12687ce9e8e354bea9825d9cd1882d00782 100644
+--- a/src/main/java/net/minecraft/world/CompoundContainer.java
++++ b/src/main/java/net/minecraft/world/CompoundContainer.java
+@@ -58,6 +58,15 @@ public class CompoundContainer implements Container {
+         return this.container1.getLocation(); // TODO: right?
+     }
+     // CraftBukkit end
++    // Sakura start - optimise hopper ticking
++    @Override
++    public final boolean addListener(net.minecraft.world.level.block.entity.BlockEntity.BlockEntityChangeListener listener) {
++        boolean result = false;
++        result |= this.container1.addListener(listener);
++        result |= this.container2.addListener(listener);
++        return result;
++    }
++    // Sakura end - optimise hopper ticking
+ 
+     public CompoundContainer(Container first, Container second) {
+         this.container1 = first;
+diff --git a/src/main/java/net/minecraft/world/Container.java b/src/main/java/net/minecraft/world/Container.java
+index 5db5ba026462ca642dcee718af732f80fadabef5..51e26395b53628b34b1f7f68935a9ba44a1e3feb 100644
+--- a/src/main/java/net/minecraft/world/Container.java
++++ b/src/main/java/net/minecraft/world/Container.java
+@@ -17,6 +17,12 @@ public interface Container extends Clearable {
+ 
+     float DEFAULT_DISTANCE_BUFFER = 4.0F;
+ 
++    // Sakura start - optimise hopper ticking
++    default boolean addListener(BlockEntity.BlockEntityChangeListener container) {
++        return false;
++    }
++    // Sakura end - optimise hopper ticking
++
+     int getContainerSize();
+ 
+     boolean isEmpty();
 diff --git a/src/main/java/net/minecraft/world/level/block/HopperBlock.java b/src/main/java/net/minecraft/world/level/block/HopperBlock.java
 index 86e5617d445ce762aa374e236a0ccdfe5901fce5..9283382b3880a8c53fa3b4dfaa880eff8c6f5d06 100644
 --- a/src/main/java/net/minecraft/world/level/block/HopperBlock.java
@@ -22,10 +59,10 @@ index 86e5617d445ce762aa374e236a0ccdfe5901fce5..9283382b3880a8c53fa3b4dfaa880eff
          }
      }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..52b1eeac82f70d6e7cf7667736ee4d1848b2e687 100644
+index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..04958c6051fbe4de3b41aa48ec045be223385b94 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -54,6 +54,54 @@ public abstract class BlockEntity {
+@@ -54,6 +54,55 @@ public abstract class BlockEntity {
      private BlockState blockState;
      private DataComponentMap components;
  
@@ -49,10 +86,11 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..52b1eeac82f70d6e7cf7667736ee4d18
 +        this.blockEntityTicking = blockEntityTicking;
 +    }
 +
-+    public final void addListener(BlockEntityChangeListener listener) {
++    public final boolean addListener(BlockEntityChangeListener listener) {
 +        if (this.listeners.add(listener)) {
 +            ((BlockEntity) listener).listeningBlocks.add(this);
 +        }
++        return true;
 +    }
 +
 +    public final void updateListeners(boolean onRemove) {
@@ -80,15 +118,32 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..52b1eeac82f70d6e7cf7667736ee4d18
      public BlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
          this.components = DataComponentMap.EMPTY;
          this.type = type;
-@@ -232,6 +280,7 @@ public abstract class BlockEntity {
+@@ -231,12 +280,23 @@ public abstract class BlockEntity {
+     public void setChanged() {
          if (this.level != null) {
              if (ignoreTileUpdates) return; // Paper - Perf: Optimize Hoppers
-             BlockEntity.setChanged(this.level, this.worldPosition, this.blockState);
-+            this.updateListeners(false); // Sakura - optimise hopper ticking
+-            BlockEntity.setChanged(this.level, this.worldPosition, this.blockState);
++            BlockEntity.setChanged(this.level, this.worldPosition, this.blockState, this); // Sakura - optimise hopper ticking
          }
  
      }
-@@ -267,6 +316,7 @@ public abstract class BlockEntity {
+ 
+     protected static void setChanged(Level world, BlockPos pos, BlockState state) {
++        // Sakura start - optimise hopper ticking
++        net.minecraft.world.level.chunk.LevelChunk chunk = world.getChunkIfLoaded(pos);
++        BlockEntity blockEntity = chunk != null ? chunk.getBlockEntity(pos) : null;
++        setChanged(world, pos, state, blockEntity);
++    }
++
++    protected static void setChanged(Level world, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity) {
++        if (blockEntity != null) {
++            blockEntity.updateListeners(false);
++        }
++        // Sakura end - optimise hopper ticking
+         world.blockEntityChanged(pos);
+         if (!state.isAir()) {
+             world.updateNeighbourForOutputSignal(pos, state.getBlock());
+@@ -267,6 +327,7 @@ public abstract class BlockEntity {
  
      public void setRemoved() {
          this.remove = true;
@@ -97,7 +152,7 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..52b1eeac82f70d6e7cf7667736ee4d18
  
      public void clearRemoved() {
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index cab403efd471bb61835224eea4e99570d34dcaaa..546ee66aa73a5ad345b737cb143fe6212b47c39c 100644
+index cab403efd471bb61835224eea4e99570d34dcaaa..347a33140ed73924aca700b748bebde5ff45acd4 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -42,7 +42,7 @@ import org.bukkit.event.inventory.InventoryPickupItemEvent;
@@ -109,7 +164,7 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..546ee66aa73a5ad345b737cb143fe621
  
      public static final int MOVE_ITEM_SPEED = 8;
      public static final int HOPPER_CONTAINER_SIZE = 5;
-@@ -81,6 +81,62 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -81,6 +81,61 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          this.maxStack = size;
      }
      // CraftBukkit end
@@ -158,13 +213,12 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..546ee66aa73a5ad345b737cb143fe621
 +        }
 +    }
 +
-+    private static Container getContainerAndListenForChanges(Level level, BlockPos pos, HopperBlockEntity hbe, int type) {
++    private static @Nullable Container getContainerAndListenForChanges(Level level, BlockPos pos, HopperBlockEntity hbe, int type) {
 +        Container container = getContainerAt(level, pos);
-+        if (container instanceof BaseContainerBlockEntity blockEntity) {
-+            blockEntity.addListener(hbe);
-+            hbe.connectedContainers |= type;
-+        } else {
-+            hbe.connectedContainers ^= type;
++        if (container != null && container.addListener(hbe)) {
++            hbe.connectedContainers |= type; // set
++        } else if ((hbe.connectedContainers & type) != 0) {
++            hbe.connectedContainers ^= type; // unset
 +        }
 +        return container;
 +    }
@@ -172,7 +226,7 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..546ee66aa73a5ad345b737cb143fe621
  
      public HopperBlockEntity(BlockPos pos, BlockState state) {
          super(BlockEntityType.HOPPER, pos, state);
-@@ -214,6 +270,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -214,6 +269,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
                      setChanged(world, pos, state);
                      return true;
                  }
@@ -185,7 +239,7 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..546ee66aa73a5ad345b737cb143fe621
              }
  
              return false;
-@@ -433,7 +495,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -433,7 +494,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      // Paper end - Perf: Optimize Hoppers
  
      private static boolean ejectItems(Level world, BlockPos pos, HopperBlockEntity blockEntity) {
@@ -194,7 +248,7 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..546ee66aa73a5ad345b737cb143fe621
  
          if (iinventory == null) {
              return false;
-@@ -548,7 +610,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -548,7 +609,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      public static boolean suckInItems(Level world, Hopper hopper) {
          BlockPos blockposition = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0D, hopper.getLevelZ());
          BlockState iblockdata = world.getBlockState(blockposition);
