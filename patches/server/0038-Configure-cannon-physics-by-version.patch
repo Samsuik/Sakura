@@ -474,7 +474,7 @@ index 4d0cfa1f96a04713cb1d51c7aaaf91374a0d6c17..96c43df6834e20a9e04eb095f36a644e
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index fd7063b4a3b90454d99680f679d3a8185d6981b9..8820c4cab2957368847c378d02026f52acf446e6 100644
+index 21c6c8710add54a811fcd6d68ec75ad124219bc9..a29d85de45a6f96047a79cecbf17a797330d1ea5 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -77,6 +77,7 @@ public class Explosion {
@@ -567,13 +567,13 @@ index fd7063b4a3b90454d99680f679d3a8185d6981b9..8820c4cab2957368847c378d02026f52
          private final Level world;
          private final double posX, posY, posZ;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 456eb52fd5fff7950d64dedb36cee011448c6e89..793a4433a433a6b19256265528a7f8d17d9a33cd 100644
+index 456eb52fd5fff7950d64dedb36cee011448c6e89..f685c3c894963d5100fdf5d5bda99adf248f41ec 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -196,6 +196,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     public CraftWorld getWorld() {
-         return this.world;
+@@ -695,6 +695,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         return chunk != null ? chunk.getNoiseBiome(x, y, z) : this.getUncachedNoiseBiome(x, y, z);
      }
+     // Paper end - optimise random ticking
 +    // Sakura start - physics version api
 +    public net.minecraft.world.phys.BlockHitResult.Type rayTrace(net.minecraft.world.phys.Vec3 vec3d, net.minecraft.world.phys.Vec3 vec3d1) {
 +        // May deviate from vanilla here; I remember noticing a bug and there's no fix commit.
@@ -773,9 +773,9 @@ index 456eb52fd5fff7950d64dedb36cee011448c6e89..793a4433a433a6b19256265528a7f8d1
 +        return x >= bb.minX && x <= bb.maxX && y >= bb.minY && y <= bb.maxY;
 +    }
 +    // Sakura end - physics version api
- 
-     public CraftServer getCraftServer() {
-         return (CraftServer) Bukkit.getServer();
+     public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
+     public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
+     public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
 diff --git a/src/main/java/net/minecraft/world/level/block/FallingBlock.java b/src/main/java/net/minecraft/world/level/block/FallingBlock.java
 index 1ea1232a5ba3e48eef3a139d6487c9a190155ebd..4cf5147c8b089c3fa5476a05501fae0d9afaf341 100644
 --- a/src/main/java/net/minecraft/world/level/block/FallingBlock.java
