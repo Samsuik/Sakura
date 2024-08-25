@@ -4,37 +4,6 @@ Date: Tue, 23 May 2023 23:07:20 +0100
 Subject: [PATCH] Sakura Utils
 
 
-diff --git a/src/main/java/me/samsuik/sakura/utils/collections/EntityTable.java b/src/main/java/me/samsuik/sakura/utils/collections/EntityTable.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..54292c693f89ee1444f8b22f4c1488e95ef6bcde
---- /dev/null
-+++ b/src/main/java/me/samsuik/sakura/utils/collections/EntityTable.java
-@@ -0,0 +1,25 @@
-+package me.samsuik.sakura.utils.collections;
-+
-+import it.unimi.dsi.fastutil.HashCommon;
-+import net.minecraft.world.entity.Entity;
-+
-+public final class EntityTable {
-+
-+    private final Entity[] entities;
-+    private final int mask;
-+
-+    public EntityTable(int size) {
-+        int n = HashCommon.nextPowerOfTwo(size - 1);
-+        entities = new Entity[n];
-+        mask = n - 1;
-+    }
-+
-+    public Entity locate(Entity entity) {
-+        int pos = entity.blockPosition().hashCode();
-+        int key = pos & mask;
-+        Entity found = entities[key];
-+        entities[key] = entity;
-+        return found;
-+    }
-+
-+}
 diff --git a/src/main/java/me/samsuik/sakura/utils/collections/FixedSizeCustomObjectTable.java b/src/main/java/me/samsuik/sakura/utils/collections/FixedSizeCustomObjectTable.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..e97f3cc00945f79026af894685d6104dfc920a35
@@ -97,10 +66,10 @@ index 0000000000000000000000000000000000000000..e97f3cc00945f79026af894685d6104d
 +}
 diff --git a/src/main/java/me/samsuik/sakura/utils/collections/OrderedComparatorList.java b/src/main/java/me/samsuik/sakura/utils/collections/OrderedComparatorList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..239fc8823b32ae5c8f6e3bfd6ecdde0ccd1e5a8b
+index 0000000000000000000000000000000000000000..edbbf9dea7c6659c2053407dc55b5a2a1cfcb0dd
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/collections/OrderedComparatorList.java
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,49 @@
 +package me.samsuik.sakura.utils.collections;
 +
 +import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -109,7 +78,6 @@ index 0000000000000000000000000000000000000000..239fc8823b32ae5c8f6e3bfd6ecdde0c
 +import java.util.Comparator;
 +
 +public final class OrderedComparatorList<T> extends ObjectArrayList<T> {
-+
 +    private final Comparator<T> comparator;
 +    private boolean binarySearch = true;
 +
@@ -123,41 +91,40 @@ index 0000000000000000000000000000000000000000..239fc8823b32ae5c8f6e3bfd6ecdde0c
 +    }
 +
 +    private void validateBounds(int index, T t, boolean up) {
-+        if (index != 0 && comparator.compare(get(index - 1), t) > 0) {
-+            binarySearch = false;
-+        } else if (up && index < size() - 1 && comparator.compare(get(index + 1), t) < 0) {
-+            binarySearch = false;
++        if (index != 0 && this.comparator.compare(get(index - 1), t) > 0) {
++            this.binarySearch = false;
++        } else if (up && index < size() - 1 && this.comparator.compare(get(index + 1), t) < 0) {
++            this.binarySearch = false;
 +        }
 +    }
 +
 +    @Override
 +    public boolean add(T t) {
-+        validateBounds(size(), t, false);
++        this.validateBounds(size(), t, false);
 +        return super.add(t);
 +    }
 +
 +    @Override
 +    public void add(int index, T t) {
-+        validateBounds(index, t, true);
++        this.validateBounds(index, t, true);
 +        super.add(index, t);
 +    }
 +
 +    @Override
 +    public int indexOf(final Object k) {
-+        if (binarySearch) {
-+            return Math.max(Arrays.binarySearch(a, (T) k, comparator), -1);
++        if (this.binarySearch) {
++            return Math.max(Arrays.binarySearch(this.a, (T) k, this.comparator), -1);
 +        } else {
 +            return super.indexOf(k);
 +        }
 +    }
-+
 +}
 diff --git a/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java b/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..267db86c5d12a804d2f9c868df996a3391910cbd
+index 0000000000000000000000000000000000000000..d112b559eaff82c32e943edf34c616565cb1e189
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/collections/TrackedEntityChunkMap.java
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,32 @@
 +package me.samsuik.sakura.utils.collections;
 +
 +import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -166,7 +133,6 @@ index 0000000000000000000000000000000000000000..267db86c5d12a804d2f9c868df996a33
 +import net.minecraft.server.level.ChunkMap;
 +
 +public final class TrackedEntityChunkMap extends Int2ObjectOpenHashMap<ChunkMap.TrackedEntity> {
-+
 +    private final ObjectArrayList<ChunkMap.TrackedEntity> entityList = new UnorderedIndexedList<>();
 +
 +    @Override
@@ -174,54 +140,50 @@ index 0000000000000000000000000000000000000000..267db86c5d12a804d2f9c868df996a33
 +        ChunkMap.TrackedEntity tracked = super.put(k, trackedEntity);
 +        // bad plugins may replace entries
 +        if (tracked != null)
-+            entityList.remove(trackedEntity);
-+        entityList.add(trackedEntity);
++            this.entityList.remove(trackedEntity);
++        this.entityList.add(trackedEntity);
 +        return tracked;
 +    }
 +
 +    @Override
 +    public ChunkMap.TrackedEntity remove(int k) {
 +        ChunkMap.TrackedEntity tracked = super.remove(k);
-+        entityList.remove(tracked);
++        this.entityList.remove(tracked);
 +        return tracked;
 +    }
 +
 +    @Override
 +    public ObjectCollection<ChunkMap.TrackedEntity> values() {
-+        return entityList;
++        return this.entityList;
 +    }
-+
 +}
 diff --git a/src/main/java/me/samsuik/sakura/utils/collections/UnorderedIndexedList.java b/src/main/java/me/samsuik/sakura/utils/collections/UnorderedIndexedList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4ca3bf6d6c7aec3a1b31e6ef4f863fa5c34888bd
+index 0000000000000000000000000000000000000000..131dc69cdd2c121975199324022f942194d345c8
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/collections/UnorderedIndexedList.java
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,61 @@
 +package me.samsuik.sakura.utils.collections;
 +
 +import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 +import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 +
 +public final class UnorderedIndexedList<T> extends ObjectArrayList<T> {
++    private final Int2IntOpenHashMap elementToIndex;
 +
-+    private final Int2IntOpenHashMap elementToIndex = new Int2IntOpenHashMap();
-+
-+    {
-+        elementToIndex.defaultReturnValue(-1);
++    public UnorderedIndexedList() {
++        this(DEFAULT_INITIAL_CAPACITY);
 +    }
 +
 +    public UnorderedIndexedList(int capacity) {
 +        super(capacity);
-+    }
-+
-+    public UnorderedIndexedList() {
-+        super();
++        this.elementToIndex = new Int2IntOpenHashMap();
++        this.elementToIndex.defaultReturnValue(-1);
 +    }
 +
 +    @Override
 +    public boolean add(final T t) {
-+        elementToIndex.put(t.hashCode(), size());
++        this.elementToIndex.put(t.hashCode(), size());
 +        return super.add(t);
 +    }
 +
@@ -233,20 +195,20 @@ index 0000000000000000000000000000000000000000..4ca3bf6d6c7aec3a1b31e6ef4f863fa5
 +        if (index != tail) {
 +            final T tailObj = a[tail];
 +            if (tailObj != null)
-+                elementToIndex.put(tailObj.hashCode(), index);
-+            a[index] = tailObj;
++                this.elementToIndex.put(tailObj.hashCode(), index);
++            this.a[index] = tailObj;
 +        }
 +
 +        if (at != null)
-+            elementToIndex.remove(at.hashCode());
-+        a[tail] = null;
-+        size = tail;
++            this.elementToIndex.remove(at.hashCode());
++        this.a[tail] = null;
++        this.size = tail;
 +        return at;
 +    }
 +
 +    @Override
 +    public void clear() {
-+        elementToIndex.clear();
++        this.elementToIndex.clear();
 +        super.clear();
 +    }
 +
@@ -254,25 +216,23 @@ index 0000000000000000000000000000000000000000..4ca3bf6d6c7aec3a1b31e6ef4f863fa5
 +    public int indexOf(final Object k) {
 +        if (k == null) return -1;
 +        // entities uses their id as a hashcode
-+        return elementToIndex.get(k.hashCode());
++        return this.elementToIndex.get(k.hashCode());
 +    }
 +
 +    @Override
 +    public void add(final int index, final T t) {
 +        throw new UnsupportedOperationException();
 +    }
-+
 +}
 diff --git a/src/main/java/me/samsuik/sakura/utils/objects/Expiry.java b/src/main/java/me/samsuik/sakura/utils/objects/Expiry.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..93a5655d9dc355d0596c86ea7b592d14ff941476
+index 0000000000000000000000000000000000000000..65e3c06062f529fd3e70eedccfe38b93c6c66c60
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/objects/Expiry.java
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,19 @@
 +package me.samsuik.sakura.utils.objects;
 +
 +public final class Expiry {
-+
 +    private long expireAt;
 +    private final int inc;
 +
@@ -288,5 +248,4 @@ index 0000000000000000000000000000000000000000..93a5655d9dc355d0596c86ea7b592d14
 +    public boolean isExpired(long tick) {
 +        return tick >= this.expireAt;
 +    }
-+
 +}

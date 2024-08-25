@@ -6,35 +6,33 @@ Subject: [PATCH] Explosion Durable Blocks
 
 diff --git a/src/main/java/me/samsuik/sakura/explosion/durable/DurableBlockManager.java b/src/main/java/me/samsuik/sakura/explosion/durable/DurableBlockManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c58e52f7cc012babf4235e405e5fb5015c6e95d9
+index 0000000000000000000000000000000000000000..c5eb573f946d24d2a44a46e0f395e00e4dc29bd6
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/durable/DurableBlockManager.java
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,61 @@
 +package me.samsuik.sakura.explosion.durable;
 +
 +import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 +import me.samsuik.sakura.utils.objects.Expiry;
 +import net.minecraft.core.BlockPos;
-+import net.minecraft.server.MinecraftServer;
 +
 +public final class DurableBlockManager {
-+
 +    private final Long2ObjectOpenHashMap<DurableBlock> blocks = new Long2ObjectOpenHashMap<>();
++    private long serverTick;
 +
 +    public boolean damage(BlockPos pos, DurableMaterial material) {
 +        long packed = pos.asLong();
-+
++        // Expires after 1200 ticks (1 minute) without any changes.
 +        DurableBlock block = this.blocks.computeIfAbsent(packed, k -> new DurableBlock(
-+            material.durability(),
-+            // expire after 1 minute
-+            new Expiry(MinecraftServer.currentTickLong, 1200)
++            new Expiry(this.serverTick, 1200),
++            material.durability()
 +        ));
 +
 +        if (block.damage()) {
 +            this.blocks.remove(packed);
 +            return true;
 +        } else {
-+            block.getExpiry().refresh(MinecraftServer.currentTickLong);
++            block.getExpiry().refresh(this.serverTick);
 +            return false;
 +        }
 +    }
@@ -48,30 +46,30 @@ index 0000000000000000000000000000000000000000..c58e52f7cc012babf4235e405e5fb501
 +        if (tick % 200 == 0) {
 +            this.blocks.values().removeIf(block -> block.getExpiry().isExpired(tick));
 +        }
++        this.serverTick = tick;
 +    }
 +
-+    private static class DurableBlock {
-+        private int durability;
++    private static final class DurableBlock {
 +        private final Expiry expiry;
++        private int durability;
 +
-+        public DurableBlock(int durability, Expiry expiry) {
-+            this.durability = durability;
++        public DurableBlock(Expiry expiry, int durability) {
 +            this.expiry = expiry;
++            this.durability = durability;
 +        }
 +
 +        public Expiry getExpiry() {
-+            return expiry;
++            return this.expiry;
 +        }
 +
 +        public int getDurability() {
-+            return durability;
++            return this.durability;
 +        }
 +
 +        public boolean damage() {
 +            return --this.durability <= 0;
 +        }
 +    }
-+
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
 index af3bcb2dff44d9a734cab9610abbe5d7430c5d57..479e10d3b431ce1292c97b4c2af18c79433e43e8 100644
@@ -124,7 +122,7 @@ index a8008c7550488be34b51f4280f5569170b1ebd1d..2e5a46b9d27b930870c68dbde93d8731
      public String getDescriptionId() {
          return this.getOrCreateDescriptionId();
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index d3ddf3c99cb6338cea6e1cad3d96c931885e5a20..da1dd876b5e64d1f5fefd0701f380ff20b965e0f 100644
+index fef6966070e0b539f246293652140fb9504c06bd..1c57725cef4bb0613b4bb539814c914aed5c179d 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -144,7 +144,7 @@ public class Explosion {

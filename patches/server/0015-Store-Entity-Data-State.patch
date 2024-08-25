@@ -6,10 +6,10 @@ Subject: [PATCH] Store Entity Data/State
 
 diff --git a/src/main/java/me/samsuik/sakura/entity/EntityState.java b/src/main/java/me/samsuik/sakura/entity/EntityState.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c9f2c5ae57878283e8c8bc3847fe63b98f4e8d10
+index 0000000000000000000000000000000000000000..10630c7e04a137ce766f4a45cb0f2e51bd967c98
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/EntityState.java
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,37 @@
 +package me.samsuik.sakura.entity;
 +
 +import net.minecraft.core.BlockPos;
@@ -20,36 +20,32 @@ index 0000000000000000000000000000000000000000..c9f2c5ae57878283e8c8bc3847fe63b9
 +import java.util.Optional;
 +
 +public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed, Optional<BlockPos> supportingPos, boolean onGround, float fallDistance) {
-+
 +    public static EntityState of(Entity entity) {
 +        return new EntityState(entity.position(), entity.getDeltaMovement(), entity.getBoundingBox(), entity.stuckSpeedMultiplier(), entity.mainSupportingBlockPos, entity.onGround(), entity.fallDistance);
 +    }
 +
 +    public void apply(Entity entity) {
-+        entity.setPos(position);
-+        entity.setDeltaMovement(momentum);
-+        entity.setBoundingBox(bb);
++        entity.setPos(this.position);
++        entity.setDeltaMovement(this.momentum);
++        entity.setBoundingBox(this.bb);
 +        // null here is only safe for our use case (tnt and sand)
 +        //noinspection DataFlowIssue
-+        entity.makeStuckInBlock(null, stuckSpeed);
-+        entity.onGround = onGround;
-+        entity.mainSupportingBlockPos = supportingPos;
-+        entity.fallDistance = fallDistance;
++        entity.makeStuckInBlock(null, this.stuckSpeed);
++        entity.onGround = this.onGround;
++        entity.mainSupportingBlockPos = this.supportingPos;
++        entity.fallDistance = this.fallDistance;
 +    }
 +
 +    public void position(Entity entity) {
-+        entity.setPos(position);
-+        entity.setBoundingBox(bb);
++        entity.setPos(this.position);
++        entity.setBoundingBox(this.bb);
 +    }
 +
 +    public boolean isCurrentState(Entity entity) {
-+        return entity.position().equals(position)
-+            && entity.getDeltaMovement().equals(momentum);
-+            // 1.14+ versions seem to correct morphed bounding boxes after a gametick.
-+            // If there are any related issues uncomment this line of code.
-+            // && entity.getBoundingBox().equals(bb);
++        return entity.position().equals(this.position)
++            && entity.getDeltaMovement().equals(this.momentum);
++            // && entity.getBoundingBox().equals(bb); // uncomment if there are issues with morphed bounding boxes
 +    }
-+
 +}
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
 index f375728a95465bbcbb8581cb43e48fc0e6966858..4435e0cd1370f3720102734ac3647674d5f46730 100644

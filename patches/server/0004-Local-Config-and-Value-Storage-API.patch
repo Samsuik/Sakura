@@ -6,10 +6,10 @@ Subject: [PATCH] Local Config and Value Storage API
 
 diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a3a09b8d58589883c7c465597bc64502bbfa0d88
+index 0000000000000000000000000000000000000000..00953ca239c677ece37715b759a1f02608e252be
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,141 @@
 +package me.samsuik.sakura.local.config;
 +
 +import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -32,7 +32,6 @@ index 0000000000000000000000000000000000000000..a3a09b8d58589883c7c465597bc64502
 +import java.util.Map;
 +
 +public final class LocalConfigManager implements LocalStorageHandler {
-+
 +    private final Map<LocalRegion, LocalValueStorage> storageMap = new Object2ObjectOpenHashMap<>();
 +    // tree is a tree. it may not be correct but it works.
 +    private final Long2ObjectRBTreeMap<LocalRegion> regionTree = new Long2ObjectRBTreeMap<>();
@@ -151,14 +150,13 @@ index 0000000000000000000000000000000000000000..a3a09b8d58589883c7c465597bc64502
 +            }
 +        }
 +    }
-+
 +}
 diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3f518f3f1241d3dc1f76fab42e9fd789fab4d53e
+index 0000000000000000000000000000000000000000..5b3e2cca7ee16bc6ecfa0f29438fa6588fa39a99
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/config/LocalValueConfig.java
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,69 @@
 +package me.samsuik.sakura.local.config;
 +
 +import io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation;
@@ -175,7 +173,6 @@ index 0000000000000000000000000000000000000000..3f518f3f1241d3dc1f76fab42e9fd789
 +import java.util.Map;
 +
 +public final class LocalValueConfig {
-+
 +    private final Expiry expiry;
 +    public Map<Block, DurableMaterial> durableMaterials;
 +    public PhysicsVersion physicsVersion;
@@ -226,9 +223,8 @@ index 0000000000000000000000000000000000000000..3f518f3f1241d3dc1f76fab42e9fd789
 +    }
 +
 +    Expiry expiry() {
-+        return expiry;
++        return this.expiry;
 +    }
-+
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
 index 741ca90ca91c77f3cc58a7020169165b20250225..39cc9aba054696c063133d529e79594a5ce2c0cd 100644
