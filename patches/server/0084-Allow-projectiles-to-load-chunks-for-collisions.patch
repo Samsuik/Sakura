@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 2 Sep 2024 22:11:46 +0100
+Subject: [PATCH] Allow projectiles to load chunks for collisions
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/AbstractArrow.java b/src/main/java/net/minecraft/world/entity/projectile/AbstractArrow.java
+index e8faca6e443239968f0111519f9e5cd018ed3297..36b645842a65dd017b6a8d1d12b751dd01ddfde0 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/AbstractArrow.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/AbstractArrow.java
+@@ -213,7 +213,7 @@ public abstract class AbstractArrow extends Projectile {
+             Vec3 vec3d2 = this.position();
+ 
+             vec3d1 = vec3d2.add(vec3d);
+-            Object object = this.level().clip(new ClipContext(vec3d2, vec3d1, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
++            Object object = this.level().clip(new ClipContext(vec3d2, vec3d1, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this), this.level().sakuraConfig().entity.projectilesLoadChunksForCollisions); // Sakura - allow projectiles to load chunks for collisions
+ 
+             if (((HitResult) object).getType() != HitResult.Type.MISS) {
+                 vec3d1 = ((HitResult) object).getLocation();
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/ProjectileUtil.java b/src/main/java/net/minecraft/world/entity/projectile/ProjectileUtil.java
+index 3ab65cb7d891ddba011afd795dbf699f37cb8a17..451ccf4b02c7f43a81d5735d73cd923a155353fd 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/ProjectileUtil.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/ProjectileUtil.java
+@@ -46,7 +46,7 @@ public final class ProjectileUtil {
+         Vec3 pos, Entity entity, Predicate<Entity> predicate, Vec3 velocity, Level world, float margin, ClipContext.Block raycastShapeType
+     ) {
+         Vec3 vec3 = pos.add(velocity);
+-        HitResult hitResult = world.clip(new ClipContext(pos, vec3, raycastShapeType, ClipContext.Fluid.NONE, entity));
++        HitResult hitResult = world.clip(new ClipContext(pos, vec3, raycastShapeType, ClipContext.Fluid.NONE, entity), world.sakuraConfig().entity.projectilesLoadChunksForCollisions); // Sakura - allow projectiles to load chunks for collisions
+         if (hitResult.getType() != HitResult.Type.MISS) {
+             vec3 = hitResult.getLocation();
+         }
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index c2c0d80adb6fa8cb74fa5fe3ce5bc7ac0609abba..42d7a96c176368fdfcd433cba564ad18b451ff35 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -639,8 +639,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+ 
+     private static final FluidState AIR_FLUIDSTATE = Fluids.EMPTY.defaultFluidState();
+ 
++    // Sakura start - allow projectiles to load chunks for collisions
+     private static net.minecraft.world.phys.BlockHitResult fastClip(final Vec3 from, final Vec3 to, final Level level,
+                                                                     final ClipContext clipContext) {
++        return fastClip(from, to, level, clipContext, false);
++    }
++    private static net.minecraft.world.phys.BlockHitResult fastClip(final Vec3 from, final Vec3 to, final Level level,
++                                                                    final ClipContext clipContext, final boolean loadChunks) {
++        // Sakura end - allow projectiles to load chunks for collisions
+         final double adjX = io.papermc.paper.util.CollisionUtil.COLLISION_EPSILON * (from.x - to.x);
+         final double adjY = io.papermc.paper.util.CollisionUtil.COLLISION_EPSILON * (from.y - to.y);
+         final double adjZ = io.papermc.paper.util.CollisionUtil.COLLISION_EPSILON * (from.z - to.z);
+@@ -703,7 +709,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+ 
+             if ((chunkDiff | chunkYDiff) != 0) {
+                 if (chunkDiff != 0) {
+-                    LevelChunk chunk = chunkProvider.getChunkAtIfLoadedImmediately(newChunkX, newChunkZ);
++                    LevelChunk chunk = loadChunks ? level.getChunk(newChunkX, newChunkZ) : chunkProvider.getChunkAtIfLoadedImmediately(newChunkX, newChunkZ); // Sakura - allow projectiles to load chunks for collisions
+                     lastChunk = chunk == null ? null : chunk.getSections(); // diff: don't load chunks for this
+                 }
+                 final int sectionY = newChunkY - minSection;
+@@ -774,6 +780,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+         return fastClip(clipContext.getFrom(), clipContext.getTo(), this, clipContext);
+     }
+ 
++    // Sakura start - allow projectiles to load chunks for collisions
++    public final net.minecraft.world.phys.BlockHitResult clip(final ClipContext clipContext, final boolean loadChunks) {
++        return fastClip(clipContext.getFrom(), clipContext.getTo(), this, clipContext, loadChunks);
++    }
++    // Sakura end - allow projectiles to load chunks for collisions
++
+     @Override
+     public final boolean noCollision(final Entity entity, final AABB box, final boolean loadChunks) {
+         int flags = io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_CHECK_ONLY;
