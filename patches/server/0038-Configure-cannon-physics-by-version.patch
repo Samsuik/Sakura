@@ -106,7 +106,7 @@ index a5d13c6b0d8765e4a65b43f5835fd907738e1da4..19f0d8cf94a60b66cead3c129ded69fc
      protected int getExplosionCount() {
          if (this.cause.getMergeEntityData().getMergeLevel() == MergeLevel.NONE) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 96a546d1266ac53244af4b9f59a35b1216b6b3d1..13f0184f5cf5687b3641d3e94625c0599ed2afb1 100644
+index c4fb10b05f88e3d743ef2a58dd4be09c167a04ee..f1f07e69082d3c43b4b2792af2115ef5d7aef452 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -384,7 +384,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -155,8 +155,9 @@ index 96a546d1266ac53244af4b9f59a35b1216b6b3d1..13f0184f5cf5687b3641d3e94625c059
              double d0 = vec3d1.lengthSqr();
  
 -            if (d0 > 1.0E-7D) {
+-                // NOTE: Every minecraft update check if there are any new blocks that make sure of fallDistance.
 +            if (d0 > 1.0E-7D || this.physics.before(1_14_0)) { // Sakura - physics version api
-                 // NOTE: Every minecraft update check if there are any new blocks that make sure of fallDistance.
++                // NOTE: Every minecraft update check if there are any new blocks that make use of fallDistance.
                  // As of 1.21 the only block is powdered snow which returns a solid collision for falling blocks.
 -                if (this.fallDistance != 0.0F && d0 >= 1.0D && !this.isFallingBlock) {
 +                if (this.fallDistance != 0.0F && d0 >= 1.0D && !this.isFallingBlock && this.physics.afterOrEqual(1_18_2)) { // Sakura - physics version api
