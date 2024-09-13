@@ -41,6 +41,19 @@ index 5db5ba026462ca642dcee718af732f80fadabef5..51e26395b53628b34b1f7f68935a9ba4
      int getContainerSize();
  
      boolean isEmpty();
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index f685c3c894963d5100fdf5d5bda99adf248f41ec..1dd832b3082e201bf9206e8668de097e022463d8 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -1615,7 +1615,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+                 tilesThisCycle--;
+                 toRemove.add(tickingblockentity); // Paper - Fix MC-117075; use removeAll
+                 // Spigot end
+-            } else if (flag && this.shouldTickBlocksAt(tickingblockentity.getPos())) {
++            } else if (flag && tickingblockentity.isBlockEntityActive() && this.shouldTickBlocksAt(tickingblockentity.getPos())) { // Sakura - optimise hopper ticking
+                 tickingblockentity.tick();
+                 // Paper start - rewrite chunk system
+                 if ((++tickedEntities & 7) == 0) {
 diff --git a/src/main/java/net/minecraft/world/level/block/HopperBlock.java b/src/main/java/net/minecraft/world/level/block/HopperBlock.java
 index 3e1c7d62c24dd48a805260d156135dc4f0c3d1fc..ced5fb075349a9b944708aeaabe82b3350ac5d4d 100644
 --- a/src/main/java/net/minecraft/world/level/block/HopperBlock.java
@@ -59,7 +72,7 @@ index 3e1c7d62c24dd48a805260d156135dc4f0c3d1fc..ced5fb075349a9b944708aeaabe82b33
          }
      }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..04958c6051fbe4de3b41aa48ec045be223385b94 100644
+index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..ffd464bd9dccb5f56b123833de4c255a0f11c0a0 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 @@ -54,6 +54,55 @@ public abstract class BlockEntity {
@@ -76,7 +89,7 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..04958c6051fbe4de3b41aa48ec045be2
 +        return this.tickCount;
 +    }
 +
-+    public final boolean isBlockEntityTicking() {
++    public final boolean isBlockEntityActive() {
 +        this.tickCount++;
 +        return this.blockEntityTicking;
 +    }
@@ -254,16 +267,50 @@ index cab403efd471bb61835224eea4e99570d34dcaaa..a359b592fb723e839e0a5ae9690da4e0
  
          if (iinventory != null) {
              Direction enumdirection = Direction.DOWN;
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/TickingBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/TickingBlockEntity.java
+index 28e3b73507b988f7234cbf29c4024c88180d0aef..a0d247aa883553708c4b92158232425593d50534 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/TickingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/TickingBlockEntity.java
+@@ -10,4 +10,10 @@ public interface TickingBlockEntity {
+     BlockPos getPos();
+ 
+     String getType();
++
++    // Sakura start - optimise hopper ticking
++    default boolean isBlockEntityActive() {
++        return true;
++    }
++    // Sakura end - optimise hopper ticking
+ }
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 7c11853c5090fbc4fa5b3e73a69acf166158fdec..0a4c0deb1146e873aa724f1f9911eda0f65d359c 100644
+index 7c11853c5090fbc4fa5b3e73a69acf166158fdec..debd755263d92198b3bafb02cf5eb78f01f0cec1 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -1018,7 +1018,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -1000,6 +1000,13 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+             return this.ticker.getType();
+         }
  
-         @Override
-         public void tick() {
--            if (!this.blockEntity.isRemoved() && this.blockEntity.hasLevel()) {
-+            if (!this.blockEntity.isRemoved() && this.blockEntity.hasLevel() && this.blockEntity.isBlockEntityTicking()) { // Sakura - optimise hopper ticking
-                 BlockPos blockposition = this.blockEntity.getBlockPos();
++        // Sakura start - optimise hopper ticking
++        @Override
++        public boolean isBlockEntityActive() {
++            return this.ticker.isBlockEntityActive();
++        }
++        // Sakura end - optimise hopper ticking
++
+         public String toString() {
+             return String.valueOf(this.ticker) + " <wrapped>";
+         }
+@@ -1076,6 +1083,13 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+             return BlockEntityType.getKey(this.blockEntity.getType()).toString();
+         }
  
-                 if (LevelChunk.this.isTicking(blockposition)) {
++        // Sakura start - optimise hopper ticking
++        @Override
++        public boolean isBlockEntityActive() {
++            return this.blockEntity.isBlockEntityActive();
++        }
++        // Sakura end - optimise hopper ticking
++
+         public String toString() {
+             String s = this.getType();
+ 
