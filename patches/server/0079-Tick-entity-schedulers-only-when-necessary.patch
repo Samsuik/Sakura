@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 13 Sep 2024 17:22:51 +0100
+Subject: [PATCH] Tick entity schedulers only when necessary
+
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/server/ServerEntityLookup.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/server/ServerEntityLookup.java
+index dacf2b2988ce603879fe525a3418ac77f8a663f7..77a55902335d3f2e6544d40b660ae344a61198a9 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/server/ServerEntityLookup.java
++++ b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/server/ServerEntityLookup.java
+@@ -18,6 +18,7 @@ public final class ServerEntityLookup extends EntityLookup {
+     private final ServerLevel serverWorld;
+     public final ReferenceList<Entity> trackerEntities = new ReferenceList<>(EMPTY_ENTITY_ARRAY); // Moonrise - entity tracker
+     public final ReferenceList<Entity> trackerUnloadedEntities = new ReferenceList<>(EMPTY_ENTITY_ARRAY); // Moonrise - entity tracker
++    public final ReferenceList<org.bukkit.craftbukkit.entity.CraftEntity> scheduledEntities = new ReferenceList<>(); // Sakura - tick entity schedulers only when necessary
+ 
+     public ServerEntityLookup(final ServerLevel world, final LevelCallback<Entity> worldCallback) {
+         super(world, worldCallback);
+@@ -86,6 +87,12 @@ public final class ServerEntityLookup extends EntityLookup {
+         this.trackerEntities.add(entity);
+         this.trackerUnloadedEntities.remove(entity);
+         // Moonrise end - entity tracker
++        // Sakura start - tick entity schedulers only when necessary
++        org.bukkit.craftbukkit.entity.CraftEntity bukkitEntity = entity.getBukkitEntityRaw();
++        if (bukkitEntity != null && bukkitEntity.taskScheduler.hasTask()) {
++            this.scheduledEntities.add(bukkitEntity);
++        }
++        // Sakura end - tick entity schedulers only when necessary
+     }
+ 
+     @Override
+@@ -94,6 +101,11 @@ public final class ServerEntityLookup extends EntityLookup {
+         this.trackerEntities.remove(entity);
+         this.trackerUnloadedEntities.add(entity);
+         // Moonrise end - entity tracker
++        // Sakura start - tick entity schedulers only when necessary
++        if (entity.getBukkitEntityRaw() != null) {
++            this.scheduledEntities.remove(entity.getBukkitEntityRaw());
++        }
++        // Sakura end - tick entity schedulers only when necessary
+     }
+ 
+     @Override
+diff --git a/src/main/java/io/papermc/paper/threadedregions/EntityScheduler.java b/src/main/java/io/papermc/paper/threadedregions/EntityScheduler.java
+index c03608fec96b51e1867f43d8f42e5aefb1520e46..ca2e49c4e46e5c05091e11b8254e2ae5787b4e3a 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/EntityScheduler.java
++++ b/src/main/java/io/papermc/paper/threadedregions/EntityScheduler.java
+@@ -50,6 +50,12 @@ public final class EntityScheduler {
+         this.entity = Validate.notNull(entity);
+     }
+ 
++    // Sakura start - tick entity schedulers only when necessary
++    public boolean hasTask() {
++        return !this.currentlyExecuting.isEmpty() || !this.oneTimeDelayed.isEmpty();
++    }
++    // Sakura end - tick entity schedulers only when necessary
++
+     /**
+      * Retires the scheduler, preventing new tasks from being scheduled and invoking the retired callback
+      * on all currently scheduled tasks.
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index fb761723228ed9c2fafa15299866e28e8efac788..f3507f7b2ba0e838af2f68ad73aaee7c0421f9f3 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1736,7 +1736,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         // Paper start - Folia scheduler API
+         ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
+         getAllLevels().forEach(level -> {
+-            for (final Entity entity : level.moonrise$getEntityLookup().getAllCopy()) { // Paper - rewrite chunk system
++            // Sakura start - tick entity schedulers only when necessary
++            final ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup entityLookup = (ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup) level.moonrise$getEntityLookup();
++            for (final org.bukkit.craftbukkit.entity.CraftEntity bukkitEntity : entityLookup.scheduledEntities) {
++                final Entity entity = bukkitEntity.getHandle();
++                // Sakura end - tick entity schedulers only when necessary
+                 if (entity.isRemoved()) {
+                     continue;
+                 }
