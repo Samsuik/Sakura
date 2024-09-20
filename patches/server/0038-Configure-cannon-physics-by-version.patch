@@ -106,7 +106,7 @@ index a5d13c6b0d8765e4a65b43f5835fd907738e1da4..19f0d8cf94a60b66cead3c129ded69fc
      protected int getExplosionCount() {
          if (this.cause.getMergeEntityData().getMergeLevel() == MergeLevel.NONE) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index c4fb10b05f88e3d743ef2a58dd4be09c167a04ee..f1f07e69082d3c43b4b2792af2115ef5d7aef452 100644
+index deb032f9e80b2a001e2908a81bd62b00c87ba02e..9241f5cfc79f2f75ddffd41c012879306c94af4a 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -384,7 +384,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -475,7 +475,7 @@ index 4d0cfa1f96a04713cb1d51c7aaaf91374a0d6c17..96c43df6834e20a9e04eb095f36a644e
      // Paper end - Option to prevent TNT from moving in water
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 21c6c8710add54a811fcd6d68ec75ad124219bc9..a29d85de45a6f96047a79cecbf17a797330d1ea5 100644
+index 90f2a510fb2b33534f12ec4d86d9bf33bd532b58..488748a0c34b3c7e7f3348ebbbb5155c2c353368 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -77,6 +77,7 @@ public class Explosion {
@@ -500,7 +500,7 @@ index 21c6c8710add54a811fcd6d68ec75ad124219bc9..a29d85de45a6f96047a79cecbf17a797
                              hitResult = density != 0.0f ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
 +                            // Sakura start - physics version api
 +                        } else if (entity.physics().before(1_14_0)) {
-+                            hitResult = entity.level().rayTrace(vec3d1, source);
++                            hitResult = entity.level().clipLegacy(vec3d1, source);
                          } else {
 -                            hitResult = entity.level().clip(new ClipContext(vec3d1, source, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType();
 +                            hitResult = entity.level().clip(new ClipContext(vec3d1, source, entity.physics().afterOrEqual(1_16_0) ? ClipContext.Block.COLLIDER : ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, entity)).getType();
@@ -568,147 +568,121 @@ index 21c6c8710add54a811fcd6d68ec75ad124219bc9..a29d85de45a6f96047a79cecbf17a797
          private final Level world;
          private final double posX, posY, posZ;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 456eb52fd5fff7950d64dedb36cee011448c6e89..f685c3c894963d5100fdf5d5bda99adf248f41ec 100644
+index d82d64c98fc7624dfcc86fcbf49cde108bb34ede..062bc318e9c4e3b9a6429ce0eaaa29081cd1d227 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -695,6 +695,205 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -695,6 +695,170 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return chunk != null ? chunk.getNoiseBiome(x, y, z) : this.getUncachedNoiseBiome(x, y, z);
      }
      // Paper end - optimise random ticking
 +    // Sakura start - physics version api
-+    public net.minecraft.world.phys.BlockHitResult.Type rayTrace(net.minecraft.world.phys.Vec3 vec3d, net.minecraft.world.phys.Vec3 vec3d1) {
-+        // May deviate from vanilla here; I remember noticing a bug and there's no fix commit.
-+        int i = Mth.floor(vec3d1.x);
-+        int j = Mth.floor(vec3d1.y);
-+        int k = Mth.floor(vec3d1.z);
-+        int l = Mth.floor(vec3d.x);
-+        int i1 = Mth.floor(vec3d.y);
-+        int j1 = Mth.floor(vec3d.z);
-+        BlockPos.MutableBlockPos blockposition = new BlockPos.MutableBlockPos(l, i1, j1);
-+        LevelChunk chunk = this.getChunkIfLoaded(l >> 4, j1 >> 4);
++    public final net.minecraft.world.phys.BlockHitResult.Type clipLegacy(Vec3 from, Vec3 to) {
++        int toX = Mth.floor(to.x);
++        int toY = Mth.floor(to.y);
++        int toZ = Mth.floor(to.z);
++        int fromX = Mth.floor(from.x);
++        int fromY = Mth.floor(from.y);
++        int fromZ = Mth.floor(from.z);
 +
-+        // probably a bad idea to copy this over so we don't need to do a null check
++        BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos(fromX, fromY, fromZ);
++        LevelChunk chunk = this.getChunkIfLoaded(fromX >> 4, fromZ >> 4);
 +        if (chunk == null) {
 +            return net.minecraft.world.phys.BlockHitResult.Type.MISS;
 +        }
 +
-+        BlockState iblockdata = chunk.getBlockState(blockposition);
-+        net.minecraft.world.phys.shapes.VoxelShape shape = iblockdata.getShape(this, blockposition);
-+
++        BlockState blockstate = chunk.getBlockState(blockPos);
++        VoxelShape shape = blockstate.getShape(this, blockPos);
 +        for (AABB bb : shape.toAabbs()) {
-+            if (clip(bb, blockposition, vec3d, vec3d1)) {
++            if (this.clip(bb, blockPos, from, to)) {
 +                return net.minecraft.world.phys.BlockHitResult.Type.BLOCK;
 +            }
 +        }
 +
-+        int k1 = 200;
-+
-+        while (k1-- >= 0) {
-+            if (l == i && i1 == j && j1 == k) {
++        for (int steps = 0; steps < 16; ++steps) {
++            if (fromX == toX && fromY == toY && fromZ == toZ) {
 +                return net.minecraft.world.phys.BlockHitResult.Type.MISS;
 +            }
 +
-+            boolean flag3 = true;
-+            boolean flag4 = true;
-+            boolean flag5 = true;
++            boolean moveX = true;
++            boolean moveY = true;
++            boolean moveZ = true;
 +            double d0 = 999.0D;
 +            double d1 = 999.0D;
 +            double d2 = 999.0D;
 +
-+            if (i > l) {
-+                d0 = (double) l + 1.0D;
-+            } else if (i < l) {
-+                d0 = (double) l + 0.0D;
++            if (toX > fromX) {
++                d0 = (double) fromX + 1.0D;
++            } else if (toX < fromX) {
++                d0 = (double) fromX + 0.0D;
 +            } else {
-+                flag3 = false;
++                moveX = false;
 +            }
 +
-+            if (j > i1) {
-+                d1 = (double) i1 + 1.0D;
-+            } else if (j < i1) {
-+                d1 = (double) i1 + 0.0D;
++            if (toY > fromY) {
++                d1 = (double) fromY + 1.0D;
++            } else if (toY < fromY) {
++                d1 = (double) fromY + 0.0D;
 +            } else {
-+                flag4 = false;
++                moveY = false;
 +            }
 +
-+            if (k > j1) {
-+                d2 = (double) j1 + 1.0D;
-+            } else if (k < j1) {
-+                d2 = (double) j1 + 0.0D;
++            if (toZ > fromZ) {
++                d2 = (double) fromZ + 1.0D;
++            } else if (toZ < fromZ) {
++                d2 = (double) fromZ + 0.0D;
 +            } else {
-+                flag5 = false;
++                moveZ = false;
 +            }
 +
 +            double d3 = 999.0D;
 +            double d4 = 999.0D;
 +            double d5 = 999.0D;
-+            double d6 = vec3d1.x - vec3d.x;
-+            double d7 = vec3d1.y - vec3d.y;
-+            double d8 = vec3d1.z - vec3d.z;
++            double d6 = to.x - from.x;
++            double d7 = to.y - from.y;
++            double d8 = to.z - from.z;
 +
-+            if (flag3) {
-+                d3 = (d0 - vec3d.x) / d6;
-+            }
++            if (moveX) d3 = (d0 - from.x) / d6;
++            if (moveY) d4 = (d1 - from.y) / d7;
++            if (moveZ) d5 = (d2 - from.z) / d8;
 +
-+            if (flag4) {
-+                d4 = (d1 - vec3d.y) / d7;
-+            }
++            if (d3 == -0.0D) d3 = -1.0E-4D;
++            if (d4 == -0.0D) d4 = -1.0E-4D;
++            if (d5 == -0.0D) d5 = -1.0E-4D;
 +
-+            if (flag5) {
-+                d5 = (d2 - vec3d.z) / d8;
-+            }
-+
-+            if (d3 == -0.0D) {
-+                d3 = -1.0E-4D;
-+            }
-+
-+            if (d4 == -0.0D) {
-+                d4 = -1.0E-4D;
-+            }
-+
-+            if (d5 == -0.0D) {
-+                d5 = -1.0E-4D;
-+            }
-+
-+            Direction enumdirection;
-+
++            Direction moveDir;
 +            if (d3 < d4 && d3 < d5) {
-+                enumdirection = i > l ? Direction.WEST : Direction.EAST;
-+                vec3d = new net.minecraft.world.phys.Vec3(d0, vec3d.y + d7 * d3, vec3d.z + d8 * d3);
++                moveDir = toX > fromX ? Direction.WEST : Direction.EAST;
++                from = new Vec3(d0, from.y + d7 * d3, from.z + d8 * d3);
 +            } else if (d4 < d5) {
-+                enumdirection = j > i1 ? Direction.DOWN : Direction.UP;
-+                vec3d = new net.minecraft.world.phys.Vec3(vec3d.x + d6 * d4, d1, vec3d.z + d8 * d4);
++                moveDir = toY > fromY ? Direction.DOWN : Direction.UP;
++                from = new Vec3(from.x + d6 * d4, d1, from.z + d8 * d4);
 +            } else {
-+                enumdirection = k > j1 ? Direction.NORTH : Direction.SOUTH;
-+                vec3d = new net.minecraft.world.phys.Vec3(vec3d.x + d6 * d5, vec3d.y + d7 * d5, d2);
++                moveDir = toZ > fromZ ? Direction.NORTH : Direction.SOUTH;
++                from = new Vec3(from.x + d6 * d5, from.y + d7 * d5, d2);
 +            }
 +
-+            l = Mth.floor(vec3d.x) - (enumdirection == Direction.EAST ? 1 : 0);
-+            i1 = Mth.floor(vec3d.y) - (enumdirection == Direction.UP ? 1 : 0);
-+            j1 = Mth.floor(vec3d.z) - (enumdirection == Direction.SOUTH ? 1 : 0);
-+            blockposition.set(l, i1, j1);
++            fromX = Mth.floor(from.x) - (moveDir == Direction.EAST ? 1 : 0);
++            fromY = Mth.floor(from.y) - (moveDir == Direction.UP ? 1 : 0);
++            fromZ = Mth.floor(from.z) - (moveDir == Direction.SOUTH ? 1 : 0);
++            blockPos.set(fromX, fromY, fromZ);
 +
-+            int chunkX = l >> 4;
-+            int chunkZ = j1 >> 4;
-+
++            int chunkX = fromX >> 4;
++            int chunkZ = fromZ >> 4;
 +            if (chunkX != chunk.locX || chunkZ != chunk.locZ) {
 +                chunk = this.getChunkIfLoaded(chunkX, chunkZ);
 +            }
-+
 +            if (chunk == null) {
 +                return net.minecraft.world.phys.BlockHitResult.Type.MISS;
 +            }
 +
-+            iblockdata = chunk.getBlockState(blockposition);
-+            shape = iblockdata.getShape(this, blockposition);
-+
++            blockstate = chunk.getBlockState(blockPos);
++            shape = blockstate.getShape(this, blockPos);
 +            for (AABB bb : shape.toAabbs()) {
-+                if (clip(bb, blockposition, vec3d, vec3d1)) {
++                if (this.clip(bb, blockPos, from, to)) {
 +                    return net.minecraft.world.phys.BlockHitResult.Type.BLOCK;
 +                }
 +            }
 +        }
-+
 +        return net.minecraft.world.phys.BlockHitResult.Type.MISS;
 +    }
 +
@@ -720,63 +694,54 @@ index 456eb52fd5fff7950d64dedb36cee011448c6e89..f685c3c894963d5100fdf5d5bda99adf
 +        double y = vec3d1.y - vec3d.y;
 +        double z = vec3d1.z - vec3d.z;
 +
-+        double minXd = clip(bb.minX, x, vec3d.x);
-+        double minYd = clip(bb.minY, y, vec3d.y);
-+        double minZd = clip(bb.minZ, z, vec3d.z);
-+        double maxXd = clip(bb.maxX, x, vec3d.x);
-+        double maxYd = clip(bb.maxY, y, vec3d.y);
-+        double maxZd = clip(bb.maxZ, z, vec3d.z);
++        double minXd = this.clip(bb.minX, x, vec3d.x);
++        double minYd = this.clip(bb.minY, y, vec3d.y);
++        double minZd = this.clip(bb.minZ, z, vec3d.z);
++        double maxXd = this.clip(bb.maxX, x, vec3d.x);
++        double maxYd = this.clip(bb.maxY, y, vec3d.y);
++        double maxZd = this.clip(bb.maxZ, z, vec3d.z);
 +
-+        return clipX(vec3d, bb, minXd, y, z) || clipY(vec3d, bb, minYd, x, z) || clipZ(vec3d, bb, minZd, x, y)
-+            || clipX(vec3d, bb, maxXd, y, z) || clipY(vec3d, bb, maxYd, x, z) || clipZ(vec3d, bb, maxZd, x, y);
++        return this.clipX(vec3d, bb, minXd, y, z) || this.clipY(vec3d, bb, minYd, x, z) || this.clipZ(vec3d, bb, minZd, x, y)
++            || this.clipX(vec3d, bb, maxXd, y, z) || this.clipY(vec3d, bb, maxYd, x, z) || this.clipZ(vec3d, bb, maxZd, x, y);
 +    }
 +
 +    private double clip(double bound, double axisD, double axisN) {
-+        // This is my friend jerry, he was an epsilon. Unfortunately, once day
-+        // he was cast to a float. Now he's spending his retirement here as a double.
 +        if (axisD * axisD < 1.0000000116860974E-7D) {
 +            return -1.0;
 +        }
-+
 +        return (bound - axisN) / axisD;
 +    }
 +
-+    private boolean clipX(net.minecraft.world.phys.Vec3 vec3d, AABB bb, double n, double y, double z) {
++    private boolean clipX(Vec3 vec3d, AABB bb, double n, double y, double z) {
 +        if (n < 0.0 || n > 1.0) {
 +            return false;
 +        }
-+
 +        y = vec3d.y + y * n;
 +        z = vec3d.z + z * n;
-+
 +        return y >= bb.minY && y <= bb.maxY && z >= bb.minZ && z <= bb.maxZ;
 +    }
 +
-+    private boolean clipY(net.minecraft.world.phys.Vec3 vec3d, AABB bb, double n, double x, double z) {
++    private boolean clipY(Vec3 vec3d, AABB bb, double n, double x, double z) {
 +        if (n < 0.0 || n > 1.0) {
 +            return false;
 +        }
-+
 +        x = vec3d.x + x * n;
 +        z = vec3d.z + z * n;
-+
 +        return x >= bb.minX && x <= bb.maxX && z >= bb.minZ && z <= bb.maxZ;
 +    }
 +
-+    private boolean clipZ(net.minecraft.world.phys.Vec3 vec3d, AABB bb, double n, double x, double y) {
++    private boolean clipZ(Vec3 vec3d, AABB bb, double n, double x, double y) {
 +        if (n < 0.0 || n > 1.0) {
 +            return false;
 +        }
-+
 +        x = vec3d.x + x * n;
 +        y = vec3d.y + y * n;
-+
 +        return x >= bb.minX && x <= bb.maxX && y >= bb.minY && y <= bb.maxY;
 +    }
 +    // Sakura end - physics version api
-     public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
+     public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
 diff --git a/src/main/java/net/minecraft/world/level/block/FallingBlock.java b/src/main/java/net/minecraft/world/level/block/FallingBlock.java
 index 1ea1232a5ba3e48eef3a139d6487c9a190155ebd..4cf5147c8b089c3fa5476a05501fae0d9afaf341 100644
 --- a/src/main/java/net/minecraft/world/level/block/FallingBlock.java

@@ -53,7 +53,7 @@ index 9f17170179cc99d84ad25a1e838aff3d8cc66f93..a1fb1e286d66dde55682d899ded0e5d2
  
 diff --git a/src/main/java/me/samsuik/sakura/redstone/RedstoneTracker.java b/src/main/java/me/samsuik/sakura/redstone/RedstoneTracker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4f5af6e241b0194ed982144fd9320315f68d7b00
+index 0000000000000000000000000000000000000000..2e322ac7c8751ab4586fcce7974c26dacad18e4a
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/redstone/RedstoneTracker.java
 @@ -0,0 +1,285 @@
@@ -135,7 +135,7 @@ index 0000000000000000000000000000000000000000..4f5af6e241b0194ed982144fd9320315
 +            long key = cacheKey(position, previous, next);
 +            RedstoneCache cache = this.wireCaches.get(key);
 +
-+            if (cache != null && !cache.expiry().isExpired(MinecraftServer.currentTickLong)) {
++            if (cache != null && !cache.expiry().isExpired(MinecraftServer.currentTick)) {
 +                cache.apply(this.level);
 +                return true;
 +            }
@@ -181,7 +181,7 @@ index 0000000000000000000000000000000000000000..4f5af6e241b0194ed982144fd9320315
 +
 +    public boolean isTracked(BlockPos position) {
 +        List<RedstoneCache> wires = this.adjacent.get(position.asLong());
-+        return wires != null && wires.stream().anyMatch(cache -> !cache.expiry().isExpired(MinecraftServer.currentTickLong));
++        return wires != null && wires.stream().anyMatch(cache -> !cache.expiry().isExpired(MinecraftServer.currentTick));
 +    }
 +
 +    public boolean isTracking() {
@@ -242,7 +242,7 @@ index 0000000000000000000000000000000000000000..4f5af6e241b0194ed982144fd9320315
 +
 +        RedstoneCache redstoneCache = new RedstoneCache(
 +            wires, updates, connected,
-+            new Expiry(MinecraftServer.currentTickLong, 200)
++            new Expiry(MinecraftServer.currentTick, 200)
 +        );
 +
 +        // put the newly created redstone cache into use
@@ -267,7 +267,7 @@ index 0000000000000000000000000000000000000000..4f5af6e241b0194ed982144fd9320315
 +        });
 +    }
 +
-+    public void expire(long tick) {
++    public void expire(int tick) {
 +        if (tick % 100 != 0) return;
 +
 +        this.wireCaches.values().removeIf(cache -> {
@@ -324,7 +324,7 @@ index 0000000000000000000000000000000000000000..4f5af6e241b0194ed982144fd9320315
 +            });
 +
 +            // Refresh so the cache won't expire
-+            expiry.refresh(MinecraftServer.currentTickLong);
++            expiry.refresh(MinecraftServer.currentTick);
 +        }
 +    }
 +
@@ -342,23 +342,11 @@ index 0000000000000000000000000000000000000000..4f5af6e241b0194ed982144fd9320315
 +    }
 +
 +}
-diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 479e10d3b431ce1292c97b4c2af18c79433e43e8..fb761723228ed9c2fafa15299866e28e8efac788 100644
---- a/src/main/java/net/minecraft/server/MinecraftServer.java
-+++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1828,6 +1828,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-             worldserver.mergeHandler.expire(currentTickLong); // Sakura - merge cannon entities
-             worldserver.densityCache.clear(currentTickLong); // Sakura - explosion density cache
-             worldserver.durabilityManager.expire(currentTickLong); // Sakura
-+            worldserver.redstoneTracker.expire(currentTickLong); // Sakura
-         }
-         this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
- 
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 603b2e94e36570441567a4ea8481f032f0571fa4..456eb52fd5fff7950d64dedb36cee011448c6e89 100644
+index 88aa465a4bc6ae79dbad8dc8ecc21345f70abf0b..d82d64c98fc7624dfcc86fcbf49cde108bb34ede 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -699,6 +699,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -698,6 +698,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
@@ -366,7 +354,7 @@ index 603b2e94e36570441567a4ea8481f032f0571fa4..456eb52fd5fff7950d64dedb36cee011
  
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura - sakura configuration files// Paper - create paper world config & Anti-Xray
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
-@@ -1078,6 +1079,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1077,6 +1078,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              } else {
                  BlockState iblockdata2 = this.getBlockState(pos);
  

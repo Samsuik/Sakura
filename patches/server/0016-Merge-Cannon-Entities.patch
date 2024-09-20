@@ -6,7 +6,7 @@ Subject: [PATCH] Merge Cannon Entities
 
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/EntityMergeHandler.java b/src/main/java/me/samsuik/sakura/entity/merge/EntityMergeHandler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c8040daf71384d1fe7bd16478741b4c9cca1100c
+index 0000000000000000000000000000000000000000..dbd38e3b5b32c324eff6875269f09131425796a4
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/EntityMergeHandler.java
 @@ -0,0 +1,76 @@
@@ -59,7 +59,7 @@ index 0000000000000000000000000000000000000000..c8040daf71384d1fe7bd16478741b4c9
 +     *
 +     * @param tick server tick
 +     */
-+    public void expire(long tick) {
++    public void expire(int tick) {
 +        if (tick % 200 == 0) {
 +            this.trackedHistory.expire(tick);
 +        }
@@ -320,7 +320,7 @@ index 0000000000000000000000000000000000000000..3061c3a48f7c68f64a3348b9583f4b41
 +}
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/TrackedMergeHistory.java b/src/main/java/me/samsuik/sakura/entity/merge/TrackedMergeHistory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..12f12705678e260654c0af7e23e403e36f9a427d
+index 0000000000000000000000000000000000000000..2c2a26fdb3081ced574070e5e6f3a1b4c09b578d
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/TrackedMergeHistory.java
 @@ -0,0 +1,73 @@
@@ -363,14 +363,14 @@ index 0000000000000000000000000000000000000000..12f12705678e260654c0af7e23e403e3
 +        return this.historyMap.get(originPosition);
 +    }
 +
-+    public void expire(long tick) {
++    public void expire(int tick) {
 +        this.historyMap.values().removeIf(p -> p.expiry().isExpired(tick));
 +    }
 +
 +    private static final class PositionHistory {
 +        private final LongOpenHashSet positions = new LongOpenHashSet();
-+        private final Expiry expiry = new Expiry(MinecraftServer.currentTickLong, 200);
-+        private final long created = MinecraftServer.currentTickLong;
++        private final Expiry expiry = new Expiry(MinecraftServer.currentTick, 200);
++        private final long created = MinecraftServer.currentTick;
 +        private int cycles = 0;
 +
 +        public Expiry expiry() {
@@ -378,7 +378,7 @@ index 0000000000000000000000000000000000000000..12f12705678e260654c0af7e23e403e3
 +        }
 +
 +        public boolean has(long position) {
-+            this.expiry.refresh(MinecraftServer.currentTickLong);
++            this.expiry.refresh(MinecraftServer.currentTick);
 +            return this.positions.contains(position);
 +        }
 +
@@ -392,25 +392,25 @@ index 0000000000000000000000000000000000000000..12f12705678e260654c0af7e23e403e3
 +        }
 +
 +        public boolean hasMetConditions(@NotNull Entity entity, @NotNull MergeCondition condition) {
-+            long timeSinceCreation = MinecraftServer.currentTickLong - this.created;
++            long timeSinceCreation = MinecraftServer.currentTick - this.created;
 +            return condition.accept(entity, this.cycles, timeSinceCreation);
 +        }
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 5abe92349a31069b25a1020c3d518a1b0103bbc8..d2542876279eec14f952f0b20d4ea665c7de00f4 100644
+index d48a1f7d23d1c47465ad8df37facbabe3a15c543..012bec9a32acc26f65c8efbfde341b0d15a4e822 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1825,6 +1825,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1822,6 +1822,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             this.profiler.pop();
              worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
-             worldserver.localConfig().expire(currentTickLong); // Sakura - add local config
-             worldserver.minimalTNT.clear(); // Sakura - visibility api
-+            worldserver.mergeHandler.expire(currentTickLong); // Sakura - merge cannon entities
+             worldserver.localConfig().expire(currentTick); // Sakura - add local config
++            worldserver.mergeHandler.expire(currentTick); // Sakura - merge cannon entities
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index ab8803d030353ec8ca1c727bc1c0502da00ff5fa..3e160ec5f14b57732f0fe66e2d3ef3a2e7ba1406 100644
+index 61ebb6db40626442b75cf768e1bacce3c5c09ec0..65a71789571f896fc25a3eec22ee7808130a1578 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -714,6 +714,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
@@ -438,7 +438,7 @@ index ab8803d030353ec8ca1c727bc1c0502da00ff5fa..3e160ec5f14b57732f0fe66e2d3ef3a2
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 4435e0cd1370f3720102734ac3647674d5f46730..705730ccbe124efc6c1f8903403804bac02c1e0b 100644
+index 3233e54b6f85ab03859b5a3f2912b7cfb115d050..222f772c27a30b8b0489b54d672f4a6eb0c84545 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -586,6 +586,23 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -676,13 +676,13 @@ index 888d018a8e73234332455b7d3700e70e1a50c5db..a8e540c8a27135336fb2d6e37aec13d5
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 7384c7f81e0f9bfe05c05561a1ec87f3fa17f010..9e426b7a588da307cbc42256f7255c95254d88a9 100644
+index 0925de100a7da3bba6c3fab7a0c79b2ee0d86904..186f1be4aca5295ca260f3808d332cb5ed77bc7e 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -696,6 +696,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -695,6 +695,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         return chunk != null ? chunk.getNoiseBiome(x, y, z) : this.getUncachedNoiseBiome(x, y, z);
      }
      // Paper end - optimise random ticking
-     public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
 +    public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
  
      protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura - sakura configuration files// Paper - create paper world config & Anti-Xray

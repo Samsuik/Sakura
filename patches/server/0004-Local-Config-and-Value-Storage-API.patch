@@ -6,7 +6,7 @@ Subject: [PATCH] Local Config and Value Storage API
 
 diff --git a/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..00953ca239c677ece37715b759a1f02608e252be
+index 0000000000000000000000000000000000000000..58e2bada4d9120a4802def5caece906fd1628f67
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/local/config/LocalConfigManager.java
 @@ -0,0 +1,141 @@
@@ -113,7 +113,7 @@ index 0000000000000000000000000000000000000000..00953ca239c677ece37715b759a1f026
 +        long chunkKey = ChunkPos.asLong(position.getX() >> 4, position.getZ() >> 4);
 +
 +        LocalValueConfig local = this.configMap.computeIfAbsent(chunkKey, (key) -> {
-+            LocalValueConfig config = new LocalValueConfig(new Expiry(MinecraftServer.currentTickLong, 600));
++            LocalValueConfig config = new LocalValueConfig(new Expiry(MinecraftServer.currentTick, 600));
 +
 +            // defaults from sakura config
 +            config.init(level);
@@ -129,11 +129,11 @@ index 0000000000000000000000000000000000000000..00953ca239c677ece37715b759a1f026
 +            return config;
 +        });
 +
-+        local.expiry().refresh(MinecraftServer.currentTickLong);
++        local.expiry().refresh(MinecraftServer.currentTick);
 +        return local;
 +    }
 +
-+    public synchronized void expire(long tick) {
++    public synchronized void expire(int tick) {
 +        if (tick % 200 != 0) return;
 +
 +        // remove expired
@@ -227,14 +227,14 @@ index 0000000000000000000000000000000000000000..5b3e2cca7ee16bc6ecfa0f29438fa658
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 741ca90ca91c77f3cc58a7020169165b20250225..39cc9aba054696c063133d529e79594a5ce2c0cd 100644
+index f7a636990d581ad0230317a716d2662ea25480e3..f0ba7597de6f1eb025639cbe0f35f51d839fe4c2 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1820,6 +1820,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1818,6 +1818,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              this.profiler.pop();
              this.profiler.pop();
              worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
-+            worldserver.localConfig().expire(currentTickLong); // Sakura - add local config
++            worldserver.localConfig().expire(currentTick); // Sakura - add local config
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
@@ -256,7 +256,7 @@ index 7da2fc17f6e7bf888ef0c2a8eba0fc3b4c10436e..c811bc64d0686fdec58defb707d57e53
      public final com.destroystokyo.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
      public final co.aikar.timings.WorldTimingsHandler timings; // Paper
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 90d4834f97d3ba996d46493246b1947511553424..a132b4e10b0c6d0818bd406dcf93d317f0a0774a 100644
+index cd3381d8225e0322b3e285b3c4aa0a1265a91cc0..7d70fb7553a04bebf9300b0372afd36802b7045c 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -256,6 +256,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {

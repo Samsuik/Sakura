@@ -6,63 +6,45 @@ Subject: [PATCH] Explosion Durable Blocks
 
 diff --git a/src/main/java/me/samsuik/sakura/explosion/durable/DurableBlockManager.java b/src/main/java/me/samsuik/sakura/explosion/durable/DurableBlockManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c5eb573f946d24d2a44a46e0f395e00e4dc29bd6
+index 0000000000000000000000000000000000000000..e52cae27c2bbf4fa02d49d1c69d8e1240fddfb81
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/durable/DurableBlockManager.java
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,43 @@
 +package me.samsuik.sakura.explosion.durable;
 +
-+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-+import me.samsuik.sakura.utils.objects.Expiry;
++import com.google.common.cache.Cache;
++import com.google.common.cache.CacheBuilder;
 +import net.minecraft.core.BlockPos;
 +
++import java.util.concurrent.TimeUnit;
++
 +public final class DurableBlockManager {
-+    private final Long2ObjectOpenHashMap<DurableBlock> blocks = new Long2ObjectOpenHashMap<>();
-+    private long serverTick;
++    private final Cache<BlockPos, DurableBlock> durableBlocks = CacheBuilder.newBuilder()
++            .expireAfterAccess(1, TimeUnit.MINUTES)
++            .maximumSize(65534)
++            .build();
 +
 +    public boolean damage(BlockPos pos, DurableMaterial material) {
-+        long packed = pos.asLong();
-+        // Expires after 1200 ticks (1 minute) without any changes.
-+        DurableBlock block = this.blocks.computeIfAbsent(packed, k -> new DurableBlock(
-+            new Expiry(this.serverTick, 1200),
-+            material.durability()
-+        ));
-+
-+        if (block.damage()) {
-+            this.blocks.remove(packed);
-+            return true;
-+        } else {
-+            block.getExpiry().refresh(this.serverTick);
-+            return false;
++        DurableBlock block = this.durableBlocks.getIfPresent(pos);
++        if (block == null) {
++            this.durableBlocks.put(pos, block = new DurableBlock(material.durability()));
 +        }
++        return block.damage();
 +    }
 +
 +    public int durability(BlockPos pos, DurableMaterial material) {
-+        DurableBlock block = this.blocks.get(pos.asLong());
-+        return block != null ? block.getDurability() : material.durability();
-+    }
-+
-+    public void expire(long tick) {
-+        if (tick % 200 == 0) {
-+            this.blocks.values().removeIf(block -> block.getExpiry().isExpired(tick));
-+        }
-+        this.serverTick = tick;
++        final DurableBlock block = this.durableBlocks.getIfPresent(pos);
++        return block != null ? block.durability() : material.durability();
 +    }
 +
 +    private static final class DurableBlock {
-+        private final Expiry expiry;
 +        private int durability;
 +
-+        public DurableBlock(Expiry expiry, int durability) {
-+            this.expiry = expiry;
++        public DurableBlock(int durability) {
 +            this.durability = durability;
 +        }
 +
-+        public Expiry getExpiry() {
-+            return this.expiry;
-+        }
-+
-+        public int getDurability() {
++        public int durability() {
 +            return this.durability;
 +        }
 +
@@ -72,14 +54,14 @@ index 0000000000000000000000000000000000000000..c5eb573f946d24d2a44a46e0f395e00e
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index af3bcb2dff44d9a734cab9610abbe5d7430c5d57..479e10d3b431ce1292c97b4c2af18c79433e43e8 100644
+index 8041737aa751bec1c51ee3d9dacd6dfb2b845265..7073914cfd5759bea92ce098ad36a86afee5dd37 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1827,6 +1827,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-             worldserver.minimalTNT.clear(); // Sakura - visibility api
-             worldserver.mergeHandler.expire(currentTickLong); // Sakura - merge cannon entities
-             worldserver.densityCache.clear(currentTickLong); // Sakura - explosion density cache
-+            worldserver.durabilityManager.expire(currentTickLong); // Sakura
+@@ -1824,6 +1824,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             worldserver.localConfig().expire(currentTick); // Sakura - add local config
+             worldserver.mergeHandler.expire(currentTick); // Sakura - merge cannon entities
+             worldserver.densityCache.invalidate(); // Sakura - explosion density cache
++            worldserver.redstoneTracker.expire(currentTick); // Sakura
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
@@ -122,7 +104,7 @@ index a8008c7550488be34b51f4280f5569170b1ebd1d..2e5a46b9d27b930870c68dbde93d8731
      public String getDescriptionId() {
          return this.getOrCreateDescriptionId();
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index fef6966070e0b539f246293652140fb9504c06bd..1c57725cef4bb0613b4bb539814c914aed5c179d 100644
+index 4702f1d07ad32e94aeada46122f84ac68ece9af7..da6f8d2f9b27de6c256920187c9841536842147b 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -144,7 +144,7 @@ public class Explosion {
@@ -174,11 +156,11 @@ index fef6966070e0b539f246293652140fb9504c06bd..1c57725cef4bb0613b4bb539814c914a
                      Entity sourceEntity = this.source == null ? null : this.source;
                      BlockPos sourceBlock = sourceEntity == null ? BlockPos.containing(this.x, this.y, this.z) : null;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 17dadcfbc016992c0c999d2b02da69b4c8f0712c..603b2e94e36570441567a4ea8481f032f0571fa4 100644
+index ec47e7da3c06ee74e0c134e4a881ab373fc68af8..88aa465a4bc6ae79dbad8dc8ecc21345f70abf0b 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -698,6 +698,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     public final it.unimi.dsi.fastutil.longs.Long2IntMap minimalTNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap(); // Sakura - visibility api
+@@ -697,6 +697,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     // Paper end - optimise random ticking
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
 +    public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
