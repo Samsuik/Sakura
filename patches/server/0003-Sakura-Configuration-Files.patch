@@ -251,10 +251,10 @@ index 0000000000000000000000000000000000000000..c41f188fdaf510a127771b1782e95705
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5296d4e0a1041932e36562f42fbf3e1dcfea33fe
+index 0000000000000000000000000000000000000000..bca4180d1fc777a244c9465b056bbf0baa9b9709
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,55 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.mojang.logging.LogUtils;
@@ -288,15 +288,6 @@ index 0000000000000000000000000000000000000000..5296d4e0a1041932e36562f42fbf3e1d
 +        public String material = "pink_stained_glass_pane";
 +    }
 +
-+    public Cannons cannons;
-+    public class Cannons extends ConfigurationPart {
-+        public Explosion explosion = new Explosion();
-+        
-+        public class Explosion extends ConfigurationPart {
-+            public boolean reducedSearchRays;
-+        }
-+    }
-+
 +    public Players players;
 +    public class Players extends ConfigurationPart {
 +        public String potatoMessage = "<dark_gray>(<light_purple>S</light_purple>) <white>This block has <gray><remaining></gray> of <gray><durability>";
@@ -321,10 +312,10 @@ index 0000000000000000000000000000000000000000..5296d4e0a1041932e36562f42fbf3e1d
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a22139d6f6775b7b8d635e126d2ea2bfd6227743
+index 0000000000000000000000000000000000000000..f2bc1852dc5600015201bb462ed47a41792cc1d8
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
-@@ -0,0 +1,254 @@
+@@ -0,0 +1,263 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.google.common.collect.Table;
@@ -363,9 +354,11 @@ index 0000000000000000000000000000000000000000..a22139d6f6775b7b8d635e126d2ea2bf
 +import org.spongepowered.configurate.ConfigurateException;
 +import org.spongepowered.configurate.ConfigurationNode;
 +import org.spongepowered.configurate.ConfigurationOptions;
++import org.spongepowered.configurate.NodePath;
 +import org.spongepowered.configurate.objectmapping.FieldDiscoverer;
 +import org.spongepowered.configurate.objectmapping.ObjectMapper;
 +import org.spongepowered.configurate.transformation.ConfigurationTransformation;
++import org.spongepowered.configurate.transformation.TransformAction;
 +import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 +
 +import java.io.IOException;
@@ -517,6 +510,13 @@ index 0000000000000000000000000000000000000000..a22139d6f6775b7b8d635e126d2ea2bf
 +        V6_FixIncorrectExtraKnockback.apply(versionedBuilder);
 +        // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
 +        versionedBuilder.build().apply(node);
++    }
++
++    @Override
++    protected void applyGlobalConfigTransformations(ConfigurationNode node) throws ConfigurateException {
++        final ConfigurationTransformation.Builder builder = ConfigurationTransformation.builder();
++        builder.addAction(NodePath.path("cannons"), TransformAction.remove());
++        builder.build().apply(node);
 +    }
 +
 +    @Override
