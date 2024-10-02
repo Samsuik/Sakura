@@ -5,18 +5,18 @@ Subject: [PATCH] Consistent Explosion Radius
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 81284ec481ac6cc82d2b1171d1772c107d1a5a0c..0dd0397036309c881f955b78ba3934e33bcf18fd 100644
+index b32f377079a7c97840079b0a6b541be936c822dd..fa142719b1c4f6434466141128c475ef945edbb7 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -76,6 +76,7 @@ public class Explosion {
-     public boolean wasCanceled = false;
+@@ -77,6 +77,7 @@ public class Explosion {
      public float yield;
      // CraftBukkit end
+     public boolean excludeSourceFromDamage = true; // Paper - Allow explosions to damage source
 +    private final boolean consistentRadius; // Sakura - consistent explosion radius
  
      // Paper start - optimise collisions
      private static final double[] CACHED_RAYS;
-@@ -450,6 +451,7 @@ public class Explosion {
+@@ -451,6 +452,7 @@ public class Explosion {
          this.largeExplosionParticles = emitterParticle;
          this.explosionSound = soundEvent;
          this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
@@ -24,7 +24,7 @@ index 81284ec481ac6cc82d2b1171d1772c107d1a5a0c..0dd0397036309c881f955b78ba3934e3
      }
  
      private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
-@@ -558,7 +560,7 @@ public class Explosion {
+@@ -559,7 +561,7 @@ public class Explosion {
              final double incZ = CACHED_RAYS[ray + 2];
  
              ray += 3;

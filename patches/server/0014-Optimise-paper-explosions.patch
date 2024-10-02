@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise paper explosions
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 6c66ee69beb55e5c5755bbf4d13c256541ce4468..74e32f74322b3e3bc8c2e3f5f8b740025c29443e 100644
+index f696afd7e241bf1966a2d505b5d59bff824b43e4..611fc40fd7461f6d9cd9e737de71e702bf1f36c5 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -100,7 +100,7 @@ public class Explosion {
+@@ -101,7 +101,7 @@ public class Explosion {
              }
          }
  
@@ -17,7 +17,7 @@ index 6c66ee69beb55e5c5755bbf4d13c256541ce4468..74e32f74322b3e3bc8c2e3f5f8b74002
      }
  
      private static final int CHUNK_CACHE_SHIFT = 2;
-@@ -315,6 +315,39 @@ public class Explosion {
+@@ -316,6 +316,39 @@ public class Explosion {
          return (float)missedRays / (float)totalRays;
      }
      // Paper end - optimise collisions
@@ -57,7 +57,7 @@ index 6c66ee69beb55e5c5755bbf4d13c256541ce4468..74e32f74322b3e3bc8c2e3f5f8b74002
  
      public static DamageSource getDefaultDamageSource(Level world, @Nullable Entity source) {
          return world.damageSources().explosion(source, Explosion.getIndirectSourceEntityInternal(source));
-@@ -438,6 +471,16 @@ public class Explosion {
+@@ -439,6 +472,16 @@ public class Explosion {
          int j;
  
          // Paper start - collision optimisations
@@ -74,7 +74,7 @@ index 6c66ee69beb55e5c5755bbf4d13c256541ce4468..74e32f74322b3e3bc8c2e3f5f8b74002
          for (int ray = 0, len = CACHED_RAYS.length; ray < len;) {
              ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache cachedBlock = initialCache;
  
-@@ -509,25 +552,64 @@ public class Explosion {
+@@ -510,25 +553,64 @@ public class Explosion {
                      }
  
          // Paper - optimise collisions
@@ -93,7 +93,7 @@ index 6c66ee69beb55e5c5755bbf4d13c256541ce4468..74e32f74322b3e3bc8c2e3f5f8b74002
          int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
          int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
          int k1 = Mth.floor(this.z + (double) f2 + 1.0D);
--        List<Entity> list = this.level.getEntities(this.source, new AABB((double) i, (double) l, (double) j1, (double) j, (double) i1, (double) k1), (com.google.common.base.Predicate<Entity>) entity -> entity.isAlive() && !entity.isSpectator()); // Paper - Fix lag from explosions processing dead entities
+-        List<Entity> list = this.level.getEntities(excludeSourceFromDamage ? this.source : null, new AABB((double) i, (double) l, (double) j1, (double) j, (double) i1, (double) k1), (com.google.common.base.Predicate<Entity>) entity -> entity.isAlive() && !entity.isSpectator()); // Paper - Fix lag from explosions processing dead entities, Allow explosions to damage source
 +        return new AABB((double) i, (double) l, (double) j1, (double) j, (double) i1, (double) k1);
 +    }
 +
@@ -141,12 +141,12 @@ index 6c66ee69beb55e5c5755bbf4d13c256541ce4468..74e32f74322b3e3bc8c2e3f5f8b74002
 +    }
 +
 +    protected final void impactEntity(ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[] blockCache, BlockPos.MutableBlockPos blockPos, float f2, Vec3 vec3d, Entity entity) {
-+        if (entity.isAlive() && !entity.isSpectator()) { // Paper - Fix lag from explosions processing dead entities
++        if (entity.isAlive() && !entity.isSpectator() && (!this.excludeSourceFromDamage || entity != this.source)) { // Paper - Fix lag from explosions processing dead entities
 +            // Sakura end - optimise paper explosions
              if (!entity.ignoreExplosion(this)) {
                  double d7 = Math.sqrt(entity.distanceToSqr(vec3d)) / (double) f2;
  
-@@ -552,7 +634,7 @@ public class Explosion {
+@@ -553,7 +635,7 @@ public class Explosion {
                              // - Damaging EntityEnderDragon does nothing
                              // - EntityEnderDragon hitbock always covers the other parts and is therefore always present
                              if (entity instanceof EnderDragonPart) {
@@ -155,7 +155,7 @@ index 6c66ee69beb55e5c5755bbf4d13c256541ce4468..74e32f74322b3e3bc8c2e3f5f8b74002
                              }
  
                              entity.lastDamageCancelled = false;
-@@ -560,9 +642,10 @@ public class Explosion {
+@@ -561,9 +643,10 @@ public class Explosion {
                              seenFraction = (double)this.getBlockDensity(vec3d, entity, blockCache, blockPos); // Paper - optimise collisions
  
                              if (entity instanceof EnderDragon) {
@@ -167,7 +167,7 @@ index 6c66ee69beb55e5c5755bbf4d13c256541ce4468..74e32f74322b3e3bc8c2e3f5f8b74002
                                          entityComplexPart.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity));
                                      }
                                  }
-@@ -576,7 +659,7 @@ public class Explosion {
+@@ -577,7 +660,7 @@ public class Explosion {
                              }
  
                              if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled
@@ -176,7 +176,7 @@ index 6c66ee69beb55e5c5755bbf4d13c256541ce4468..74e32f74322b3e3bc8c2e3f5f8b74002
                              }
                              // CraftBukkit end
                          } else { seenFraction = (double)this.getBlockDensity(vec3d, entity, blockCache, blockPos); } // Paper - optimise collisions
-@@ -619,6 +702,11 @@ public class Explosion {
+@@ -620,6 +703,11 @@ public class Explosion {
                  }
              }
          }
