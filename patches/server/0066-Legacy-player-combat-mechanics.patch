@@ -6,22 +6,49 @@ Subject: [PATCH] Legacy player combat mechanics
 
 diff --git a/src/main/java/me/samsuik/sakura/utils/CombatUtil.java b/src/main/java/me/samsuik/sakura/utils/CombatUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..babeceb7c6063933bf10bcc4bbfc6ea424ffb574
+index 0000000000000000000000000000000000000000..9c58f13396609ddd2bf7a909f2f20bd6bde27a1e
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/utils/CombatUtil.java
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,90 @@
 +package me.samsuik.sakura.utils;
 +
 +import it.unimi.dsi.fastutil.objects.Reference2FloatMap;
 +import it.unimi.dsi.fastutil.objects.Reference2FloatOpenHashMap;
++import net.minecraft.core.Holder;
++import net.minecraft.core.HolderLookup;
++import net.minecraft.core.RegistryAccess;
++import net.minecraft.core.component.DataComponents;
 +import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.resources.ResourceKey;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.damagesource.DamageSource;
++import net.minecraft.world.entity.EquipmentSlot;
++import net.minecraft.world.entity.LivingEntity;
++import net.minecraft.world.entity.ai.attributes.AttributeModifier;
++import net.minecraft.world.entity.ai.attributes.Attributes;
 +import net.minecraft.world.item.*;
++import net.minecraft.world.item.component.ItemAttributeModifiers;
++import net.minecraft.world.item.enchantment.Enchantment;
++import net.minecraft.world.item.enchantment.Enchantments;
++import net.minecraft.world.item.enchantment.ItemEnchantments;
++import org.apache.commons.lang3.mutable.MutableFloat;
 +
 +public final class CombatUtil {
 +    private static final Reference2FloatMap<Item> LEGACY_ITEM_DAMAGE_MAP = new Reference2FloatOpenHashMap<>();
 +
-+    public static float getLegacyItemDamage(Item item) {
-+        return LEGACY_ITEM_DAMAGE_MAP.getFloat(item);
++    static {
++        LEGACY_ITEM_DAMAGE_MAP.defaultReturnValue(Float.MIN_VALUE);
++        for (Item item : BuiltInRegistries.ITEM) {
++            if (item instanceof TieredItem tieredItem) {
++                float weaponDamage = baseToolDamage(tieredItem) + tieredItem.getTier().getAttackDamageBonus();
++                LEGACY_ITEM_DAMAGE_MAP.put(item, weaponDamage);
++            }
++            if (item instanceof HoeItem) {
++                LEGACY_ITEM_DAMAGE_MAP.put(item, 0.0f);
++            }
++        }
 +    }
 +
 +    private static float baseToolDamage(TieredItem item) {
@@ -34,27 +61,50 @@ index 0000000000000000000000000000000000000000..babeceb7c6063933bf10bcc4bbfc6ea4
 +        };
 +    }
 +
-+    static {
-+        LEGACY_ITEM_DAMAGE_MAP.defaultReturnValue(Float.MIN_VALUE);
-+
-+        for (Item item : BuiltInRegistries.ITEM) {
-+            if (item instanceof TieredItem tieredItem) {
-+                LEGACY_ITEM_DAMAGE_MAP.put(item, baseToolDamage(tieredItem) + tieredItem.getTier().getAttackDamageBonus());
++    public static double getLegacyAttackDifference(ItemStack itemstack) {
++        ItemAttributeModifiers defaultModifiers = itemstack.getItem().components().get(DataComponents.ATTRIBUTE_MODIFIERS);
++        if (defaultModifiers != null && !defaultModifiers.modifiers().isEmpty()) { // exists
++            double baseAttack = 0.0;
++            for (ItemAttributeModifiers.Entry entry : defaultModifiers.modifiers()) {
++                if (!entry.slot().test(EquipmentSlot.MAINHAND) || !entry.attribute().is(Attributes.ATTACK_DAMAGE))
++                    continue;
++                if (entry.modifier().operation() != AttributeModifier.Operation.ADD_VALUE)
++                    return 0;
++                baseAttack += entry.modifier().amount();
 +            }
 +
-+            if (item instanceof HoeItem) {
-+                LEGACY_ITEM_DAMAGE_MAP.put(item, 0.0f);
++            float legacyAttack = LEGACY_ITEM_DAMAGE_MAP.getFloat(itemstack.getItem());
++            if (baseAttack != 0.0f && legacyAttack != Float.MIN_VALUE) {
++                return (double) legacyAttack - baseAttack;
 +            }
 +        }
++        return 0;
++    }
 +
-+        //LEGACY_ITEM_DAMAGE_MAP.put(Items.TRIDENT, LEGACY_ITEM_DAMAGE_MAP.getFloat(Items.DIAMOND_SWORD));
++    public static float calculateLegacySharpnessDamage(LivingEntity entity, ItemStack itemstack, DamageSource damageSource) {
++        Holder<Enchantment> enchantment = getEnchantmentHolder(Enchantments.SHARPNESS);
++        ItemEnchantments itemEnchantments = itemstack.getEnchantments();
++        int enchantmentLevel = itemEnchantments.getLevel(enchantment);
++        MutableFloat damage = new MutableFloat();
++
++        if (entity.level() instanceof ServerLevel level) {
++            enchantment.value().modifyDamage(level, enchantmentLevel, itemstack, entity, damageSource, damage);
++        }
++        // legacy - modern
++        return enchantmentLevel * 1.25F - damage.getValue();
++    }
++
++    private static Holder<Enchantment> getEnchantmentHolder(ResourceKey<Enchantment> enchantmentKey) {
++        RegistryAccess registryAccess = MinecraftServer.getServer().registryAccess();
++        HolderLookup.RegistryLookup<Enchantment> enchantments = registryAccess.lookupOrThrow(Registries.ENCHANTMENT);
++        return enchantments.getOrThrow(enchantmentKey);
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index bfa7725cc59c393047c4fb0173453128d0d6e161..377e862bb6b926f73bab3d5cecce41a57fe9b73d 100644
+index 35b75be4ace452e684439ef2f0a6fa6d83f8f6cc..34721b0555f3977f85d72d9e704bbe49654ee19d 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-@@ -299,6 +299,79 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -299,6 +299,43 @@ public abstract class LivingEntity extends Entity implements Attackable {
          ++this.noActionTime; // Above all the floats
      }
      // Spigot end
@@ -78,7 +128,9 @@ index bfa7725cc59c393047c4fb0173453128d0d6e161..377e862bb6b926f73bab3d5cecce41a5
 +        AttributeModifier legacyModifier = null;
 +
 +        if (this.level().sakuraConfig().players.combat.legacyCombatMechanics) {
-+            legacyModifier = this.getLegacyAttackModifier();
++            ItemStack heldItem = this.getLastHandItem(EquipmentSlot.MAINHAND);
++            double attackDifference = me.samsuik.sakura.utils.CombatUtil.getLegacyAttackDifference(heldItem);
++            legacyModifier = new AttributeModifier(LEGACY_COMBAT_MODIFIER_ID, attackDifference, AttributeModifier.Operation.ADD_VALUE);
 +        }
 +
 +        final double damage;
@@ -92,49 +144,11 @@ index bfa7725cc59c393047c4fb0173453128d0d6e161..377e862bb6b926f73bab3d5cecce41a5
 +
 +        return (float) damage;
 +    }
-+
-+    private @Nullable AttributeModifier getLegacyAttackModifier() {
-+        ItemStack itemstack = this.getLastHandItem(EquipmentSlot.MAINHAND);
-+        net.minecraft.world.item.component.ItemAttributeModifiers defaultModifiers = itemstack.getItem().components().get(DataComponents.ATTRIBUTE_MODIFIERS);
-+        if (defaultModifiers != null && !defaultModifiers.modifiers().isEmpty()) { // exists
-+            double baseAttack = 0.0;
-+            for (net.minecraft.world.item.component.ItemAttributeModifiers.Entry entry : defaultModifiers.modifiers()) {
-+                if (!entry.slot().test(EquipmentSlot.MAINHAND) || !entry.attribute().is(Attributes.ATTACK_DAMAGE))
-+                    continue;
-+                if (entry.modifier().operation() != AttributeModifier.Operation.ADD_VALUE)
-+                    return null;
-+                baseAttack += entry.modifier().amount();
-+            }
-+
-+            float legacyAttack = me.samsuik.sakura.utils.CombatUtil.getLegacyItemDamage(itemstack.getItem());
-+            double attackDifference = (double) legacyAttack - baseAttack;
-+
-+            if (baseAttack != 0.0f && legacyAttack != Float.MIN_VALUE) {
-+                return new AttributeModifier(LEGACY_COMBAT_MODIFIER_ID, attackDifference, AttributeModifier.Operation.ADD_VALUE);
-+            }
-+        }
-+        return null;
-+    }
-+
-+    protected final float calculateLegacySharpnessDamage(ItemStack itemstack, DamageSource damageSource) {
-+        net.minecraft.core.RegistryAccess registryAccess = net.minecraft.server.MinecraftServer.getServer().registryAccess();
-+        net.minecraft.core.HolderLookup.RegistryLookup<Enchantment> enchantments = registryAccess.lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
-+        Holder<Enchantment> sharpness = enchantments.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SHARPNESS);
-+
-+        int enchantmentLevel = itemstack.getEnchantments().getLevel(sharpness);
-+        ServerLevel serverLevel = (ServerLevel) this.level();
-+
-+        org.apache.commons.lang3.mutable.MutableFloat damage = new org.apache.commons.lang3.mutable.MutableFloat();
-+        sharpness.value().modifyDamage(serverLevel, enchantmentLevel, itemstack, this, damageSource, damage);
-+
-+        // legacy - modern
-+        return enchantmentLevel * 1.25F - damage.getValue();
-+    }
 +    // Sakura end - legacy combat mechanics
  
      protected LivingEntity(EntityType<? extends LivingEntity> type, Level world) {
          super(type, world);
-@@ -2210,7 +2283,16 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -2210,7 +2247,16 @@ public abstract class LivingEntity extends Entity implements Attackable {
      protected float getDamageAfterArmorAbsorb(DamageSource source, float amount) {
          if (!source.is(DamageTypeTags.BYPASSES_ARMOR)) {
              // this.hurtArmor(damagesource, f); // CraftBukkit - actuallyHurt(DamageSource, float, EntityDamageEvent) for handle damage
@@ -151,7 +165,7 @@ index bfa7725cc59c393047c4fb0173453128d0d6e161..377e862bb6b926f73bab3d5cecce41a5
          }
  
          return amount;
-@@ -3352,6 +3434,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -3352,6 +3398,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
  
                      });
                  }
@@ -165,7 +179,7 @@ index bfa7725cc59c393047c4fb0173453128d0d6e161..377e862bb6b926f73bab3d5cecce41a5
          }
  
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index 5c3bebf932b6f0376711a2bd679062575bff04a3..d4485ecff16969e57241d3841efbe1745c0814aa 100644
+index 5c3bebf932b6f0376711a2bd679062575bff04a3..5d16462e1fab47f0587449d0f6e94886831d6ff3 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
 +++ b/src/main/java/net/minecraft/world/entity/player/Player.java
 @@ -1278,14 +1278,20 @@ public abstract class Player extends LivingEntity {
@@ -184,7 +198,7 @@ index 5c3bebf932b6f0376711a2bd679062575bff04a3..d4485ecff16969e57241d3841efbe174
                  f *= 0.2F + f2 * f2 * 0.8F;
                  f1 *= f2;
 +                } else if (f1 != 0.0) {
-+                    f1 += this.calculateLegacySharpnessDamage(itemstack, damagesource);
++                    f1 += me.samsuik.sakura.utils.CombatUtil.calculateLegacySharpnessDamage(this, itemstack, damagesource);
 +                }
 +                // Sakura end - legacy combat mechanics
                  // this.resetAttackStrengthTicker(); // CraftBukkit - Moved to EntityLiving to reset the cooldown after the damage is dealt

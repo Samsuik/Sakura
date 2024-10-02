@@ -5,23 +5,42 @@ Subject: [PATCH] Add outline colliison to enderpearls
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/projectile/ThrowableProjectile.java b/src/main/java/net/minecraft/world/entity/projectile/ThrowableProjectile.java
-index bf4c1883a1257af89428d6580a177f3af3759ee7..426c128805e5d40d4402e2b385d1a39f71b708a1 100644
+index bf4c1883a1257af89428d6580a177f3af3759ee7..e0543e0e7959c67df4f9c06d45d03de829d1c379 100644
 --- a/src/main/java/net/minecraft/world/entity/projectile/ThrowableProjectile.java
 +++ b/src/main/java/net/minecraft/world/entity/projectile/ThrowableProjectile.java
-@@ -43,7 +43,15 @@ public abstract class ThrowableProjectile extends Projectile {
+@@ -40,10 +40,16 @@ public abstract class ThrowableProjectile extends Projectile {
+         return true;
+     }
+ 
++    // Sakura start - enderpearls use outline for collision
++    protected net.minecraft.world.level.ClipContext.Block getClipType() {
++        return net.minecraft.world.level.ClipContext.Block.COLLIDER;
++    }
++    // Sakura end - enderpearls use outline for collision
++
      @Override
      public void tick() {
          super.tick();
 -        HitResult movingobjectposition = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
-+        // Sakura start - enderpearls use outline for collision
-+        final net.minecraft.world.level.ClipContext.Block type;
-+        if (level().sakuraConfig().entity.enderPearl.useOutlineForCollision && this instanceof ThrownEnderpearl) {
-+            type = net.minecraft.world.level.ClipContext.Block.OUTLINE;
-+        } else {
-+            type = net.minecraft.world.level.ClipContext.Block.COLLIDER;
-+        }
-+        HitResult movingobjectposition = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, type);
-+        // Sakura end - enderpearls use outline for collision
++        HitResult movingobjectposition = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, this.getClipType()); // Sakura - enderpearls use outline for collision
  
          if (movingobjectposition.getType() != HitResult.Type.MISS) {
              this.preHitTargetOrDeflectSelf(movingobjectposition); // CraftBukkit - projectile hit event
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java b/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
+index 1aa5e57a4e6a4be60514d8808a2e6c973d93e798..0dab87b1da300342870a95a1e50486e07f5b3ec8 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
+@@ -123,6 +123,13 @@ public class ThrownEnderpearl extends ThrowableItemProjectile {
+         }
+     }
+ 
++    // Sakura start - enderpearls use outline for collision
++    @Override
++    protected net.minecraft.world.level.ClipContext.Block getClipType() {
++        return this.level().sakuraConfig().entity.enderPearl.useOutlineForCollision ? net.minecraft.world.level.ClipContext.Block.OUTLINE : super.getClipType();
++    }
++    // Sakura end - enderpearls use outline for collision
++
+     @Override
+     public void tick() {
+         Entity entity = this.getOwner();
