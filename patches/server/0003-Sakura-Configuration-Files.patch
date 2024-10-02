@@ -251,16 +251,17 @@ index 0000000000000000000000000000000000000000..c41f188fdaf510a127771b1782e95705
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9d64ec42b8e8f838ba8b359a64b5cd05b9821f43
+index 0000000000000000000000000000000000000000..ab790630fe4a95ac0e7139e5d41fd8df3393e738
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,62 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.mojang.logging.LogUtils;
 +import io.papermc.paper.configuration.Configuration;
 +import io.papermc.paper.configuration.ConfigurationPart;
 +import io.papermc.paper.configuration.type.number.IntOr;
++import org.bukkit.Material;
 +import org.slf4j.Logger;
 +import org.spongepowered.configurate.objectmapping.meta.Comment;
 +import org.spongepowered.configurate.objectmapping.meta.Setting;
@@ -269,7 +270,7 @@ index 0000000000000000000000000000000000000000..9d64ec42b8e8f838ba8b359a64b5cd05
 +public class GlobalConfiguration extends ConfigurationPart {
 +
 +    private static final Logger LOGGER = LogUtils.getClassLogger();
-+    static final int CURRENT_VERSION = 1;// (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
++    static final int CURRENT_VERSION = 3;// (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
 +
 +    private static GlobalConfiguration instance;
 +    public static GlobalConfiguration get() {
@@ -283,15 +284,19 @@ index 0000000000000000000000000000000000000000..9d64ec42b8e8f838ba8b359a64b5cd05
 +    @Setting(Configuration.VERSION_FIELD)
 +    public int version = CURRENT_VERSION;
 +
++    public Messages messages;
++    public class Messages extends ConfigurationPart {
++        public String durableBlockInteraction = "<dark_gray>(<light_purple>S</light_purple>) <white>This block has <gray><remaining></gray> of <gray><durability>";
++        public String fpsSettingChange = "<dark_gray>(<light_purple>S</light_purple>) <gray><state> <yellow><name>";
++    }
++
 +    public Fps fps;
 +    public class Fps extends ConfigurationPart {
-+        public String message = "<dark_gray>(<light_purple>S</light_purple>) <gray><state> <yellow><name>";
-+        public String material = "pink_stained_glass_pane";
++        public Material material = Material.PINK_STAINED_GLASS_PANE;
 +    }
 +
 +    public Players players;
 +    public class Players extends ConfigurationPart {
-+        public String potatoMessage = "<dark_gray>(<light_purple>S</light_purple>) <white>This block has <gray><remaining></gray> of <gray><durability>";
 +        public IntOr.Default bucketStackSize = IntOr.Default.USE_DEFAULT;
 +    }
 +
@@ -314,10 +319,10 @@ index 0000000000000000000000000000000000000000..9d64ec42b8e8f838ba8b359a64b5cd05
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f2bc1852dc5600015201bb462ed47a41792cc1d8
+index 0000000000000000000000000000000000000000..94dd734ca4049354f925af1736bda57cd9be43dd
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
-@@ -0,0 +1,263 @@
+@@ -0,0 +1,270 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.google.common.collect.Table;
@@ -341,6 +346,8 @@ index 0000000000000000000000000000000000000000..f2bc1852dc5600015201bb462ed47a41
 +import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 +import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 +import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
++import me.samsuik.sakura.configuration.transformation.global.V1_RelocateMessages;
++import me.samsuik.sakura.configuration.transformation.global.V2_ConvertIconToMaterial;
 +import me.samsuik.sakura.configuration.transformation.world.*;
 +import net.minecraft.core.RegistryAccess;
 +import net.minecraft.core.registries.Registries;
@@ -515,10 +522,15 @@ index 0000000000000000000000000000000000000000..f2bc1852dc5600015201bb462ed47a41
 +    }
 +
 +    @Override
-+    protected void applyGlobalConfigTransformations(ConfigurationNode node) throws ConfigurateException {
++    protected void applyGlobalConfigTransformations(final ConfigurationNode node) throws ConfigurateException {
 +        final ConfigurationTransformation.Builder builder = ConfigurationTransformation.builder();
 +        builder.addAction(NodePath.path("cannons"), TransformAction.remove());
 +        builder.build().apply(node);
++
++        final ConfigurationTransformation.VersionedBuilder versionedBuilder = Transformations.versionedBuilder();
++        V1_RelocateMessages.apply(versionedBuilder);
++        V2_ConvertIconToMaterial.apply(versionedBuilder);
++        versionedBuilder.build().apply(node);
 +    }
 +
 +    @Override
@@ -822,6 +834,77 @@ index 0000000000000000000000000000000000000000..7c579c28294452e107aa32eae3d07fde
 +        }
 +    }
 +
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/transformation/global/V1_RelocateMessages.java b/src/main/java/me/samsuik/sakura/configuration/transformation/global/V1_RelocateMessages.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6c72577e3fac9324ebe786e8d23969c3082ed618
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/transformation/global/V1_RelocateMessages.java
+@@ -0,0 +1,31 @@
++package me.samsuik.sakura.configuration.transformation.global;
++
++import org.spongepowered.configurate.NodePath;
++import org.spongepowered.configurate.transformation.ConfigurationTransformation;
++import org.spongepowered.configurate.transformation.TransformAction;
++
++import java.util.Map;
++
++import static org.spongepowered.configurate.NodePath.path;
++
++public final class V1_RelocateMessages {
++    private static final int VERSION = 2; // targeted version is always ahead by one
++    private static final Map<NodePath, NodePath> RELOCATION = Map.of(
++        path("fps", "message"), path("messages", "fps-setting-change"),
++        path("players", "potato-message"), path("messages", "durable-block-interaction")
++    );
++
++    private V1_RelocateMessages() {}
++
++    public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
++        ConfigurationTransformation.Builder transformationBuilder = ConfigurationTransformation.builder();
++        for (Map.Entry<NodePath, NodePath> entry : RELOCATION.entrySet()) {
++            transformationBuilder.addAction(entry.getKey(), relocate(entry.getValue()));
++        }
++        builder.addVersion(VERSION, transformationBuilder.build());
++    }
++
++    private static TransformAction relocate(NodePath path) {
++        return (node, object) -> path.array();
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/transformation/global/V2_ConvertIconToMaterial.java b/src/main/java/me/samsuik/sakura/configuration/transformation/global/V2_ConvertIconToMaterial.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c6f8bfeb83a7d108cd32caa0c88629aa49de81ff
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/transformation/global/V2_ConvertIconToMaterial.java
+@@ -0,0 +1,28 @@
++package me.samsuik.sakura.configuration.transformation.global;
++
++import org.checkerframework.checker.nullness.qual.Nullable;
++import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.ConfigurationNode;
++import org.spongepowered.configurate.NodePath;
++import org.spongepowered.configurate.transformation.ConfigurationTransformation;
++import org.spongepowered.configurate.transformation.TransformAction;
++
++public final class V2_ConvertIconToMaterial implements TransformAction {
++    private static final int VERSION = 3; // targeted version is always ahead by one
++    private static final NodePath PATH = NodePath.path("fps", "material");
++    private static final V2_ConvertIconToMaterial INSTANCE = new V2_ConvertIconToMaterial();
++
++    private V2_ConvertIconToMaterial() {}
++
++    public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
++        builder.addVersion(VERSION, ConfigurationTransformation.builder().addAction(PATH, INSTANCE).build());
++    }
++
++    @Override
++    public Object @Nullable [] visitPath(NodePath path, ConfigurationNode value) throws ConfigurateException {
++        if (value.raw() instanceof String stringValue) {
++            value.raw(stringValue.toUpperCase());
++        }
++        return null;
++    }
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/transformation/world/V2_VerticalKnockbackUseDefault.java b/src/main/java/me/samsuik/sakura/configuration/transformation/world/V2_VerticalKnockbackUseDefault.java
 new file mode 100644
