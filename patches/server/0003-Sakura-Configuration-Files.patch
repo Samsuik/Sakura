@@ -251,15 +251,16 @@ index 0000000000000000000000000000000000000000..c41f188fdaf510a127771b1782e95705
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..bca4180d1fc777a244c9465b056bbf0baa9b9709
+index 0000000000000000000000000000000000000000..9d64ec42b8e8f838ba8b359a64b5cd05b9821f43
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,57 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.mojang.logging.LogUtils;
 +import io.papermc.paper.configuration.Configuration;
 +import io.papermc.paper.configuration.ConfigurationPart;
++import io.papermc.paper.configuration.type.number.IntOr;
 +import org.slf4j.Logger;
 +import org.spongepowered.configurate.objectmapping.meta.Comment;
 +import org.spongepowered.configurate.objectmapping.meta.Setting;
@@ -291,6 +292,7 @@ index 0000000000000000000000000000000000000000..bca4180d1fc777a244c9465b056bbf0b
 +    public Players players;
 +    public class Players extends ConfigurationPart {
 +        public String potatoMessage = "<dark_gray>(<light_purple>S</light_purple>) <white>This block has <gray><remaining></gray> of <gray><durability>";
++        public IntOr.Default bucketStackSize = IntOr.Default.USE_DEFAULT;
 +    }
 +
 +    public Environment environment;
@@ -1071,7 +1073,7 @@ index dd56c8e041116ef3602a9f89c998c8208ab89b51..6cc0386531bea4ed11d9461c6810d7d1
          this.setPvpAllowed(dedicatedserverproperties.pvp);
          this.setFlightAllowed(dedicatedserverproperties.allowFlight);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index c96f3dcd365bc140b1f4680ef6bd770c80f8eda1..fb2e895aa658175329708828de3e1030bf28620b 100644
+index f9abf63e12ea930275121b470e4e4906cff0fc12..1a0819301e0ce05c60b6cb961202a5c60697f6c1 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -503,7 +503,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
@@ -1084,7 +1086,7 @@ index c96f3dcd365bc140b1f4680ef6bd770c80f8eda1..fb2e895aa658175329708828de3e1030
          this.convertable = convertable_conversionsession;
          this.uuid = WorldUUID.getUUID(convertable_conversionsession.levelDirectory.path().toFile());
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index e2a0487089eb5a7bdc1433e4c75f69d8e9f9d5f9..7da2fc17f6e7bf888ef0c2a8eba0fc3b4c10436e 100644
+index 507671476c3d2d92a2fdb05be24443af27d26dcf..48c2d026fd678f7990738a0037780a535f1ac19b 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -171,6 +171,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

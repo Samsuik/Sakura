@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sat, 14 Sep 2024 12:04:43 +0100
+Subject: [PATCH] Modify bucket stack size
+
+When a player interacts with a bucket this patch adds a data component to change the max stack size.
+
+diff --git a/src/main/java/net/minecraft/world/item/BucketItem.java b/src/main/java/net/minecraft/world/item/BucketItem.java
+index 229d71f093f672f323cc2feadf2cd174a62805f8..ff41a87ae29bfa866cb7810d5d50f632a2e7412e 100644
+--- a/src/main/java/net/minecraft/world/item/BucketItem.java
++++ b/src/main/java/net/minecraft/world/item/BucketItem.java
+@@ -49,6 +49,17 @@ public class BucketItem extends Item implements DispensibleContainerItem {
+         this.content = fluid;
+     }
+ 
++    // Sakura start - modify bucket stack size
++    @Override
++    public void verifyComponentsAfterLoad(ItemStack stack) {
++        me.samsuik.sakura.configuration.GlobalConfiguration config = me.samsuik.sakura.configuration.GlobalConfiguration.get();
++        int customItemSize = config == null || !config.players.bucketStackSize.isDefined() ? -1 : config.players.bucketStackSize.intValue();
++        if (customItemSize > 0 && customItemSize < 100) {
++            stack.set(net.minecraft.core.component.DataComponents.MAX_STACK_SIZE, customItemSize);
++        }
++    }
++    // Sakura end - modify bucket stack size
++
+     @Override
+     public InteractionResultHolder<ItemStack> use(Level world, Player user, InteractionHand hand) {
+         ItemStack itemstack = user.getItemInHand(hand);
