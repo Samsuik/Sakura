@@ -5,10 +5,10 @@ Subject: [PATCH] Configurable left shooting and adjusting limits
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 2e902a96d335abe849a2519fdc94844346046dc3..1912b9b1410073711ca85ed1703886a2d0e72f2b 100644
+index 11c91e62ad71fbe8b22e417c6d942c8d0849a863..2201bd3639482ec0e6f01b4f991bb4abfb5b9da6 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -632,6 +632,24 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -632,6 +632,46 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return Math.max(x, z) >= this.travelDistanceLimit;
      }
      // Sakura end - entity travel distance limits
@@ -29,36 +29,52 @@ index 2e902a96d335abe849a2519fdc94844346046dc3..1912b9b1410073711ca85ed1703886a2
 +            }
 +        }
 +    }
++
++    public final void limitAdjustMovement(AABB currBoundingBox, double dir, boolean xAdjust, List<VoxelShape> shapes) {
++        int adjustDistance = this.level.sakuraConfig().cannons.restrictions.maxAdjustDistance.or(-1);
++        if (adjustDistance > 0 && Math.abs(dir) > adjustDistance) {
++            double minX = Double.NEGATIVE_INFINITY;
++            double minZ = Double.NEGATIVE_INFINITY;
++            double maxX = Double.POSITIVE_INFINITY;
++            double maxZ = Double.POSITIVE_INFINITY;
++            if (xAdjust) { // limit x adjust
++                minX = Math.floor(currBoundingBox.minX) - adjustDistance;
++                maxX = Math.floor(currBoundingBox.maxX) + adjustDistance + 1;
++            } else {       // limit z adjust
++                minZ = Math.floor(currBoundingBox.minZ) - adjustDistance;
++                maxZ = Math.floor(currBoundingBox.maxZ) + adjustDistance + 1;
++            }
++            VoxelShape safeSpace = Shapes.box(
++                minX, Double.NEGATIVE_INFINITY, minZ,
++                maxX, Double.POSITIVE_INFINITY, maxZ
++            );
++            shapes.add(Shapes.join(Shapes.INFINITY, safeSpace, BooleanOp.ONLY_FIRST));
++        }
++    }
 +    // Sakura end - configurable left shooting and adjusting limits
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -1666,6 +1684,25 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
-         boolean xSmaller = this.physics == null || this.physics.afterOrEqual(1_14_0) ? Math.abs(x) < Math.abs(z)
-             : this.physics.isLegacy() && Math.abs(x) > Math.abs(z);
-         // Sakura end - physics version api
-+        // Sakura start - configurable left shooting and adjusting limits
-+        // NOTE: If scanAndCollide is made redundant by paper move this logic into CollisionUtil.
-+        // This is being after xSmaller is intentional, we do not want to change the adjust direction.
-+        int adjustDistance = this.level.sakuraConfig().cannons.restrictions.maxAdjustDistance.or(-1);
-+        if (adjustDistance > 0) {
-+            if (xSmaller) { // adjust z -> x
-+                if (Math.abs(z) > adjustDistance) {
-+                    // limit z adjust and remove momentum to replicate it hitting a block
-+                    this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 1.0, 0.0));
-+                    z = Math.floor(this.getZ() + Math.copySign(adjustDistance, z)) - this.getZ() + 0.5;
-+                }
-+            } else { // adjust x -> z
-+                if (Math.abs(x) > adjustDistance) {
-+                    this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 1.0));
-+                    x = Math.floor(this.getX() + Math.copySign(adjustDistance, x)) - this.getX() + 0.5;
-+                }
-+            }
-+        }
-+        // Sakura end - configurable left shooting and adjusting limits
+@@ -1687,6 +1727,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         }
  
-         if (y != 0.0) {
-             y = this.scanY(currBoundingBox, y, voxelList, bbList);
+         if (xSmaller && z != 0.0) {
++            this.limitAdjustMovement(currBoundingBox, z, false, voxelList); // Sakura - configurable left shooting and adjusting limits
+             z = this.scanZ(currBoundingBox, z, voxelList, bbList);
+             if (z != 0.0) {
+                 currBoundingBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetZ(currBoundingBox, z);
+@@ -1694,6 +1735,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         }
+ 
+         if (x != 0.0) {
++            // Sakura start - configurable left shooting and adjusting limits
++            if (!xSmaller) {
++                this.limitAdjustMovement(currBoundingBox, x, true, voxelList);
++            }
++            // Sakura end - configurable left shooting and adjusting limits
+             x = this.scanX(currBoundingBox, x, voxelList, bbList);
+             if (x != 0.0) {
+                 currBoundingBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetX(currBoundingBox, x);
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 index 87a5e151895c7fac32afc3b44088e5e75856dcd7..d722542fd1295669208946daa839c12cdf6886a9 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java

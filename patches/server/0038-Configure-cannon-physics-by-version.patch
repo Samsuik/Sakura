@@ -106,7 +106,7 @@ index a5d13c6b0d8765e4a65b43f5835fd907738e1da4..19f0d8cf94a60b66cead3c129ded69fc
      protected int getExplosionCount() {
          if (this.cause.getMergeEntityData().getMergeLevel() == MergeLevel.NONE) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 6131a99836b721f468d21df00c8d0f2bcb7feda9..4a899864f460c80bbc6d5d6849e0421c2e392495 100644
+index c1c1737bc7f57b7112567fe22a31c964cf4d10f7..ba94f23803adc9b83e46a7ed936e178064a42e71 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -384,7 +384,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -151,7 +151,7 @@ index 6131a99836b721f468d21df00c8d0f2bcb7feda9..4a899864f460c80bbc6d5d6849e0421c
                  if (movement.equals(Vec3.ZERO)) {
                      return;
 @@ -1191,10 +1198,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
-             Vec3 vec3d1 = this.collideScan(movement);
+             Vec3 vec3d1 = this.sakura_collide(movement);
              double d0 = vec3d1.lengthSqr();
  
 -            if (d0 > 1.0E-7D) {
@@ -208,16 +208,16 @@ index 6131a99836b721f468d21df00c8d0f2bcb7feda9..4a899864f460c80bbc6d5d6849e0421c
                      this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
                  }
  
-@@ -1614,7 +1631,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
-         } else {
-             AABB bb = currBoundingBox.expandTowards(movement.x, movement.y, movement.z);
-             this.collectCollisions(bb, potentialCollisionsVoxel, potentialCollisionsBB);
--            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
-+            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB, this.physics); // Sakura - physics version api
+@@ -1627,7 +1644,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+             bb = currBoundingBox.expandTowards(movement.x, movement.y, movement.z);
          }
+         this.collectCollisions(bb, voxelList, bbList);
+-        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currBoundingBox, voxelList, bbList);
++        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currBoundingBox, voxelList, bbList, this.physics); // Sakura - physics version api
      }
  
-@@ -1623,7 +1640,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     private Vec3 collideAxisScan(Vec3 movement, AABB currBoundingBox, List<VoxelShape> voxelList, List<AABB> bbList) {
+@@ -1635,7 +1652,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          double y = movement.y;
          double z = movement.z;
  
@@ -229,7 +229,7 @@ index 6131a99836b721f468d21df00c8d0f2bcb7feda9..4a899864f460c80bbc6d5d6849e0421c
  
          if (y != 0.0) {
              y = this.scanY(currBoundingBox, y, voxelList, bbList);
-@@ -1739,7 +1759,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1748,7 +1768,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              return movement;
          }
  
@@ -238,7 +238,7 @@ index 6131a99836b721f468d21df00c8d0f2bcb7feda9..4a899864f460c80bbc6d5d6849e0421c
  
          if (stepHeight > 0.0
              && (onGround || (limitedMoveVector.y != movement.y && movement.y < 0.0))
-@@ -1890,8 +1910,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1899,8 +1919,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
  
      protected void checkInsideBlocks() {
          AABB axisalignedbb = this.getBoundingBox();

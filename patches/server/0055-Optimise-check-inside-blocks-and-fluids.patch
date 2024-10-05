@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise check inside blocks and fluids
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index eb90625e5a4b843877ba2f7b2510ba1c26d861ce..8237ed9645ccebc274d3e7bbb16444126638c7a2 100644
+index 6591dc7d43c0f2086328c8704b130ccca8e097cc..1a873b14ccf65a62ed5f6fe41e281bda1a799636 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1924,18 +1924,37 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1933,18 +1933,37 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          BlockPos blockposition1 = BlockPos.containing(axisalignedbb.maxX - offset, axisalignedbb.maxY - offset, axisalignedbb.maxZ - offset);
          // Sakura end - physics version api
  
@@ -50,7 +50,7 @@ index eb90625e5a4b843877ba2f7b2510ba1c26d861ce..8237ed9645ccebc274d3e7bbb1644412
  
                          try {
                              iblockdata.entityInside(this.level(), blockposition_mutableblockposition, this);
-@@ -4714,7 +4733,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4723,7 +4742,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      public boolean updateFluidHeightAndDoFluidPushing(TagKey<Fluid> tag, double speed) {
@@ -59,7 +59,7 @@ index eb90625e5a4b843877ba2f7b2510ba1c26d861ce..8237ed9645ccebc274d3e7bbb1644412
              return false;
          } else {
              AABB axisalignedbb = this.getBoundingBox().deflate(0.001D);
-@@ -4731,11 +4750,30 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4740,11 +4759,30 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              int k1 = 0;
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
  

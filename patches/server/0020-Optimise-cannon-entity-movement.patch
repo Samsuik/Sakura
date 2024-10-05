@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise cannon entity movement
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a636c0331b6c963224727eaaed9c09d29ba9d2d7..b8b86de79c276b89ff5d4f9469c3456104dcc00e 100644
+index a636c0331b6c963224727eaaed9c09d29ba9d2d7..ccbe81eb8df2406554c34e771b16855136db111c 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1166,6 +1166,93 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -33,7 +33,7 @@ index a636c0331b6c963224727eaaed9c09d29ba9d2d7..b8b86de79c276b89ff5d4f9469c34561
 +            }
 +
 +            // collideScan for optimised large movements
-+            Vec3 vec3d1 = this.collideScan(movement);
++            Vec3 vec3d1 = this.sakura_collide(movement);
 +            double d0 = vec3d1.lengthSqr();
 +
 +            if (d0 > 1.0E-7D) {
@@ -102,31 +102,43 @@ index a636c0331b6c963224727eaaed9c09d29ba9d2d7..b8b86de79c276b89ff5d4f9469c34561
  
      public void move(MoverType movementType, Vec3 movement) {
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
-@@ -1510,6 +1597,95 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1510,6 +1597,104 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return offsetFactor;
      }
  
 +    // Sakura start - optimise cannon entity movement
-+    private Vec3 collideScan(Vec3 movement) {
++    private Vec3 sakura_collide(Vec3 movement) {
 +        if (movement.x == 0.0 && movement.y == 0.0 && movement.z == 0.0) {
 +            return movement;
 +        }
 +
-+        boolean scan = movement.lengthSqr() >= 12.0;
++        List<VoxelShape> potentialCollisionsVoxel = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(0);
 +        List<AABB> potentialCollisionsBB = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(4);
-+        List<VoxelShape> potentialCollisionsVoxel = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(1);
-+        AABB currBoundingBox = getBoundingBox();
++        AABB currBoundingBox = this.getBoundingBox();
 +
-+        if (scan) {
-+            return this.scanAndCollide(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
++        if (movement.lengthSqr() >= 12.0) { // axis scan on large movement
++            return this.collideAxisScan(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
 +        } else {
-+            AABB bb = currBoundingBox.expandTowards(movement.x, movement.y, movement.z);
-+            this.collectCollisions(bb, potentialCollisionsVoxel, potentialCollisionsBB);
-+            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
++            return this.collideCube(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
 +        }
 +    }
 +
-+    private Vec3 scanAndCollide(Vec3 movement, AABB currBoundingBox, List<VoxelShape> voxelList, List<AABB> bbList) {
++    private Vec3 collideCube(Vec3 movement, AABB currBoundingBox, List<VoxelShape> voxelList, List<AABB> bbList) {
++        final AABB bb;
++        if (movement.x() == 0.0 && movement.z() == 0.0) {
++            if (movement.y > 0.0) {
++                bb = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutUpwards(currBoundingBox, movement.y);
++            } else {
++                bb = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutDownwards(currBoundingBox, movement.y);
++            }
++        } else {
++            bb = currBoundingBox.expandTowards(movement.x, movement.y, movement.z);
++        }
++        this.collectCollisions(bb, voxelList, bbList);
++        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currBoundingBox, voxelList, bbList);
++    }
++
++    private Vec3 collideAxisScan(Vec3 movement, AABB currBoundingBox, List<VoxelShape> voxelList, List<AABB> bbList) {
 +        double x = movement.x;
 +        double y = movement.y;
 +        double z = movement.z;
@@ -135,7 +147,6 @@ index a636c0331b6c963224727eaaed9c09d29ba9d2d7..b8b86de79c276b89ff5d4f9469c34561
 +
 +        if (y != 0.0) {
 +            y = this.scanY(currBoundingBox, y, voxelList, bbList);
-+
 +            if (y != 0.0) {
 +                currBoundingBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetY(currBoundingBox, y);
 +            }
@@ -143,7 +154,6 @@ index a636c0331b6c963224727eaaed9c09d29ba9d2d7..b8b86de79c276b89ff5d4f9469c34561
 +
 +        if (xSmaller && z != 0.0) {
 +            z = this.scanZ(currBoundingBox, z, voxelList, bbList);
-+
 +            if (z != 0.0) {
 +                currBoundingBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetZ(currBoundingBox, z);
 +            }
@@ -151,7 +161,6 @@ index a636c0331b6c963224727eaaed9c09d29ba9d2d7..b8b86de79c276b89ff5d4f9469c34561
 +
 +        if (x != 0.0) {
 +            x = this.scanX(currBoundingBox, x, voxelList, bbList);
-+
 +            if (x != 0.0) {
 +                currBoundingBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetX(currBoundingBox, x);
 +            }
