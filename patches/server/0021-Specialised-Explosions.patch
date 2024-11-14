@@ -23,10 +23,10 @@ index 0fd814f1d65c111266a2b20f86561839a4cef755..932f7a0d030d2d4932e6e6d4a5805e9b
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d15eb10fa203236060b90c5fc1364564dec8753f
+index 0000000000000000000000000000000000000000..ce676a021dd375959e9403b237bad864cd2b7da2
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-@@ -0,0 +1,200 @@
+@@ -0,0 +1,201 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import io.papermc.paper.util.WorldUtil;
@@ -113,6 +113,7 @@ index 0000000000000000000000000000000000000000..d15eb10fa203236060b90c5fc1364564
 +
 +        if (!this.wasCanceled) {
 +            this.level.notifyPlayersOfExplosion(this.x, this.y, this.z, this.radius(), this);
++            this.getHitPlayers().clear();
 +        }
 +
 +        this.getToBlow().clear();
@@ -435,7 +436,7 @@ index 0000000000000000000000000000000000000000..6bcef992766b901db34494a4d359ba33
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index ada18c755cee73620e6c0020674dd0a5a1d8f79d..00259cc930a0b1db38c3abbb5fcf7430d5f50079 100644
+index 352a8d62dd25c4c612abe016c7038bdfd13006f2..e68ea2ac656085fbe25eb19c14793889cdafab8c 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1964,6 +1964,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -451,7 +452,7 @@ index ada18c755cee73620e6c0020674dd0a5a1d8f79d..00259cc930a0b1db38c3abbb5fcf7430
          Iterator iterator = this.players.iterator();
  
          while (iterator.hasNext()) {
-@@ -1974,7 +1980,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1986,7 +1992,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              }
          }
  
@@ -495,7 +496,7 @@ index dc9d72bc033735dd83d7b0f3fe79d0a51b9661ab..6cfa54da058939003576025cb0512e0b
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 103eca429d899f4d004ac0cb1996339e66543080..d10d2581c6dfdaf7518bead4f2340c1b63b4bc44 100644
+index 103eca429d899f4d004ac0cb1996339e66543080..b2ba5d761e21023ef4e3ee01c7318a7a586e650b 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -56,9 +56,11 @@ public class Explosion {
@@ -578,7 +579,19 @@ index 103eca429d899f4d004ac0cb1996339e66543080..d10d2581c6dfdaf7518bead4f2340c1b
          // use initial cache value that is most likely to be used: the source position
          final ExplosionBlockCache initialCache;
          {
-@@ -994,7 +1011,7 @@ public class Explosion {
+@@ -757,7 +774,10 @@ public class Explosion {
+                             Player entityhuman = (Player) entity;
+ 
+                             if (!entityhuman.isSpectator() && (!entityhuman.isCreative() || !entityhuman.getAbilities().flying) && !level.paperConfig().environment.disableExplosionKnockback) { // Paper - Option to disable explosion knockback
+-                                this.hitPlayers.put(entityhuman, vec3d1);
++                                // Sakura start - specialised explosions; tally player velocity
++                                final Vec3 explosionImpact = vec3d1;
++                                this.hitPlayers.compute(entityhuman, (p, v) -> v != null ? v.add(explosionImpact) : explosionImpact);
++                                // Sakura end - specialised explosions; tally player velocity
+                             }
+                         }
+ 
+@@ -994,7 +1014,7 @@ public class Explosion {
          private BlockInteraction() {}
      }
      // Paper start - Optimize explosions

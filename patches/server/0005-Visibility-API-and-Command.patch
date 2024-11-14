@@ -294,18 +294,30 @@ index 7fb9ba3dadb1eca4a1000ea8cf4d13fed2b7db1e..7fb48e8924e7f6acfcaaecf284f9bf19
                  if (flag && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
                      flag = false;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index b5a66132f7ec10feb4682db38c80e5064e78f9f3..747ebfb09dcd4c619ee0543c8aa79c05416687a4 100644
+index b5a66132f7ec10feb4682db38c80e5064e78f9f3..35ec5faff8a1cad4c35ee075885889844534efc9 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1959,7 +1959,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
-         while (iterator.hasNext()) {
+@@ -1960,7 +1960,19 @@ public class ServerLevel extends Level implements WorldGenLevel {
              ServerPlayer entityplayer = (ServerPlayer) iterator.next();
  
--            if (entityplayer.distanceToSqr(x, y, z) < 4096.0D) {
-+            if (entityplayer.distanceToSqr(x, y, z) < 4096.0D && !entityplayer.visibility.isToggled(me.samsuik.sakura.player.visibility.Visibility.Setting.EXPLOSIONS)) { // Sakura - visibility api
-                 entityplayer.connection.send(new ClientboundExplodePacket(x, y, z, power, explosion.getToBlow(), (Vec3) explosion.getHitPlayers().get(entityplayer), explosion.getBlockInteraction(), explosion.getSmallExplosionParticles(), explosion.getLargeExplosionParticles(), explosion.getExplosionSound()));
+             if (entityplayer.distanceToSqr(x, y, z) < 4096.0D) {
+-                entityplayer.connection.send(new ClientboundExplodePacket(x, y, z, power, explosion.getToBlow(), (Vec3) explosion.getHitPlayers().get(entityplayer), explosion.getBlockInteraction(), explosion.getSmallExplosionParticles(), explosion.getLargeExplosionParticles(), explosion.getExplosionSound()));
++                // Sakura start - visibility api; let players toggle explosion particles
++                ParticleOptions smallParticle = explosion.getSmallExplosionParticles();
++                ParticleOptions largeParticle = explosion.getLargeExplosionParticles();
++                Vec3 position = new Vec3(x, y, z);
++                // In 1.22 and later this should be replaced with sending the motion through a PlayerPositionPacket.
++                // The problem here is SetEntityMotion is capped to 3.9 b/pt and the only other alternate mean was
++                // implemented in 1.21.3. I believe it's best to just wait on this issue and deal with this hack.
++                if (entityplayer.visibility.isToggled(me.samsuik.sakura.player.visibility.Visibility.Setting.EXPLOSIONS)) {
++                    position = new Vec3(0.0, -1024.0, 0.0);
++                    smallParticle = largeParticle = net.minecraft.core.particles.ParticleTypes.SMOKE;
++                }
++                entityplayer.connection.send(new ClientboundExplodePacket(position.x(), position.y(), position.z(), power, explosion.getToBlow(), (Vec3) explosion.getHitPlayers().get(entityplayer), explosion.getBlockInteraction(), smallParticle, largeParticle, explosion.getExplosionSound()));
++                // Sakura end - visibility api; let players toggle explosion particles
              }
          }
+ 
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 index 6a4637eef14cbd84bbe26ef16f004b8f93367a3d..bed136477493365d62d1b82e8f7802513a394991 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
