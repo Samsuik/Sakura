@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise paper explosions
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index e60410d2d1a09f935caffe0cfb9b6232c00b1c8c..7924adff65f0fa4ce4e1c1b4d8632a4c3c55d52f 100644
+index e60410d2d1a09f935caffe0cfb9b6232c00b1c8c..0547588fba8cbb7871afd8601c9cb605f8bf09d2 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -96,7 +96,196 @@ public class Explosion {
@@ -13,33 +13,6 @@ index e60410d2d1a09f935caffe0cfb9b6232c00b1c8c..7924adff65f0fa4ce4e1c1b4d8632a4c
      }
  
 +    // Sakura start - optimise vanilla explosions
-+    private static final double[] EXPLOSION_RAYS;
-+
-+    static {
-+        it.unimi.dsi.fastutil.doubles.DoubleArrayList list = new it.unimi.dsi.fastutil.doubles.DoubleArrayList();
-+        for (int k = 0; k < 16; ++k) {
-+            for (int i = 0; i < 16; ++i) {
-+                for (int j = 0; j < 16; ++j) {
-+                    if (k == 0 || k == 15 || i == 0 || i == 15 || j == 0 || j == 15) {
-+                        double d0 = (double) ((float) k / 15.0F * 2.0F - 1.0F);
-+                        double d1 = (double) ((float) i / 15.0F * 2.0F - 1.0F);
-+                        double d2 = (double) ((float) j / 15.0F * 2.0F - 1.0F);
-+                        double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
-+
-+                        d0 /= d3;
-+                        d1 /= d3;
-+                        d2 /= d3;
-+
-+                        list.add(d0 * 0.30000001192092896D);
-+                        list.add(d1 * 0.30000001192092896D);
-+                        list.add(d2 * 0.30000001192092896D);
-+                    }
-+                }
-+            }
-+        }
-+        EXPLOSION_RAYS = sortExplosionRays(list);
-+    }
-+
 +    /*
 +     * Sort the explosion rays to better utilise the chunk and block cache.
 +     *   x +   Vanilla     Sorted
@@ -72,6 +45,33 @@ index e60410d2d1a09f935caffe0cfb9b6232c00b1c8c..7924adff65f0fa4ce4e1c1b4d8632a4c
 +            rays[i] = explosionRays.get(i / 3)[i % 3];
 +        }
 +        return rays;
++    }
++
++    private static final double[] EXPLOSION_RAYS;
++
++    static {
++        it.unimi.dsi.fastutil.doubles.DoubleArrayList list = new it.unimi.dsi.fastutil.doubles.DoubleArrayList();
++        for (int k = 0; k < 16; ++k) {
++            for (int i = 0; i < 16; ++i) {
++                for (int j = 0; j < 16; ++j) {
++                    if (k == 0 || k == 15 || i == 0 || i == 15 || j == 0 || j == 15) {
++                        double d0 = (double) ((float) k / 15.0F * 2.0F - 1.0F);
++                        double d1 = (double) ((float) i / 15.0F * 2.0F - 1.0F);
++                        double d2 = (double) ((float) j / 15.0F * 2.0F - 1.0F);
++                        double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
++
++                        d0 /= d3;
++                        d1 /= d3;
++                        d2 /= d3;
++
++                        list.add(d0 * 0.30000001192092896D);
++                        list.add(d1 * 0.30000001192092896D);
++                        list.add(d2 * 0.30000001192092896D);
++                    }
++                }
++            }
++        }
++        EXPLOSION_RAYS = sortExplosionRays(list);
 +    }
 +
 +    protected final void searchForBlocks() {
@@ -266,7 +266,7 @@ index e60410d2d1a09f935caffe0cfb9b6232c00b1c8c..7924adff65f0fa4ce4e1c1b4d8632a4c
 +        BlockPos explosionBlockPos = new BlockPos(this.x, this.y, this.z);
 +        BlockState blockstate = this.level.getBlockState(explosionBlockPos);
 +        float resistance = blockstate.getBlock().getExplosionResistance();
-+        if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.blockInteraction != BlockInteraction.KEEP) {
++        if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.interactsWithBlocks()) {
 +            this.searchForBlocks();
          }
  

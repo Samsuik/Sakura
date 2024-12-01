@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise explosions in protected regions
 
 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 212d0a2d61e8d8515820d85c511937bd17679c71..738015f5aa1e405623ad41ea4f039bde9a2ec572 100644
+index becf60978e6c13ac5100886be1a6adae4d361207..a12ad5380bfbdba20c1c5e568da7b0cfac5a55db 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -281,6 +281,22 @@ public class Explosion {
@@ -35,8 +35,8 @@ index 212d0a2d61e8d8515820d85c511937bd17679c71..738015f5aa1e405623ad41ea4f039bde
          BlockPos explosionBlockPos = new BlockPos(this.x, this.y, this.z);
          BlockState blockstate = this.level.getBlockState(explosionBlockPos);
          float resistance = blockstate.getBlock().getExplosionResistance();
--        if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.blockInteraction != BlockInteraction.KEEP) {
-+        if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.blockInteraction != BlockInteraction.KEEP && this.isRegionUnprotected()) { // Sakura - optimise protected explosions
+-        if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.interactsWithBlocks()) {
++        if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.interactsWithBlocks() && this.isRegionUnprotected()) { // Sakura - optimise protected explosions
              this.searchForBlocks();
          }
  
