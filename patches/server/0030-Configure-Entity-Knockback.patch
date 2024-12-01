@@ -5,91 +5,91 @@ Subject: [PATCH] Configure Entity Knockback
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 6162631e863dd15c7fdb70dbde2f85d273c7020b..e75322367764805443f9a9f5639d804b87a0ab5e 100644
+index c10c3f46fe29733c4b7fab7dd6d68a76905488eb..3b4ba5c9e2aeab85f79a2d3a583017cd84f3c1cd 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-@@ -1549,7 +1549,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
-                         d0 = (Math.random() - Math.random()) * 0.01D;
+@@ -1475,7 +1475,7 @@ public abstract class LivingEntity extends Entity {
                      }
  
--                    this.knockback(0.4000000059604645D, d0, d1, entity1, entity1 == null ? EntityKnockbackEvent.KnockbackCause.DAMAGE : EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // CraftBukkit
-+                    this.knockback((float) level().sakuraConfig().players.knockback.baseKnockback, d0, d1, entity1, entity1 == null ? EntityKnockbackEvent.KnockbackCause.DAMAGE : EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // Sakura - configure entity knockback // CraftBukkit
-                     if (!flag) {
-                         this.indicateDamage(d0, d1);
-                     }
-@@ -1596,7 +1596,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+                     this.hurtDir = (float) (Mth.atan2(d1, d0) * 57.2957763671875D - (double) this.getYRot());
+-                    this.knockback(0.4000000059604645D, d0, d1, entity1); // Paper
++                    this.knockback((float) this.level.sakuraConfig().players.knockback.baseKnockback, d0, d1, entity1); // Sakura - configure entity knockback
+                 } else {
+                     this.hurtDir = (float) ((int) (Math.random() * 2.0D) * 180);
+                 }
+@@ -1522,7 +1522,7 @@ public abstract class LivingEntity extends Entity {
      }
  
      protected void blockedByShield(LivingEntity target) {
--        target.knockback(0.5D, target.getX() - this.getX(), target.getZ() - this.getZ(), this, EntityKnockbackEvent.KnockbackCause.SHIELD_BLOCK); // CraftBukkit // Paper - fix attacker
-+        target.knockback((float) level().sakuraConfig().players.knockback.shieldHitKnockback, target.getX() - this.getX(), target.getZ() - this.getZ(), this, EntityKnockbackEvent.KnockbackCause.SHIELD_BLOCK);  // Sakura - configure entity knockback // CraftBukkit // Paper - fix attacker
+-        target.knockback(0.5D, target.getX() - this.getX(), target.getZ() - this.getZ(), this); // Paper
++        target.knockback((float) this.level.sakuraConfig().players.knockback.shieldHitKnockback, target.getX() - this.getX(), target.getZ() - this.getZ(), this); // Sakura - configure entity knockback // Paper
      }
  
      private boolean checkTotemDeathProtection(DamageSource source) {
-@@ -1914,13 +1914,26 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -1834,13 +1834,26 @@ public abstract class LivingEntity extends Entity {
      }
- 
-     public void knockback(double d0, double d1, double d2, @Nullable Entity attacker, EntityKnockbackEvent.KnockbackCause cause) { // Paper - add nullable to attacker param
--        d0 *= 1.0D - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
-+        d0 *= 1.0D - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE) * level().sakuraConfig().players.knockback.knockbackResistanceModifier; // Sakura - configure entity knockback
-         if (true || d0 > 0.0D) { // CraftBukkit - Call event even when force is 0
-             //this.hasImpulse = true; // CraftBukkit - Move down
+     public void knockback(double strength, double x, double z, Entity knockingBackEntity) {
+         // Paper end - add knockbacking entity parameter
+-        strength *= 1.0D - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
++        strength *= 1.0D - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE) * this.level.sakuraConfig().players.knockback.knockbackResistanceModifier; // Sakura - configure entity knockback
+         if (strength > 0.0D) {
+             this.hasImpulse = true;
              Vec3 vec3d = this.getDeltaMovement();
-             Vec3 vec3d1 = (new Vec3(d1, 0.0D, d2)).normalize().scale(d0);
+             Vec3 vec3d1 = (new Vec3(x, 0.0D, z)).normalize().scale(strength);
  
--            EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) this.getBukkitEntity(), attacker, cause, d0, vec3d1, vec3d.x / 2.0D - vec3d1.x, this.onGround() ? Math.min(0.4D, vec3d.y / 2.0D + d0) : vec3d.y, vec3d.z / 2.0D - vec3d1.z);
+-            this.setDeltaMovement(vec3d.x / 2.0D - vec3d1.x, this.onGround ? Math.min(0.4D, vec3d.y / 2.0D + strength) : vec3d.y, vec3d.z / 2.0D - vec3d1.z);
 +            // Sakura start - configure entity knockback
 +            double velocityX = vec3d.x / 2.0D - vec3d1.x;
-+            double velocityY = vec3d.y / 2.0D + level().sakuraConfig().players.knockback.knockbackVertical.or(d0);
++            double velocityY = vec3d.y / 2.0D + this.level.sakuraConfig().players.knockback.knockbackVertical.or(strength);
 +            double velocityZ = vec3d.z / 2.0D - vec3d1.z;
 +
 +            // this.onGround() ? Math.min(0.4D, vec3d.y / 2.0D + d0) : vec3d.y
-+            if (!level().sakuraConfig().players.knockback.verticalKnockbackRequireGround || this.onGround()) {
-+                velocityY = Math.min(level().sakuraConfig().players.knockback.knockbackVerticalLimit, velocityY);
++            if (!this.level.sakuraConfig().players.knockback.verticalKnockbackRequireGround || this.onGround) {
++                velocityY = Math.min(this.level.sakuraConfig().players.knockback.knockbackVerticalLimit, velocityY);
 +            } else {
 +                velocityY = vec3d.y;
 +            }
 +
-+            EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) this.getBukkitEntity(), attacker, cause, d0, vec3d1, velocityX, velocityY, velocityZ);
++            this.setDeltaMovement(velocityX, velocityY, velocityZ);
 +            // Sakura end - configure entity knockback
-             if (event.isCancelled()) {
-                 return;
-             }
+             // Paper start - call EntityKnockbackByEntityEvent
+             Vec3 currentMovement = this.getDeltaMovement();
+             org.bukkit.util.Vector delta = new org.bukkit.util.Vector(currentMovement.x - vec3d.x, currentMovement.y - vec3d.y, currentMovement.z - vec3d.z);
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index 74dcfabdc66ef289b8d6a5c6606579b5321af1db..ddf9acf79356d6fff5caa436f67641512fb16f59 100644
+index 407401198c21dd5887aa3b7d86cdb112ef369007..0807d9d33131bf36b02f075e2150eaf33774ad27 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
 +++ b/src/main/java/net/minecraft/world/entity/player/Player.java
 @@ -183,6 +183,7 @@ public abstract class Player extends LivingEntity {
-     public float hurtDir; // Paper - protected -> public
-     public boolean affectsSpawning = true; // Paper - Affects Spawning API
-     public net.kyori.adventure.util.TriState flyingFallDamage = net.kyori.adventure.util.TriState.NOT_SET; // Paper - flying fall damage
+     public boolean affectsSpawning = true;
+     public net.kyori.adventure.util.TriState flyingFallDamage = net.kyori.adventure.util.TriState.NOT_SET;
+     // Paper end
 +    private long lastSprintKnockback = -1; // Sakura - configure entity knockback
  
      // CraftBukkit start
      public boolean fauxSleeping;
-@@ -1274,7 +1275,7 @@ public abstract class Player extends LivingEntity {
+@@ -1265,7 +1266,7 @@ public abstract class Player extends LivingEntity {
                      byte b0 = 0;
                      int i = b0 + EnchantmentHelper.getKnockbackBonus(this);
  
 -                    if (this.isSprinting() && flag) {
-+                    if (this.isSprinting() && (!level().sakuraConfig().players.knockback.sprinting.requireFullAttack || flag)) { // Sakura
++                    if (this.isSprinting() && (!this.level.sakuraConfig().players.knockback.sprinting.requireFullAttack || flag)) { // Sakura
                          sendSoundEffect(this, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_KNOCKBACK, this.getSoundSource(), 1.0F, 1.0F); // Paper - send while respecting visibility
                          ++i;
                          flag1 = true;
-@@ -1324,10 +1325,26 @@ public abstract class Player extends LivingEntity {
+@@ -1315,10 +1316,26 @@ public abstract class Player extends LivingEntity {
  
                      if (flag5) {
                          if (i > 0) {
 -                            if (target instanceof LivingEntity) {
--                                ((LivingEntity) target).knockback((double) ((float) i * 0.5F), (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this, EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // CraftBukkit
+-                                ((LivingEntity) target).knockback((double) ((float) i * 0.5F), (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this); // Paper
 +                            // Sakura start - configure extra sprinting knockback
 +                            float extraKnockback = (float) i * 0.5F;
 +                            long millis = System.currentTimeMillis();
 +                            long sinceLastKnockback = millis - this.lastSprintKnockback;
 +                            if (flag1) { // attackHasExtraKnockback
 +                                double knockbackToApply = 0.0;
-+                                if (sinceLastKnockback >= this.level().sakuraConfig().players.knockback.sprinting.knockbackDelay.value().orElse(0)) {
-+                                    knockbackToApply = this.level().sakuraConfig().players.knockback.sprinting.extraKnockback;
++                                if (sinceLastKnockback >= this.level.sakuraConfig().players.knockback.sprinting.knockbackDelay.value().orElse(0)) {
++                                    knockbackToApply = this.level.sakuraConfig().players.knockback.sprinting.extraKnockback;
 +                                    this.lastSprintKnockback = millis;
 +                                }
 +                                // -0.5 is to negate the vanilla sprinting knockback
@@ -98,35 +98,35 @@ index 74dcfabdc66ef289b8d6a5c6606579b5321af1db..ddf9acf79356d6fff5caa436f6764151
 +                            if (extraKnockback == 0.0) {
 +                                // required
 +                            } else if (target instanceof LivingEntity) {
-+                                ((LivingEntity) target).knockback((double) (extraKnockback), (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this, EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // CraftBukkit
++                                ((LivingEntity) target).knockback((double) (extraKnockback), (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this); // Paper
                              } else {
--                                target.push((double) (-Mth.sin(this.getYRot() * 0.017453292F) * (float) i * 0.5F), 0.1D, (double) (Mth.cos(this.getYRot() * 0.017453292F) * (float) i * 0.5F), this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
-+                                target.push((double) (-Mth.sin(this.getYRot() * 0.017453292F) * extraKnockback), 0.1D, (double) (Mth.cos(this.getYRot() * 0.017453292F) * extraKnockback), this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+-                                target.push((double) (-Mth.sin(this.getYRot() * 0.017453292F) * (float) i * 0.5F), 0.1D, (double) (Mth.cos(this.getYRot() * 0.017453292F) * (float) i * 0.5F), this); // Paper
++                                target.push((double) (-Mth.sin(this.getYRot() * 0.017453292F) * extraKnockback), 0.1D, (double) (Mth.cos(this.getYRot() * 0.017453292F) * extraKnockback), this); // Paper
 +                                // Sakura end - configure extra sprinting knockback
                              }
  
                              this.setDeltaMovement(this.getDeltaMovement().multiply(0.6D, 1.0D, 0.6D));
-@@ -1349,7 +1366,7 @@ public abstract class Player extends LivingEntity {
+@@ -1340,7 +1357,7 @@ public abstract class Player extends LivingEntity {
                                  if (entityliving != this && entityliving != target && !this.isAlliedTo((Entity) entityliving) && (!(entityliving instanceof ArmorStand) || !((ArmorStand) entityliving).isMarker()) && this.distanceToSqr((Entity) entityliving) < 9.0D) {
                                      // CraftBukkit start - Only apply knockback if the damage hits
-                                     if (entityliving.hurt(this.damageSources().playerAttack(this).sweep().critical(flag2), f4)) { // Paper - add critical damage API
--                                        entityliving.knockback(0.4000000059604645D, (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this, EntityKnockbackEvent.KnockbackCause.SWEEP_ATTACK); // CraftBukkit
-+                                        entityliving.knockback((float) level().sakuraConfig().players.knockback.sweepingEdgeKnockback, (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this, EntityKnockbackEvent.KnockbackCause.SWEEP_ATTACK); // Sakura - configure entity knockback // CraftBukkit
+                                     if (entityliving.hurt(DamageSource.playerAttack(this).sweep().critical(flag2), f4)) { // Paper - add critical damage API
+-                                    entityliving.knockback(0.4000000059604645D, (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this); // Paper
++                                    entityliving.knockback((float) this.level.sakuraConfig().players.knockback.sweepingEdgeKnockback, (double) Mth.sin(this.getYRot() * 0.017453292F), (double) (-Mth.cos(this.getYRot() * 0.017453292F)), this); // Sakura - configure entity knockback // Paper
                                      }
                                      // CraftBukkit end
                                  }
 diff --git a/src/main/java/net/minecraft/world/entity/projectile/FishingHook.java b/src/main/java/net/minecraft/world/entity/projectile/FishingHook.java
-index 91497f5e6c07fcf1b05eca6846c51e1a15ed3bc0..ba906ceb807b21c01cf4d3c0122f626959f6e775 100644
+index 15fb5ee374b19366ebb23181896fb943e95819f0..70016e105066a16d19ebdf631cc3ef0a03466e3a 100644
 --- a/src/main/java/net/minecraft/world/entity/projectile/FishingHook.java
 +++ b/src/main/java/net/minecraft/world/entity/projectile/FishingHook.java
-@@ -298,6 +298,12 @@ public class FishingHook extends Projectile {
+@@ -291,6 +291,12 @@ public class FishingHook extends Projectile {
              this.setHookedEntity(entityHitResult.getEntity());
          }
  
 +        // Sakura start - configure entity knockback
-+        if (this.level().sakuraConfig().players.knockback.fishingHooksApplyKnockback) {
++        if (this.level.sakuraConfig().players.knockback.fishingHooksApplyKnockback) {
 +            Entity entity = entityHitResult.getEntity();
-+            entity.hurt(this.damageSources().thrown(this, this.getOwner()), 0.0f);
++            entity.hurt(net.minecraft.world.damagesource.DamageSource.thrown(this, this.getOwner()), 0.0f);
 +        }
 +        // Sakura end - configure entity knockback
      }

@@ -5,17 +5,16 @@ Subject: [PATCH] Optimise Fast Movement
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index c10f6574cc08aafe34a63c803e55e406b3d972c6..ad0743957b17c3a31a09836672eba47bc794401a 100644
+index c34e4077ba1c8768d3ed8f32a14df46a32009ab8..d7216d8e4c2a60d94b6c8ca2580c8aa9a7b58c67 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1239,6 +1239,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1137,6 +1137,92 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      }
      // Paper end - detailed watchdog information
  
 +    // Sakura start - stripped back movement method for basic entities
 +    public void moveBasic(MoverType movementType, Vec3 movement) {
 +        io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
-+
 +        if (this.noPhysics) {
 +            this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
 +        } else {
@@ -26,7 +25,7 @@ index c10f6574cc08aafe34a63c803e55e406b3d972c6..ad0743957b17c3a31a09836672eba47b
 +                }
 +            }
 +
-+            this.level().getProfiler().push("move");
++            this.level.getProfiler().push("move");
 +            if (this.stuckSpeedMultiplier.lengthSqr() > 1.0E-7D) {
 +                movement = movement.multiply(this.stuckSpeedMultiplier);
 +                this.stuckSpeedMultiplier = Vec3.ZERO;
@@ -38,10 +37,8 @@ index c10f6574cc08aafe34a63c803e55e406b3d972c6..ad0743957b17c3a31a09836672eba47b
 +            double d0 = vec3d1.lengthSqr();
 +
 +            if (d0 > 1.0E-7D) {
-+                // NOTE: if there are any blocks in the future that rely on fall distance make sure this is correct.
-+                // The only block I am aware of is powdered snow that has a special case for falling blocks.
-+                if (this.fallDistance != 0.0F && d0 >= 1.0D && !isFallingBlock) {
-+                    BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
++                if (this.fallDistance != 0.0F && d0 >= 1.0D && !this.isFallingBlock) {
++                    BlockHitResult movingobjectpositionblock = this.level.clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
 +
 +                    if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
 +                        this.resetFallDistance();
@@ -51,8 +48,8 @@ index c10f6574cc08aafe34a63c803e55e406b3d972c6..ad0743957b17c3a31a09836672eba47b
 +                this.setPos(this.getX() + vec3d1.x, this.getY() + vec3d1.y, this.getZ() + vec3d1.z);
 +            }
 +
-+            this.level().getProfiler().pop();
-+            this.level().getProfiler().push("rest");
++            this.level.getProfiler().pop();
++            this.level.getProfiler().push("rest");
 +            boolean flag = !Mth.equal(movement.x, vec3d1.x);
 +            boolean flag1 = !Mth.equal(movement.z, vec3d1.z);
 +
@@ -65,13 +62,13 @@ index c10f6574cc08aafe34a63c803e55e406b3d972c6..ad0743957b17c3a31a09836672eba47b
 +                this.minorHorizontalCollision = false;
 +            }
 +
-+            this.setOnGroundWithKnownMovement(this.verticalCollisionBelow, vec3d1);
++            this.onGround = this.verticalCollision && movement.y < 0.0D;
 +            BlockPos blockposition = this.getOnPosLegacy();
-+            BlockState iblockdata = this.level().getBlockState(blockposition);
++            BlockState iblockdata = this.level.getBlockState(blockposition);
 +
-+            this.checkFallDamage(vec3d1.y, this.onGround(), iblockdata, blockposition);
++            this.checkFallDamage(vec3d1.y, this.onGround, iblockdata, blockposition);
 +            if (this.isRemoved()) {
-+                this.level().getProfiler().pop();
++                this.level.getProfiler().pop();
 +            } else {
 +                if (this.horizontalCollision) {
 +                    Vec3 vec3d2 = this.getDeltaMovement();
@@ -82,12 +79,12 @@ index c10f6574cc08aafe34a63c803e55e406b3d972c6..ad0743957b17c3a31a09836672eba47b
 +                Block block = iblockdata.getBlock();
 +
 +                if (movement.y != vec3d1.y) {
-+                    block.updateEntityAfterFallOn(this.level(), this);
++                    block.updateEntityAfterFallOn(this.level, this);
 +                }
 +
-+                if (this.onGround()) {
++                if (this.onGround) {
 +                    // used for slowing down entities on top of slime
-+                    block.stepOn(this.level(), blockposition, iblockdata, this);
++                    block.stepOn(this.level, blockposition, iblockdata, this);
 +                }
 +
 +                this.tryCheckInsideBlocks();
@@ -95,16 +92,16 @@ index c10f6574cc08aafe34a63c803e55e406b3d972c6..ad0743957b17c3a31a09836672eba47b
 +                float f = this.getBlockSpeedFactor();
 +
 +                this.multiplyDeltaMovement((double) f, 1.0D, (double) f); // Sakura - reduce movement allocations
-+                this.level().getProfiler().pop();
++                this.level.getProfiler().pop();
 +            }
 +        }
 +    }
 +    // Sakura end
 +
      public void move(MoverType movementType, Vec3 movement) {
-         final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
-@@ -1617,6 +1706,95 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+         io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
+@@ -1489,6 +1575,88 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
          return offsetFactor;
      }
  
@@ -116,19 +113,18 @@ index c10f6574cc08aafe34a63c803e55e406b3d972c6..ad0743957b17c3a31a09836672eba47b
 +
 +        final boolean scan = movement.lengthSqr() >= 12.0;
 +        final List<AABB> potentialCollisionsBB = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(4);
-+        final List<VoxelShape> potentialCollisionsVoxel = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(1);
 +        final AABB currBoundingBox = getBoundingBox();
 +
 +        if (scan) {
-+            return scanAndCollide(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
++            return scanAndCollide(movement, currBoundingBox, potentialCollisionsBB);
 +        } else {
 +            final AABB bb = currBoundingBox.expandTowards(movement.x, movement.y, movement.z);
-+            collectCollisions(bb, potentialCollisionsVoxel, potentialCollisionsBB);
-+            return io.papermc.paper.util.CollisionUtil.performCollisions(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
++            this.collectCollisions(bb, potentialCollisionsBB);
++            return io.papermc.paper.util.CollisionUtil.performCollisions(movement, currBoundingBox, potentialCollisionsBB);
 +        }
 +    }
 +
-+    private Vec3 scanAndCollide(Vec3 movement, AABB currBoundingBox, List<VoxelShape> voxelList, List<AABB> bbList) {
++    private Vec3 scanAndCollide(Vec3 movement, AABB currBoundingBox, List<AABB> bbList) {
 +        double x = movement.x;
 +        double y = movement.y;
 +        double z = movement.z;
@@ -136,93 +132,87 @@ index c10f6574cc08aafe34a63c803e55e406b3d972c6..ad0743957b17c3a31a09836672eba47b
 +        final boolean xSmaller = Math.abs(x) < Math.abs(z);
 +
 +        if (y != 0.0) {
-+            y = scanY(currBoundingBox, y, voxelList, bbList);
-+
++            y = this.scanY(currBoundingBox, y, bbList);
 +            if (y != 0.0) {
 +                currBoundingBox = io.papermc.paper.util.CollisionUtil.offsetY(currBoundingBox, y);
 +            }
 +        }
 +
 +        if (xSmaller && z != 0.0) {
-+            z = scanZ(currBoundingBox, z, voxelList, bbList);
-+
++            z = this.scanZ(currBoundingBox, z, bbList);
 +            if (z != 0.0) {
 +                currBoundingBox = io.papermc.paper.util.CollisionUtil.offsetZ(currBoundingBox, z);
 +            }
 +        }
 +
 +        if (x != 0.0) {
-+            x = scanX(currBoundingBox, x, voxelList, bbList);
-+
++            x = this.scanX(currBoundingBox, x, bbList);
 +            if (x != 0.0) {
 +                currBoundingBox = io.papermc.paper.util.CollisionUtil.offsetX(currBoundingBox, x);
 +            }
 +        }
 +
 +        if (!xSmaller && z != 0.0) {
-+            z = scanZ(currBoundingBox, z, voxelList, bbList);
++            z = this.scanZ(currBoundingBox, z, bbList);
 +        }
 +
 +        return new Vec3(x, y, z);
 +    }
 +
-+    private void collectCollisions(AABB collisionBox, List<VoxelShape> voxelList, List<AABB> bbList) {
++    private void collectCollisions(AABB collisionBox, List<AABB> bbList) {
 +        // Copied from the collide method below
 +        io.papermc.paper.util.CollisionUtil.getCollisions(
-+            level, this, collisionBox, voxelList, bbList,
-+            io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_CHECK_BORDER | this.getExtraCollisionFlags(), // Sakura
-+            null, null
++            this.level, this, collisionBox, bbList,
++            false, this.level.paperConfig().chunks.preventMovingIntoUnloadedChunks,
++            false, this.loadChunks, false, null, null // Sakura - load chunks on movement
 +        );
 +    }
 +
-+    private double scanX(AABB currBoundingBox, double x, List<VoxelShape> voxelList, List<AABB> bbList) {
++    private double scanX(AABB currBoundingBox, double x, List<AABB> bbList) {
 +        AABB scanBox = currBoundingBox.expandTowards(x, 0.0, 0.0);
-+        collectCollisions(scanBox, voxelList, bbList);
-+        x = io.papermc.paper.util.CollisionUtil.performAABBCollisionsX(currBoundingBox, x, bbList);
-+        return io.papermc.paper.util.CollisionUtil.performVoxelCollisionsX(currBoundingBox, x, voxelList);
++        this.collectCollisions(scanBox, bbList);
++        return io.papermc.paper.util.CollisionUtil.performCollisionsX(currBoundingBox, x, bbList);
 +    }
 +
-+    private double scanY(AABB currBoundingBox, double y, List<VoxelShape> voxelList, List<AABB> bbList) {
++    private double scanY(AABB currBoundingBox, double y, List<AABB> bbList) {
 +        AABB scanBox = currBoundingBox.expandTowards(0.0, y, 0.0);
-+        collectCollisions(scanBox, voxelList, bbList);
-+        y = io.papermc.paper.util.CollisionUtil.performAABBCollisionsY(currBoundingBox, y, bbList);
-+        return io.papermc.paper.util.CollisionUtil.performVoxelCollisionsY(currBoundingBox, y, voxelList);
++        this.collectCollisions(scanBox, bbList);
++        return io.papermc.paper.util.CollisionUtil.performCollisionsY(currBoundingBox, y, bbList);
 +    }
 +
-+    private double scanZ(AABB currBoundingBox, double z, List<VoxelShape> voxelList, List<AABB> bbList) {
++    private double scanZ(AABB currBoundingBox, double z, List<AABB> bbList) {
 +        AABB scanBox = currBoundingBox.expandTowards(0.0, 0.0, z);
-+        collectCollisions(scanBox, voxelList, bbList);
-+        z = io.papermc.paper.util.CollisionUtil.performAABBCollisionsZ(currBoundingBox, z, bbList);
-+        return io.papermc.paper.util.CollisionUtil.performVoxelCollisionsZ(currBoundingBox, z, voxelList);
++        this.collectCollisions(scanBox, bbList);
++        return io.papermc.paper.util.CollisionUtil.performCollisionsZ(currBoundingBox, z, bbList);
 +    }
 +    // Sakura end
 +
      private Vec3 collide(Vec3 movement) {
          // Paper start - optimise collisions
-         final boolean xZero = movement.x == 0.0;
+         // This is a copy of vanilla's except that it uses strictly AABB math
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 66b6250dc692e1222ac1661cdd206a1094049a15..d2ad54dd3975e2dd8ef26ad28ad1bb2c71ba9f1a 100644
+index 2965d963ca7eaf7bfd010094c08aa8b80af79a13..33a247ac617c17e7c0cf1614ca485398c60ea579 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -199,7 +199,7 @@ public class FallingBlockEntity extends Entity {
+@@ -200,7 +200,7 @@ public class FallingBlockEntity extends Entity {
                  this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
              }
  
 -            this.move(MoverType.SELF, this.getDeltaMovement());
 +            this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
-             // Paper start - Configurable falling blocks height nerf
-             if (this.level().paperConfig().fixes.fallingBlockHeightNerf.test(v -> this.getY() > v)) {
-                 if (this.dropItem && this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+ 
+             // Paper start - fix sand duping
+             if (this.isRemoved()) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 0c8775fd29fdc811c8a3becb484abf3ed92686c7..dbebba5c36b034270d4c238966957bc25a35aa86 100644
+index f3330d5219edfac9fd23b10e3f97e999fc3b5b0e..ab4bcf2383e060a348eb172d1b36310cbbe17f72 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -96,7 +96,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -85,7 +85,7 @@ public class PrimedTnt extends Entity {
              this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
          }
  
 -        this.move(MoverType.SELF, this.getDeltaMovement());
 +        this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
-         // Paper start - Configurable TNT height nerf
-         if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
-             this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
+         // Paper start - Configurable TNT entity height nerf
+         if (this.level.paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
+             this.discard();

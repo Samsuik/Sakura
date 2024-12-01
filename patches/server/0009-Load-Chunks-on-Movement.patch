@@ -5,85 +5,109 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/src/main/java/io/papermc/paper/util/CollisionUtil.java b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-index ee0331a6bc40cdde08d926fd8eb1dc642630c2e5..ae068cd14042bfab0fc3ab1a6473ec09fb1d7185 100644
+index a87f6380b2c387fb0cdd40d5087b5c93492e3c88..4db0a1b1270e2ff1ea1a4723b3dd28860f4c2087 100644
 --- a/src/main/java/io/papermc/paper/util/CollisionUtil.java
 +++ b/src/main/java/io/papermc/paper/util/CollisionUtil.java
-@@ -1569,6 +1569,7 @@ public final class CollisionUtil {
-     public static final int COLLISION_FLAG_COLLIDE_WITH_UNLOADED_CHUNKS = 1 << 1;
-     public static final int COLLISION_FLAG_CHECK_BORDER = 1 << 2;
-     public static final int COLLISION_FLAG_CHECK_ONLY = 1 << 3;
-+    public static final int COLLISION_FLAG_ADD_TICKET = 1 << 4; // Sakura
+@@ -403,9 +403,17 @@ public final class CollisionUtil {
+         return boxMinX < borderMinX || boxMaxX > borderMaxX || boxMinZ < borderMinZ || boxMaxZ > borderMaxZ;
+     }
  
-     public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
-                                                               final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
-@@ -1619,11 +1620,21 @@ public final class CollisionUtil {
-         final int maxChunkZ = maxBlockZ >> 4;
++    // Sakura start - load chunks on movement
+     public static boolean getCollisionsForBlocksOrWorldBorder(final CollisionGetter getter, final Entity entity, final AABB aabb,
+-                                                                  final List<AABB> into, final boolean loadChunks, final boolean collidesWithUnloaded,
+-                                                                  final boolean checkBorder, final boolean checkOnly, final BiPredicate<BlockState, BlockPos> predicate) {
++                                                              final List<AABB> into, final boolean loadChunks, final boolean collidesWithUnloaded,
++                                                              final boolean checkBorder, final boolean checkOnly, final BiPredicate<BlockState, BlockPos> predicate) {
++        return getCollisionsForBlocksOrWorldBorder(getter, entity, aabb, into, loadChunks, collidesWithUnloaded, checkBorder, false, checkOnly, predicate);
++    }
++    public static boolean getCollisionsForBlocksOrWorldBorder(final CollisionGetter getter, final Entity entity, final AABB aabb,
++                                                              final List<AABB> into, final boolean loadChunks, final boolean collidesWithUnloaded,
++                                                              final boolean checkBorder, final boolean addTicket, final boolean checkOnly,
++                                                              final BiPredicate<BlockState, BlockPos> predicate) {
++        // Sakura end - load chunks on movement
+         boolean ret = false;
  
-         final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
-+        final boolean addTicket  = (collisionFlags & COLLISION_FLAG_ADD_TICKET) != 0; // Sakura
-         final ServerChunkCache chunkSource = (ServerChunkCache)world.getChunkSource();
- 
-         for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
-             for (int currChunkX = minChunkX; currChunkX <= maxChunkX; ++currChunkX) {
-                 final ChunkAccess chunk = loadChunks ? chunkSource.getChunk(currChunkX, currChunkZ, ChunkStatus.FULL, true) : chunkSource.getChunkAtIfLoadedImmediately(currChunkX, currChunkZ);
-+                // Sakura start - keep chunks loaded on movement
-+                if (addTicket && chunk instanceof net.minecraft.world.level.chunk.LevelChunk levelChunk && levelChunk.movementLoadTicketRequiresUpdate()) {
-+                    chunkSource.chunkMap.getDistanceManager().getChunkHolderManager().addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, currChunkX, currChunkZ, 31, CoordinateUtils.getChunkKey(currChunkX, currChunkZ));
-+                    // This is known to work, uncomment if any issues
-+                    // var pos = new net.minecraft.world.level.ChunkPos(currChunkX, currChunkZ);
-+                    // chunkSource.addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, pos, 33, pos.toLong());
-+                    levelChunk.updatedMovementLoadTicket();
-+                }
-+                // Sakura end
+         if (checkBorder) {
+@@ -479,8 +487,17 @@ public final class CollisionUtil {
+                 final ChunkAccess chunk;
+                 if (chunkProvider == null) {
+                     chunk = (ChunkAccess)getter.getChunkForCollisions(currChunkX, currChunkZ);
++                    // Sakura start - load chunks on movement
++                } else if (loadChunks) {
++                    chunk = chunkProvider.getChunk(currChunkX, currChunkZ, true);
++                    if (addTicket && chunk instanceof net.minecraft.world.level.chunk.LevelChunk levelChunk && levelChunk.movementLoadTicketRequiresUpdate()) {
++                        net.minecraft.world.level.ChunkPos chunkPos = new net.minecraft.world.level.ChunkPos(currChunkX, currChunkZ);
++                        chunkProvider.addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, chunkPos, 33, chunkPos.toLong());
++                        levelChunk.updatedMovementLoadTicket();
++                    }
+                 } else {
+-                    chunk = loadChunks ? chunkProvider.getChunk(currChunkX, currChunkZ, true) : chunkProvider.getChunkAtIfLoadedImmediately(currChunkX, currChunkZ);
++                    chunk = chunkProvider.getChunkAtIfLoadedImmediately(currChunkX, currChunkZ);
++                    // Sakura end - load chunks on movement
+                 }
  
                  if (chunk == null) {
-                     if ((collisionFlags & COLLISION_FLAG_COLLIDE_WITH_UNLOADED_CHUNKS) != 0) {
+@@ -846,16 +863,24 @@ public final class CollisionUtil {
+         return ret;
+     }
+ 
++    // Sakura start - load chunks on movement
+     public static boolean getCollisions(final CollisionGetter view, final Entity entity, final AABB aabb,
+                                         final List<AABB> into, final boolean loadChunks, final boolean collidesWithUnloadedChunks,
+                                         final boolean checkBorder, final boolean checkOnly, final BiPredicate<BlockState, BlockPos> blockPredicate,
+                                         final Predicate<Entity> entityPredicate) {
++        return getCollisions(view, entity, aabb, into, loadChunks, collidesWithUnloadedChunks, checkBorder, false, checkOnly, blockPredicate, entityPredicate);
++    }
++    public static boolean getCollisions(final CollisionGetter view, final Entity entity, final AABB aabb,
++                                        final List<AABB> into, final boolean loadChunks, final boolean collidesWithUnloadedChunks,
++                                        final boolean checkBorder, final boolean addTicket, final boolean checkOnly,
++                                        final BiPredicate<BlockState, BlockPos> blockPredicate, final Predicate<Entity> entityPredicate) {
+         if (checkOnly) {
+-            return getCollisionsForBlocksOrWorldBorder(view, entity, aabb, into, loadChunks, collidesWithUnloadedChunks, checkBorder, checkOnly, blockPredicate)
++            return getCollisionsForBlocksOrWorldBorder(view, entity, aabb, into, loadChunks, collidesWithUnloadedChunks, checkBorder, addTicket, checkOnly, blockPredicate)
+                 || getEntityHardCollisions(view, entity, aabb, into, checkOnly, entityPredicate);
+         } else {
+-            return getCollisionsForBlocksOrWorldBorder(view, entity, aabb, into, loadChunks, collidesWithUnloadedChunks, checkBorder, checkOnly, blockPredicate)
++            return getCollisionsForBlocksOrWorldBorder(view, entity, aabb, into, loadChunks, collidesWithUnloadedChunks, checkBorder, addTicket, checkOnly, blockPredicate)
+                 | getEntityHardCollisions(view, entity, aabb, into, checkOnly, entityPredicate);
++            // Sakura end - load chunks on movement
+         }
+     }
+ 
 diff --git a/src/main/java/net/minecraft/server/level/TicketType.java b/src/main/java/net/minecraft/server/level/TicketType.java
-index 658e63ebde81dc14c8ab5850fb246dc0aab25dea..f1ff1a67fee37ee7b241ceaa164fa4ee64d3767b 100644
+index 97d1ff2af23bac14e67bca5896843325aaa5bfc1..c90b265a9cd92d40960d5513d9585e47d93fed3c 100644
 --- a/src/main/java/net/minecraft/server/level/TicketType.java
 +++ b/src/main/java/net/minecraft/server/level/TicketType.java
-@@ -37,6 +37,7 @@ public class TicketType<T> {
-     public static final TicketType<Long> NON_FULL_SYNC_LOAD = create("non_full_sync_load", Long::compareTo);
-     public static final TicketType<ChunkPos> DELAY_UNLOAD = create("delay_unload", Comparator.comparingLong(ChunkPos::toLong), 1);
+@@ -35,6 +35,7 @@ public class TicketType<T> {
+     public static final TicketType<Long> POI_LOAD = create("poi_load", Long::compareTo);
+     public static final TicketType<Unit> UNLOAD_COOLDOWN = create("unload_cooldown", (u1, u2) -> 0, 5 * 20);
      // Paper end - rewrite chunk system
 +    public static final TicketType<Long> ENTITY_MOVEMENT = create("entity_movement", Long::compareTo, 10 * 20); // Sakura
  
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 5fbcdbaf4c0344dc3e8fff7bf31c2b021a0ae6cf..6e217474e7224cc5cc0a9818d39233c6757eca50 100644
+index 3b6efce07745df062d5d3ef60011718842217336..c0fb35497cfab69e5d28a70a2756f0d74a406630 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -571,6 +571,19 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -545,6 +545,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      public boolean isPrimedTNT;
      public boolean isFallingBlock;
      // Sakura end - visibility api and command
-+    // Sakura start - load chunks on cannon entity movement
-+    protected boolean loadChunks = false;
-+
-+    private int getExtraCollisionFlags() {
-+        int flags = 0;
-+
-+        if (this.loadChunks) {
-+            flags |= io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_LOAD_CHUNKS | io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_ADD_TICKET;
-+        }
-+
-+        return flags;
-+    }
-+    // Sakura end - load chunks on cannon entity movement
++    public boolean loadChunks = false; // Sakura - load chunks on cannon entity movement
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -1514,7 +1527,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -1394,7 +1395,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+             }
  
-         io.papermc.paper.util.CollisionUtil.getCollisions(
-                 world, this, collisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
--                io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_CHECK_BORDER,
-+                io.papermc.paper.util.CollisionUtil.COLLISION_FLAG_CHECK_BORDER | this.getExtraCollisionFlags(), // Sakura
-                 null, null
-         );
+             io.papermc.paper.util.CollisionUtil.getCollisions(world, this, collisionBox, potentialCollisions, false, this.level.paperConfig().chunks.preventMovingIntoUnloadedChunks,
+-                false, false, null, null);
++                false, this.loadChunks, false, null, null); // Sakura - load chunks on movement
  
-@@ -4897,12 +4910,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+             if (collidingWithWorldBorder = io.papermc.paper.util.CollisionUtil.isCollidingWithBorderEdge(world.getWorldBorder(), collisionBox)) { // Paper - this line *is* correct, ignore the IDE warning about assignments being used as a condition
+                 io.papermc.paper.util.CollisionUtil.addBoxesToIfIntersects(world.getWorldBorder().getCollisionShape(), collisionBox, potentialCollisions);
+@@ -4532,12 +4533,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
  
      @Override
      public boolean shouldBeSaved() {
@@ -99,10 +123,10 @@ index 5fbcdbaf4c0344dc3e8fff7bf31c2b021a0ae6cf..6e217474e7224cc5cc0a9818d39233c6
  
      public boolean mayInteract(Level world, BlockPos pos) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 91aa2714bae3f8f5d0fb76426b2b8cfc61941f54..eb2f4fcfe04cb5aa135590b620927ffbe12c8a1e 100644
+index 1a83f88e7759b168d6f3c2f6ed4532d65a7cf437..3559457024f5c9bef4c44a27514e338c7d2b4172 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -75,6 +75,7 @@ public class FallingBlockEntity extends Entity {
+@@ -71,6 +71,7 @@ public class FallingBlockEntity extends Entity {
          this.dropItem = true;
          this.fallDamageMax = 40;
          this.isFallingBlock = true; // Sakura
@@ -111,10 +135,10 @@ index 91aa2714bae3f8f5d0fb76426b2b8cfc61941f54..eb2f4fcfe04cb5aa135590b620927ffb
  
      public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 5aa02f28b6be60688e340099b1637fb0ebfe7aa9..2202138b4ee5d78c9d67f0d53516d135ac9dc745 100644
+index 7d2a2d69241344593b691321ba859e5ba246d15d..5761b786f036df1516189edd67ea4439d64c6ea8 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -40,6 +40,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -28,6 +28,7 @@ public class PrimedTnt extends Entity {
          super(type, world);
          this.blocksBuilding = true;
          this.isPrimedTNT = true; // Sakura
@@ -123,13 +147,13 @@ index 5aa02f28b6be60688e340099b1637fb0ebfe7aa9..2202138b4ee5d78c9d67f0d53516d135
  
      public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 465458e8a7dbaf9afb32709a71c7b2620d1e1fd2..27b6baae9ac0feec2f2578540e29da6281593add 100644
+index 28e4b302284f955a73e75d0f4276d55fb51826f5..2bb7195bdb977de6b899cade0847cd6414f3eae2 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -218,6 +218,17 @@ public class LevelChunk extends ChunkAccess {
+@@ -361,6 +361,17 @@ public class LevelChunk extends ChunkAccess {
          }
      }
-     // Paper end
+     // Paper end - optimise checkDespawn
 +    // Sakura start
 +    private long lastMovementLoadTicket = 0;
 +

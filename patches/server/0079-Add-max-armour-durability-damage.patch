@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Wed, 2 Oct 2024 18:45:22 +0100
+Subject: [PATCH] Add max armour durability damage
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index 7cb6e250bd1c14e557c359fe211d8a1f9b4de986..fd7c3b3bd3665a65c8412fd9455c2320878960a7 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -2278,6 +2278,12 @@ public abstract class LivingEntity extends Entity {
+             // Apply damage to armor
+             if (!damagesource.isBypassArmor()) {
+                 float armorDamage = (float) (event.getDamage() + event.getDamage(DamageModifier.BLOCKING) + event.getDamage(DamageModifier.HARD_HAT));
++                // Sakura start - add max armour durability damage
++                int maxArmourDamage = this.level.sakuraConfig().players.combat.maxArmourDamage.or(-1);
++                if (maxArmourDamage >= 0) {
++                    armorDamage = Math.min(armorDamage, maxArmourDamage);
++                }
++                // Sakura end - add max armour durability damage
+                 this.hurtArmor(damagesource, armorDamage);
+             }
+ 

@@ -6,23 +6,19 @@ Subject: [PATCH] Store Entity Data/State
 
 diff --git a/src/main/java/me/samsuik/sakura/entity/EntityState.java b/src/main/java/me/samsuik/sakura/entity/EntityState.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c9f2c5ae57878283e8c8bc3847fe63b98f4e8d10
+index 0000000000000000000000000000000000000000..5b72f13e6fb5d9999940e640c0341c2e9defb961
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/EntityState.java
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,35 @@
 +package me.samsuik.sakura.entity;
 +
-+import net.minecraft.core.BlockPos;
 +import net.minecraft.world.entity.Entity;
 +import net.minecraft.world.phys.AABB;
 +import net.minecraft.world.phys.Vec3;
 +
-+import java.util.Optional;
-+
-+public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed, Optional<BlockPos> supportingPos, boolean onGround, float fallDistance) {
-+
++public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed, boolean onGround, float fallDistance) {
 +    public static EntityState of(Entity entity) {
-+        return new EntityState(entity.position(), entity.getDeltaMovement(), entity.getBoundingBox(), entity.stuckSpeedMultiplier(), entity.mainSupportingBlockPos, entity.onGround(), entity.fallDistance);
++        return new EntityState(entity.position(), entity.getDeltaMovement(), entity.getBoundingBox(), entity.stuckSpeedMultiplier(), entity.onGround, entity.fallDistance);
 +    }
 +
 +    public void apply(Entity entity) {
@@ -33,7 +29,6 @@ index 0000000000000000000000000000000000000000..c9f2c5ae57878283e8c8bc3847fe63b9
 +        //noinspection DataFlowIssue
 +        entity.makeStuckInBlock(null, stuckSpeed);
 +        entity.onGround = onGround;
-+        entity.mainSupportingBlockPos = supportingPos;
 +        entity.fallDistance = fallDistance;
 +    }
 +
@@ -49,16 +44,15 @@ index 0000000000000000000000000000000000000000..c9f2c5ae57878283e8c8bc3847fe63b9
 +            // If there are any related issues uncomment this line of code.
 +            // && entity.getBoundingBox().equals(bb);
 +    }
-+
 +}
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 95137b2a064e98e476ef1bc56b0d2b2920f18d17..e657b5f88195f1db2cb9a9a97f255ff23992cadd 100644
+index 35c4253e1ee951c31958bb9275a4f497fd5b16bb..106e03e0eae24f47a49d2495e98cb30195b27013 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -584,6 +584,25 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
-         return flags;
-     }
-     // Sakura end - load chunks on cannon entity movement
+@@ -546,6 +546,25 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     public boolean isFallingBlock;
+     // Sakura end - visibility api and command
+     public boolean loadChunks = false; // Sakura - load chunks on cannon entity movement
 +    // Sakura start - store entity data/state
 +    private @Nullable me.samsuik.sakura.entity.EntityState entityState = null;
 +
@@ -82,10 +76,10 @@ index 95137b2a064e98e476ef1bc56b0d2b2920f18d17..e657b5f88195f1db2cb9a9a97f255ff2
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index dc8d34adac1a2834777a8fe1fe7f142e0b13c0bf..684fd53a34fae43cd916a6f0a5cf38a2505d9bfe 100644
+index 00ebe6b2e3068a3b9c1c4a7566685191f21ed379..d80cdbbd9cd569e6db31950f05695c1cf476be3c 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -1330,6 +1330,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -932,6 +932,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
  
      public <T extends Entity> void guardEntityTick(Consumer<T> tickConsumer, T entity) {
          try {

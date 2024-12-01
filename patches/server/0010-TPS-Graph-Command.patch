@@ -418,38 +418,38 @@ index 0000000000000000000000000000000000000000..6903863ad293a335a8ed1aeaa06fccb4
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 8e2ee508d2290ace16714ed9927983f29a230304..3c98362624e1b02b6b028db95564254e044c7b0d 100644
+index 0fa8b271c58c74820461f7bec213062b266ec18b..321bd1d6c2cbf8384b08708abb837ed3ad4a0078 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1125,6 +1125,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-         }
-     }
+@@ -1097,6 +1097,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      private static final java.math.BigDecimal TPS_BASE = new java.math.BigDecimal(1E9).multiply(new java.math.BigDecimal(SAMPLE_INTERVAL));
-+    public static final me.samsuik.sakura.utils.tps.TickTracking tickTracking = new me.samsuik.sakura.utils.tps.TickTracking(120); // Sakura - tps graph command
-     // Paper end
+     // Paper End
      // Spigot End
++    public static final me.samsuik.sakura.utils.tps.TickTracking tickTracking = new me.samsuik.sakura.utils.tps.TickTracking(120); // Sakura - tps graph command
  
-@@ -1203,6 +1204,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-                 if (++MinecraftServer.currentTick % MinecraftServer.SAMPLE_INTERVAL == 0) {
-                     final long diff = currentTime - tickSection;
-                     final java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
+     public static volatile RuntimeException chunkSystemCrash; // Paper - rewrite chunk system
+ 
+@@ -1153,6 +1154,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                 {
+                     final long diff = curTime - tickSection;
+                     java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
 +                    tickTracking.secondSample(levels.values(), currentTps.doubleValue()); // Sakura
                      tps1.add(currentTps, diff);
                      tps5.add(currentTps, diff);
                      tps15.add(currentTps, diff);
-@@ -1231,6 +1233,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-                 this.tickServer(flag ? () -> {
-                     return false;
-                 } : this::haveTime);
-+                tickTracking.tickSample((System.nanoTime() - currentTime) / 1_000_000L); // Sakura
+@@ -1176,6 +1178,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                 this.startMetricsRecordingTick();
+                 this.profiler.push("tick");
+                 this.tickServer(this::haveTime);
++                tickTracking.tickSample((System.nanoTime() - curTime) / 1_000_000L); // Sakura
                  this.profiler.popPush("nextTickWait");
                  this.mayHaveDelayedTasks = true;
-                 this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
+                 this.delayedTasksMaxNextTickTime = Math.max(Util.getMillis() + 50L, this.nextTickTime);
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 366c0c9b45a819f7f94ebe3e49b8ab7f9edf9ce7..3662c364d0bf04c9d5ef3af84bceb4263c47df7f 100644
+index ca84eddbdb1e198b899750e5f6b3eafd25ce970f..c060ffdaba7b3bd2020577b8e0a60d9d4f2b0d42 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -92,6 +92,11 @@ public class ServerChunkCache extends ChunkSource {
+@@ -312,6 +312,11 @@ public class ServerChunkCache extends ChunkSource {
          this.clearCache();
      }
  
@@ -462,10 +462,10 @@ index 366c0c9b45a819f7f94ebe3e49b8ab7f9edf9ce7..3662c364d0bf04c9d5ef3af84bceb426
      public boolean isChunkLoaded(int chunkX, int chunkZ) {
          ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.asLong(chunkX, chunkZ));
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 5df1d01c52b527ff74778d8e4aa27b3b0b1e7a4b..55e0be135ec084ee7ebe6bc7bb9323519e0cd864 100644
+index c4f4d06a10b24e9def2458ce1297da5f830c84c9..0aea28a20f775b5df2ae2f92e435c84152b4d4be 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -193,7 +193,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -192,7 +192,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      public final ServerChunkCache chunkSource;
      private final MinecraftServer server;
      public final PrimaryLevelData serverLevelData; // CraftBukkit - type
@@ -475,10 +475,10 @@ index 5df1d01c52b527ff74778d8e4aa27b3b0b1e7a4b..55e0be135ec084ee7ebe6bc7bb932351
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
 diff --git a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
-index 83a39f900551e39d5af6f17a339a386ddee4feef..172c8d9cc94ed6ddfd3f785ca97a6e6ebb58d2d9 100644
+index 4cdfc433df67afcd455422e9baf56f167dd712ae..0d64ec654fe7af4961facc2554df757deddad7f6 100644
 --- a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
-@@ -9,7 +9,7 @@ import javax.annotation.Nullable;
+@@ -8,7 +8,7 @@ import javax.annotation.Nullable;
  import net.minecraft.world.entity.Entity;
  
  public class EntityTickList {
@@ -488,7 +488,7 @@ index 83a39f900551e39d5af6f17a339a386ddee4feef..172c8d9cc94ed6ddfd3f785ca97a6e6e
      private void ensureActiveIsNotIterated() {
          // Paper - replace with better logic, do not delay removals
 diff --git a/src/main/java/org/spigotmc/SpigotConfig.java b/src/main/java/org/spigotmc/SpigotConfig.java
-index 6c260403d91d640da0473a3df56e1c5582459fde..2d2d1eeaeb9e7f36263b8cecc753adf721b96435 100644
+index 612c3169c3463d702b85975e1db79ae6e47d60d0..2063a6c6ab0786aee51be027950c2a936f593b55 100644
 --- a/src/main/java/org/spigotmc/SpigotConfig.java
 +++ b/src/main/java/org/spigotmc/SpigotConfig.java
 @@ -283,7 +283,7 @@ public class SpigotConfig

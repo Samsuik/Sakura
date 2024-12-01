@@ -1,0 +1,1000 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "kfian294ma4@gmail.com" <kfian294ma4@gmail.com>
+Date: Sun, 5 Sep 2021 18:01:34 +0100
+Subject: [PATCH] Sakura Configuration Files
+
+
+diff --git a/src/main/java/io/papermc/paper/configuration/ConfigurationPart.java b/src/main/java/io/papermc/paper/configuration/ConfigurationPart.java
+index 7a4a7a654fe2516ed894a68f2657344df9d70f4c..dae98d95597f303020c3404d5bf4d983cb20b603 100644
+--- a/src/main/java/io/papermc/paper/configuration/ConfigurationPart.java
++++ b/src/main/java/io/papermc/paper/configuration/ConfigurationPart.java
+@@ -1,6 +1,6 @@
+ package io.papermc.paper.configuration;
+ 
+-abstract class ConfigurationPart {
++public abstract class ConfigurationPart { // Sakura
+ 
+     public static abstract class Post extends ConfigurationPart {
+ 
+diff --git a/src/main/java/io/papermc/paper/configuration/Configurations.java b/src/main/java/io/papermc/paper/configuration/Configurations.java
+index c2dca89291361d60cbf160cab77749cb0130035a..f3a2b625e26dcc715b5df8c996c1c1412f242b83 100644
+--- a/src/main/java/io/papermc/paper/configuration/Configurations.java
++++ b/src/main/java/io/papermc/paper/configuration/Configurations.java
+@@ -88,7 +88,7 @@ public abstract class Configurations<G, W> {
+         };
+     }
+ 
+-    static <T> CheckedFunction<ConfigurationNode, T, SerializationException> reloader(Class<T> type, T instance) {
++    public static <T> CheckedFunction<ConfigurationNode, T, SerializationException> reloader(Class<T> type, T instance) { // Sakura - public
+         return node -> {
+             ObjectMapper.Factory factory = (ObjectMapper.Factory) Objects.requireNonNull(node.options().serializers().get(type));
+             ObjectMapper.Mutable<T> mutable = (ObjectMapper.Mutable<T>) factory.get(type);
+@@ -206,7 +206,7 @@ public abstract class Configurations<G, W> {
+             .path(worldConfigFile)
+             .build();
+         final ConfigurationNode worldNode = worldLoader.load();
+-        if (newFile) { // set the version field if new file
++        if (newFile && this instanceof PaperConfigurations) { // Sakura - hack this into working // set the version field if new file
+             worldNode.node(Configuration.VERSION_FIELD).set(WorldConfiguration.CURRENT_VERSION);
+         }
+         this.applyWorldConfigTransformations(contextMap, worldNode);
+diff --git a/src/main/java/io/papermc/paper/configuration/InnerClassFieldDiscoverer.java b/src/main/java/io/papermc/paper/configuration/InnerClassFieldDiscoverer.java
+index a0aa1f1a7adf986d500a2135aa42e138aa3c4f08..c9a351d02b0b5f5a9856fde433c1d64ece46cdee 100644
+--- a/src/main/java/io/papermc/paper/configuration/InnerClassFieldDiscoverer.java
++++ b/src/main/java/io/papermc/paper/configuration/InnerClassFieldDiscoverer.java
+@@ -17,7 +17,7 @@ import java.util.Map;
+ 
+ import static io.leangen.geantyref.GenericTypeReflector.erase;
+ 
+-final class InnerClassFieldDiscoverer implements FieldDiscoverer<Map<Field, Object>> {
++public final class InnerClassFieldDiscoverer implements FieldDiscoverer<Map<Field, Object>> { // Sakura
+ 
+     private final Map<Class<?>, Object> instanceMap = new HashMap<>();
+     private final Map<Class<?>, Object> overrides;
+@@ -55,7 +55,7 @@ final class InnerClassFieldDiscoverer implements FieldDiscoverer<Map<Field, Obje
+         }
+     }, "Object must be a unique ConfigurationPart");
+ 
+-    InnerClassFieldDiscoverer(Map<Class<?>, Object> overrides) {
++    public InnerClassFieldDiscoverer(Map<Class<?>, Object> overrides) { // Sakura
+         this.overrides = overrides;
+     }
+ 
+@@ -136,7 +136,7 @@ final class InnerClassFieldDiscoverer implements FieldDiscoverer<Map<Field, Obje
+         return new InnerClassFieldDiscoverer(overrides);
+     }
+ 
+-    static FieldDiscoverer<?> globalConfig() {
++    public static FieldDiscoverer<?> globalConfig() { // Sakura
+         return new InnerClassFieldDiscoverer(Collections.emptyMap());
+     }
+ }
+diff --git a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
+index 9fde9ccb5d069ddce8dd837ef1bc68b93ce66434..0cdde29feeb5a308ded845280b6137a7a9671057 100644
+--- a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
++++ b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
+@@ -431,7 +431,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
+     }
+ 
+     // Symlinks are not correctly checked in createDirectories
+-    static void createDirectoriesSymlinkAware(Path path) throws IOException {
++    public static void createDirectoriesSymlinkAware(Path path) throws IOException { // Sakura - make public
+         if (!Files.isDirectory(path)) {
+             Files.createDirectories(path);
+         }
+diff --git a/src/main/java/me/samsuik/sakura/command/BaseSubCommand.java b/src/main/java/me/samsuik/sakura/command/BaseSubCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9b5af05f7a4593eb44f36fff90d94e98d6999c7f
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/BaseSubCommand.java
+@@ -0,0 +1,47 @@
++package me.samsuik.sakura.command;
++
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.checkerframework.checker.nullness.qual.NonNull;
++import org.checkerframework.framework.qual.DefaultQualifier;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.ArrayList;
++import java.util.List;
++
++@DefaultQualifier(NonNull.class)
++public abstract class BaseSubCommand extends Command {
++
++    public BaseSubCommand(String name) {
++        super(name);
++        this.description = "Sakura Command " + name;
++        this.setPermission("bukkit.command." + name);
++    }
++
++    public abstract void execute(CommandSender sender, String[] args);
++
++    public void tabComplete(List<String> list, String[] args) throws IllegalArgumentException {}
++
++    @Override
++    @Deprecated
++    public final boolean execute(CommandSender sender, String label, String[] args) {
++        if (testPermission(sender)) {
++            execute(sender, args);
++        }
++
++        return true;
++    }
++
++    @Override
++    @NotNull
++    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
++        var completions = new ArrayList<String>(0);
++
++        if (testPermissionSilent(sender)) {
++            tabComplete(completions, args);
++        }
++
++        return completions;
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/command/SakuraCommand.java b/src/main/java/me/samsuik/sakura/command/SakuraCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2b145614bf189ae56622016436bfefd63f5271eb
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/SakuraCommand.java
+@@ -0,0 +1,93 @@
++package me.samsuik.sakura.command;
++
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.minimessage.MiniMessage;
++import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
++import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.checkerframework.checker.nullness.qual.NonNull;
++import org.checkerframework.framework.qual.DefaultQualifier;
++import org.jetbrains.annotations.NotNull;
++
++import javax.annotation.Nullable;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.Collections;
++import java.util.List;
++
++@DefaultQualifier(NonNull.class)
++public final class SakuraCommand extends Command {
++
++    private static final Component INFORMATION_MESSAGE = MiniMessage.miniMessage().deserialize("""
++        <dark_purple>.</dark_purple>
++        <dark_purple>| <white>This is the main command for <gradient:red:light_purple:0.5>Sakura</gradient>.
++        <dark_purple>| <white>All exclusive commands are listed below."""
++    );
++
++    private static final String COMMAND_MSG = "<dark_purple>| <dark_gray>*</dark_gray> /<light_purple><command>";
++
++    public SakuraCommand(String name) {
++        super(name);
++
++        this.description = "";
++        this.usageMessage = "/sakura";
++        this.setPermission("bukkit.command.sakura");
++    }
++
++    @Override
++    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
++        if (args.length > 0) {
++            var commands = new ArrayList<>(SakuraCommands.COMMANDS.values());
++
++            // This part is copied from the VersionCommand SubCommand in paper
++            @Nullable
++            var internalVersion = MinecraftServer.getServer().server.getCommandMap().getCommand("version");
++            if (internalVersion != null) {
++                commands.add(internalVersion);
++            }
++
++            for (var base : commands) {
++                if (base.getName().equalsIgnoreCase(args[0])) {
++                    return base.execute(sender, commandLabel, Arrays.copyOfRange(args, 1, args.length));
++                }
++            }
++        }
++
++        sendHelpMessage(sender);
++        return false;
++    }
++
++    private void sendHelpMessage(CommandSender sender) {
++        sender.sendMessage(INFORMATION_MESSAGE);
++
++        var uniqueCommands = SakuraCommands.COMMANDS.values()
++            .stream()
++            .filter(command -> command != this);
++
++        uniqueCommands.forEach((command) -> {
++            sender.sendMessage(MiniMessage.miniMessage().deserialize(COMMAND_MSG,
++                Placeholder.unparsed("command", command.getName()))
++            );
++        });
++
++        sender.sendMessage(Component.text("'", NamedTextColor.DARK_PURPLE));
++    }
++
++    @NotNull
++    @Override
++    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
++        if (!testPermissionSilent(sender)) {
++            return Collections.emptyList();
++        }
++
++        return SakuraCommands.COMMANDS.values().stream()
++            .filter(command -> command != this) // ahem
++            .map(Command::getName)
++            .filter(name -> args.length <= 1 || name.startsWith(args[args.length - 1]))
++            .toList();
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/command/SakuraCommands.java b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b08454cf7411d12bb33225df59800bd73312123
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
+@@ -0,0 +1,26 @@
++package me.samsuik.sakura.command;
++
++import io.papermc.paper.command.PaperPluginsCommand;
++import me.samsuik.sakura.command.subcommands.ConfigCommand;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.command.Command;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public final class SakuraCommands {
++
++    static final Map<String, Command> COMMANDS = new HashMap<>();
++    static {
++        COMMANDS.put("sakura", new SakuraCommand("sakura"));
++        COMMANDS.put("config", new ConfigCommand("config"));
++    }
++
++    public static void registerCommands(final MinecraftServer server) {
++        COMMANDS.forEach((s, command) -> {
++            server.server.getCommandMap().register(s, "sakura", command);
++        });
++        server.server.getCommandMap().register("bukkit", new PaperPluginsCommand());
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/command/subcommands/ConfigCommand.java b/src/main/java/me/samsuik/sakura/command/subcommands/ConfigCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..75febc3f40910a27a9fc651dac9697da48338cc1
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/subcommands/ConfigCommand.java
+@@ -0,0 +1,45 @@
++package me.samsuik.sakura.command.subcommands;
++
++import me.samsuik.sakura.command.BaseSubCommand;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.CraftServer;
++import org.checkerframework.checker.nullness.qual.NonNull;
++import org.checkerframework.framework.qual.DefaultQualifier;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.Collections;
++import java.util.List;
++
++import static net.kyori.adventure.text.Component.text;
++import static net.kyori.adventure.text.format.NamedTextColor.GREEN;
++import static net.kyori.adventure.text.format.NamedTextColor.RED;
++
++@DefaultQualifier(NonNull.class)
++public final class ConfigCommand extends BaseSubCommand {
++
++    public ConfigCommand(String name) {
++        super(name);
++        this.description = "Command for reloading the sakura configuration file";
++    }
++
++    @Override
++    public void execute(CommandSender sender, String[] args) {
++        Command.broadcastCommandMessage(sender, text("Please note that this command is not supported and may cause issues.", RED));
++        Command.broadcastCommandMessage(sender, text("If you encounter any issues please use the /stop command to restart your server.", RED));
++
++        MinecraftServer server = ((CraftServer) sender.getServer()).getServer();
++        server.sakuraConfigurations.reloadConfigs(server);
++        server.server.reloadCount++;
++
++        Command.broadcastCommandMessage(sender, text("Sakura config reload complete.", GREEN));
++    }
++
++    @NotNull
++    @Override
++    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
++        return Collections.emptyList();
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5296d4e0a1041932e36562f42fbf3e1dcfea33fe
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/GlobalConfiguration.java
+@@ -0,0 +1,64 @@
++package me.samsuik.sakura.configuration;
++
++import com.mojang.logging.LogUtils;
++import io.papermc.paper.configuration.Configuration;
++import io.papermc.paper.configuration.ConfigurationPart;
++import org.slf4j.Logger;
++import org.spongepowered.configurate.objectmapping.meta.Comment;
++import org.spongepowered.configurate.objectmapping.meta.Setting;
++
++@SuppressWarnings({"CanBeFinal", "FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic", "RedundantSuppression"})
++public class GlobalConfiguration extends ConfigurationPart {
++
++    private static final Logger LOGGER = LogUtils.getClassLogger();
++    static final int CURRENT_VERSION = 1;// (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
++
++    private static GlobalConfiguration instance;
++    public static GlobalConfiguration get() {
++        return instance;
++    }
++
++    static void set(GlobalConfiguration instance) {
++        GlobalConfiguration.instance = instance;
++    }
++
++    @Setting(Configuration.VERSION_FIELD)
++    public int version = CURRENT_VERSION;
++
++    public Fps fps;
++    public class Fps extends ConfigurationPart {
++        public String message = "<dark_gray>(<light_purple>S</light_purple>) <gray><state> <yellow><name>";
++        public String material = "pink_stained_glass_pane";
++    }
++
++    public Cannons cannons;
++    public class Cannons extends ConfigurationPart {
++        public Explosion explosion = new Explosion();
++        
++        public class Explosion extends ConfigurationPart {
++            public boolean reducedSearchRays;
++        }
++    }
++
++    public Players players;
++    public class Players extends ConfigurationPart {
++        public String potatoMessage = "<dark_gray>(<light_purple>S</light_purple>) <white>This block has <gray><remaining></gray> of <gray><durability>";
++    }
++
++    public Environment environment;
++    public class Environment extends ConfigurationPart {
++        @Comment("This is only intended for plot worlds. Will affect chunk generation on servers.")
++        public boolean calculateBiomeNoiseOncePerChunkSection = false;
++
++        public MobSpawnerDefaults mobSpawnerDefaults = new MobSpawnerDefaults();
++        public class MobSpawnerDefaults extends ConfigurationPart {
++            public int minSpawnDelay = 200;
++            public int maxSpawnDelay = 800;
++            public int spawnCount = 4;
++            public int maxNearbyEntities = 6;
++            public int requiredPlayerRange = 16;
++            public int spawnRange = 4;
++        }
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..aa5ff55fa619be429d23841dbf268f11e50a3346
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/SakuraConfigurations.java
+@@ -0,0 +1,229 @@
++package me.samsuik.sakura.configuration;
++
++import com.google.common.collect.Table;
++import com.mojang.logging.LogUtils;
++import io.leangen.geantyref.TypeToken;
++import io.papermc.paper.configuration.*;
++import io.papermc.paper.configuration.serializer.*;
++import io.papermc.paper.configuration.serializer.collections.FastutilMapSerializer;
++import io.papermc.paper.configuration.serializer.collections.MapSerializer;
++import io.papermc.paper.configuration.serializer.collections.TableSerializer;
++import io.papermc.paper.configuration.serializer.registry.RegistryHolderSerializer;
++import io.papermc.paper.configuration.serializer.registry.RegistryValueSerializer;
++import io.papermc.paper.configuration.transformation.Transformations;
++import io.papermc.paper.configuration.type.BooleanOrDefault;
++import io.papermc.paper.configuration.type.DoubleOrDefault;
++import io.papermc.paper.configuration.type.IntOr;
++import it.unimi.dsi.fastutil.objects.Reference2IntMap;
++import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
++import it.unimi.dsi.fastutil.objects.Reference2LongMap;
++import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.item.Item;
++import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
++import org.slf4j.Logger;
++import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.ConfigurationNode;
++import org.spongepowered.configurate.ConfigurationOptions;
++import org.spongepowered.configurate.objectmapping.FieldDiscoverer;
++import org.spongepowered.configurate.objectmapping.ObjectMapper;
++import org.spongepowered.configurate.transformation.ConfigurationTransformation;
++import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
++
++import java.io.IOException;
++import java.lang.reflect.Type;
++import java.nio.file.Path;
++import java.util.Map;
++import java.util.function.Function;
++
++import static io.leangen.geantyref.GenericTypeReflector.erase;
++
++@SuppressWarnings("Convert2Diamond")
++public class SakuraConfigurations extends Configurations<GlobalConfiguration, WorldConfiguration> {
++
++    private static final Logger LOGGER = LogUtils.getClassLogger();
++    static final String GLOBAL_CONFIG_FILE_NAME = "sakura-global.yml";
++    static final String WORLD_DEFAULTS_CONFIG_FILE_NAME = "sakura-world-defaults.yml";
++    static final String WORLD_CONFIG_FILE_NAME = "sakura-world.yml";
++    public static final String CONFIG_DIR = "config";
++
++    private static final String GLOBAL_HEADER = String.format("""
++            This is the global configuration file for Sakura.
++            As you can see, there's a lot to configure. Some options may impact gameplay, so use
++            with caution, and make sure you know what each option does before configuring.
++
++            The world configuration options have been moved inside
++            their respective world folder. The files are named %s""", WORLD_CONFIG_FILE_NAME);
++
++    private static final String WORLD_DEFAULTS_HEADER = """
++            This is the world defaults configuration file for Sakura.
++            As you can see, there's a lot to configure. Some options may impact gameplay, so use
++            with caution, and make sure you know what each option does before configuring.
++
++            Configuration options here apply to all worlds, unless you specify overrides inside
++            the world-specific config file inside each world folder.""";
++
++    private static final Function<ContextMap, String> WORLD_HEADER = map -> String.format("""
++        This is a world configuration file for Sakura.
++        This file may start empty but can be filled with settings to override ones in the %s/%s
++        
++        World: %s (%s)""",
++        SakuraConfigurations.CONFIG_DIR,
++        SakuraConfigurations.WORLD_DEFAULTS_CONFIG_FILE_NAME,
++        map.require(WORLD_NAME),
++        map.require(WORLD_KEY)
++    );
++
++    public SakuraConfigurations(final Path globalFolder) {
++        super(globalFolder, GlobalConfiguration.class, WorldConfiguration.class, GLOBAL_CONFIG_FILE_NAME, WORLD_DEFAULTS_CONFIG_FILE_NAME, WORLD_CONFIG_FILE_NAME);
++    }
++
++    @Override
++    protected YamlConfigurationLoader.Builder createLoaderBuilder() {
++        return super.createLoaderBuilder()
++            .defaultOptions(SakuraConfigurations::defaultOptions);
++    }
++
++    private static ConfigurationOptions defaultOptions(ConfigurationOptions options) {
++        return options.serializers(builder -> builder
++            .register(MapSerializer.TYPE, new MapSerializer(false))
++            .register(new EnumValueSerializer())
++            .register(new ComponentSerializer())
++        );
++    }
++
++    @Override
++    protected ObjectMapper.Factory.Builder createGlobalObjectMapperFactoryBuilder() {
++        return defaultGlobalFactoryBuilder(super.createGlobalObjectMapperFactoryBuilder());
++    }
++
++    private static ObjectMapper.Factory.Builder defaultGlobalFactoryBuilder(ObjectMapper.Factory.Builder builder) {
++        return builder.addDiscoverer(InnerClassFieldDiscoverer.globalConfig());
++    }
++
++    @Override
++    protected YamlConfigurationLoader.Builder createGlobalLoaderBuilder() {
++        return super.createGlobalLoaderBuilder()
++            .defaultOptions(SakuraConfigurations::defaultGlobalOptions);
++    }
++
++    private static ConfigurationOptions defaultGlobalOptions(ConfigurationOptions options) {
++        return options
++            .header(GLOBAL_HEADER)
++            .serializers(builder -> builder
++                .register(new PacketClassSerializer())
++                .register(IntOr.Default.SERIALIZER)
++            );
++    }
++
++    @Override
++    public GlobalConfiguration initializeGlobalConfiguration() throws ConfigurateException {
++        GlobalConfiguration configuration = super.initializeGlobalConfiguration();
++        GlobalConfiguration.set(configuration);
++        return configuration;
++    }
++
++    @Override
++    protected ObjectMapper.Factory.Builder createWorldObjectMapperFactoryBuilder(final ContextMap contextMap) {
++        return super.createWorldObjectMapperFactoryBuilder(contextMap)
++            .addNodeResolver(new NestedSetting.Factory())
++            .addDiscoverer(createWorldConfigFieldDiscoverer(contextMap));
++    }
++
++    private static FieldDiscoverer<?> createWorldConfigFieldDiscoverer(final ContextMap contextMap) {
++        final Map<Class<?>, Object> overrides = Map.of(
++            WorldConfiguration.class, createWorldConfigInstance(contextMap)
++        );
++        return new InnerClassFieldDiscoverer(overrides);
++    }
++
++    private static WorldConfiguration createWorldConfigInstance(ContextMap contextMap) {
++        return new WorldConfiguration(
++            contextMap.require(Configurations.WORLD_KEY)
++        );
++    }
++
++    @Override
++    protected YamlConfigurationLoader.Builder createWorldConfigLoaderBuilder(final ContextMap contextMap) {
++        return super.createWorldConfigLoaderBuilder(contextMap)
++            .defaultOptions(options -> options
++                .header(contextMap.require(WORLD_NAME).equals(WORLD_DEFAULTS) ? WORLD_DEFAULTS_HEADER : WORLD_HEADER.apply(contextMap))
++                .serializers(serializers -> serializers
++                    .register(new TypeToken<Reference2IntMap<?>>() {}, new FastutilMapSerializer.SomethingToPrimitive<Reference2IntMap<?>>(Reference2IntOpenHashMap::new, Integer.TYPE))
++                    .register(new TypeToken<Reference2LongMap<?>>() {}, new FastutilMapSerializer.SomethingToPrimitive<Reference2LongMap<?>>(Reference2LongOpenHashMap::new, Long.TYPE))
++                    .register(new TypeToken<Table<?, ?, ?>>() {}, new TableSerializer())
++                    .register(StringRepresentableSerializer::isValidFor, new StringRepresentableSerializer())
++                    .register(IntOr.Default.SERIALIZER)
++                    .register(IntOr.Disabled.SERIALIZER)
++                    .register(DoubleOrDefault.SERIALIZER)
++                    .register(BooleanOrDefault.SERIALIZER)
++                    .register(NbtPathSerializer.SERIALIZER)
++                    .register(new RegistryValueSerializer<>(new TypeToken<EntityType<?>>() {}, Registries.ENTITY_TYPE, true))
++                    .register(new RegistryValueSerializer<>(Item.class, Registries.ITEM, true))
++                    .register(new RegistryHolderSerializer<>(new TypeToken<ConfiguredFeature<?, ?>>() {}, Registries.CONFIGURED_FEATURE, false))
++                    .register(new RegistryHolderSerializer<>(Item.class, Registries.ITEM, true))
++                )
++            );
++    }
++
++    @Override
++    protected void applyWorldConfigTransformations(final ContextMap contextMap, final ConfigurationNode node) throws ConfigurateException {
++        final ConfigurationTransformation.VersionedBuilder versionedBuilder = Transformations.versionedBuilder();
++
++        // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
++        versionedBuilder.build().apply(node);
++    }
++
++    @Override
++    public WorldConfiguration createWorldConfig(final ContextMap contextMap) {
++        final String levelName = contextMap.require(WORLD_NAME);
++        try {
++            return super.createWorldConfig(contextMap);
++        } catch (IOException exception) {
++            throw new RuntimeException("Could not create world config for " + levelName, exception);
++        }
++    }
++
++    @Override
++    protected boolean isConfigType(final Type type) {
++        return ConfigurationPart.class.isAssignableFrom(erase(type));
++    }
++
++    public void reloadConfigs(MinecraftServer server) {
++        try {
++            this.initializeGlobalConfiguration(reloader(this.globalConfigClass, GlobalConfiguration.get()));
++            this.initializeWorldDefaultsConfiguration();
++            for (ServerLevel level : server.getAllLevels()) {
++                this.createWorldConfig(createWorldContextMap(level), reloader(this.worldConfigClass, level.sakuraConfig()));
++            }
++        } catch (Exception ex) {
++            throw new RuntimeException("Could not reload paper configuration files", ex);
++        }
++    }
++
++    private static ContextMap createWorldContextMap(ServerLevel level) {
++        return createWorldContextMap(level.convertable.levelDirectory.path(), level.serverLevelData.getLevelName(), level.dimension().location());
++    }
++
++    public static ContextMap createWorldContextMap(Path dir, String levelName, ResourceLocation worldKey) {
++        return ContextMap.builder()
++            .put(WORLD_DIRECTORY, dir)
++            .put(WORLD_NAME, levelName)
++            .put(WORLD_KEY, worldKey)
++            .build();
++    }
++
++    public static SakuraConfigurations setup(final Path configDir) {
++        try {
++            PaperConfigurations.createDirectoriesSymlinkAware(configDir);
++            return new SakuraConfigurations(configDir);
++        } catch (final IOException ex) {
++            throw new RuntimeException("Could not setup PaperConfigurations", ex);
++        }
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..907c2e62848c395d61c3ea94df458e2be72b9f1b
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+@@ -0,0 +1,237 @@
++package me.samsuik.sakura.configuration;
++
++import com.mojang.logging.LogUtils;
++import io.papermc.paper.configuration.Configuration;
++import io.papermc.paper.configuration.ConfigurationPart;
++import io.papermc.paper.configuration.NestedSetting;
++import io.papermc.paper.configuration.PaperConfigurations;
++import io.papermc.paper.configuration.type.DoubleOrDefault;
++import io.papermc.paper.configuration.type.IntOr;
++import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
++import me.samsuik.sakura.entity.merge.MergeLevel;
++import me.samsuik.sakura.explosion.durable.DurableMaterial;
++import me.samsuik.sakura.physics.PhysicsVersion;
++import net.minecraft.Util;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.entity.item.FallingBlockEntity;
++import net.minecraft.world.item.Item;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import org.slf4j.Logger;
++import org.spongepowered.configurate.objectmapping.meta.Comment;
++import org.spongepowered.configurate.objectmapping.meta.Setting;
++
++import java.util.List;
++import java.util.Map;
++
++@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic", "RedundantSuppression"})
++public class WorldConfiguration extends ConfigurationPart {
++
++    private static final Logger LOGGER = LogUtils.getClassLogger();
++    static final int CURRENT_VERSION = 6; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
++
++    private transient final ResourceLocation worldKey;
++    WorldConfiguration(ResourceLocation worldKey) {
++        this.worldKey = worldKey;
++    }
++
++    public boolean isDefault() {
++        return this.worldKey.equals(PaperConfigurations.WORLD_DEFAULTS_KEY);
++    }
++
++    @Setting(Configuration.VERSION_FIELD)
++    public int version = CURRENT_VERSION;
++
++    public Cannons cannons;
++    public class Cannons extends ConfigurationPart {
++        public MergeLevel mergeLevel = MergeLevel.STRICT;
++        public boolean tntAndSandAffectedByBubbleColumns = true;
++
++        @NestedSetting({"treat-collidable-blocks-as-full", "while-moving"})
++        public boolean treatAllBlocksAsFullWhenMoving = false;
++        @NestedSetting({"treat-collidable-blocks-as-full", "moving-faster-than"})
++        public double treatAllBlocksAsFullWhenMovingFasterThan = 64.0;
++        public boolean loadChunks = false;
++
++        public Restrictions restrictions = new Restrictions();
++        public class Restrictions extends ConfigurationPart {
++            @Comment("The amount of blocks that can be travelled before changing direction is restricted")
++            public IntOr.Disabled leftShootingThreshold = IntOr.Disabled.DISABLED;
++            @Comment(
++                "Maximum amount of blocks that a cannon can adjust\n" +
++                "It is recommended that this value kept sane and is more than 64 blocks"
++            )
++            public IntOr.Disabled maxAdjustDistance = IntOr.Disabled.DISABLED;
++        }
++
++        public Tnt tnt = new Tnt();
++        public class Tnt extends ConfigurationPart {
++            public boolean forcePositionUpdates;
++        }
++
++        public Sand sand = new Sand();
++        public class Sand extends ConfigurationPart {
++            public boolean despawnInsideMovingPistons = true;
++            public boolean concreteSolidifyInWater = true;
++
++            @NestedSetting({"prevent-stacking", "against-border"})
++            public boolean preventAgainstBorder = false;
++            @NestedSetting({"prevent-stacking", "world-height"})
++            public boolean preventAtWorldHeight = false;
++
++            public boolean isFallingBlockInBounds(FallingBlockEntity entity) {
++                return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isCollidingWithBorderEdge(entity.level.getWorldBorder(), entity.getBoundingBox().inflate(0.01)))
++                    && (!preventAtWorldHeight || entity.blockPosition().getY() < entity.level.getMaxBuildHeight() - 1);
++            }
++        }
++
++        public Explosion explosion = new Explosion();
++        public class Explosion extends ConfigurationPart {
++            public boolean optimiseProtectedRegions = true;
++            public boolean avoidRedundantBlockSearches = false;
++            public Map<Block, DurableMaterial> durableMaterials = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
++                map.put(Blocks.OBSIDIAN, new DurableMaterial(4, Blocks.COBBLESTONE.getExplosionResistance()));
++                map.put(Blocks.ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
++                map.put(Blocks.CHIPPED_ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
++                map.put(Blocks.DAMAGED_ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
++            });
++            public boolean protectScaffoldingFromCreepers = false;
++            public boolean allowNonTntBreakingDurableBlocks = false;
++            public boolean destroyWaterloggedBlocks = false;
++            public boolean explodeLava = false;
++            public boolean consistentRadius = false;
++            public boolean explosionsHurtPlayers = true;
++            public boolean explosionsDropItems = true;
++            public boolean useBlockCacheAcrossExplosions = false;
++        }
++
++        public Mechanics mechanics = new Mechanics();
++        public class Mechanics extends ConfigurationPart {
++            public TNTSpread tntSpread = TNTSpread.ALL;
++            public boolean tntFlowsInWater = true;
++            public boolean fallingBlockParity = false;
++            public PhysicsVersion physicsVersion = PhysicsVersion.LATEST;
++
++            public enum TNTSpread {
++                ALL, Y, NONE;
++            }
++        }
++    }
++
++    public Technical technical;
++    public class Technical extends ConfigurationPart {
++        public boolean dispenserRandomItemSelection = true;
++
++        public Redstone redstone = new Redstone();
++        public class Redstone extends ConfigurationPart {
++            public boolean redstoneCache = false;
++            public boolean fluidsBreakRedstone = true;
++        }
++    }
++
++    public Players players;
++    public class Players extends ConfigurationPart {
++        public Combat combat = new Combat();
++        public class Combat extends ConfigurationPart {
++            public boolean legacyCombatMechanics = false;
++            public boolean allowSweepAttacks = true;
++            public boolean shieldDamageReduction = false;
++            public boolean oldEnchantedGoldenApple = false;
++            public boolean oldSoundsAndParticleEffects = false;
++            public boolean fastHealthRegen = true;
++            public IntOr.Default maxArmourDamage = IntOr.Default.USE_DEFAULT;
++        }
++
++        public Knockback knockback = new Knockback();
++        public class Knockback extends ConfigurationPart {
++            public DoubleOrDefault knockbackVertical = DoubleOrDefault.USE_DEFAULT;
++            public double knockbackVerticalLimit = 0.4;
++            public boolean verticalKnockbackRequireGround = true;
++            public double baseKnockback = 0.4;
++            @Comment("Knockback caused by sweeping edge")
++            public double sweepingEdgeKnockback = 0.4;
++
++            public Sprinting sprinting = new Sprinting();
++            public class Sprinting extends ConfigurationPart {
++                public boolean requireFullAttack = true;
++                public double extraKnockback = 0.5;
++                @Comment("Delay between extra knockback hits in milliseconds")
++                public IntOr.Default knockbackDelay = IntOr.Default.USE_DEFAULT;
++            }
++
++            @NestedSetting({"projectiles", "fishing-hooks-apply-knockback"})
++            public boolean fishingHooksApplyKnockback;
++
++            @Comment("Knockback resistance attribute modifier")
++            public double knockbackResistanceModifier = 1.0;
++            @Comment("Received by attacking a shielded enemy")
++            public double shieldHitKnockback = 0.5;
++        }
++
++        @Comment("Prevents players swimming using elytra or riptide to enter holes")
++        public boolean posesShrinkCollisionBox = true;
++        public boolean fishingHooksPullEntities = true;
++    }
++
++    public Entity entity;
++    public class Entity extends ConfigurationPart {
++        @Comment("Only modify if you know what you're doing")
++        public boolean disableMobAi = false;
++        public boolean waterSensitivity = true;
++        public boolean instantDeathAnimation = false;
++        public boolean ironGolemsTakeFalldamage = false;
++
++        public Items items = new Items();
++        public class Items extends ConfigurationPart {
++            public List<Item> explosionResistantItems = List.of();
++        }
++
++        @Comment("Entity travel distance limits")
++        public Map<EntityType<?>, Integer> chunkTravelLimit = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
++            map.put(EntityType.ENDER_PEARL, 8);
++        });
++
++        public ThrownPotion thrownPotion = new ThrownPotion();
++        public class ThrownPotion extends ConfigurationPart {
++            public double horizontalSpeed = 1.0;
++            public double verticalSpeed = 1.0;
++            public boolean allowBreakingInsideEntities = false;
++        }
++
++        public EnderPearl enderPearl = new EnderPearl();
++        public class EnderPearl extends ConfigurationPart {
++            public boolean useOutlineForCollision = false;
++        }
++
++        @Comment(
++            "Allows projectiles to load chunks for collisions\n" +
++            "This restores vanilla chunk loading behaviour"
++        )
++        public boolean projectilesLoadChunksForCollisions = false;
++    }
++
++    public Environment environment;
++    public class Environment extends ConfigurationPart {
++        public boolean allowWaterInTheNether = false;
++        public boolean disableFastNetherLava = false;
++
++        public BlockGeneration blockGeneration = new BlockGeneration();
++        public class BlockGeneration extends ConfigurationPart {
++            public boolean legacyBlockFormation = false;
++        }
++
++        public Crops crops = new Crops();
++        public class Crops extends ConfigurationPart {
++            public boolean useRandomChanceToGrow = false;
++        }
++
++        public MobSpawner mobSpawner = new MobSpawner();
++        public class MobSpawner extends ConfigurationPart {
++            public boolean checkSpawnConditions = true;
++            public boolean requireNearbyPlayer = true;
++            public boolean ignoreEntityLimit = false;
++        }
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4024f9738e039ffffd560a07a2210f758879d3c0
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
+@@ -0,0 +1,7 @@
++package me.samsuik.sakura.explosion.durable;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public record DurableMaterial(int durability, float resistance) {
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 777b012f7b3b35b89177d94f2c1d8dd1ee4adf7d..36ebba2b3cab5a7e92cceae1b295db10f5cd7c70 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -304,6 +304,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public final double[] recentTps = new double[ 3 ];
+     // Spigot end
+     public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations;
++    public final me.samsuik.sakura.configuration.SakuraConfigurations sakuraConfigurations; // Sakura
+     public static long currentTickLong = 0L; // Paper
+ 
+     public volatile Thread shutdownThread; // Paper
+@@ -407,6 +408,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         // Paper end
+         Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
+         this.paperConfigurations = services.paperConfigurations(); // Paper
++        // Sakura start
++        final var sakuraConfigDirPath = ((File) options.valueOf("sakura-settings-directory")).toPath();
++        this.sakuraConfigurations = me.samsuik.sakura.configuration.SakuraConfigurations.setup(sakuraConfigDirPath);
++        // Sakura end
+     }
+     // CraftBukkit end
+ 
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index a7e133f3495e9132a5fdae2c24f225e7b026295a..710dfc2ef53944bb5d6e6cc916dc4ca340b08350 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -221,6 +221,11 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // load version history now
+         io.papermc.paper.brigadier.PaperBrigadierProviderImpl.INSTANCE.getClass(); // init PaperBrigadierProvider
+         // Paper end
++        // Sakura start
++        sakuraConfigurations.initializeGlobalConfiguration();
++        sakuraConfigurations.initializeWorldDefaultsConfiguration();
++        me.samsuik.sakura.command.SakuraCommands.registerCommands(this);
++        // Sakura end
+ 
+         this.setPvpAllowed(dedicatedserverproperties.pvp);
+         this.setFlightAllowed(dedicatedserverproperties.allowFlight);
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index e84c67f02bce4c2f9c4eeca1b888d53377fb20d7..037fe86f11f0245c265393b3a0eaee13dbabd835 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -527,7 +527,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     public ServerLevel(MinecraftServer minecraftserver, Executor executor, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PrimaryLevelData iworlddataserver, ResourceKey<Level> resourcekey, LevelStem worlddimension, ChunkProgressListener worldloadlistener, boolean flag, long i, List<CustomSpawner> list, boolean flag1, org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider) {
+         // Holder holder = worlddimension.type(); // CraftBukkit - decompile error
+         // Objects.requireNonNull(minecraftserver); // CraftBukkit - decompile error
+-        super(iworlddataserver, resourcekey, worlddimension.type(), minecraftserver::getProfiler, false, flag, i, minecraftserver.getMaxChainedNeighborUpdates(), gen, biomeProvider, env, spigotConfig -> minecraftserver.paperConfigurations.createWorldConfig(io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(convertable_conversionsession.levelDirectory.path(), iworlddataserver.getLevelName(), resourcekey.location(), spigotConfig)), executor); // Paper - Async-Anti-Xray - Pass executor
++        super(iworlddataserver, resourcekey, worlddimension.type(), minecraftserver::getProfiler, false, flag, i, minecraftserver.getMaxChainedNeighborUpdates(), gen, biomeProvider, env, spigotConfig -> minecraftserver.paperConfigurations.createWorldConfig(io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(convertable_conversionsession.levelDirectory.path(), iworlddataserver.getLevelName(), resourcekey.location(), spigotConfig)), () -> minecraftserver.sakuraConfigurations.createWorldConfig(me.samsuik.sakura.configuration.SakuraConfigurations.createWorldContextMap(convertable_conversionsession.levelDirectory.path(), iworlddataserver.getLevelName(), resourcekey.location())), executor); // Sakura // Paper - Async-Anti-Xray - Pass executor
+         this.pvpMode = minecraftserver.isPvpAllowed();
+         this.convertable = convertable_conversionsession;
+         this.uuid = WorldUUID.getUUID(convertable_conversionsession.levelDirectory.path().toFile());
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index db971ca4136c7f922d630f38aa5c78cb04adbdfa..fa3ed1b2292abafa9f7cc79bc20f7c7beba02224 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -171,6 +171,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+         return this.paperConfig;
+     }
+     // Paper end
++    // Sakura start
++    private final me.samsuik.sakura.configuration.WorldConfiguration sakuraConfig;
++    public final me.samsuik.sakura.configuration.WorldConfiguration sakuraConfig() {
++        return this.sakuraConfig;
++    }
++    // Sakura end
+ 
+     public final com.destroystokyo.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
+     public final co.aikar.timings.WorldTimingsHandler timings; // Paper
+@@ -270,9 +276,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+ 
+     public abstract ResourceKey<LevelStem> getTypeKey();
+ 
+-    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, java.util.concurrent.Executor executor) { // Paper - Async-Anti-Xray - Pass executor
++    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper
++        this.sakuraConfig = sakuraWorldConfigCreator.get(); // Sakura
+         this.generator = gen;
+         this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index f3c1e3a6951a17b42bff6a32a9b2fe29edfaf81c..faddb7cefa3a26911c0ab509ead71387bf79a7de 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -961,6 +961,7 @@ public final class CraftServer implements Server {
+ 
+         org.spigotmc.SpigotConfig.init((File) console.options.valueOf("spigot-settings")); // Spigot
+         this.console.paperConfigurations.reloadConfigs(this.console);
++        this.console.sakuraConfigurations.reloadConfigs(this.console); // Sakura - missing comment above
+         for (ServerLevel world : this.console.getAllLevels()) {
+             // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
+             world.setSpawnSettings(world.serverLevelData.getDifficulty() != Difficulty.PEACEFUL && config.spawnMonsters, config.spawnAnimals); // Paper - per level difficulty (from MinecraftServer#setDifficulty(ServerLevel, Difficulty, boolean))
+@@ -991,6 +992,7 @@ public final class CraftServer implements Server {
+         this.reloadData();
+         org.spigotmc.SpigotConfig.registerCommands(); // Spigot
+         io.papermc.paper.command.PaperCommands.registerCommands(this.console); // Paper
++        me.samsuik.sakura.command.SakuraCommands.registerCommands(this.console); // Sakura
+         this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
+         this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index f30621be24c6c3a4f173436fce1ad1c13507c84f..d24c80dca90ae3b399bec6a23022a8db1e574868 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -166,6 +166,14 @@ public class Main {
+                         .describedAs("Jar file");
+                 // Paper end
+ 
++                // Sakura start
++                acceptsAll(asList("sakura-dir", "sakura-settings-directory"), "Directory for Sakura settings")
++                    .withRequiredArg()
++                    .ofType(File.class)
++                    .defaultsTo(new File(me.samsuik.sakura.configuration.SakuraConfigurations.CONFIG_DIR))
++                    .describedAs("Config directory");
++                // Sakura end
++
+                 // Paper start
+                 acceptsAll(asList("server-name"), "Name of the server")
+                         .withRequiredArg()

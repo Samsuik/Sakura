@@ -5,10 +5,10 @@ Subject: [PATCH] Limited Get Entities
 
 
 diff --git a/src/main/java/io/papermc/paper/chunk/system/entity/EntityLookup.java b/src/main/java/io/papermc/paper/chunk/system/entity/EntityLookup.java
-index 15ee41452992714108efe53b708b5a4e1da7c1ff..b62a1ae53a891802db17046271b9981ab3af1df0 100644
+index 61c170555c8854b102c640b0b6a615f9f732edbf..40c075c90993cdc7d0e6b908ed0f290a78286960 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/entity/EntityLookup.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/entity/EntityLookup.java
-@@ -522,6 +522,128 @@ public final class EntityLookup implements LevelEntityGetter<Entity> {
+@@ -459,6 +459,128 @@ public final class EntityLookup implements LevelEntityGetter<Entity> {
          return slices;
      }
  
@@ -42,7 +42,7 @@ index 15ee41452992714108efe53b708b5a4e1da7c1ff..b62a1ae53a891802db17046271b9981a
 +                for (int currZ = minZ; currZ <= maxZ; ++currZ) {
 +                    for (int currX = minX; currX <= maxX; ++currX) {
 +                        final ChunkEntitySlices chunk = region.get(currX | (currZ << REGION_SHIFT));
-+                        if (chunk == null || !chunk.status.isOrAfter(FullChunkStatus.FULL)) {
++                        if (chunk == null || !chunk.status.isOrAfter(ChunkHolder.FullChunkStatus.BORDER)) {
 +                            continue;
 +                        }
 +
@@ -82,7 +82,7 @@ index 15ee41452992714108efe53b708b5a4e1da7c1ff..b62a1ae53a891802db17046271b9981a
 +                for (int currZ = minZ; currZ <= maxZ; ++currZ) {
 +                    for (int currX = minX; currX <= maxX; ++currX) {
 +                        final ChunkEntitySlices chunk = region.get(currX | (currZ << REGION_SHIFT));
-+                        if (chunk == null || !chunk.status.isOrAfter(FullChunkStatus.FULL)) {
++                        if (chunk == null || !chunk.status.isOrAfter(ChunkHolder.FullChunkStatus.BORDER)) {
 +                            continue;
 +                        }
 +
@@ -122,7 +122,7 @@ index 15ee41452992714108efe53b708b5a4e1da7c1ff..b62a1ae53a891802db17046271b9981a
 +                for (int currZ = minZ; currZ <= maxZ; ++currZ) {
 +                    for (int currX = minX; currX <= maxX; ++currX) {
 +                        final ChunkEntitySlices chunk = region.get(currX | (currZ << REGION_SHIFT));
-+                        if (chunk == null || !chunk.status.isOrAfter(FullChunkStatus.FULL)) {
++                        if (chunk == null || !chunk.status.isOrAfter(ChunkHolder.FullChunkStatus.BORDER)) {
 +                            continue;
 +                        }
 +
@@ -138,10 +138,10 @@ index 15ee41452992714108efe53b708b5a4e1da7c1ff..b62a1ae53a891802db17046271b9981a
          final int minChunkX = (Mth.floor(box.minX) - 2) >> 4;
          final int minChunkZ = (Mth.floor(box.minZ) - 2) >> 4;
 diff --git a/src/main/java/io/papermc/paper/world/ChunkEntitySlices.java b/src/main/java/io/papermc/paper/world/ChunkEntitySlices.java
-index 8fcaa00e461c7f4413bf655ddd8165a2b908f900..404b99def4562942e036089085a667979b1cac81 100644
+index ce231d8b230d4983b21c597357c0b22377e4bcca..91b0e10a60173b428612e2515fdcfd62110a7a3e 100644
 --- a/src/main/java/io/papermc/paper/world/ChunkEntitySlices.java
 +++ b/src/main/java/io/papermc/paper/world/ChunkEntitySlices.java
-@@ -259,6 +259,30 @@ public final class ChunkEntitySlices {
+@@ -253,6 +253,30 @@ public final class ChunkEntitySlices {
      }
      // Sakura end
  
@@ -172,7 +172,7 @@ index 8fcaa00e461c7f4413bf655ddd8165a2b908f900..404b99def4562942e036089085a66797
      public void getHardCollidingEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
          this.hardCollidingEntities.getEntities(except, box, into, predicate);
      }
-@@ -449,6 +473,155 @@ public final class ChunkEntitySlices {
+@@ -443,6 +467,155 @@ public final class ChunkEntitySlices {
          }
          // Sakura end
  
@@ -329,14 +329,14 @@ index 8fcaa00e461c7f4413bf655ddd8165a2b908f900..404b99def4562942e036089085a66797
              if (this.count == 0) {
                  return;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index ad4076dd0352eb4f62588e3c83ffb2c42b07a3e0..360e72b8e540f3cdb557bc59bca5e0a9cda239f8 100644
+index 5c3aa8335b47a8ac0956c6caed3569f9244f4bd6..562ce3115ff6814f52872eb0e36a95d255ea4187 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -232,6 +232,39 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -286,6 +286,39 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public final me.samsuik.sakura.entity.merge.MergeHistory mergeHistory = new me.samsuik.sakura.entity.merge.MergeHistory(); // Sakura - cannon entity merging
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
  
-+    // Sakura start - add entity retrival methods with search limits
++    // Sakura start - add entity retrieval methods with search limits
 +    public void getLimitedEntities(Entity except, AABB box, Predicate<? super Entity> predicate, List<Entity> into, int limit, int search) {
 +        ((ServerLevel)this).getEntityLookup().getLimitedEntities(except, box, into, predicate, limit, search);
 +    }
@@ -367,8 +367,8 @@ index ad4076dd0352eb4f62588e3c83ffb2c42b07a3e0..360e72b8e540f3cdb557bc59bca5e0a9
 +    public List<Entity> getLimitedEntities(@Nullable Entity except, AABB box, int limit, int search) {
 +        return this.getLimitedEntities(except, box, net.minecraft.world.entity.EntitySelector.NO_SPECTATORS, limit, search);
 +    }
-+    // Sakura end - add entity retrival methods with search limits
++    // Sakura end - add entity retrieval methods with search limits
 +
-     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - create paper world config; Async-Anti-Xray: Pass executor
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, Supplier<me.samsuik.sakura.configuration.WorldConfiguration> sakuraWorldConfigCreator, java.util.concurrent.Executor executor) { // Sakura // Paper - Async-Anti-Xray - Pass executor
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
-         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
+         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper
