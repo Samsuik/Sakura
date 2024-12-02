@@ -87,7 +87,7 @@ index 97d1ff2af23bac14e67bca5896843325aaa5bfc1..c90b265a9cd92d40960d5513d9585e47
      public static <T> TicketType<T> create(String name, Comparator<T> argumentComparator) {
          return new TicketType<>(name, argumentComparator, 0L);
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 3b6efce07745df062d5d3ef60011718842217336..c0fb35497cfab69e5d28a70a2756f0d74a406630 100644
+index 3b6efce07745df062d5d3ef60011718842217336..0025d08527f41c0d19f4a713ef072fae008cec25 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -545,6 +545,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
@@ -98,11 +98,13 @@ index 3b6efce07745df062d5d3ef60011718842217336..c0fb35497cfab69e5d28a70a2756f0d7
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -1394,7 +1395,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -1393,8 +1394,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+                 }
              }
  
-             io.papermc.paper.util.CollisionUtil.getCollisions(world, this, collisionBox, potentialCollisions, false, this.level.paperConfig().chunks.preventMovingIntoUnloadedChunks,
+-            io.papermc.paper.util.CollisionUtil.getCollisions(world, this, collisionBox, potentialCollisions, false, this.level.paperConfig().chunks.preventMovingIntoUnloadedChunks,
 -                false, false, null, null);
++            io.papermc.paper.util.CollisionUtil.getCollisions(world, this, collisionBox, potentialCollisions, this.loadChunks, this.level.paperConfig().chunks.preventMovingIntoUnloadedChunks, // Sakura - load chunks on movement
 +                false, this.loadChunks, false, null, null); // Sakura - load chunks on movement
  
              if (collidingWithWorldBorder = io.papermc.paper.util.CollisionUtil.isCollidingWithBorderEdge(world.getWorldBorder(), collisionBox)) { // Paper - this line *is* correct, ignore the IDE warning about assignments being used as a condition
