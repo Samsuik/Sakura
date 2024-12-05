@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 5 Dec 2024 22:21:39 +0000
+Subject: [PATCH] Add lava flow speed api
+
+
+diff --git a/src/main/java/net/minecraft/world/level/material/LavaFluid.java b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
+index c3c24f616345e41772062032406c308ca130147d..d89b21b4b732f372fcd602329a84148958fdbb1a 100644
+--- a/src/main/java/net/minecraft/world/level/material/LavaFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
+@@ -188,7 +188,10 @@ public abstract class LavaFluid extends FlowingFluid {
+ 
+     @Override
+     public int getSpreadDelay(Level world, BlockPos pos, FluidState oldState, FluidState newState) {
+-        int i = this.getTickDelay(world);
++        // Sakura start - lava flow speed api
++        final int flowSpeed = world.localConfig().config(pos).lavaFlowSpeed;
++        int i = flowSpeed >= 0 ? flowSpeed : this.getTickDelay(world);
++        // Sakura end - lava flow speed api
+ 
+         if (!oldState.isEmpty() && !newState.isEmpty() && !(Boolean) oldState.getValue(LavaFluid.FALLING) && !(Boolean) newState.getValue(LavaFluid.FALLING) && newState.getHeight(world, pos) > oldState.getHeight(world, pos) && world.getRandom().nextInt(4) != 0) {
+             i *= 4;
