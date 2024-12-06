@@ -4,19 +4,61 @@ Date: Thu, 5 Dec 2024 22:21:39 +0000
 Subject: [PATCH] Add lava flow speed api
 
 
+diff --git a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+index 211f4574c3053487ce689efc5cfc0f6d94b629a8..0a53c34c051e5beb27f3250fdd501d672ea108b7 100644
+--- a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+@@ -123,7 +123,7 @@ public class LiquidBlock extends Block implements BucketPickup {
+                 return world.paperConfig().environment.waterOverLavaFlowSpeed;
+             }
+         }
+-        return this.fluid.getTickDelay(world);
++        return this.fluid.getTickDelay(world, blockposition); // Sakura - lava flow speed api
+     }
+     // Paper end
+ 
+diff --git a/src/main/java/net/minecraft/world/level/material/Fluid.java b/src/main/java/net/minecraft/world/level/material/Fluid.java
+index 4a6b0869ac305d181e48d6c592d30af297486df0..e119ad20676dfadf0e575a8959d665e393e91608 100644
+--- a/src/main/java/net/minecraft/world/level/material/Fluid.java
++++ b/src/main/java/net/minecraft/world/level/material/Fluid.java
+@@ -68,6 +68,12 @@ public abstract class Fluid {
+ 
+     protected abstract Vec3 getFlow(BlockGetter world, BlockPos pos, FluidState state);
+ 
++    // Sakura start - lava flow speed api
++    public int getTickDelay(final Level world, final BlockPos pos) {
++        return this.getTickDelay(world);
++    }
++    // Sakura end - lava flow speed api
++
+     public abstract int getTickDelay(LevelReader world);
+ 
+     protected boolean isRandomlyTicking() {
 diff --git a/src/main/java/net/minecraft/world/level/material/LavaFluid.java b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
-index 1fb85a64eca4ef8a778f5b8652f774d1cfb707c4..4c08df24ba0f2682c381e3f70a3c4b5406ef34b5 100644
+index 1fb85a64eca4ef8a778f5b8652f774d1cfb707c4..36d6e7799b9f7e91d39c8080e839ce134034d187 100644
 --- a/src/main/java/net/minecraft/world/level/material/LavaFluid.java
 +++ b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
-@@ -188,7 +188,10 @@ public abstract class LavaFluid extends FlowingFluid {
+@@ -181,6 +181,14 @@ public abstract class LavaFluid extends FlowingFluid {
+         // Sakura end
+     }
+ 
++    // Sakura start - lava flow speed api
++    @Override
++    public final int getTickDelay(Level world, BlockPos pos) {
++        final int flowSpeed = world.localConfig().config(pos).lavaFlowSpeed;
++        return flowSpeed >= 0 ? flowSpeed : this.getTickDelay(world);
++    }
++    // Sakura end - lava flow speed api
++
+     @Override
+     public int getTickDelay(LevelReader world) {
+         return world.dimensionType().ultraWarm() && !(world instanceof Level level && level.sakuraConfig().environment.disableFastNetherLava) ? 10 : 30; // Sakura
+@@ -188,7 +196,7 @@ public abstract class LavaFluid extends FlowingFluid {
  
      @Override
      public int getSpreadDelay(Level world, BlockPos pos, FluidState oldState, FluidState newState) {
 -        int i = this.getTickDelay(world);
-+        // Sakura start - lava flow speed api
-+        final int flowSpeed = world.localConfig().config(pos).lavaFlowSpeed;
-+        int i = flowSpeed >= 0 ? flowSpeed : this.getTickDelay(world);
-+        // Sakura end - lava flow speed api
++        int i = this.getTickDelay(world, pos); // Sakura - lava flow speed api
  
          if (!oldState.isEmpty() && !newState.isEmpty() && !(Boolean) oldState.getValue(LavaFluid.FALLING) && !(Boolean) newState.getValue(LavaFluid.FALLING) && newState.getHeight(world, pos) > oldState.getHeight(world, pos) && world.getRandom().nextInt(4) != 0) {
              i *= 4;
