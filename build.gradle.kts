@@ -49,6 +49,7 @@ paperweight {
     decompileRepo = "https://files.minecraftforge.net/maven/"
 
     usePaperUpstream(providers.gradleProperty("paperRef")) {
+        url = github("PaperMC", "Paper-archive") // hard fork
         withPaperPatcher {
             apiPatchDir = layout.projectDirectory.dir("patches/api")
             apiOutputDir = layout.projectDirectory.dir("sakura-api")
