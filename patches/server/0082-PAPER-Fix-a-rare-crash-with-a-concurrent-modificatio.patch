@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TomTom <93038247+AverageGithub@users.noreply.github.com>
+Date: Wed, 22 Jan 2025 19:58:44 +0100
+Subject: [PATCH] PAPER Fix a rare crash with a concurrent modification of
+ scaled health attributes
+
+Backported https://github.com/PaperMC/Paper/commit/30046e041049e4a942ba5367dba1b1aaaf1ba91e
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index 581a9efe67f3b803688679609d1feb0b601c9bde..35f933c36d808d90d55241a8e1afbf9336ad6d61 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -2877,9 +2877,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+         if (!this.scaledHealth && !force) {
+             return;
+         }
+-        for (AttributeInstance genericInstance : collection) {
++        // Paper start - Fix a rare crash with a concurrent modification of scaled health attributes
++        java.util.Iterator<AttributeInstance> iterator = collection.iterator();
++        while (iterator.hasNext()) {
++            AttributeInstance genericInstance = iterator.next();
+             if (genericInstance.getAttribute() == Attributes.MAX_HEALTH) {
+-                collection.remove(genericInstance);
++                iterator.remove();
++                // Paper end - Fix a rare crash with a concurrent modification of scaled health attributes
+                 break;
+             }
+         }
