@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Creeam <102713261+HaHaWTH@users.noreply.github.com>
+Date: Sat, 25 Jan 2025 12:13:21 -0800
+Subject: [PATCH] PAPER Fix wrong piston world border check
+
+Backported: https://github.com/PaperMC/Paper/commit/81bb82f521e91ffc83505e9574bb0deba66f9120
+
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+index a0e46d413c584e2c82c60b005e07f68f20af65f8..ccb5276502fa108906bdf8c2a293e9e8476d4f8e 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+@@ -318,7 +318,7 @@ public class PistonBaseBlock extends DirectionalBlock {
+     }
+ 
+     public static boolean isPushable(BlockState state, Level world, BlockPos pos, Direction direction, boolean canBreak, Direction pistonDir) {
+-        if (pos.getY() >= world.getMinBuildHeight() && pos.getY() <= world.getMaxBuildHeight() - 1 && world.getWorldBorder().isWithinBounds(pos)) {
++        if (pos.getY() >= world.getMinBuildHeight() && pos.getY() <= world.getMaxBuildHeight() - 1 && world.getWorldBorder().isWithinBounds(pos) && world.getWorldBorder().isWithinBounds(pos.relative(pistonDir))) { // Paper - Fix piston world border check
+             if (state.isAir()) {
+                 return true;
+             } else if (!state.is(Blocks.OBSIDIAN) && !state.is(Blocks.CRYING_OBSIDIAN) && !state.is(Blocks.RESPAWN_ANCHOR) && !state.is(Blocks.REINFORCED_DEEPSLATE)) {
