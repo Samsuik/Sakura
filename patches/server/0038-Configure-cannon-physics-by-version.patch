@@ -253,7 +253,7 @@ index c1c1737bc7f57b7112567fe22a31c964cf4d10f7..ba94f23803adc9b83e46a7ed936e1780
          if (this.level().hasChunksAt(blockposition, blockposition1)) {
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 92d8b64f18cf7ac854a021e06102dad9932bfba0..a08123d67a43f9de5706dda22f3b59979f673ac4 100644
+index 449ab2332875ea652a5ba52ddb18098a7405a1e4..224791310044b90f8436862a406d0521e6d15b34 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -147,6 +147,8 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -264,8 +264,8 @@ index 92d8b64f18cf7ac854a021e06102dad9932bfba0..a08123d67a43f9de5706dda22f3b5997
 +        this.eyeHeight = this.physics.isLegacy() ? 0.49f : this.eyeHeight; // Sakura - physics version api
      }
  
-     public static FallingBlockEntity fall(Level world, BlockPos pos, BlockState state) {
-@@ -159,7 +161,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+     // Sakura start - falling block stacking restrictions
+@@ -174,7 +176,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          FallingBlockEntity entityfallingblock = new FallingBlockEntity(world, (double) blockposition.getX() + 0.5D, (double) blockposition.getY(), (double) blockposition.getZ() + 0.5D, iblockdata.hasProperty(BlockStateProperties.WATERLOGGED) ? (BlockState) iblockdata.setValue(BlockStateProperties.WATERLOGGED, false) : iblockdata);
          if (!CraftEventFactory.callEntityChangeBlockEvent(entityfallingblock, blockposition, iblockdata.getFluidState().createLegacyBlock())) return entityfallingblock; // CraftBukkit
  
@@ -278,7 +278,7 @@ index 92d8b64f18cf7ac854a021e06102dad9932bfba0..a08123d67a43f9de5706dda22f3b5997
          world.addFreshEntity(entityfallingblock, spawnReason); // CraftBukkit
          return entityfallingblock;
      }
-@@ -198,10 +204,47 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -213,10 +219,47 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          return this.heightParity ? this.getY() : super.getEyeY();
      }
      // Sakura end - configure cannon mechanics
@@ -327,7 +327,7 @@ index 92d8b64f18cf7ac854a021e06102dad9932bfba0..a08123d67a43f9de5706dda22f3b5997
      }
  
      @Override
-@@ -211,6 +254,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -226,6 +269,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          } else {
              Block block = this.blockState.getBlock();
  
@@ -339,7 +339,7 @@ index 92d8b64f18cf7ac854a021e06102dad9932bfba0..a08123d67a43f9de5706dda22f3b5997
              ++this.time;
              this.applyGravity();
              this.moveStripped(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise cannon entity movement
-@@ -225,8 +273,15 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -240,8 +288,15 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              }
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
@@ -356,7 +356,7 @@ index 92d8b64f18cf7ac854a021e06102dad9932bfba0..a08123d67a43f9de5706dda22f3b5997
                  boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
                  boolean flag1 = flag && this.level().getFluidState(blockposition).is(FluidTags.WATER);
                  double d0 = this.getDeltaMovement().lengthSqr();
-@@ -251,8 +306,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -266,8 +321,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                  } else {
                      BlockState iblockdata = this.level().getBlockState(blockposition);
  
@@ -370,7 +370,7 @@ index 92d8b64f18cf7ac854a021e06102dad9932bfba0..a08123d67a43f9de5706dda22f3b5997
                          if (!this.cancelDrop) {
                              boolean flag2 = iblockdata.canBeReplaced((BlockPlaceContext) (new DirectionalPlaceContext(this.level(), blockposition, Direction.DOWN, ItemStack.EMPTY, Direction.UP)));
                              boolean flag3 = FallingBlock.isFree(this.level().getBlockState(blockposition.below())) && (!flag || !flag1);
-@@ -319,7 +377,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -334,7 +392,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                  }
              }
  
