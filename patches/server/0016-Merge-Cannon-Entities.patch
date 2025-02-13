@@ -445,10 +445,10 @@ index b120d32a37ea577d56783066a58ea4a407769753..c245760718be113128739101b8038471
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 04ff913f304c7b70b5fcbf866984cb0a91c2b05c..a636c0331b6c963224727eaaed9c09d29ba9d2d7 100644
+index 04ff913f304c7b70b5fcbf866984cb0a91c2b05c..8fbfe63b560a4ce0ae22a95c6e08a501e4e088fd 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -586,6 +586,23 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -586,6 +586,24 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return to.entityState() != null && to.entityState().isCurrentState(this);
      }
      // Sakura end - store entity data/state
@@ -456,8 +456,9 @@ index 04ff913f304c7b70b5fcbf866984cb0a91c2b05c..a636c0331b6c963224727eaaed9c09d2
 +    public final void updateBukkitHandle(Entity entity) {
 +        if (this.bukkitEntity != null) {
 +            this.bukkitEntity.setHandle(entity);
++        } else {
++            this.bukkitEntity = entity.getBukkitEntity();
 +        }
-+        this.bukkitEntity = entity.getBukkitEntity();
 +    }
 +
 +    public final long getPackedOriginPosition() {
@@ -472,7 +473,7 @@ index 04ff913f304c7b70b5fcbf866984cb0a91c2b05c..a636c0331b6c963224727eaaed9c09d2
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -4878,6 +4895,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -4878,6 +4896,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
  
          if (this.removalReason != Entity.RemovalReason.UNLOADED_TO_CHUNK) { this.getPassengers().forEach(Entity::stopRiding); } // Paper - rewrite chunk system
          this.levelCallback.onRemove(entity_removalreason);
