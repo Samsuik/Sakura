@@ -110,10 +110,10 @@ index 0000000000000000000000000000000000000000..6c0c224bc30c9c75d4b82508661117ce
 +}
 diff --git a/src/main/java/me/samsuik/sakura/entity/merge/MergeEntityData.java b/src/main/java/me/samsuik/sakura/entity/merge/MergeEntityData.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b13e3dcc333bcb53b4493e7087765fcca0a88604
+index 0000000000000000000000000000000000000000..1c18e1f1809f59bf2716c2be4f34687d107b137d
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/entity/merge/MergeEntityData.java
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,59 @@
 +package me.samsuik.sakura.entity.merge;
 +
 +import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -125,7 +125,7 @@ index 0000000000000000000000000000000000000000..b13e3dcc333bcb53b4493e7087765fcc
 +
 +public final class MergeEntityData {
 +    private final Entity entity;
-+    private List<MergeEntityData> connected = new ObjectArrayList<>();
++    private final List<MergeEntityData> connected = new ObjectArrayList<>();
 +    private int count = 1;
 +    private MergeLevel mergeLevel = MergeLevel.NONE;
 +
@@ -133,10 +133,17 @@ index 0000000000000000000000000000000000000000..b13e3dcc333bcb53b4493e7087765fcc
 +        this.entity = entity;
 +    }
 +
++    private void updateEntityHandles(Entity entity) {
++        for (MergeEntityData entityData : this.connected) {
++            entityData.entity.updateBukkitHandle(entity);
++        }
++    }
++
 +    public void mergeWith(@NotNull MergeEntityData mergeEntityData) {
 +        this.connected.add(mergeEntityData);
 +        this.connected.addAll(mergeEntityData.connected);
 +        this.count += mergeEntityData.getCount();
++        mergeEntityData.updateEntityHandles(this.entity);
 +        mergeEntityData.setCount(0);
 +    }
 +
@@ -410,7 +417,7 @@ index d48a1f7d23d1c47465ad8df37facbabe3a15c543..012bec9a32acc26f65c8efbfde341b0d
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index df6074dae80cce98ce27bd28280c246dafa9562a..0a29ad6409226ece40c03c6eba699592c7f0aa11 100644
+index b120d32a37ea577d56783066a58ea4a407769753..c245760718be113128739101b8038471b7144272 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -714,6 +714,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
