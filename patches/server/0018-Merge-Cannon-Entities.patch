@@ -181,7 +181,7 @@ index 3c98362624e1b02b6b028db95564254e044c7b0d..f78881fcf186c44da243c2f31ff855b8
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 55e0be135ec084ee7ebe6bc7bb9323519e0cd864..51fa57e8b9d5c9ee563ec3608a437c69da08d32c 100644
+index 22b202274895cdc38c57bf2bb1b0ba010cee1ae6..297ab4dde3cfef55bd9dca662f473c0652ca3b7b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -893,6 +893,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -209,10 +209,10 @@ index 55e0be135ec084ee7ebe6bc7bb9323519e0cd864..51fa57e8b9d5c9ee563ec3608a437c69
                              this.guardEntityTick(this::tickNonPassenger, entity);
                              gameprofilerfiller.pop();
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index e657b5f88195f1db2cb9a9a97f255ff23992cadd..c10f6574cc08aafe34a63c803e55e406b3d972c6 100644
+index e657b5f88195f1db2cb9a9a97f255ff23992cadd..87327a63fdaf48b5a42666c36b925bda5516544e 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -603,6 +603,120 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -603,6 +603,123 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          return to.entityState() != null && to.entityState().isCurrentState(this);
      }
      // Sakura end - store entity data/state
@@ -313,11 +313,14 @@ index e657b5f88195f1db2cb9a9a97f255ff23992cadd..c10f6574cc08aafe34a63c803e55e406
 +        entity.mergeList.addAll(mergeList);
 +        entity.stacked += stacked;
 +
++        for (Entity mergedEntity : this.mergeList) {
++            mergedEntity.updateEntityHandle(entity);
++        }
++
 +        mergeList.clear(); // clear the list to stop our tracking when merging
 +        stacked = 0; // prevent any possible duplication
 +
 +        discard(null); // MERGE is appropriate here but plugins may not expect tnt or falling blocks to merge
-+
 +        updateEntityHandle(entity);
 +    }
 +
@@ -326,14 +329,14 @@ index e657b5f88195f1db2cb9a9a97f255ff23992cadd..c10f6574cc08aafe34a63c803e55e406
 +        //noinspection ConstantValue
 +        if (bukkitEntity != null) {
 +            bukkitEntity.setHandle(entity);
-+            bukkitEntity = entity.bukkitEntity;
 +        }
++        this.bukkitEntity = entity.getBukkitEntity();
 +    }
 +    // Sakura end - cannon entity merging
  
      public Entity(EntityType<?> type, Level world) {
          this.id = Entity.ENTITY_COUNTER.incrementAndGet();
-@@ -651,6 +765,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -651,6 +768,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          this.getEntityData().registrationLocked = true; // Spigot
          this.setPos(0.0D, 0.0D, 0.0D);
          this.eyeHeight = this.getEyeHeight(net.minecraft.world.entity.Pose.STANDING, this.dimensions);
@@ -341,7 +344,7 @@ index e657b5f88195f1db2cb9a9a97f255ff23992cadd..c10f6574cc08aafe34a63c803e55e406
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -2533,6 +2648,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2533,6 +2651,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  nbttagcompound.putBoolean("Paper.FreezeLock", true);
              }
              // Paper end
@@ -353,7 +356,7 @@ index e657b5f88195f1db2cb9a9a97f255ff23992cadd..c10f6574cc08aafe34a63c803e55e406
              return nbttagcompound;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2680,6 +2800,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2680,6 +2803,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  freezeLocked = nbt.getBoolean("Paper.FreezeLock");
              }
              // Paper end
@@ -365,7 +368,7 @@ index e657b5f88195f1db2cb9a9a97f255ff23992cadd..c10f6574cc08aafe34a63c803e55e406
  
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
-@@ -4889,6 +5014,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4889,6 +5017,11 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          // Paper end - rewrite chunk system
          CraftEventFactory.callEntityRemoveEvent(this, cause);
          // CraftBukkit end
