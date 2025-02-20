@@ -87,7 +87,7 @@ public interface MergeStrategy {
             }
 
             Entity nextEntity = this.entityTable.getAndWrite(entity);
-            if (nextEntity == null || !nextEntity.level().equals(entity.level())) {
+            if (nextEntity == null || entity == nextEntity || !nextEntity.level().equals(entity.level())) {
                 return null;
             }
 
