@@ -18,3 +18,15 @@
      }
      private static boolean isLava(Level level, BlockPos pos) {
          final FluidState fluidState = level.getFluidIfLoaded(pos);
+@@ -189,6 +_,11 @@
+ 
+             for (Direction direction : POSSIBLE_FLOW_DIRECTIONS) {
+                 BlockPos blockPos = pos.relative(direction.getOpposite());
++                // Sakura start - configure fluid ticking outside the world border
++                if (level.sakuraConfig().environment.disableFluidsFlowingThroughTheWorldBorder && !level.getWorldBorder().isWithinBounds(blockPos)) {
++                    continue;
++                }
++                // Sakura end - configure fluid ticking outside the world border
+                 if (level.getFluidState(blockPos).is(FluidTags.WATER)) {
+                     Block block = level.getFluidState(pos).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
+                     // CraftBukkit start

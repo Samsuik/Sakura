@@ -1,6 +1,12 @@
 --- a/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/net/minecraft/world/level/material/FlowingFluid.java
-@@ -157,7 +_,7 @@
+@@ -152,12 +_,12 @@
+     }
+ 
+     protected void spread(ServerLevel level, BlockPos pos, BlockState blockState, FluidState fluidState) {
+-        if (!fluidState.isEmpty()) {
++        if (!fluidState.isEmpty() && (!level.sakuraConfig().environment.disableFluidsFlowingThroughTheWorldBorder || level.getWorldBorder().isWithinBounds(pos))) { // Sakura - configure fluids flowing through the world border
+             BlockPos blockPos = pos.below();
              BlockState blockState1 = level.getBlockState(blockPos);
              FluidState fluidState1 = blockState1.getFluidState();
              if (this.canMaybePassThrough(level, pos, blockState, Direction.DOWN, blockPos, blockState1, fluidState1)) {
@@ -9,6 +15,18 @@
                  Fluid type = newLiquid.getType();
                  if (fluidState1.canBeReplacedWith(level, blockPos, type, Direction.DOWN) && canHoldSpecificFluid(level, blockPos, blockState1, type)) {
                      // CraftBukkit start
+@@ -199,6 +_,11 @@
+                 BlockPos blockPos = pos.relative(direction);
+                 final BlockState blockStateIfLoaded = level.getBlockStateIfLoaded(blockPos); // Paper - Prevent chunk loading from fluid flowing
+                 if (blockStateIfLoaded == null) continue; // Paper - Prevent chunk loading from fluid flowing
++                // Sakura start - configure fluids flowing through the world border
++                if (level.sakuraConfig().environment.disableFluidsFlowingThroughTheWorldBorder && !level.getWorldBorder().isWithinBounds(blockPos)) {
++                    continue;
++                }
++                // Sakura end - configure fluids flowing through the world border
+                 // CraftBukkit start
+                 org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
+                 org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
 @@ -214,6 +_,23 @@
      }
  
@@ -29,7 +47,7 @@
 +    }
 +
 +    private FluidState getLiquidFromSurroundings(final ServerLevel level, final BlockPos pos, final BlockState state) {
-+        // Sakura start - optimise new liquid level
++        // Sakura end - optimise new liquid level
          int i = 0;
          int i1 = 0;
          BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();

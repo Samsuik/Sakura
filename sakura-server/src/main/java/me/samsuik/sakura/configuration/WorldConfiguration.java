@@ -215,6 +215,7 @@ public final class WorldConfiguration extends ConfigurationPart {
     public class Environment extends ConfigurationPart {
         public boolean allowWaterInTheNether = false;
         public boolean disableFastNetherLava = false;
+        public boolean disableFluidsFlowingThroughTheWorldBorder = false;
 
         public BlockGeneration blockGeneration = new BlockGeneration();
         public class BlockGeneration extends ConfigurationPart {
