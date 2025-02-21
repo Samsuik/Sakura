@@ -56,7 +56,7 @@ public final class RedstoneWireCache {
             if (network != null) {
                 try {
                     this.updatingNetwork = network;
-                    return network.applyFromCache(this.level);
+                    return network.applyFromCache(this.level, localConfig.redstoneImplementation);
                 } finally {
                     this.updatingNetwork = null;
                 }

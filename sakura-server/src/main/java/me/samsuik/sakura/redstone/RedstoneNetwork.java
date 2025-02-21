@@ -156,7 +156,7 @@ public final class RedstoneNetwork {
         }
     }
 
-    public boolean applyFromCache(Level level) {
+    public boolean applyFromCache(Level level, WorldConfiguration.Misc.RedstoneImplementation redstoneImplementation) {
         this.expiry.refresh(level.getGameTime());
         if (!this.isRegistered() || !this.verifyWiresInNetwork(level)) {
             return false;
@@ -167,7 +167,7 @@ public final class RedstoneNetwork {
         int updateFrom = 0;
 
         for (RedstoneWireUpdate wireUpdate : this.wireUpdates) {
-            if (wireUpdate.canSkipWireUpdate()) {
+            if (wireUpdate.canSkipWireUpdate() && redstoneImplementation != WorldConfiguration.Misc.RedstoneImplementation.VANILLA) {
                 updateFrom = wireUpdate.getUpdateIndex();
                 continue;
             }
