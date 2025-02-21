@@ -8,12 +8,11 @@ import me.samsuik.sakura.player.visibility.VisibilityType;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;
+import org.jspecify.annotations.NullMarked;
 
 import java.util.Arrays;
 
-@DefaultQualifier(NonNull.class)
+@NullMarked
 public final class VisualCommand extends BaseSubCommand {
     private final VisibilityType type;
 

@@ -28,6 +28,10 @@ public final class RedstoneWireCache {
         this.level = level;
     }
 
+    public Map<RedstoneNetworkSource, RedstoneNetwork> getNetworkCache() {
+        return this.networkCache;
+    }
+
     public boolean isWireUpdating(BlockPos pos) {
         return this.updatingNetwork != null && this.updatingNetwork.hasWire(pos);
     }

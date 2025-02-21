@@ -4,10 +4,9 @@ import me.samsuik.sakura.command.BaseSubCommand;
 import me.samsuik.sakura.player.visibility.VisibilityGui;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;
+import org.jspecify.annotations.NullMarked;
 
-@DefaultQualifier(NonNull.class)
+@NullMarked
 public final class FPSCommand extends BaseSubCommand {
     private final VisibilityGui visibilityGui = new VisibilityGui();
 

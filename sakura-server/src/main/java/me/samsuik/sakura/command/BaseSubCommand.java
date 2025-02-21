@@ -2,16 +2,14 @@ package me.samsuik.sakura.command;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-@DefaultQualifier(NonNull.class)
+@NullMarked
 public abstract class BaseSubCommand extends Command {
     public BaseSubCommand(String name) {
         super(name);
@@ -34,7 +32,6 @@ public abstract class BaseSubCommand extends Command {
     }
 
     @Override
-    @NotNull
     public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
         List<String> completions = new ArrayList<>(0);
 

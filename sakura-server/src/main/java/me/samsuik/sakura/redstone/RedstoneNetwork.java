@@ -1,5 +1,6 @@
 package me.samsuik.sakura.redstone;
 
+import io.papermc.paper.configuration.WorldConfiguration;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.*;
 import me.samsuik.sakura.utils.TickExpiry;
@@ -41,11 +42,17 @@ public final class RedstoneNetwork {
         return newBlock.getBlock() != oldBlock.getBlock();
     }
 
+    public List<BlockPos> getWirePositions() {
+        return this.wireUpdates.stream()
+            .map(RedstoneWireUpdate::getPosition)
+            .toList();
+    }
+
     public TickExpiry getExpiry() {
         return this.expiry;
     }
 
-    private boolean isRegistered() {
+    public boolean isRegistered() {
         return !this.listeners.isEmpty();
     }
 

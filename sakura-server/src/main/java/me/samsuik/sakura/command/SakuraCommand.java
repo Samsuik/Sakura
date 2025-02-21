@@ -7,9 +7,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
-@DefaultQualifier(NonNull.class)
+@NullMarked
 public final class SakuraCommand extends Command {
     private static final Component HEADER_MESSAGE = MiniMessage.miniMessage().deserialize("""
         <dark_purple>.</dark_purple>
@@ -37,7 +35,7 @@ public final class SakuraCommand extends Command {
     @Override
     public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (args.length > 0) {
-            List<Command> commands = new ArrayList<>(SakuraCommands.COMMANDS.values());
+            List<Command> commands = new ArrayList<>(SakuraCommands.SUB_COMMANDS);
 
             // This part is copied from the VersionCommand SubCommand in paper
             Command internalVersion = MinecraftServer.getServer().server.getCommandMap().getCommand("version");
@@ -59,7 +57,7 @@ public final class SakuraCommand extends Command {
     private void sendHelpMessage(CommandSender sender) {
         sender.sendMessage(HEADER_MESSAGE);
 
-        Stream<Command> uniqueCommands = SakuraCommands.COMMANDS.values()
+        Stream<Command> uniqueCommands = SakuraCommands.SUB_COMMANDS
             .stream()
             .filter(command -> command != this);
 
@@ -70,14 +68,13 @@ public final class SakuraCommand extends Command {
         sender.sendMessage(Component.text("'", NamedTextColor.DARK_PURPLE));
     }
 
-    @NotNull
     @Override
     public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
         if (!this.testPermissionSilent(sender)) {
             return Collections.emptyList();
         }
 
-        return SakuraCommands.COMMANDS.values().stream()
+        return SakuraCommands.SUB_COMMANDS.stream()
             .filter(command -> command != this)
             .map(Command::getName)
             .filter(name -> args.length <= 1 || name.startsWith(args[args.length - 1]))
