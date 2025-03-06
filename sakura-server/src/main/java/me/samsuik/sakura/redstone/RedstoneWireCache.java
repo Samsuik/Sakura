@@ -41,30 +41,30 @@ public final class RedstoneWireCache {
     }
 
     public boolean tryApplyFromCache(BlockPos pos, @Nullable Orientation orientation, int newPower, int oldPower) {
-        if (!this.isTrackingWireUpdates()) {
-            LocalValueConfig localConfig = this.level.localConfig().config(pos);
-            if (!localConfig.redstoneCache) {
-                return false;
-            }
-
-            if (this.updatingNetwork != null) {
-                return true;
-            }
-
-            RedstoneNetworkSource networkSource = RedstoneNetworkSource.createNetworkSource(this.level, localConfig, pos, orientation, newPower, oldPower);
-            RedstoneNetwork network = this.networkCache.get(networkSource);
-            if (network != null) {
-                try {
-                    this.updatingNetwork = network;
-                    return network.applyFromCache(this.level, localConfig.redstoneImplementation);
-                } finally {
-                    this.updatingNetwork = null;
-                }
-            }
-
-            this.networkSource = networkSource;
+        LocalValueConfig localConfig = this.level.localConfig().config(pos);
+        if (!localConfig.redstoneCache || this.isTrackingWireUpdates()) {
+            return false;
         }
-        return false;
+
+        // Ignore any wire changes while updating the network.
+        if (this.updatingNetwork != null) {
+            return true;
+        }
+
+        RedstoneNetworkSource networkSource = RedstoneNetworkSource.createNetworkSource(this.level, localConfig, pos, orientation, newPower, oldPower);
+        RedstoneNetwork network = this.networkCache.get(networkSource);
+        if (network != null) {
+            try {
+                this.updatingNetwork = network;
+                return network.applyFromCache(this.level);
+            } finally {
+                this.updatingNetwork = null;
+            }
+        } else {
+            // Start tracking power and neighbor updates
+            this.networkSource = networkSource;
+            return false;
+        }
     }
 
     public void trackWirePower(BlockPos pos, int newPower, int oldPower) {
@@ -103,16 +103,14 @@ public final class RedstoneWireCache {
             return;
         }
 
-        if (!this.wireUpdates.isEmpty()) {
-            // Cache expires if it has not been used in 600 ticks
-            TickExpiry expiration = new TickExpiry(this.level.getGameTime(), 600);
-            RedstoneNetwork redstoneNetwork = new RedstoneNetwork(
-                this.wireUpdates, this.updates, this.originalWirePower, expiration
-            );
+        // Cache expires if it has not been used in 600 ticks
+        TickExpiry expiration = new TickExpiry(this.level.getGameTime(), 600);
+        RedstoneNetwork redstoneNetwork = new RedstoneNetwork(
+            this.wireUpdates, this.updates, this.originalWirePower, expiration
+        );
 
-            if (redstoneNetwork.prepareAndRegister(this.level)) {
-                this.networkCache.put(this.networkSource, redstoneNetwork);
-            }
+        if (redstoneNetwork.prepareAndRegisterListeners(this.level, this.networkSource)) {
+            this.networkCache.put(this.networkSource, redstoneNetwork);
         }
 
         this.wireUpdates.clear();

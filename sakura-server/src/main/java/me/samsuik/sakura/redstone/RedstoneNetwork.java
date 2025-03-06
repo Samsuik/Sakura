@@ -78,8 +78,9 @@ public final class RedstoneNetwork {
         }
     }
 
-    public boolean prepareAndRegister(Level level) {
+    public boolean prepareAndRegisterListeners(Level level, RedstoneNetworkSource networkSource) {
         Object2ObjectLinkedOpenHashMap<BlockPos, RedstoneWireUpdate> processedWires = new Object2ObjectLinkedOpenHashMap<>();
+        boolean skipWireUpdates = networkSource.redstoneImplementation() != WorldConfiguration.Misc.RedstoneImplementation.VANILLA;
         for (RedstoneWireUpdate wireUpdate : this.wireUpdates.reversed()) {
             BlockPos wirePos = wireUpdate.getPosition();
             //noinspection ConstantValue
@@ -89,7 +90,7 @@ public final class RedstoneNetwork {
                 if (state.is(Blocks.PISTON_HEAD)) {
                     return false;
                 }
-            } else if (this.originalWirePower.get(wirePos).firstPower() != wireUpdate.getPower()) {
+            } else if (skipWireUpdates && this.originalWirePower.get(wirePos).firstPower() != wireUpdate.getPower()) {
                 // Filter out wires updates that are not the first and last update
                 // This significantly reduces the amount of updates when unpowering
                 wireUpdate.skipWireUpdate();
@@ -156,7 +157,7 @@ public final class RedstoneNetwork {
         }
     }
 
-    public boolean applyFromCache(Level level, WorldConfiguration.Misc.RedstoneImplementation redstoneImplementation) {
+    public boolean applyFromCache(Level level) {
         this.expiry.refresh(level.getGameTime());
         if (!this.isRegistered() || !this.verifyWiresInNetwork(level)) {
             return false;
@@ -167,7 +168,7 @@ public final class RedstoneNetwork {
         int updateFrom = 0;
 
         for (RedstoneWireUpdate wireUpdate : this.wireUpdates) {
-            if (wireUpdate.canSkipWireUpdate() && redstoneImplementation != WorldConfiguration.Misc.RedstoneImplementation.VANILLA) {
+            if (wireUpdate.canSkipWireUpdate()) {
                 updateFrom = wireUpdate.getUpdateIndex();
                 continue;
             }
