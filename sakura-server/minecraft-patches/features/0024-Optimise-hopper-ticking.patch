@@ -72,10 +72,10 @@ index 8ce44400279511f78a0773a23a2aafc3f887ade3..1457d9feee282e375a56b19423cc6fb5
          }
      }
 diff --git a/net/minecraft/world/level/block/entity/BlockEntity.java b/net/minecraft/world/level/block/entity/BlockEntity.java
-index 77618757c0e678532dbab814aceed83f7f1cd892..65d359c497b73c821b082a885c063a7328d378a9 100644
+index 77618757c0e678532dbab814aceed83f7f1cd892..9b20f66af27331b00c1985b1e21804eb6eb419de 100644
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -40,6 +40,55 @@ public abstract class BlockEntity {
+@@ -40,6 +40,60 @@ public abstract class BlockEntity {
      private BlockState blockState;
      private DataComponentMap components = DataComponentMap.EMPTY;
  
@@ -90,6 +90,11 @@ index 77618757c0e678532dbab814aceed83f7f1cd892..65d359c497b73c821b082a885c063a73
 +    }
 +
 +    public final boolean isBlockEntityActive() {
++        // For some reason the update method is not always called.
++        // Activate the block entity every minute in case there's any issues.
++        if (!this.blockEntityTicking && this.tickCount > 1200) {
++            this.setBlockEntityTicking(true);
++        }
 +        this.tickCount++;
 +        return this.blockEntityTicking;
 +    }
@@ -131,7 +136,7 @@ index 77618757c0e678532dbab814aceed83f7f1cd892..65d359c497b73c821b082a885c063a73
      public BlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState blockState) {
          this.type = type;
          this.worldPosition = pos.immutable();
-@@ -198,11 +247,22 @@ public abstract class BlockEntity {
+@@ -198,11 +252,22 @@ public abstract class BlockEntity {
      public void setChanged() {
          if (this.level != null) {
              if (ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers
@@ -155,7 +160,7 @@ index 77618757c0e678532dbab814aceed83f7f1cd892..65d359c497b73c821b082a885c063a73
          level.blockEntityChanged(pos);
          if (!state.isAir()) {
              level.updateNeighbourForOutputSignal(pos, state.getBlock());
-@@ -232,6 +292,7 @@ public abstract class BlockEntity {
+@@ -232,6 +297,7 @@ public abstract class BlockEntity {
  
      public void setRemoved() {
          this.remove = true;
