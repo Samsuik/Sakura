@@ -126,7 +126,7 @@
          }
  
          return damageAmount;
-@@ -2248,6 +_,11 @@
+@@ -2252,6 +_,11 @@
          com.google.common.base.Function<Double, Double> blocking = new com.google.common.base.Function<Double, Double>() {
              @Override
              public Double apply(Double f) {
@@ -138,10 +138,10 @@
                  return -((LivingEntity.this.isDamageSourceBlocked(damagesource)) ? f : 0.0);
              }
          };
-@@ -2344,6 +_,12 @@
-             // Apply damage to armor
-             if (!damageSource.is(DamageTypeTags.BYPASSES_ARMOR)) {
-                 float armorDamage = (float) (event.getDamage() + event.getDamage(DamageModifier.BLOCKING) + event.getDamage(DamageModifier.HARD_HAT));
+@@ -2351,6 +_,12 @@
+                 armorDamage += (float) event.getDamage(DamageModifier.INVULNERABILITY_REDUCTION);
+                 armorDamage += (float) event.getDamage(DamageModifier.BLOCKING);
+                 armorDamage += (float) event.getDamage(DamageModifier.HARD_HAT);
 +                // Sakura start - add max armour durability damage
 +                final int maxArmourDamage = this.level().sakuraConfig().players.combat.maxArmourDamage.or(-1);
 +                if (maxArmourDamage >= 0) {
@@ -151,7 +151,7 @@
                  this.hurtArmor(damageSource, armorDamage);
              }
  
-@@ -3285,6 +_,11 @@
+@@ -3292,6 +_,11 @@
                      if (this.level() instanceof ServerLevel serverLevel) {
                          EnchantmentHelper.runLocationChangedEffects(serverLevel, itemBySlot, this, equipmentSlot1);
                      }
@@ -163,7 +163,7 @@
                  }
              }
  
-@@ -3510,7 +_,7 @@
+@@ -3517,7 +_,7 @@
              }
          }
          // Paper end - Add EntityMoveEvent
@@ -172,7 +172,7 @@
              this.hurtServer(serverLevel, this.damageSources().drown(), 1.0F);
          }
      }
-@@ -4065,8 +_,16 @@
+@@ -4072,8 +_,16 @@
      }
  
      public boolean isBlocking() {

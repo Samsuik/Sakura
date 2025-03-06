@@ -5,7 +5,7 @@ Subject: [PATCH] Add entity travel distance limits
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index ce89182a48b7f89b2223407cc907f0572e777598..36aee73d7dac26438f140c125ef8ee2fea3e7d74 100644
+index 512486514d2279c377b0fb6fd2a90b03c89d2209..0b575c9acf7e211bf62fde3bf9e82d6bdeb0f643 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1296,6 +1296,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -21,7 +21,7 @@ index ce89182a48b7f89b2223407cc907f0572e777598..36aee73d7dac26438f140c125ef8ee2f
          } else {entity.inactiveTick();} // Paper - EAR 2
          profilerFiller.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 9a71820b766edd0b4d366735d96ae1241dba2047..b10b375a8ede214b0dd0615cb5625cd45e27b20e 100644
+index 15e54f3ddb12c392d4527661a2672a6856b14215..01c43ee5497037cb059255cc31d85f04dbfa78ed 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -589,6 +589,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -47,8 +47,8 @@ index 9a71820b766edd0b4d366735d96ae1241dba2047..b10b375a8ede214b0dd0615cb5625cd4
 @@ -618,6 +631,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          this.setPos(0.0, 0.0, 0.0);
          this.eyeHeight = this.dimensions.eyeHeight();
-         this.despawnTime = type == EntityType.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit
-+        this.travelDistanceLimit = Math.pow(this.level.sakuraConfig().entity.chunkTravelLimit.getOrDefault(this.type, Integer.MAX_VALUE) * 16.0, 2); // Sakura - entity travel distance limits
+         this.despawnTime = level == null || type == EntityType.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit
++        this.travelDistanceLimit = level == null ? Integer.MAX_VALUE : Math.pow(level.sakuraConfig().entity.chunkTravelLimit.getOrDefault(entityType, Integer.MAX_VALUE) * 16.0, 2); // Sakura - entity travel distance limits
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
