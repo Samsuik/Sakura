@@ -72,10 +72,10 @@ index 3e1c7d62c24dd48a805260d156135dc4f0c3d1fc..ced5fb075349a9b944708aeaabe82b33
          }
      }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..ffd464bd9dccb5f56b123833de4c255a0f11c0a0 100644
+index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..02fd27b0b9e1d3f1b9f58e7b5057e5fcd961e11a 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -54,6 +54,55 @@ public abstract class BlockEntity {
+@@ -54,6 +54,60 @@ public abstract class BlockEntity {
      private BlockState blockState;
      private DataComponentMap components;
  
@@ -95,6 +95,11 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..ffd464bd9dccb5f56b123833de4c255a
 +    }
 +
 +    public final void setBlockEntityTicking(boolean blockEntityTicking) {
++        // For some reason the update method is not always called.
++        // Activate the block entity every minute in case there's any issues.
++        if (!this.blockEntityTicking && this.tickCount > 1200) {
++            this.setBlockEntityTicking(true);
++        }
 +        this.tickCount = 0;
 +        this.blockEntityTicking = blockEntityTicking;
 +    }
@@ -131,7 +136,7 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..ffd464bd9dccb5f56b123833de4c255a
      public BlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
          this.components = DataComponentMap.EMPTY;
          this.type = type;
-@@ -231,12 +280,23 @@ public abstract class BlockEntity {
+@@ -231,12 +285,23 @@ public abstract class BlockEntity {
      public void setChanged() {
          if (this.level != null) {
              if (ignoreTileUpdates) return; // Paper - Perf: Optimize Hoppers
@@ -156,7 +161,7 @@ index 7dfabb11d3c8112f6daef35d204a2e324f4ddb5e..ffd464bd9dccb5f56b123833de4c255a
          world.blockEntityChanged(pos);
          if (!state.isAir()) {
              world.updateNeighbourForOutputSignal(pos, state.getBlock());
-@@ -267,6 +327,7 @@ public abstract class BlockEntity {
+@@ -267,6 +332,7 @@ public abstract class BlockEntity {
  
      public void setRemoved() {
          this.remove = true;
