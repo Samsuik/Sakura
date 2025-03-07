@@ -98,8 +98,6 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean explosionsHurtPlayers = true;
             public boolean explosionsDropItems = true;
             public boolean useBlockCacheAcrossExplosions = false;
-            @Comment("Protect blocks being destroyed outside the world border")
-            public boolean protectBlocksOutsideTheWorldBorder = false;
         }
 
         public Mechanics mechanics = new Mechanics();
