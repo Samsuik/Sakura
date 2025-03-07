@@ -67,7 +67,7 @@ index 651a45b795818bd7b1364b95c52570fd99dd35e4..47c8ed946cb2ad81a4469daf60dabc40
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a1e65255f23ec2e3b2e3dfd9092fc16638493d92..c74e20f1b20076e2eb289246f63d8363de2bc5e8 100644
+index 1fbe5ebf133a80390d0dc3c89f8742476bf76866..f86943ad2582d6c6d656078b15ab83e8b75f39c5 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -574,6 +574,13 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -323,7 +323,7 @@ index bf6473756594f3296160d3b8c28a24ef0e458328..e4e708609799799ed2e7dd516ba8bf61
      }
  
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index d23193d3f11505cea428414487f891ab584ad071..ffd96218e2ee84aae7a008ef1b95f84d2a6b56b4 100644
+index d23193d3f11505cea428414487f891ab584ad071..f7e63da492136299a0c494dd58c0b181f2fe425a 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -86,6 +86,22 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -416,7 +416,7 @@ index d23193d3f11505cea428414487f891ab584ad071..ffd96218e2ee84aae7a008ef1b95f84d
      @Override
      public boolean isPushedByFluid() {
 -        return !this.level().paperConfig().fixes.preventTntFromMovingInWater && this.level().sakuraConfig().cannons.mechanics.tntFlowsInWater  && super.isPushedByFluid(); // Sakura - configure cannon mechanics
-+        return !this.level().paperConfig().fixes.preventTntFromMovingInWater && this.level().sakuraConfig().cannons.mechanics.tntFlowsInWater && !this.physics.isLegacy()  && super.isPushedByFluid(); // Sakura - physics version api // Sakura - configure cannon mechanics
++        return !this.level().paperConfig().fixes.preventTntFromMovingInWater && this.level().sakuraConfig().cannons.mechanics.tntFlowsInWater && !this.physics.isLegacy()  && super.isPushedByFluid(); // Sakura - configure cannon physics // Sakura - configure cannon mechanics
      }
      // Paper end - Option to prevent TNT from moving in water
  }
@@ -786,7 +786,7 @@ index a89a42a3ad6cecd5cc4d44e4456d52a2997ba2e5..9c3c0305aa96b4a1b40841d1c1f145af
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index d1fdb60b3dbcfc244c16d6f61802774ec54cc6ec..933dbea525cf342a246f60510bdac98e1ff7b00a 100644
+index d1fdb60b3dbcfc244c16d6f61802774ec54cc6ec..466f77b85df0b45cd4a971710fdb99aae555c0fc 100644
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 @@ -165,6 +165,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
@@ -977,7 +977,7 @@ index d1fdb60b3dbcfc244c16d6f61802774ec54cc6ec..933dbea525cf342a246f60510bdac98e
              }
          } else {
              float f = blockEntity.progress + 0.5F;
-+            // Sakura start - physics version api
++            // Sakura start - configure cannon physics
 +            if (physics.afterOrEqual(1_11_0)) {
              moveCollidedEntities(level, pos, f, blockEntity);
              moveStuckEntities(level, pos, f, blockEntity);
@@ -992,7 +992,7 @@ index d1fdb60b3dbcfc244c16d6f61802774ec54cc6ec..933dbea525cf342a246f60510bdac98e
 +            } else if (blockEntity.extending && physics.before(1_9_0)) {
 +                blockEntity.moveEntities(level, blockEntity.progress - blockEntity.progressO + 0.0625f);
 +            }
-+            // Sakura end - physics version api
++            // Sakura end - configure cannon physics
          }
      }
  
