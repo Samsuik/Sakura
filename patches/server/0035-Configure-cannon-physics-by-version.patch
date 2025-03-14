@@ -36,7 +36,7 @@ index 4db0a1b1270e2ff1ea1a4723b3dd28860f4c2087..93977027caa8c398ca6f0d2bb0890231
          if (xSmaller && z != 0.0) {
              z = performCollisionsZ(axisalignedbb, z, potentialCollisions);
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
-index e654f48386e21e049facb6d90b356117af2bace6..a6b4cae3f04cda71629b5da3a08a8c4c7b51b8a7 100644
+index b6682656b6e2333e90e9d2efac18296969de5ba9..f86cd82aa5da6d770c2f6a644e6478456fc4198d 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 @@ -148,9 +148,15 @@ public abstract class SpecialisedExplosion<T extends Entity> extends Explosion {
@@ -57,10 +57,10 @@ index e654f48386e21e049facb6d90b356117af2bace6..a6b4cae3f04cda71629b5da3a08a8c4c
              if (distance != 0.0D) {
                  x /= distance;
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-index 2e46df5cda2dc2812a10cd54ff7b128f9c50b361..901f49d09886edf6afcb814cd5ab8de2e089b896 100644
+index d2b8c4b8d2f8c4f8d31c401449a39f425c736b0d..71bc7995e3a4c2b1ade98d2887fa319cf40f4b57 100644
 --- a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -34,6 +34,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
+@@ -35,6 +35,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
          this.bounds = new AABB(x, y, z, x, y, z);
      }
  
@@ -424,7 +424,7 @@ index e97729f2d8febac1740678840566f8beb4f07cdc..ef637b4491a2fc741925fbc896ff3a81
      // Paper end
  }
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 076d353e59757232bc2bb3a19dcb3d7ed70d5edd..d59f969f599ad7a76c3277f5ad2ead67572b0f3c 100644
+index f89545f237aaec896bd80e381c37613c2fa6d48a..9f490efa0f9b045addc834b5714ed32e0c0e8cba 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -73,6 +73,7 @@ public class Explosion {
@@ -720,7 +720,7 @@ index 4f0cadec5c9ffb0ae31b2fb9302bc3822f748e59..0a5f56e06b30945213b6a3904f58efe2
      public void tick(BlockState state, ServerLevel world, BlockPos pos, Random random) {
          if (isFree(world.getBlockState(pos.below())) && pos.getY() >= world.getMinBuildHeight()) {
 diff --git a/src/main/java/net/minecraft/world/level/block/FenceGateBlock.java b/src/main/java/net/minecraft/world/level/block/FenceGateBlock.java
-index 1224193a35abb8176b509ca8d8053d29c8cc6690..bdbbb45079dc7ef92f81d413ce099619e2ea23df 100644
+index 1224193a35abb8176b509ca8d8053d29c8cc6690..963509c947df7c59351299d02fe9955379100c78 100644
 --- a/src/main/java/net/minecraft/world/level/block/FenceGateBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/FenceGateBlock.java
 @@ -140,8 +140,13 @@ public class FenceGateBlock extends HorizontalDirectionalBlock {
@@ -732,7 +732,7 @@ index 1224193a35abb8176b509ca8d8053d29c8cc6690..bdbbb45079dc7ef92f81d413ce099619
 +            // Sakura start
 +            final boolean legacy = world.localConfig().config(pos).physicsVersion.before(1_11_0);
 +            final boolean powered = state.getValue(FenceGateBlock.POWERED);
-+            if (legacy ? (flag1 || sourceBlock.defaultBlockState().isSignalSource()) : powered != flag1) {
++            if (legacy ? (flag1 || block.defaultBlockState().isSignalSource()) : powered != flag1) {
 +                final boolean openGate = legacy && (flag1 == powered || state.getValue(FenceGateBlock.OPEN) != powered) ? state.getValue(OPEN) : flag1;
 +                world.setBlock(pos, (BlockState) ((BlockState) state.setValue(FenceGateBlock.POWERED, flag1)).setValue(FenceGateBlock.OPEN, openGate), 2);
 +                // Sakura end

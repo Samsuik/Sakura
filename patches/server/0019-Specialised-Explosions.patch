@@ -23,7 +23,7 @@ index 0fd814f1d65c111266a2b20f86561839a4cef755..932f7a0d030d2d4932e6e6d4a5805e9b
          if (index >= 0) {
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e654f48386e21e049facb6d90b356117af2bace6
+index 0000000000000000000000000000000000000000..50696b0ca4476d832ad51a8a94fae934e04fdd1b
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/SpecialisedExplosion.java
 @@ -0,0 +1,176 @@
@@ -94,7 +94,7 @@ index 0000000000000000000000000000000000000000..e654f48386e21e049facb6d90b356117
 +        super.finalizeExplosion(false);
 +        boolean destroyedBlocks = !this.getToBlow().isEmpty();
 +
-+        if (!this.interactsWithBlocks()) {
++        if (this.blockInteraction != Explosion.BlockInteraction.NONE) {
 +            this.getToBlow().clear(); // server sends block changes in the explosion packet
 +        }
 +
@@ -131,7 +131,7 @@ index 0000000000000000000000000000000000000000..e654f48386e21e049facb6d90b356117
 +        int maxChunkY = Mth.clamp(Mth.floor(bb.maxY) >> 4, minSection, maxSection);
 +        int maxChunkZ = Mth.floor(bb.maxZ) >> 4;
 +
-+        io.papermc.paper.chunk.system.entity.EntityLookup entityLookup = this.level.getEntityLookup();
++        io.papermc.paper.world.EntitySliceManager entityLookup = this.level.entityManager.entitySliceManager;
 +        for (int chunkX = minChunkX; chunkX <= maxChunkX; ++chunkX) {
 +            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; ++chunkZ) {
 +                io.papermc.paper.world.ChunkEntitySlices chunk = entityLookup.getChunk(chunkX, chunkZ);
@@ -205,10 +205,10 @@ index 0000000000000000000000000000000000000000..e654f48386e21e049facb6d90b356117
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2e46df5cda2dc2812a10cd54ff7b128f9c50b361
+index 0000000000000000000000000000000000000000..d2b8c4b8d2f8c4f8d31c401449a39f425c736b0d
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/special/TntExplosion.java
-@@ -0,0 +1,192 @@
+@@ -0,0 +1,193 @@
 +package me.samsuik.sakura.explosion.special;
 +
 +import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
@@ -219,6 +219,7 @@ index 0000000000000000000000000000000000000000..2e46df5cda2dc2812a10cd54ff7b128f
 +import net.minecraft.world.damagesource.DamageSource;
 +import net.minecraft.world.entity.Entity;
 +import net.minecraft.world.entity.item.PrimedTnt;
++import net.minecraft.world.level.Explosion;
 +import net.minecraft.world.level.ExplosionDamageCalculator;
 +import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.block.state.BlockState;
@@ -267,7 +268,7 @@ index 0000000000000000000000000000000000000000..2e46df5cda2dc2812a10cd54ff7b128f
 +            BlockPos explosionBlockPos = new BlockPos(this.x, this.y, this.z);
 +            BlockState blockstate = this.level.getBlockState(explosionBlockPos);
 +            float resistance = blockstate.getBlock().getExplosionResistance();
-+            if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.interactsWithBlocks() && this.isRegionUnprotected()) { // Sakura - optimise protected explosions
++            if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.blockInteraction != Explosion.BlockInteraction.NONE && this.isRegionUnprotected()) { // Sakura - optimise protected explosions
 +                this.searchForBlocks();
 +            }
 +        }
@@ -462,11 +463,15 @@ index 0c75fe840119040898a10a931dcb9b3e51c8cdcf..88f83ef060b818e31bbb636a45048b2c
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index cf9dd1ffdacdfe1c26ca15ca17a20fe46a81b20d..a10d18a7573f9174708be0bf9dd912b8ce7eb0f5 100644
+index 456ab59d726268e0a8a3ebc4fb4afc41389eefe4..608a91ac14570e5f8070c090f860f52e4807cb45 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -59,12 +59,14 @@ public class Explosion {
-     private final Explosion.BlockInteraction blockInteraction;
+@@ -56,15 +56,17 @@ public class Explosion {
+     private static final ExplosionDamageCalculator EXPLOSION_DAMAGE_CALCULATOR = new ExplosionDamageCalculator();
+     private static final int MAX_DROPS_PER_COMBINED_STACK = 16;
+     private final boolean fire;
+-    private final Explosion.BlockInteraction blockInteraction;
++    protected final Explosion.BlockInteraction blockInteraction; // Sakura
      private final Random random;
      private final Level level;
 -    private final double x;

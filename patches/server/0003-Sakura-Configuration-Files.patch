@@ -242,10 +242,10 @@ index 0000000000000000000000000000000000000000..93c0f22cdf0c3b7ce4db55171ea397f5
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraGlobalConfig.java b/src/main/java/me/samsuik/sakura/configuration/SakuraGlobalConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7000fa68886057fb742cf4f655a739b0ee3f62e1
+index 0000000000000000000000000000000000000000..2d8060afc05002a6246e7a9155f1968e391c5ed6
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraGlobalConfig.java
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,99 @@
 +package me.samsuik.sakura.configuration;
 +
 +import org.bukkit.configuration.file.YamlConfiguration;
@@ -268,17 +268,24 @@ index 0000000000000000000000000000000000000000..7000fa68886057fb742cf4f655a739b0
 +    }
 +
 +    private YamlConfiguration config;
++    private File configFile;
 +    private int version;
 +
 +    public void setup(File configFile) {
-+        this.config = YamlConfigHelper.loadConfig(configFile, HEADER, config -> {
-+            this.version = this.getInt("config-version", 0);
-+            this.set("config-version", 0);
-+        });
++        this.config = YamlConfigHelper.loadConfig(configFile, HEADER);
++        this.configFile = configFile;
++        this.version = this.getInt("config-version", 0);
++        this.set("config-version", 0);
++        YamlConfigHelper.readConfig(SakuraGlobalConfig.class, this);
++        YamlConfigHelper.saveConfig(this.config, configFile);
 +    }
 +
 +    public YamlConfiguration getYamlConfig() {
 +        return this.config;
++    }
++
++    public File getConfigFile() {
++        return this.configFile;
 +    }
 +
 +    private void set(String path, Object val) {
@@ -340,12 +347,13 @@ index 0000000000000000000000000000000000000000..7000fa68886057fb742cf4f655a739b0
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraWorldConfig.java b/src/main/java/me/samsuik/sakura/configuration/SakuraWorldConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..34c4d0db007753f37cc4ca96c21175ce0f0d56e1
+index 0000000000000000000000000000000000000000..65de1ea93d384e429c02be7cb6500d44ea9686c0
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/SakuraWorldConfig.java
-@@ -0,0 +1,325 @@
+@@ -0,0 +1,328 @@
 +package me.samsuik.sakura.configuration;
 +
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 +import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 +import me.samsuik.sakura.configuration.serializer.*;
 +import me.samsuik.sakura.entity.TntSpread;
@@ -375,6 +383,8 @@ index 0000000000000000000000000000000000000000..34c4d0db007753f37cc4ca96c21175ce
 +
 +    public void init() {
 +        this.config = SakuraGlobalConfig.get().getYamlConfig(); // grab updated reference
++        YamlConfigHelper.readConfig(SakuraWorldConfig.class, this);
++        YamlConfigHelper.saveConfig(this.config, SakuraGlobalConfig.get().getConfigFile());
 +    }
 +    
 +    private String worldPath(String path) {
@@ -441,7 +451,7 @@ index 0000000000000000000000000000000000000000..34c4d0db007753f37cc4ca96c21175ce
 +        def.clear();
 +        for (String serializedKey : section.getKeys(false)) {
 +            K key   = serializer.deserializeKey(serializedKey);
-+            V value = serializer.deserializeValue((C) this.config.get(serializedKey));
++            V value = serializer.deserializeValue((C) section.get(serializedKey));
 +            def.put(key, value);
 +        }
 +    }
@@ -618,7 +628,7 @@ index 0000000000000000000000000000000000000000..34c4d0db007753f37cc4ca96c21175ce
 +        map.put(EntityType.ENDER_PEARL, 8);
 +    });
 +    public boolean projectilesLoadChunksForCollisions = false;
-+    public List<Item> explosionResistantItems = List.of();
++    public List<Item> explosionResistantItems = new ObjectArrayList<>();
 +    private void Entity() {
 +        this.disableMobAi = this.getBoolean("entity.disable-mob-ai", this.disableMobAi);
 +        this.waterSensitivity = this.getBoolean("entity.water-sensitivity", this.waterSensitivity);
@@ -671,10 +681,10 @@ index 0000000000000000000000000000000000000000..34c4d0db007753f37cc4ca96c21175ce
 +}
 diff --git a/src/main/java/me/samsuik/sakura/configuration/YamlConfigHelper.java b/src/main/java/me/samsuik/sakura/configuration/YamlConfigHelper.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9340a0696d2a1bf4d91d67627df49191a40682b6
+index 0000000000000000000000000000000000000000..a21b8dcce2d16eaa537ef8a559e1a0306a6a79c3
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/configuration/YamlConfigHelper.java
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,55 @@
 +package me.samsuik.sakura.configuration;
 +
 +import com.google.common.base.Throwables;
@@ -687,11 +697,10 @@ index 0000000000000000000000000000000000000000..9340a0696d2a1bf4d91d67627df49191
 +import java.lang.reflect.InvocationTargetException;
 +import java.lang.reflect.Method;
 +import java.lang.reflect.Modifier;
-+import java.util.function.Consumer;
 +import java.util.logging.Level;
 +
 +public final class YamlConfigHelper {
-+    public static YamlConfiguration loadConfig(File configFile, String header, Consumer<YamlConfiguration> afterLoad) {
++    public static YamlConfiguration loadConfig(File configFile, String header) {
 +        YamlConfiguration config = new YamlConfiguration();
 +        try {
 +            config.load(configFile);
@@ -703,20 +712,16 @@ index 0000000000000000000000000000000000000000..9340a0696d2a1bf4d91d67627df49191
 +
 +        config.options().header(header);
 +        config.options().copyDefaults(true);
-+        afterLoad.accept(config);
-+
-+        readConfig(SakuraGlobalConfig.class, null);
-+        saveConfig(config, configFile);
 +        return config;
 +    }
 +
-+    public static void readConfig(Class<?> clazz, Object instance) {
++    public static void readConfig(Class<?> clazz, Object ref) {
 +        for (Method method : clazz.getDeclaredMethods()) {
 +            if (Modifier.isPrivate(method.getModifiers())) {
 +                if (method.getParameterTypes().length == 0 && method.getReturnType() == Void.TYPE) {
 +                    try {
 +                        method.setAccessible(true);
-+                        method.invoke(instance);
++                        method.invoke(ref);
 +                    } catch (InvocationTargetException ex) {
 +                        throw Throwables.propagate(ex.getCause());
 +                    } catch (Exception ex) {
@@ -895,15 +900,12 @@ index 0000000000000000000000000000000000000000..83275db7686a656f8d932d03e092cc6d
 +}
 diff --git a/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4024f9738e039ffffd560a07a2210f758879d3c0
+index 0000000000000000000000000000000000000000..7092580f4bb16db2612ac99aa29cd2565801d236
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
-@@ -0,0 +1,7 @@
+@@ -0,0 +1,4 @@
 +package me.samsuik.sakura.explosion.durable;
 +
-+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+
-+@ConfigSerializable
 +public record DurableMaterial(int durability, float resistance) {
 +}
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java

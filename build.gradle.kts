@@ -23,12 +23,12 @@ subprojects {
     apply(plugin = "java")
 
     java {
-        toolchain { languageVersion = JavaLanguageVersion.of(17) }
+        toolchain { languageVersion.set(JavaLanguageVersion.of(17)) }
     }
 
     tasks.withType<JavaCompile>().configureEach {
         options.encoding = "UTF-8"
-        options.release = 17
+        options.release.set(17)
     }
 
     repositories {
@@ -44,19 +44,19 @@ subprojects {
 }
 
 paperweight {
-    serverProject = project(":sakura-server")
+    serverProject.set(project(":sakura-server"))
 
-    remapRepo = "https://maven.fabricmc.net/"
-    decompileRepo = "https://files.minecraftforge.net/maven/"
+    remapRepo.set("https://maven.fabricmc.net/")
+    decompileRepo.set("https://files.minecraftforge.net/maven/")
 
     usePaperUpstream(providers.gradleProperty("paperRef")) {
-        url = github("PaperMC", "Paper-archive") // hard fork
+        url.set(github("PaperMC", "Paper-archive")) // hard fork
         withPaperPatcher {
-            apiPatchDir = layout.projectDirectory.dir("patches/api")
-            apiOutputDir = layout.projectDirectory.dir("sakura-api")
+            apiPatchDir.set(layout.projectDirectory.dir("patches/api"))
+            apiOutputDir.set(layout.projectDirectory.dir("sakura-api"))
 
-            serverPatchDir = layout.projectDirectory.dir("patches/server")
-            serverOutputDir = layout.projectDirectory.dir("sakura-server")
+            serverPatchDir.set(layout.projectDirectory.dir("patches/server"))
+            serverOutputDir.set(layout.projectDirectory.dir("sakura-server"))
         }
     }
 }
