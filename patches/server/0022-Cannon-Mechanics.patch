@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sun, 15 Oct 2023 22:48:35 +0100
+Subject: [PATCH] Cannon Mechanics
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index 8f02b04cb3193c3ed164193868d216f7320962f5..3498e0dfb457445994f1a1ae20a0a6aaba7c82b5 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -62,6 +62,7 @@ public class FallingBlockEntity extends Entity {
+     public CompoundTag blockData;
+     protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
+     public boolean autoExpire = true; // Paper - Auto expire setting
++    public boolean heightParity; // Sakura - configure cannon mechanics
+ 
+     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level world) {
+         super(type, world);
+@@ -70,6 +71,7 @@ public class FallingBlockEntity extends Entity {
+         this.fallDamageMax = 40;
+         this.isFallingBlock = true; // Sakura
+         this.loadChunks = world.sakuraConfig.loadChunks; // Sakura - falling blocks load chunks
++        this.heightParity = world.sakuraConfig.fallingBlockParity; // Sakura - configure cannon mechanics
+     }
+ 
+     public FallingBlockEntity(Level world, double x, double y, double z, BlockState block) {
+@@ -180,6 +182,12 @@ public class FallingBlockEntity extends Entity {
+         return itemEntity;
+     }
+     // Sakura end
++    // Sakura start
++    @Override
++    public final double getEyeY() {
++        return this.heightParity ? this.getY() : super.getEyeY();
++    }
++    // Sakura end
+ 
+     @Override
+     public void tick() {
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index 0a130c840a20d357c7375f94d36e83a8ea8a59ee..c221dc8c1a271ec5b8ef8489274e9b1484aae03a 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -45,6 +45,12 @@ public class PrimedTnt extends Entity {
+         this.yo = y;
+         this.zo = z;
+         this.owner = igniter;
++        // Sakura start
++        switch (world.sakuraConfig.tntSpread) {
++            case NONE -> this.multiplyDeltaMovement(0, 0, 0);
++            case Y -> this.multiplyDeltaMovement(0, 1, 0);
++        }
++        // Sakura end
+     }
+ 
+     @Override
+@@ -207,7 +213,7 @@ public class PrimedTnt extends Entity {
+     // Paper start - Optional prevent TNT from moving in water
+     @Override
+     public boolean isPushedByFluid() {
+-        return !level.paperConfig.preventTntFromMovingInWater && super.isPushedByFluid();
++        return !level.paperConfig.preventTntFromMovingInWater && this.level.sakuraConfig.tntFlowsInWater && super.isPushedByFluid(); // Sakura - cannon mechanics
+     }
+     // Paper end
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
+index 65bac64214112ebd9e067202fe13293abe10559d..d43431c7609866cb5ba89b68fea909f5ff76f825 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftFallingBlock.java
+@@ -34,6 +34,16 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
+     public void setStacked(int stacked) {
+         getHandle().setStacked(stacked);
+     }
++    
++    @Override
++    public void setHeightParity(boolean parity) {
++        getHandle().heightParity = parity;
++    }
++
++    @Override
++    public boolean getHeightParity() {
++        return getHandle().heightParity;
++    }
+     // Sakura end
+ 
+     @Override

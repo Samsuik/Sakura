@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nassim Jahnke <nassim@njahnke.dev>
+Date: Sat, 6 May 2023 17:10:22 +0200
+Subject: [PATCH] PAPER Make sure the player didn't disconnect when processing
+ commands
+
+Backported https://github.com/PaperMC/Paper/commit/813d0399f9880c4ee5ccd3e60d9e20b358b70df2
+
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index f451ed92f75a6f5553790ca97cabbcdfd0d3d169..ed872d7165982a28f702f258e342c3c681e3f5f4 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2114,6 +2114,7 @@ public class ServerGamePacketListenerImpl implements ServerPlayerConnection, Ser
+             boolean isSync = s.startsWith("/");
+             if (isSync) {
+                 try {
++                    if (player.hasDisconnected()) return; // Paper
+                     this.server.server.playerCommandState = true;
+                     this.handleCommand(s);
+                 } finally {

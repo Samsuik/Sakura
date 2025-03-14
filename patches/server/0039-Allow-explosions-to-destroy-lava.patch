@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sat, 25 Nov 2023 21:14:45 +0000
+Subject: [PATCH] Allow explosions to destroy lava
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index d59f969f599ad7a76c3277f5ad2ead67572b0f3c..c1effe8ecd110ac39103cc7778e7070ac9c33732 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -329,6 +329,11 @@ public class Explosion {
+                 return Optional.of(-0.3f);
+             }
+             // Sakura end - destroy water logged blocks
++            // Sakura start - allow explosions to destroy lava
++            if (blockState.is(Blocks.LAVA) && this.level.sakuraConfig.explodeLava) {
++                return Optional.of(-0.3f);
++            }
++            // Sakura end - allow explosions to destroy lava
+         }
+ 
+         return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);
+@@ -612,7 +617,7 @@ public class Explosion {
+                         });
+                     }
+ 
+-                    this.level.setBlock(blockposition, Blocks.AIR.defaultBlockState(), 3);
++                    this.level.setBlock(blockposition, Blocks.AIR.defaultBlockState(), this.level.sakuraConfig.explodeLava && iblockdata.is(Blocks.LAVA) ? 2 : 3); // Sakura - allow explosions to destroy lava
+                     block.wasExploded(this.level, blockposition, this);
+                     this.level.getProfiler().pop();
+                 }

@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 22 Jan 2024 15:24:51 +0000
+Subject: [PATCH] Avoid searching for lava if throttled water flow speed is
+ default
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+index 30fd979fb5e375cbe4bacb441d7192b9a20b4a81..f4f4ae2583bdbca4d9db9f20221d68d1881be2cd 100644
+--- a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+@@ -114,7 +114,7 @@ public class LiquidBlock extends Block implements BucketPickup {
+ 
+     // Paper start - Get flow speed. Throttle if its water and flowing adjacent to lava
+     public int getFlowSpeed(Level world, BlockPos blockposition) {
+-        if (this.material == Material.WATER) {
++        if (this.material == Material.WATER && this.fluid.getTickDelay(world) != world.paperConfig.waterOverLavaFlowSpeed) { // Sakura
+             if (
+                 world.getMaterialIfLoaded(blockposition.north(1)) == Material.LAVA ||
+                 world.getMaterialIfLoaded(blockposition.south(1)) == Material.LAVA ||

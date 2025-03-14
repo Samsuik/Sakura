@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Wed, 15 Nov 2023 13:04:16 +0000
+Subject: [PATCH] Despawn falling blocks inside moving pistons
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index 3498e0dfb457445994f1a1ae20a0a6aaba7c82b5..2e7675905e2e826950cd6b4c930dbaa062feec56 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -239,7 +239,7 @@ public class FallingBlockEntity extends Entity {
+                     }
+                 }
+ 
+-                if (!this.onGround && !flag1) {
++                if (!this.onGround && !flag1 || this.level.sakuraConfig.despawnInsideMovingPistons && autoExpire && this.time > 600) { // Sakura - allow falling blocks to despawn inside moving pistons
+                     if (!this.level.isClientSide && ((this.time > 100 && autoExpire) && (blockposition.getY() <= this.level.getMinBuildHeight() || blockposition.getY() > this.level.getMaxBuildHeight()) || (this.time > 600 && autoExpire))) { // Paper - Auto expire setting
+                         if (this.dropItem && this.level.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+                             this.spawnAtLocation((ItemLike) block);

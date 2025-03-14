@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 16 Nov 2023 00:59:04 +0000
+Subject: [PATCH] Destroy Waterlogged Blocks
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 09f6cff6b88e4297bd85e308c596b25bfe58d76a..d1a813d35fa624558b9ef8cc9fa0e1c5fb7c2423 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -315,6 +315,11 @@ public class Explosion {
+             if (material != null && material.resistance() >= 0.0f && (this.level.sakuraConfig.allowNonTntBreakingDurableBlocks || this.source instanceof net.minecraft.world.entity.item.PrimedTnt)) {
+                 return Optional.of(material.resistance());
+             }
++            // Sakura start - destroy water logged blocks
++            if (!fluidState.isEmpty() && !(block instanceof net.minecraft.world.level.block.LiquidBlock) && this.level.sakuraConfig.destroyWaterloggedBlocks) {
++                return Optional.of(-0.3f);
++            }
++            // Sakura end - destroy water logged blocks
+         }
+ 
+         return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);

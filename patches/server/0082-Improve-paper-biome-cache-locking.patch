@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 2 Dec 2024 21:46:31 +0000
+Subject: [PATCH] Improve paper biome cache locking
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+index bfe9dc935c87e01fb435d8b46ce413b84ca74856..526c7f4ae3388f5dbb5661f1be04ebb46f533f30 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+@@ -366,13 +366,29 @@ public class CraftBlock implements Block {
+         return (biome == null) ? Biome.CUSTOM : biome;
+     }
+ 
+-    private static final java.util.Map<org.bukkit.block.Biome, net.minecraft.resources.ResourceKey<net.minecraft.world.level.biome.Biome>> BIOME_KEY_CACHE = Collections.synchronizedMap(new java.util.EnumMap<>(Biome.class)); // Paper
++    // Sakura start - improve paper biome cache locking
++    private static final java.util.Map<org.bukkit.block.Biome, net.minecraft.resources.ResourceKey<net.minecraft.world.level.biome.Biome>> BIOME_KEY_CACHE = new java.util.EnumMap<>(Biome.class); // Paper
++    private static final java.util.concurrent.locks.StampedLock BIOME_KEY_CACHE_LOCK = new java.util.concurrent.locks.StampedLock();
+     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(net.minecraft.core.Registry<net.minecraft.world.level.biome.Biome> registry, Biome bio) {
+         if (bio == null || bio == Biome.CUSTOM) {
+             return null;
+         }
+ 
+-        return registry.getHolderOrThrow(BIOME_KEY_CACHE.computeIfAbsent(bio, b -> ResourceKey.create(net.minecraft.core.Registry.BIOME_REGISTRY, CraftNamespacedKey.toMinecraft(b.getKey())))); // Paper - cache key
++        // NOTE: Could get rid of the map by splitting up this patch and storing a reference in Biome (under api)
++        long stamp = BIOME_KEY_CACHE_LOCK.tryOptimisticRead();
++        ResourceKey<net.minecraft.world.level.biome.Biome> biomeKey = null;
++        try {
++            biomeKey = BIOME_KEY_CACHE.get(bio);
++        } catch (Exception ignored) {
++            // precaution
++        }
++        if (biomeKey == null || !BIOME_KEY_CACHE_LOCK.validate(stamp)) {
++            stamp = BIOME_KEY_CACHE_LOCK.writeLock();
++            biomeKey = BIOME_KEY_CACHE.computeIfAbsent(bio, b -> ResourceKey.create(net.minecraft.core.Registry.BIOME_REGISTRY, CraftNamespacedKey.toMinecraft(b.getKey()))); // Paper - cache key
++            BIOME_KEY_CACHE_LOCK.unlockWrite(stamp);
++        }
++        return registry.getHolderOrThrow(biomeKey);
++        // Sakura end - improve paper biome cache locking
+     }
+ 
+     @Override

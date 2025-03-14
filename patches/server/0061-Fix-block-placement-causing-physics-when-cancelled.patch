@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Tue, 14 May 2024 19:26:58 +0100
+Subject: [PATCH] Fix block placement causing physics when cancelled
+
+
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 6837c965592d4584cfc958a1008b98791a0fc780..f09b1a806750c93b0be97e5a442b914202295665 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -390,9 +390,16 @@ public final class ItemStack {
+                     world.capturedTileEntities.clear(); // Paper - clear out tile entities as chests and such will pop loot
+                     // revert back all captured blocks
+                     world.preventPoiUpdated = true; // CraftBukkit - SPIGOT-5710
++                    // Sakura start - fix placement causing physics when event is cancelled
++                    world.preventNeighborUpdates = true;
++                    try {
+                     for (BlockState blockstate : blocks) {
+                         blockstate.update(true, false);
+                     }
++                    } finally {
++                        world.preventNeighborUpdates = false;
++                    }
++                    // Sakura end - fix placement causing physics when event is cancelled
+                     world.preventPoiUpdated = false;
+ 
+                     // Brute force all possible updates
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index bccb6bec25e693dfc60dc24807078768dbf1e6ed..e4a082384a4aacf2fa9c925ff5ebe7afb012c242 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -145,6 +145,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public org.bukkit.generator.ChunkGenerator generator;
+     public static final boolean DEBUG_ENTITIES = Boolean.getBoolean("debug.entities"); // Paper
+ 
++    public boolean preventNeighborUpdates = false; // Sakura - fix placement causing physics when event is cancelled
+     public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
+     public boolean captureBlockStates = false;
+     public boolean captureTreeGeneration = false;
+diff --git a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
+index 50d96a6e2bcd4e276dbdbf99b55870782f92cc00..f94bcceb7c2749a9176d96c90832b0808de055f6 100644
+--- a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
+@@ -484,7 +484,7 @@ public class RedStoneWireBlock extends Block {
+ 
+     @Override
+     public void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean moved) {
+-        if (!moved && !state.is(newState.getBlock())) {
++        if (!moved && !state.is(newState.getBlock()) && !world.preventNeighborUpdates) { // Sakura - fix placement causing physics when event is cancelled
+             super.onRemove(state, world, pos, newState, moved);
+             if (!world.isClientSide) {
+                 Direction[] aenumdirection = Direction.values();

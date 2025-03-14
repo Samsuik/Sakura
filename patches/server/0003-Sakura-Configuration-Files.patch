@@ -1,0 +1,990 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "kfian294ma4@gmail.com" <kfian294ma4@gmail.com>
+Date: Sun, 5 Sep 2021 18:01:34 +0100
+Subject: [PATCH] Sakura Configuration Files
+
+
+diff --git a/src/main/java/me/samsuik/sakura/command/BaseSubCommand.java b/src/main/java/me/samsuik/sakura/command/BaseSubCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9b5af05f7a4593eb44f36fff90d94e98d6999c7f
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/BaseSubCommand.java
+@@ -0,0 +1,47 @@
++package me.samsuik.sakura.command;
++
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.checkerframework.checker.nullness.qual.NonNull;
++import org.checkerframework.framework.qual.DefaultQualifier;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.ArrayList;
++import java.util.List;
++
++@DefaultQualifier(NonNull.class)
++public abstract class BaseSubCommand extends Command {
++
++    public BaseSubCommand(String name) {
++        super(name);
++        this.description = "Sakura Command " + name;
++        this.setPermission("bukkit.command." + name);
++    }
++
++    public abstract void execute(CommandSender sender, String[] args);
++
++    public void tabComplete(List<String> list, String[] args) throws IllegalArgumentException {}
++
++    @Override
++    @Deprecated
++    public final boolean execute(CommandSender sender, String label, String[] args) {
++        if (testPermission(sender)) {
++            execute(sender, args);
++        }
++
++        return true;
++    }
++
++    @Override
++    @NotNull
++    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
++        var completions = new ArrayList<String>(0);
++
++        if (testPermissionSilent(sender)) {
++            tabComplete(completions, args);
++        }
++
++        return completions;
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/command/SakuraCommand.java b/src/main/java/me/samsuik/sakura/command/SakuraCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2b145614bf189ae56622016436bfefd63f5271eb
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/SakuraCommand.java
+@@ -0,0 +1,93 @@
++package me.samsuik.sakura.command;
++
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.minimessage.MiniMessage;
++import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
++import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.checkerframework.checker.nullness.qual.NonNull;
++import org.checkerframework.framework.qual.DefaultQualifier;
++import org.jetbrains.annotations.NotNull;
++
++import javax.annotation.Nullable;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.Collections;
++import java.util.List;
++
++@DefaultQualifier(NonNull.class)
++public final class SakuraCommand extends Command {
++
++    private static final Component INFORMATION_MESSAGE = MiniMessage.miniMessage().deserialize("""
++        <dark_purple>.</dark_purple>
++        <dark_purple>| <white>This is the main command for <gradient:red:light_purple:0.5>Sakura</gradient>.
++        <dark_purple>| <white>All exclusive commands are listed below."""
++    );
++
++    private static final String COMMAND_MSG = "<dark_purple>| <dark_gray>*</dark_gray> /<light_purple><command>";
++
++    public SakuraCommand(String name) {
++        super(name);
++
++        this.description = "";
++        this.usageMessage = "/sakura";
++        this.setPermission("bukkit.command.sakura");
++    }
++
++    @Override
++    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
++        if (args.length > 0) {
++            var commands = new ArrayList<>(SakuraCommands.COMMANDS.values());
++
++            // This part is copied from the VersionCommand SubCommand in paper
++            @Nullable
++            var internalVersion = MinecraftServer.getServer().server.getCommandMap().getCommand("version");
++            if (internalVersion != null) {
++                commands.add(internalVersion);
++            }
++
++            for (var base : commands) {
++                if (base.getName().equalsIgnoreCase(args[0])) {
++                    return base.execute(sender, commandLabel, Arrays.copyOfRange(args, 1, args.length));
++                }
++            }
++        }
++
++        sendHelpMessage(sender);
++        return false;
++    }
++
++    private void sendHelpMessage(CommandSender sender) {
++        sender.sendMessage(INFORMATION_MESSAGE);
++
++        var uniqueCommands = SakuraCommands.COMMANDS.values()
++            .stream()
++            .filter(command -> command != this);
++
++        uniqueCommands.forEach((command) -> {
++            sender.sendMessage(MiniMessage.miniMessage().deserialize(COMMAND_MSG,
++                Placeholder.unparsed("command", command.getName()))
++            );
++        });
++
++        sender.sendMessage(Component.text("'", NamedTextColor.DARK_PURPLE));
++    }
++
++    @NotNull
++    @Override
++    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
++        if (!testPermissionSilent(sender)) {
++            return Collections.emptyList();
++        }
++
++        return SakuraCommands.COMMANDS.values().stream()
++            .filter(command -> command != this) // ahem
++            .map(Command::getName)
++            .filter(name -> args.length <= 1 || name.startsWith(args[args.length - 1]))
++            .toList();
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/command/SakuraCommands.java b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cd44b3400a1ab9544aa4a9e50b1054ea436a3643
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
+@@ -0,0 +1,22 @@
++package me.samsuik.sakura.command;
++
++import me.samsuik.sakura.command.subcommands.ConfigCommand;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.command.Command;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public final class SakuraCommands {
++    static final Map<String, Command> COMMANDS = new HashMap<>();
++    static {
++        COMMANDS.put("sakura", new SakuraCommand("sakura"));
++        COMMANDS.put("config", new ConfigCommand("config"));
++    }
++
++    public static void registerCommands(final MinecraftServer server) {
++        COMMANDS.forEach((s, command) -> {
++            server.server.getCommandMap().register(s, "sakura", command);
++        });
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/command/subcommands/ConfigCommand.java b/src/main/java/me/samsuik/sakura/command/subcommands/ConfigCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..93c0f22cdf0c3b7ce4db55171ea397f5673231b1
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/subcommands/ConfigCommand.java
+@@ -0,0 +1,50 @@
++package me.samsuik.sakura.command.subcommands;
++
++import me.samsuik.sakura.command.BaseSubCommand;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.CraftServer;
++import org.checkerframework.checker.nullness.qual.NonNull;
++import org.checkerframework.framework.qual.DefaultQualifier;
++import org.jetbrains.annotations.NotNull;
++
++import java.io.File;
++import java.util.Collections;
++import java.util.List;
++
++import static net.kyori.adventure.text.Component.text;
++import static net.kyori.adventure.text.format.NamedTextColor.GREEN;
++import static net.kyori.adventure.text.format.NamedTextColor.RED;
++
++@DefaultQualifier(NonNull.class)
++public final class ConfigCommand extends BaseSubCommand {
++
++    public ConfigCommand(String name) {
++        super(name);
++        this.description = "Command for reloading the sakura configuration file";
++    }
++
++    @Override
++    public void execute(CommandSender sender, String[] args) {
++        Command.broadcastCommandMessage(sender, text("Please note that this command is not supported and may cause issues.", RED));
++        Command.broadcastCommandMessage(sender, text("If you encounter any issues please use the /stop command to restart your server.", RED));
++
++        MinecraftServer server = ((CraftServer) sender.getServer()).getServer();
++        me.samsuik.sakura.configuration.SakuraGlobalConfig.get().setup((File) server.options.valueOf("sakura-settings"));
++        for (ServerLevel world : server.getAllLevels()) {
++            world.sakuraConfig.init();
++        }
++        server.server.reloadCount++;
++
++        Command.broadcastCommandMessage(sender, text("Sakura config reload complete.", GREEN));
++    }
++
++    @NotNull
++    @Override
++    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
++        return Collections.emptyList();
++    }
++
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraGlobalConfig.java b/src/main/java/me/samsuik/sakura/configuration/SakuraGlobalConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7000fa68886057fb742cf4f655a739b0ee3f62e1
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/SakuraGlobalConfig.java
+@@ -0,0 +1,92 @@
++package me.samsuik.sakura.configuration;
++
++import org.bukkit.configuration.file.YamlConfiguration;
++
++import java.io.File;
++
++public final class SakuraGlobalConfig {
++    private static final String HEADER = """
++            This is the main configuration file for Sakura.
++            As you can see, there's a lot to configure. Some options may impact gameplay, so use
++            with caution, and make sure you know what each option does before configuring.
++            
++            This configuration file is not compatible with Sakura for modern versions of minecraft.
++            """;
++
++    private static final SakuraGlobalConfig INSTANCE = new SakuraGlobalConfig();
++
++    public static SakuraGlobalConfig get() {
++        return INSTANCE;
++    }
++
++    private YamlConfiguration config;
++    private int version;
++
++    public void setup(File configFile) {
++        this.config = YamlConfigHelper.loadConfig(configFile, HEADER, config -> {
++            this.version = this.getInt("config-version", 0);
++            this.set("config-version", 0);
++        });
++    }
++
++    public YamlConfiguration getYamlConfig() {
++        return this.config;
++    }
++
++    private void set(String path, Object val) {
++        this.config.set(path, val);
++    }
++
++    private boolean getBoolean(String path, boolean def) {
++        this.config.addDefault(path, def);
++        return this.config.getBoolean(path, this.config.getBoolean(path));
++    }
++
++    private int getInt(String path, int def) {
++        this.config.addDefault(path, def);
++        return this.config.getInt(path, this.config.getInt(path));
++    }
++
++    private String getString(String path, String def) {
++        this.config.addDefault(path, def);
++        return this.config.getString(path, this.config.getString(path));
++    }
++
++    public String fpsMessage = "<dark_gray>(<light_purple>S</light_purple>) <gray><state> <yellow><name>";
++    public String fpsMaterial = "pink_stained_glass_pane";
++    private void Fps() {
++        this.fpsMessage = this.getString("fps.messsage", this.fpsMessage);
++        this.fpsMaterial = this.getString("fps.material", this.fpsMaterial);
++    }
++
++    public boolean reducedSearchRays;
++    private void Explosion() {
++        this.reducedSearchRays = this.getBoolean("cannons.explosion.reduced-search-rays", this.reducedSearchRays);
++    }
++
++    public String potatoMessage = "<dark_gray>(<light_purple>S</light_purple>) <white>This block has <gray><remaining></gray> of <gray><durability>";
++    private void Players() {
++        this.potatoMessage = this.getString("players.potato-message", this.potatoMessage);
++    }
++
++    public boolean calculateBiomeNoiseOncePerChunkSection = false;
++    private void Environment() {
++        this.calculateBiomeNoiseOncePerChunkSection = this.getBoolean("environment.calculate-biome-noise-once-per-chunk-section", this.calculateBiomeNoiseOncePerChunkSection);
++    }
++
++    public int minSpawnDelay = 200;
++    public int maxSpawnDelay = 800;
++    public int spawnCount = 4;
++    public int maxNearbyEntities = 6;
++    public int requiredPlayerRange = 16;
++    public int spawnRange = 4;
++    private void MobSpawnerDefaults() {
++        // as global and world configs are combined I moved the defaults into its own section
++        this.minSpawnDelay = this.getInt("environment.mob-spawner.defaults.min-spawn-delay", this.minSpawnDelay);
++        this.maxSpawnDelay = this.getInt("environment.mob-spawner.defaults.max-spawn-delay", this.maxSpawnDelay);
++        this.spawnCount = this.getInt("environment.mob-spawner.defaults.spawn-count", this.spawnCount);
++        this.maxNearbyEntities = this.getInt("environment.mob-spawner.defaults.max-nearby-entities", this.maxNearbyEntities);
++        this.requiredPlayerRange = this.getInt("environment.mob-spawner.defaults.required-player-range", this.requiredPlayerRange);
++        this.spawnRange = this.getInt("environment.mob-spawner.defaults.spawn-range", this.spawnRange);
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/SakuraWorldConfig.java b/src/main/java/me/samsuik/sakura/configuration/SakuraWorldConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..34c4d0db007753f37cc4ca96c21175ce0f0d56e1
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/SakuraWorldConfig.java
+@@ -0,0 +1,325 @@
++package me.samsuik.sakura.configuration;
++
++import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
++import me.samsuik.sakura.configuration.serializer.*;
++import me.samsuik.sakura.entity.TntSpread;
++import me.samsuik.sakura.entity.merge.MergeLevel;
++import me.samsuik.sakura.explosion.durable.DurableMaterial;
++import me.samsuik.sakura.physics.PhysicsVersion;
++import net.minecraft.Util;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.entity.item.FallingBlockEntity;
++import net.minecraft.world.item.Item;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import org.bukkit.configuration.ConfigurationSection;
++import org.bukkit.configuration.MemoryConfiguration;
++import org.bukkit.configuration.file.YamlConfiguration;
++
++import java.util.*;
++
++public final class SakuraWorldConfig {
++    private final String worldName;
++    private YamlConfiguration config;
++
++    public SakuraWorldConfig(String worldName) {
++        this.worldName = worldName;
++        this.init();
++    }
++
++    public void init() {
++        this.config = SakuraGlobalConfig.get().getYamlConfig(); // grab updated reference
++    }
++    
++    private String worldPath(String path) {
++        return "world-settings." + this.worldName + "." + path;
++    }
++
++    private void set(String path, Object val) {
++        this.config.set(path, val);
++        if (this.config.get(this.worldPath(path)) != null) {
++            this.config.set(this.worldPath(path), val);
++        }
++    }
++
++    private void remove(String path) {
++        this.config.addDefault(path, null);
++        this.set(path, null);
++    }
++
++    private boolean getBoolean(String path, boolean def) {
++        this.config.addDefault(path, def);
++        return this.config.getBoolean(this.worldPath(path), this.config.getBoolean(path, def));
++    }
++
++    private double getDouble(String path, double def) {
++        this.config.addDefault(path, def);
++        return this.config.getDouble(this.worldPath(path), this.config.getDouble(path));
++    }
++
++    private int getInt(String path, int def) {
++        this.config.addDefault(path, def);
++        return this.config.getInt(this.worldPath(path), this.config.getInt(path, def));
++    }
++
++    private <T> List<T> getList(String path, List<T> def) {
++        this.config.addDefault(path, def);
++        return (List<T>) this.config.getList(this.worldPath(path), this.config.getList(path));
++    }
++
++    private String getString(String path, String def) {
++        this.config.addDefault(path, def);
++        return this.config.getString(this.worldPath(path), this.config.getString(path));
++    }
++
++    private <T extends Enum<T>> T getEnum(String path, T def, Class<T> enumClass) {
++        String name = this.getString(path, def.name());
++        return Enum.valueOf(enumClass, name);
++    }
++
++    private OptionalDouble getDoubleWithContext(String path, String context) {
++        this.config.addDefault(path, context);
++        double present = this.config.getDouble(path, this.config.getDouble(this.worldPath(path), Double.MIN_VALUE));
++        return present != Double.MIN_VALUE ? OptionalDouble.of(present) : OptionalDouble.empty();
++    }
++
++    private OptionalInt getIntWithContext(String path, String context) {
++        this.config.addDefault(path, context);
++        int present = this.config.getInt(path, this.config.getInt(this.worldPath(path), Integer.MIN_VALUE));
++        return present != Integer.MIN_VALUE ? OptionalInt.of(present) : OptionalInt.empty();
++    }
++
++    private <K, V, C> void loadSerializedMap(String path, Map<K, V> def, MapSerializer<K, V, C> serializer) {
++        this.config.addDefault(path, this.getSerializedMapDefaults(def, serializer));
++        ConfigurationSection section = this.config.getConfigurationSection(path);
++        def.clear();
++        for (String serializedKey : section.getKeys(false)) {
++            K key   = serializer.deserializeKey(serializedKey);
++            V value = serializer.deserializeValue((C) this.config.get(serializedKey));
++            def.put(key, value);
++        }
++    }
++
++    private <K, V> ConfigurationSection getSerializedMapDefaults(Map<K, V> def, MapSerializer<K, V, ?> serializer) {
++        ConfigurationSection section = new MemoryConfiguration();
++        def.forEach((k, v) -> {
++            String key = serializer.serializeKey(k);
++            Object value = serializer.serializeValue(v);
++            section.set(key, value);
++        });
++        return section;
++    }
++    
++    private <V, C> void loadSerializedList(String path, List<V> def, ListSerializer<V, C> serializer) {
++        List<C> defaults = def.stream()
++            .map(serializer::serialize)
++            .toList();
++        def.clear();
++        for (C object : this.getList(path, defaults)) {
++            def.add(serializer.deserialize(object));
++        }
++    }
++
++    public MergeLevel mergeLevel = MergeLevel.STRICT;
++    public boolean tntAndSandAffectedByBubbleColumns = true;
++    public boolean loadChunks = false;
++    public boolean collideWhenMoving;
++    public double collideMovingFasterThan = 64.0;
++    private void Cannons() {
++        this.mergeLevel = this.getEnum("cannons.merge-level", this.mergeLevel, MergeLevel.class);
++        this.tntAndSandAffectedByBubbleColumns = this.getBoolean("cannons.tnt-and-sand-affected-by-bubble-columns", this.tntAndSandAffectedByBubbleColumns);
++        this.loadChunks = this.getBoolean("cannons.load-chunks", this.loadChunks);
++
++        this.collideWhenMoving = this.getBoolean("cannons.treat-collidable-blocks-as-full.while-moving", this.collideWhenMoving);
++        this.collideMovingFasterThan = this.getDouble("cannons.treat-collidable-blocks-as-full.moving-faster-than", this.collideMovingFasterThan);
++    }
++
++    public OptionalInt leftShootingThreshold = OptionalInt.empty();
++    public OptionalInt maxAdjustDistance = OptionalInt.empty();
++    private void Restrictions() {
++        this.leftShootingThreshold = this.getIntWithContext("cannons.restrictions.left-shooting-threshold", "disabled");
++        this.maxAdjustDistance = this.getIntWithContext("cannons.restrictions.max-adjust-distance", "disabled");
++    }
++
++    public boolean forcePositionUpdates;
++    private void Tnt() {
++        this.forcePositionUpdates = this.getBoolean("cannons.tnt.force-position-updates", this.forcePositionUpdates);
++    }
++
++    public boolean despawnInsideMovingPistons = true;
++    public boolean concreteSolidifyInWater = true;
++    public boolean preventStackingAgainstBorder = false;
++    public boolean preventStackingAtWorldHeight = false;
++    private void Sand() {
++        this.despawnInsideMovingPistons = this.getBoolean("cannons.sand.despawn-inside-moving-pistons", this.despawnInsideMovingPistons);
++        this.concreteSolidifyInWater = this.getBoolean("cannons.sand.concrete-solidify-in-water", this.concreteSolidifyInWater);
++        this.preventStackingAgainstBorder = this.getBoolean("cannons.sand.prevent-stacking.against-border", this.preventStackingAgainstBorder);
++        this.preventStackingAtWorldHeight = this.getBoolean("cannons.sand.prevent-stacking.world-height", this.preventStackingAtWorldHeight);
++    }
++
++    public boolean isFallingBlockInBounds(FallingBlockEntity entity) {
++        if (this.preventStackingAtWorldHeight && entity.blockPosition().getY() >= entity.level.getMaxBuildHeight()) {
++            return false;
++        }
++        if (this.preventStackingAgainstBorder && io.papermc.paper.util.CollisionUtil.isCollidingWithBorderEdge(entity.level.getWorldBorder(), entity.getBoundingBox().inflate(0.01))) {
++            return false;
++        }
++        return true;
++    }
++
++    public boolean optimiseProtectedRegions = true;
++    public boolean avoidRedundantBlockSearches = false;
++    public Map<Block, DurableMaterial> durableMaterials = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
++        map.put(Blocks.OBSIDIAN, new DurableMaterial(4, Blocks.COBBLESTONE.getExplosionResistance()));
++        map.put(Blocks.ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
++        map.put(Blocks.CHIPPED_ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
++        map.put(Blocks.DAMAGED_ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
++    });
++    public boolean protectScaffoldingFromCreepers = false;
++    public boolean allowNonTntBreakingDurableBlocks = false;
++    public boolean destroyWaterloggedBlocks = false;
++    public boolean explodeLava = false;
++    public boolean consistentRadius = false;
++    public boolean explosionsHurtPlayers = true;
++    public boolean explosionsDropItems = true;
++    private void Explosion() {
++        this.optimiseProtectedRegions = this.getBoolean("cannons.explosion.optimise-protected-regions", this.optimiseProtectedRegions);
++        this.avoidRedundantBlockSearches = this.getBoolean("cannons.explosion.avoid-redundant-block-searches", this.avoidRedundantBlockSearches);
++        this.loadSerializedMap("cannons.explosion.durable-materials", this.durableMaterials, DurableMaterialSerializer.get());
++        this.protectScaffoldingFromCreepers = this.getBoolean("cannons.explosion.protect-scaffolding-from-creepers", this.protectScaffoldingFromCreepers);
++        this.allowNonTntBreakingDurableBlocks = this.getBoolean("cannons.explosion.allow-non-tnt-breaking-durable-blocks", this.allowNonTntBreakingDurableBlocks);
++        this.destroyWaterloggedBlocks = this.getBoolean("cannons.explosion.destroy-waterlogged-blocks", this.destroyWaterloggedBlocks);
++        this.explodeLava = this.getBoolean("cannons.explosion.explode-lava", this.explodeLava);
++        this.consistentRadius = this.getBoolean("cannons.explosion.consistent-radius", this.consistentRadius);
++        this.explosionsHurtPlayers = this.getBoolean("cannons.explosion.explosions-hurt-players", this.explosionsHurtPlayers);
++        this.explosionsDropItems = this.getBoolean("cannons.explosion.explosions-drop-items", this.explosionsDropItems);
++    }
++
++    public TntSpread tntSpread = TntSpread.ALL;
++    public boolean tntFlowsInWater = true;
++    public boolean fallingBlockParity = false;
++    public PhysicsVersion physicsVersion = PhysicsVersion.LATEST;
++    private void Mechanics() {
++        this.tntSpread = this.getEnum("cannons.mechanics.tnt-spread", this.tntSpread, TntSpread.class);
++        this.tntFlowsInWater = this.getBoolean("cannons.mechanics.tnt-flows-in-water", this.tntFlowsInWater);
++        this.fallingBlockParity = this.getBoolean("cannons.mechanics.falling-block-parity", this.fallingBlockParity);
++        this.physicsVersion = this.getEnum("cannons.mechanics.physics-version", this.physicsVersion, PhysicsVersion.class);
++    }
++
++    public boolean dispenserRandomItemSelection = true;
++    public boolean fluidsBreakRedstone = true;
++    private void Technical() {
++        this.dispenserRandomItemSelection = this.getBoolean("technical.dispenser-random-item-selection", this.dispenserRandomItemSelection);
++        this.fluidsBreakRedstone = this.getBoolean("technical.redstone.fluids-break-redstone", this.fluidsBreakRedstone);
++    }
++
++    public boolean legacyCombatMechanics = false;
++    public boolean allowSweepAttacks = true;
++    public boolean shieldDamageReduction = false;
++    public boolean oldEnchantedGoldenApple = false;
++    public boolean oldSoundsAndParticleEffects = false;
++    public boolean fastHealthRegen = true;
++    public OptionalInt maxArmourDamage = OptionalInt.empty();
++    private void Combat() {
++        this.legacyCombatMechanics = this.getBoolean("players.combat.legacy-combat-mechanics", this.legacyCombatMechanics);
++        this.allowSweepAttacks = this.getBoolean("players.combat.allow-sweep-attacks", this.allowSweepAttacks);
++        this.shieldDamageReduction = this.getBoolean("players.combat.shield-damage-reduction", this.shieldDamageReduction);
++        this.oldEnchantedGoldenApple = this.getBoolean("players.combat.old-enchanted-golden-apple", this.oldEnchantedGoldenApple);
++        this.oldSoundsAndParticleEffects = this.getBoolean("players.combat.old-sounds-and-particle-effects", this.oldSoundsAndParticleEffects);
++        this.fastHealthRegen = this.getBoolean("players.combat.fast-health-regen", this.fastHealthRegen);
++        this.maxArmourDamage = this.getIntWithContext("players.combat.max-armour-damage", "default");
++    }
++
++    public OptionalDouble knockbackVertical = OptionalDouble.empty();
++    public double knockbackVerticalLimit = 0.4;
++    public boolean verticalKnockbackRequireGround = true;
++    public double baseKnockback = 0.4;
++    public double sweepingEdgeKnockback = 0.4;
++    public boolean sprintingRequireFullAttack = true;
++    public double sprintingExtraKnockback = 0.5;
++    public OptionalInt sprintingKnockbackDelay = OptionalInt.empty();
++    public boolean fishingHooksApplyKnockback;
++    public double knockbackResistanceModifier = 1.0;
++    public double shieldHitKnockback = 0.5;
++    private void Knockback() {
++        this.knockbackVertical = this.getDoubleWithContext("players.knockback.knockback-vertical", "default");
++        this.knockbackVerticalLimit = this.getDouble("players.knockback.knockback-vertical-limit", this.knockbackVerticalLimit);
++        this.verticalKnockbackRequireGround = this.getBoolean("players.knockback.vertical-knockback-require-ground", this.verticalKnockbackRequireGround);
++        this.baseKnockback = this.getDouble("players.knockback.base-knockback", this.baseKnockback);
++        this.sweepingEdgeKnockback = this.getDouble("players.knockback.sweeping-edge-knockback", this.sweepingEdgeKnockback);
++
++        this.sprintingRequireFullAttack = this.getBoolean("players.knockback.sprinting.require-full-attack", this.sprintingRequireFullAttack);
++        this.sprintingExtraKnockback = this.getDouble("players.knockback.sprinting.extra-knockback", this.sprintingExtraKnockback);
++        this.sprintingKnockbackDelay = this.getIntWithContext("players.knockback.sprinting.knockback-delay", "default");
++
++        this.fishingHooksApplyKnockback = this.getBoolean("players.knockback.projectiles.fishing-hooks-apply-knockback", this.fishingHooksApplyKnockback);
++        this.knockbackResistanceModifier = this.getDouble("players.knockback.knockback-resistance-modifier", this.knockbackResistanceModifier);
++        this.shieldHitKnockback = this.getDouble("players.knockback.shield-hit-knockback", this.shieldHitKnockback);
++    }
++
++    public boolean posesShrinkCollisionBox = true;
++    public boolean fishingHooksPullEntities = true;
++    private void Players() {
++        this.posesShrinkCollisionBox = this.getBoolean("players.poses-shrink-collision-box", this.posesShrinkCollisionBox);
++        this.fishingHooksPullEntities = this.getBoolean("players.fishing-hooks-pull-entities", this.fishingHooksPullEntities);
++    }
++
++    public boolean disableMobAi = false;
++    public boolean waterSensitivity = true;
++    public boolean instantDeathAnimation = false;
++    public boolean ironGolemsTakeFalldamage = false;
++    public Map<EntityType<?>, Integer> chunkTravelLimit = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
++        map.put(EntityType.ENDER_PEARL, 8);
++    });
++    public boolean projectilesLoadChunksForCollisions = false;
++    public List<Item> explosionResistantItems = List.of();
++    private void Entity() {
++        this.disableMobAi = this.getBoolean("entity.disable-mob-ai", this.disableMobAi);
++        this.waterSensitivity = this.getBoolean("entity.water-sensitivity", this.waterSensitivity);
++        this.instantDeathAnimation = this.getBoolean("entity.instant-death-animation", this.instantDeathAnimation);
++        this.ironGolemsTakeFalldamage = this.getBoolean("entity.iron-golems-take-falldamage", this.ironGolemsTakeFalldamage);
++        this.loadSerializedMap("entity.chunk-travel-limit", this.chunkTravelLimit, ChunkTravelLimitsSerializer.get());
++        this.projectilesLoadChunksForCollisions = this.getBoolean("entity.projectiles-load-chunks-for-collisions", this.projectilesLoadChunksForCollisions);
++        this.loadSerializedList("entity.items.explosion-resistant-items", this.explosionResistantItems, ItemListSerializer.get());
++    }
++
++    public double horizontalSpeed = 1.0;
++    public double verticalSpeed = 1.0;
++    public boolean allowBreakingInsideEntities = false;
++    private void ThrownPotion() {
++        this.horizontalSpeed = this.getDouble("entity.thrown-potion.horizontal-speed", this.horizontalSpeed);
++        this.verticalSpeed = this.getDouble("entity.thrown-potion.vertical-speed", this.verticalSpeed);
++        this.allowBreakingInsideEntities = this.getBoolean("entity.thrown-potion.allow-breaking-inside-entities", this.allowBreakingInsideEntities);
++    }
++
++    public boolean useOutlineForCollision = false;
++    private void EnderPearl() {
++        this.useOutlineForCollision = this.getBoolean("entity.ender-pearl.use-outline-for-collision", this.useOutlineForCollision);
++    }
++
++    public boolean allowWaterInTheNether = false;
++    public boolean disableFastNetherLava = false;
++    private void Environment() {
++        this.allowWaterInTheNether = this.getBoolean("environment.allow-water-in-the-nether", this.allowWaterInTheNether);
++        this.disableFastNetherLava = this.getBoolean("environment.disable-fast-nether-lava", this.disableFastNetherLava);
++    }
++
++    public boolean legacyBlockFormation = false;
++    private void BlockGeneration() {
++        this.legacyBlockFormation = this.getBoolean("environment.block-generation.legacy-block-formation", this.legacyBlockFormation);
++    }
++
++    public boolean useRandomChanceToGrow = false;
++    private void Crops() {
++        this.useRandomChanceToGrow = this.getBoolean("environment.crops.use-random-chance-to-grow", this.useRandomChanceToGrow);
++    }
++
++    public boolean checkSpawnConditions = true;
++    public boolean requireNearbyPlayer = true;
++    public boolean ignoreEntityLimit = false;
++    private void MobSpawner() {
++        this.checkSpawnConditions = this.getBoolean("environment.mob-spawner.check-spawn-conditions", this.checkSpawnConditions);
++        this.requireNearbyPlayer = this.getBoolean("environment.mob-spawner.require-nearby-player", this.requireNearbyPlayer);
++        this.ignoreEntityLimit = this.getBoolean("environment.mob-spawner.ignore-entity-limit", this.ignoreEntityLimit);
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/YamlConfigHelper.java b/src/main/java/me/samsuik/sakura/configuration/YamlConfigHelper.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9340a0696d2a1bf4d91d67627df49191a40682b6
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/YamlConfigHelper.java
+@@ -0,0 +1,60 @@
++package me.samsuik.sakura.configuration;
++
++import com.google.common.base.Throwables;
++import org.bukkit.Bukkit;
++import org.bukkit.configuration.InvalidConfigurationException;
++import org.bukkit.configuration.file.YamlConfiguration;
++
++import java.io.File;
++import java.io.IOException;
++import java.lang.reflect.InvocationTargetException;
++import java.lang.reflect.Method;
++import java.lang.reflect.Modifier;
++import java.util.function.Consumer;
++import java.util.logging.Level;
++
++public final class YamlConfigHelper {
++    public static YamlConfiguration loadConfig(File configFile, String header, Consumer<YamlConfiguration> afterLoad) {
++        YamlConfiguration config = new YamlConfiguration();
++        try {
++            config.load(configFile);
++        } catch (IOException ignored) {
++        } catch (InvalidConfigurationException ex) {
++            Bukkit.getLogger().log(Level.SEVERE, String.format("Could not load %s, please correct your syntax errors", configFile.getName()), ex);
++            throw Throwables.propagate(ex);
++        }
++
++        config.options().header(header);
++        config.options().copyDefaults(true);
++        afterLoad.accept(config);
++
++        readConfig(SakuraGlobalConfig.class, null);
++        saveConfig(config, configFile);
++        return config;
++    }
++
++    public static void readConfig(Class<?> clazz, Object instance) {
++        for (Method method : clazz.getDeclaredMethods()) {
++            if (Modifier.isPrivate(method.getModifiers())) {
++                if (method.getParameterTypes().length == 0 && method.getReturnType() == Void.TYPE) {
++                    try {
++                        method.setAccessible(true);
++                        method.invoke(instance);
++                    } catch (InvocationTargetException ex) {
++                        throw Throwables.propagate(ex.getCause());
++                    } catch (Exception ex) {
++                        Bukkit.getLogger().log(Level.SEVERE, "Error invoking " + method, ex);
++                    }
++                }
++            }
++        }
++    }
++
++    public static void saveConfig(YamlConfiguration config, File configFile) {
++        try {
++            config.save(configFile);
++        } catch (IOException ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Could not save " + configFile, ex);
++        }
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/serializer/ChunkTravelLimitsSerializer.java b/src/main/java/me/samsuik/sakura/configuration/serializer/ChunkTravelLimitsSerializer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..37be21e53f33c1aa64e1919092daa4cb0b1515c4
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/serializer/ChunkTravelLimitsSerializer.java
+@@ -0,0 +1,33 @@
++package me.samsuik.sakura.configuration.serializer;
++
++import net.minecraft.core.Registry;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.world.entity.EntityType;
++
++public final class ChunkTravelLimitsSerializer implements MapSerializer<EntityType<?>, Integer, Integer> {
++    private static final ChunkTravelLimitsSerializer INSTANCE = new ChunkTravelLimitsSerializer();
++
++    public static ChunkTravelLimitsSerializer get() {
++        return INSTANCE;
++    }
++
++    @Override
++    public String serializeKey(EntityType<?> key) {
++        return Registry.ENTITY_TYPE.getKey(key).getPath();
++    }
++
++    @Override
++    public EntityType<?> deserializeKey(String string) {
++        return Registry.ENTITY_TYPE.get(new ResourceLocation(string));
++    }
++
++    @Override
++    public Integer serializeValue(Integer val) {
++        return val;
++    }
++
++    @Override
++    public Integer deserializeValue(Integer val) {
++        return val;
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/serializer/DurableMaterialSerializer.java b/src/main/java/me/samsuik/sakura/configuration/serializer/DurableMaterialSerializer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0b1670515231be1408780fa6d4cc2daa599b024c
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/serializer/DurableMaterialSerializer.java
+@@ -0,0 +1,41 @@
++package me.samsuik.sakura.configuration.serializer;
++
++import me.samsuik.sakura.explosion.durable.DurableMaterial;
++import net.minecraft.core.Registry;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.world.level.block.Block;
++import org.bukkit.configuration.ConfigurationSection;
++import org.bukkit.configuration.MemoryConfiguration;
++
++public final class DurableMaterialSerializer implements MapSerializer<Block, DurableMaterial, ConfigurationSection> {
++    private static final DurableMaterialSerializer INSTANCE = new DurableMaterialSerializer();
++
++    public static DurableMaterialSerializer get() {
++        return INSTANCE;
++    }
++
++    @Override
++    public String serializeKey(Block key) {
++        return Registry.BLOCK.getKey(key).getPath();
++    }
++
++    @Override
++    public Block deserializeKey(String blockName) {
++        return Registry.BLOCK.get(new ResourceLocation(blockName));
++    }
++
++    @Override
++    public ConfigurationSection serializeValue(DurableMaterial mat) {
++        MemoryConfiguration materialSection = new MemoryConfiguration();
++        materialSection.set("durability", mat.durability());
++        materialSection.set("resistance", mat.resistance());
++        return materialSection;
++    }
++
++    @Override
++    public DurableMaterial deserializeValue(ConfigurationSection materialSection) {
++        int durability = materialSection.getInt("durability", 0);
++        float resistance = (float) materialSection.getDouble("resistance", 0.0);
++        return new DurableMaterial(durability, resistance);
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/serializer/ItemListSerializer.java b/src/main/java/me/samsuik/sakura/configuration/serializer/ItemListSerializer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1619656cd9d776ce6abb5de15364cc6cf1ba8f12
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/serializer/ItemListSerializer.java
+@@ -0,0 +1,23 @@
++package me.samsuik.sakura.configuration.serializer;
++
++import net.minecraft.core.Registry;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.world.item.Item;
++
++public final class ItemListSerializer implements ListSerializer<Item, String> {
++    private static final ItemListSerializer INSTANCE = new ItemListSerializer();
++
++    public static ItemListSerializer get() {
++        return INSTANCE;
++    }
++
++    @Override
++    public String serialize(Item val) {
++        return Registry.ITEM.getKey(val).getPath();
++    }
++
++    @Override
++    public Item deserialize(String any) {
++        return Registry.ITEM.get(new ResourceLocation(any));
++    }
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/serializer/ListSerializer.java b/src/main/java/me/samsuik/sakura/configuration/serializer/ListSerializer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0937a8dd5b8dcb1c594c0afb82b5dfda3f6c8305
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/serializer/ListSerializer.java
+@@ -0,0 +1,7 @@
++package me.samsuik.sakura.configuration.serializer;
++
++public interface ListSerializer<V, C> {
++    C serialize(V val);
++
++    V deserialize(C any);
++}
+diff --git a/src/main/java/me/samsuik/sakura/configuration/serializer/MapSerializer.java b/src/main/java/me/samsuik/sakura/configuration/serializer/MapSerializer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7eec08f2263ec1eef5571bcef33bb01771b36833
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/configuration/serializer/MapSerializer.java
+@@ -0,0 +1,13 @@
++package me.samsuik.sakura.configuration.serializer;
++
++public interface MapSerializer<K, V, C> {
++
++
++    String serializeKey(K key);
++
++    K deserializeKey(String string);
++
++    C serializeValue(V val);
++
++    V deserializeValue(C object);
++}
+diff --git a/src/main/java/me/samsuik/sakura/entity/TntSpread.java b/src/main/java/me/samsuik/sakura/entity/TntSpread.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..83275db7686a656f8d932d03e092cc6ddaf31ebb
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/entity/TntSpread.java
+@@ -0,0 +1,5 @@
++package me.samsuik.sakura.entity;
++
++public enum TntSpread {
++    ALL, Y, NONE;
++}
+diff --git a/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4024f9738e039ffffd560a07a2210f758879d3c0
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/explosion/durable/DurableMaterial.java
+@@ -0,0 +1,7 @@
++package me.samsuik.sakura.explosion.durable;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public record DurableMaterial(int durability, float resistance) {
++}
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index 257c94f7c1cb00c9a91ab82e311dfd8eca29c538..edd21098ee4c2773acf61fd073d8c87fe2880201 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -235,6 +235,10 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         io.papermc.paper.util.ObfHelper.INSTANCE.getClass(); // load mappings for stacktrace deobf and etc.
+         io.papermc.paper.brigadier.PaperBrigadierProviderImpl.INSTANCE.getClass(); // init PaperBrigadierProvider
+         // Paper end
++        // Sakura start
++        me.samsuik.sakura.configuration.SakuraGlobalConfig.get().setup((java.io.File) this.options.valueOf("sakura-settings"));
++        me.samsuik.sakura.command.SakuraCommands.registerCommands(this);
++        // Sakura end
+ 
+         this.setPvpAllowed(dedicatedserverproperties.pvp);
+         this.setFlightAllowed(dedicatedserverproperties.allowFlight);
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index fee8996f35b38fd79946cdfd677763e0201eb57d..db7335a079cf711a829b2e4fb7354717da2f8789 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -162,6 +162,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
+ 
+     public final com.destroystokyo.paper.PaperWorldConfig paperConfig; // Paper
++    public final me.samsuik.sakura.configuration.SakuraWorldConfig sakuraConfig; // Sakura
+     public final com.destroystokyo.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
+ 
+     public final co.aikar.timings.WorldTimingsHandler timings; // Paper
+@@ -264,6 +265,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.concurrent.Executor executor) { // Paper - Async-Anti-Xray - Pass executor
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+         this.paperConfig = new com.destroystokyo.paper.PaperWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName(), this.spigotConfig); // Paper
++        this.sakuraConfig = new me.samsuik.sakura.configuration.SakuraWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Sakura
+         this.generator = gen;
+         this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 3d07ef0cbd57d54d131cdc766dd55d210d67fb4c..62ee1aebdea1acb3c213d768f82f9131141343ad 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -956,6 +956,7 @@ public final class CraftServer implements Server {
+ 
+         org.spigotmc.SpigotConfig.init((File) console.options.valueOf("spigot-settings")); // Spigot
+         com.destroystokyo.paper.PaperConfig.init((File) console.options.valueOf("paper-settings")); // Paper
++        me.samsuik.sakura.configuration.SakuraGlobalConfig.get().setup((File) console.options.valueOf("sakura-settings")); // Sakura
+         for (ServerLevel world : this.console.getAllLevels()) {
+             // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
+             world.setSpawnSettings(world.serverLevelData.getDifficulty() != Difficulty.PEACEFUL && config.spawnMonsters, config.spawnAnimals); // Paper - per level difficulty (from MinecraftServer#setDifficulty(ServerLevel, Difficulty, boolean))
+@@ -972,6 +973,7 @@ public final class CraftServer implements Server {
+             }
+             world.spigotConfig.init(); // Spigot
+             world.paperConfig.init(); // Paper
++            world.sakuraConfig.init(); // Sakura
+         }
+ 
+         Plugin[] pluginClone = pluginManager.getPlugins().clone(); // Paper
+@@ -987,6 +989,7 @@ public final class CraftServer implements Server {
+         this.reloadData();
+         org.spigotmc.SpigotConfig.registerCommands(); // Spigot
+         com.destroystokyo.paper.PaperConfig.registerCommands(); // Paper
++        me.samsuik.sakura.command.SakuraCommands.registerCommands(this.console); // Sakura
+         this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
+         this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index fbe68bd4739d9a0e7d9bc4c3d5ba8ecfd2d13954..c779e4a4df4c954167a7445f2ac29da232e04f20 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -153,6 +153,14 @@ public class Main {
+                         .describedAs("Jar file");
+                 // Paper end
+ 
++                // Sakura start
++                acceptsAll(asList("sakura", "sakura-settings"), "File for sakura settings")
++                    .withRequiredArg()
++                    .ofType(File.class)
++                    .defaultsTo(new File("sakura.yml"))
++                    .describedAs("Yml file");
++                // Sakura end
++
+                 // Paper start
+                 acceptsAll(asList("server-name"), "Name of the server")
+                         .withRequiredArg()

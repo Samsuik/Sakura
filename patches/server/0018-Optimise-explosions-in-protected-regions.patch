@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 3 May 2024 15:18:58 +0100
+Subject: [PATCH] Optimise explosions in protected regions
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 8ef317a79db184db69b2a699c280b5c7c2663259..cf9dd1ffdacdfe1c26ca15ca17a20fe46a81b20d 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -289,6 +289,22 @@ public class Explosion {
+         }
+     }
+ 
++    // Sakura start - optimise protected explosions
++    protected final boolean isRegionUnprotected() {
++        // As an optimisation, check if a plugin has cancelled or cleared the blockList.
++        // This is relatively sane on factions and cannon servers, but mileage may vary.
++        if (this.source != null && this.level.sakuraConfig.optimiseProtectedRegions) {
++            Location location = new Location(this.level.getWorld(), this.x, this.y, this.z);
++            List<org.bukkit.block.Block> blocks = new ObjectArrayList<>(1);
++            blocks.add(location.getBlock());
++            EntityExplodeEvent event = new EntityExplodeEvent(this.source.getBukkitEntity(), location, blocks, 0.0f);
++            return event.callEvent() && !event.blockList().isEmpty();
++        }
++
++        return true;
++    }
++    // Sakura end - optimise protected explosions
++
+     private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
+         if (entity instanceof net.minecraft.world.entity.item.PrimedTnt) {
+             return EXPLOSION_DAMAGE_CALCULATOR;
+@@ -358,7 +374,7 @@ public class Explosion {
+         BlockPos explosionBlockPos = new BlockPos(this.x, this.y, this.z);
+         BlockState blockstate = this.level.getBlockState(explosionBlockPos);
+         float resistance = blockstate.getBlock().getExplosionResistance();
+-        if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.blockInteraction != Explosion.BlockInteraction.NONE) {
++        if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.blockInteraction != Explosion.BlockInteraction.NONE && this.isRegionUnprotected()) { // Sakura - optimise protected explosions
+             this.searchForBlocks();
+         }
+ 

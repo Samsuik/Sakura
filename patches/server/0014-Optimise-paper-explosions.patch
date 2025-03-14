@@ -1,0 +1,325 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 19 Apr 2024 22:20:03 +0100
+Subject: [PATCH] Optimise paper explosions
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 22ceea2deb22bc8bd082a5ad94de9a9ca02a4ec7..2301773137d004b1fbfa030caea6a4f436d1beae 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -104,7 +104,196 @@ public class Explosion {
+         this.damageCalculator = behavior == null ? this.makeDamageCalculator(entity) : behavior;
+     }
+ 
++    // Sakura start - optimise vanilla explosions
++    /*
++     * Sort the explosion rays to better utilise the chunk and block cache.
++     *   x +   Vanilla     Sorted
++     * z @ z      8           5
++     * - x      6   7       6   4
++     *        4   @   5   7   @   3
++     *          2   3       8   2
++     *            1           1
++     */
++    private static final java.util.Comparator<double[]> SORT_EXPLOSION_RAYS = java.util.Comparator.comparingDouble(vec -> {
++        double sign = Math.signum(vec[0]);
++        double dir = (sign - 1) / 2;
++        return sign + 8 + vec[2] * dir;
++    });
++
++    private static double[] sortExplosionRays(it.unimi.dsi.fastutil.doubles.DoubleArrayList rayCoords) {
++        List<double[]> explosionRays = new ObjectArrayList<>();
++
++        for (int i = 0; i < rayCoords.size(); i += 3) {
++            double[] ray = new double[3];
++            rayCoords.getElements(i, ray, 0, 3);
++            explosionRays.add(ray);
++        }
++
++        rayCoords.clear();
++        explosionRays.sort(SORT_EXPLOSION_RAYS);
++
++        double[] rays = new double[explosionRays.size() * 3];
++        for (int i = 0; i < explosionRays.size() * 3; i++) {
++            rays[i] = explosionRays.get(i / 3)[i % 3];
++        }
++        return rays;
++    }
++
++    private static final double[] EXPLOSION_RAYS;
++
++    static {
++        it.unimi.dsi.fastutil.doubles.DoubleArrayList list = new it.unimi.dsi.fastutil.doubles.DoubleArrayList();
++        for (int k = 0; k < 16; ++k) {
++            for (int i = 0; i < 16; ++i) {
++                for (int j = 0; j < 16; ++j) {
++                    if (k == 0 || k == 15 || i == 0 || i == 15 || j == 0 || j == 15) {
++                        double d0 = (double) ((float) k / 15.0F * 2.0F - 1.0F);
++                        double d1 = (double) ((float) i / 15.0F * 2.0F - 1.0F);
++                        double d2 = (double) ((float) j / 15.0F * 2.0F - 1.0F);
++                        double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
++
++                        d0 /= d3;
++                        d1 /= d3;
++                        d2 /= d3;
++
++                        list.add(d0 * 0.30000001192092896D);
++                        list.add(d1 * 0.30000001192092896D);
++                        list.add(d2 * 0.30000001192092896D);
++                    }
++                }
++            }
++        }
++        EXPLOSION_RAYS = sortExplosionRays(list);
++    }
++
++    protected final void searchForBlocks() {
++        it.unimi.dsi.fastutil.longs.LongOpenHashSet positions = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
++        BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
++        double[] explosionRays = EXPLOSION_RAYS;
++        int prevChunkX = Integer.MIN_VALUE;
++        int prevChunkZ = Integer.MIN_VALUE;
++        net.minecraft.world.level.chunk.LevelChunk currChunk = null;
++        for (int ray = 0, len = explosionRays.length; ray < len;) {
++            double rayX = explosionRays[ray++];
++            double rayY = explosionRays[ray++];
++            double rayZ = explosionRays[ray++];
++
++            float power = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
++            double x = this.x;
++            double y = this.y;
++            double z = this.z;
++
++            float prevBlockResistance = 0.0f;
++            int prevBlockX = Integer.MIN_VALUE;
++            int prevBlockY = Integer.MIN_VALUE;
++            int prevBlockZ = Integer.MIN_VALUE;
++            for (; power > 0.0F; power -= 0.22500001F) {
++                int blockX = Mth.floor(x);
++                int blockY = Mth.floor(y);
++                int blockZ = Mth.floor(z);
++                x += rayX;
++                y += rayY;
++                z += rayZ;
++
++                if (blockX == prevBlockX && blockY == prevBlockY && blockZ == prevBlockZ) {
++                    power -= prevBlockResistance;
++                    continue;
++                } else {
++                    prevBlockX = blockX;
++                    prevBlockY = blockY;
++                    prevBlockZ = blockZ;
++
++                    final int chunkX = blockX >> 4;
++                    final int chunkZ = blockZ >> 4;
++                    if (chunkX != prevChunkX || chunkZ != prevChunkZ) {
++                        currChunk = this.level.getChunk(chunkX, chunkZ);
++                        prevChunkX = chunkX;
++                        prevChunkZ = chunkZ;
++                    }
++                }
++
++                BlockState blockstate = currChunk.getBlockState(blockX, blockY, blockZ);
++                if (!blockstate.isDestroyable() || this.level.isOutsideBuildHeight(blockY)) {
++                    break;
++                } else {
++                    FluidState fluid = blockstate.getFluidState();
++                    if (blockstate.isAir() && fluid.isEmpty()) {
++                        prevBlockResistance = 0.0f;
++                        continue;
++                    }
++
++                    mutableBlockPos.set(blockX, blockY, blockZ);
++                    Optional<Float> optional = this.damageCalculator.getBlockExplosionResistance(
++                        this, this.level, mutableBlockPos, blockstate, fluid
++                    );
++
++                    if (optional.isPresent()) {
++                        prevBlockResistance = (optional.get() + 0.3F) * 0.3F;
++                    } else {
++                        prevBlockResistance = 0.0f;
++                        continue;
++                    }
++                }
++
++                power -= prevBlockResistance;
++                if (power > 0.0F && this.damageCalculator.shouldBlockExplode(this, this.level, mutableBlockPos, blockstate, power)) {
++                    if (positions.add(mutableBlockPos.asLong())) {
++                        BlockPos explodedPosition = mutableBlockPos.immutable();
++                        this.toBlow.add(explodedPosition);
++                        // Paper start - prevent headless pistons from forming
++                        if (!com.destroystokyo.paper.PaperConfig.allowHeadlessPistons && blockstate.getBlock() == Blocks.MOVING_PISTON) {
++                            BlockEntity extension = this.level.getBlockEntity(explodedPosition);
++                            if (extension instanceof net.minecraft.world.level.block.piston.PistonMovingBlockEntity blockEntity && blockEntity.isSourcePiston()) {
++                                net.minecraft.core.Direction direction = blockstate.getValue(net.minecraft.world.level.block.piston.PistonHeadBlock.FACING);
++                                this.toBlow.add(explodedPosition.relative(direction.getOpposite()));
++                            }
++                        }
++                        // Paper end
++                    }
++                }
++            }
++        }
++    }
++
++    protected final void locateAndImpactEntities(float f2) {
++        Vec3 vec3d = new Vec3(this.x, this.y, this.z);
++        int minSection = io.papermc.paper.util.WorldUtil.getMinSection(this.level);
++        int maxSection = io.papermc.paper.util.WorldUtil.getMaxSection(this.level);
++
++        int minChunkX = Mth.floor(this.x - f2) >> 4;
++        int maxChunkX = Mth.floor(this.x + f2) >> 4;
++        int minChunkY = Mth.clamp(Mth.floor(this.y - f2) >> 4, minSection, maxSection);
++        int maxChunkY = Mth.clamp(Mth.floor(this.y + f2) >> 4, minSection, maxSection);
++        int minChunkZ = Mth.floor(this.z - f2) >> 4;
++        int maxChunkZ = Mth.floor(this.z + f2) >> 4;
++
++        io.papermc.paper.world.EntitySliceManager entityLookup = ((ServerLevel) this.level.getEntities()).entitySliceManager;
++        for (int chunkX = minChunkX; chunkX <= maxChunkX; ++chunkX) {
++            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; ++chunkZ) {
++                io.papermc.paper.world.ChunkEntitySlices chunk = entityLookup.getChunk(chunkX, chunkZ);
++                if (chunk == null) continue; // empty slice
++
++                for (int chunkY = minChunkY; chunkY <= maxChunkY; ++chunkY) {
++                    this.impactEntities(chunk.getSectionEntities(chunkY), vec3d, f2);
++                }
++            }
++        }
++    }
++
++    protected final void impactEntities(Entity[] entities, Vec3 vec3d, float f2) {
++        for (int i = 0; i < entities.length; i++) {
++            Entity entity = entities[i];
++            if (entity == null) break;      // end of entity section
++            this.impactEntity(entity, vec3d, f2);
++            if (entity != entities[i]) i--; // entities can be removed mid-explosion
++        }
++    }
++
+     private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
++        if (entity instanceof net.minecraft.world.entity.item.PrimedTnt) {
++            return EXPLOSION_DAMAGE_CALCULATOR;
++        }
++        // Sakura end - optimise vanilla explosions
+         return (ExplosionDamageCalculator) (entity == null ? Explosion.EXPLOSION_DAMAGE_CALCULATOR : new EntityBasedExplosionDamageCalculator(entity));
+     }
+ 
+@@ -156,76 +345,34 @@ public class Explosion {
+         int i;
+         int j;
+ 
+-        for (int k = 0; k < 16; ++k) {
+-            for (i = 0; i < 16; ++i) {
+-                for (j = 0; j < 16; ++j) {
+-                    if (k == 0 || k == 15 || i == 0 || i == 15 || j == 0 || j == 15) {
+-                        double d0 = (double) ((float) k / 15.0F * 2.0F - 1.0F);
+-                        double d1 = (double) ((float) i / 15.0F * 2.0F - 1.0F);
+-                        double d2 = (double) ((float) j / 15.0F * 2.0F - 1.0F);
+-                        double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+-
+-                        d0 /= d3;
+-                        d1 /= d3;
+-                        d2 /= d3;
+-                        float f = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
+-                        double d4 = this.x;
+-                        double d5 = this.y;
+-                        double d6 = this.z;
+-
+-                        for (float f1 = 0.3F; f > 0.0F; f -= 0.22500001F) {
+-                            BlockPos blockposition = new BlockPos(d4, d5, d6);
+-                            BlockState iblockdata = this.level.getBlockState(blockposition);
+-                            if (!iblockdata.isDestroyable()) continue; // Paper
+-                            FluidState fluid = iblockdata.getFluidState(); // Paper
+-
+-                            if (!this.level.isInWorldBounds(blockposition)) {
+-                                break;
+-                            }
+-
+-                            Optional<Float> optional = this.damageCalculator.getBlockExplosionResistance(this, this.level, blockposition, iblockdata, fluid);
+-
+-                            if (optional.isPresent()) {
+-                                f -= ((Float) optional.get() + 0.3F) * 0.3F;
+-                            }
+-
+-                            if (f > 0.0F && this.damageCalculator.shouldBlockExplode(this, this.level, blockposition, iblockdata, f)) {
+-                                set.add(blockposition);
+-                                // Paper start - prevent headless pistons from forming
+-                                if (!com.destroystokyo.paper.PaperConfig.allowHeadlessPistons && iblockdata.getBlock() == Blocks.MOVING_PISTON) {
+-                                    BlockEntity extension = this.level.getBlockEntity(blockposition);
+-                                    if (extension instanceof PistonMovingBlockEntity && ((PistonMovingBlockEntity) extension).isSourcePiston()) {
+-                                       net.minecraft.core.Direction direction = iblockdata.getValue(PistonHeadBlock.FACING);
+-                                       set.add(blockposition.relative(direction.getOpposite()));
+-                                    }
+-                                }
+-                                // Paper end
+-                            }
+-
+-                            d4 += d0 * 0.30000001192092896D;
+-                            d5 += d1 * 0.30000001192092896D;
+-                            d6 += d2 * 0.30000001192092896D;
+-                        }
+-                    }
+-                }
+-            }
++        // Sakura start - optimise vanilla explosions
++        BlockPos explosionBlockPos = new BlockPos(this.x, this.y, this.z);
++        BlockState blockstate = this.level.getBlockState(explosionBlockPos);
++        float resistance = blockstate.getBlock().getExplosionResistance();
++        if ((resistance + 0.3f) * 0.3f < (this.radius * 1.3f) && this.blockInteraction != Explosion.BlockInteraction.NONE) {
++            this.searchForBlocks();
+         }
+ 
+         this.toBlow.addAll(set);
+         float f2 = this.radius * 2.0F;
++        this.locateAndImpactEntities(f2);
++    }
+ 
++    protected final AABB getExplosionBounds(float f2) {
++        int i;
++        int j;
+         i = Mth.floor(this.x - (double) f2 - 1.0D);
+         j = Mth.floor(this.x + (double) f2 + 1.0D);
+         int l = Mth.floor(this.y - (double) f2 - 1.0D);
+         int i1 = Mth.floor(this.y + (double) f2 + 1.0D);
+         int j1 = Mth.floor(this.z - (double) f2 - 1.0D);
+         int k1 = Mth.floor(this.z + (double) f2 + 1.0D);
+-        List<Entity> list = this.level.getEntities(this.source, new AABB((double) i, (double) l, (double) j1, (double) j, (double) i1, (double) k1), (com.google.common.base.Predicate<Entity>) entity -> entity.isAlive() && !entity.isSpectator()); // Paper - Fix lag from explosions processing dead entities
+-        Vec3 vec3d = new Vec3(this.x, this.y, this.z);
+-
+-        for (int l1 = 0; l1 < list.size(); ++l1) {
+-            Entity entity = (Entity) list.get(l1);
++        return new AABB((double) i, (double) l, (double) j1, (double) j, (double) i1, (double) k1);
++    }
+ 
++    protected final void impactEntity(Entity entity, Vec3 vec3d, float f2) {
++        if (entity.isAlive() && !entity.isSpectator()) { // Paper - Fix lag from explosions processing dead entities
++            // Sakura end - optimise vanilla explosions
+             if (!entity.ignoreExplosion()) {
+                 double d7 = Math.sqrt(entity.distanceToSqr(vec3d)) / (double) f2;
+ 
+@@ -253,12 +400,13 @@ public class Explosion {
+                         // - Damaging EntityEnderDragon does nothing
+                         // - EntityEnderDragon hitbock always covers the other parts and is therefore always present
+                         if (entity instanceof EnderDragonPart) {
+-                            continue;
++                            return; // Sakura - optimise vanilla explosions
+                         }
+ 
+                         if (entity instanceof EnderDragon) {
++                            final AABB bounds = this.getExplosionBounds(f2); // Sakura - optimise vanilla explosions
+                             for (EnderDragonPart entityComplexPart : ((EnderDragon) entity).subEntities) {
+-                                if (list.contains(entityComplexPart)) {
++                                if (entityComplexPart.getBoundingBox().intersects(bounds)) {  // Sakura - optimise vanilla explosions
+                                     entityComplexPart.hurt(this.getDamageSource(), (float) ((int) ((d13 * d13 + d13) / 2.0D * 7.0D * (double) f2 + 1.0D)));
+                                 }
+                             }
+@@ -268,7 +416,7 @@ public class Explosion {
+ 
+                         CraftEventFactory.entityDamage = null;
+                         if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled
+-                            continue;
++                            return; // Sakura - optimise vanilla explosions
+                         }
+                         // CraftBukkit end
+                         double d14 = d13;

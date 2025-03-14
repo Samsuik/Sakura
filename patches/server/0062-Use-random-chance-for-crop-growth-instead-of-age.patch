@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 16 May 2024 21:20:52 +0100
+Subject: [PATCH] Use random chance for crop growth instead of age
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/CactusBlock.java b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
+index 4323e5cc2054804243e8e2f24fd5447280f218de..7bb9d94d3a7241dcaf8d02f12ef6e698befb289f 100644
+--- a/src/main/java/net/minecraft/world/level/block/CactusBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
+@@ -46,6 +46,19 @@ public class CactusBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, Random random) {
++        // Sakura start - use random chance for crop growth
++        if (world.sakuraConfig.useRandomChanceToGrow) {
++            int modifier = world.spigotConfig.cactusModifier;
++            if (random.nextFloat() >= modifier / (100.0f * 16)) {
++                return;
++            }
++            // set crop age to max so it grows right away
++            state = state.setValue(CactusBlock.AGE, AGE.max);
++        }
++        this.ageAndGrow(state, world, pos, random);
++    }
++    private void ageAndGrow(BlockState state, ServerLevel world, BlockPos pos, Random random) {
++        // Sakura end - use random chance for crop growth
+         BlockPos blockposition1 = pos.above();
+ 
+         if (world.isEmptyBlock(blockposition1)) {
+diff --git a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+index 66c06e0f7c8d223a2b00bab57a15e3a705fe176a..9d0cde1cf6e89ef505010d38686ff540ade55e3c 100644
+--- a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+@@ -45,6 +45,19 @@ public class SugarCaneBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, Random random) {
++        // Sakura start - use random chance for crop growth
++        if (world.sakuraConfig.useRandomChanceToGrow) {
++            int modifier = world.spigotConfig.caneModifier;
++            if (random.nextFloat() >= modifier / (100.0f * 16)) {
++                return;
++            }
++            // set crop age to max so it grows right away
++            state = state.setValue(SugarCaneBlock.AGE, AGE.max);
++        }
++        this.ageAndGrow(state, world, pos, random);
++    }
++    private void ageAndGrow(BlockState state, ServerLevel world, BlockPos pos, Random random) {
++        // Sakura end - use random chance for crop growth
+         if (world.isEmptyBlock(pos.above())) {
+             int i;
+ 

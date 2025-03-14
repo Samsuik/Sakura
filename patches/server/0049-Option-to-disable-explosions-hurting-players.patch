@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Sat, 9 Dec 2023 00:25:11 +0000
+Subject: [PATCH] Option to disable explosions hurting players
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
+index 92a7962edb01d5ef36a9e35cc0b6bacc879ccff2..6bd7e714d3d1242acfad7e701d425b4b456ad73a 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Player.java
++++ b/src/main/java/net/minecraft/world/entity/player/Player.java
+@@ -903,6 +903,11 @@ public abstract class Player extends LivingEntity {
+ 
+     @Override
+     public boolean isInvulnerableTo(DamageSource damageSource) {
++        // Sakura start
++        if (!this.level.sakuraConfig.explosionsHurtPlayers && damageSource.isExplosion()) {
++            return true;
++        }
++        // Sakura end
+         return super.isInvulnerableTo(damageSource) ? true : (damageSource == DamageSource.DROWN ? !this.level.getGameRules().getBoolean(GameRules.RULE_DROWNING_DAMAGE) : (damageSource.isFall() ? !this.level.getGameRules().getBoolean(GameRules.RULE_FALL_DAMAGE) : (damageSource.isFire() ? !this.level.getGameRules().getBoolean(GameRules.RULE_FIRE_DAMAGE) : (damageSource == DamageSource.FREEZE ? !this.level.getGameRules().getBoolean(GameRules.RULE_FREEZE_DAMAGE) : false))));
+     }
+ 

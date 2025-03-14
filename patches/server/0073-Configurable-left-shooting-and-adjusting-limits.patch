@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 9 Aug 2024 20:43:53 +0100
+Subject: [PATCH] Configurable left shooting and adjusting limits
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 6934dec885c91d44a6c81bd6df75c2f5420e1fc3..701597d3b809a0c62ad6b7302d55762e393fbcfc 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -600,6 +600,24 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         return Math.max(x, z) >= this.travelDistanceLimit;
+     }
+     // Sakura end - entity travel distance limits
++    // Sakura start - configurable left shooting and adjusting limits
++    public final void limitLeftShooting() {
++        Vec3 movement = this.getDeltaMovement();
++        int threshold = this.level.sakuraConfig.leftShootingThreshold.orElse(-1);
++        if (threshold > 0 && (movement.x != 0.0 || movement.z != 0.0) && this.origin != null) {
++            double travelledX = Math.abs(this.getX() - this.origin.getX());
++            double travelledZ = Math.abs(this.getZ() - this.origin.getZ());
++            boolean xSmaller = travelledX < travelledZ; // intended
++
++            // Once entities have travelled past the threshold changing direction is restricted.
++            if (xSmaller && travelledX > threshold) {
++                this.setDeltaMovement(movement.multiply(1.0, 1.0, 0.0)); // limit z
++            } else if (!xSmaller && travelledZ > threshold) {
++                this.setDeltaMovement(movement.multiply(0.0, 1.0, 1.0)); // limit x
++            }
++        }
++    }
++    // Sakura end - configurable left shooting and adjusting limits
+ 
+     // Paper start
+     /**
+@@ -1567,6 +1585,25 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         final boolean xSmaller = this.physics == null || this.physics.afterOrEqual(1_14_0) ? Math.abs(x) < Math.abs(z)
+             : this.physics.isLegacy() && Math.abs(x) > Math.abs(z);
+         // Sakura end - physics version api
++        // Sakura start - configurable left shooting and adjusting limits
++        // NOTE: If scanAndCollide is made redundant by paper move this logic into CollisionUtil.
++        // This is being after xSmaller is intentional, we do not want to change the adjust direction.
++        int adjustDistance = this.level.sakuraConfig.maxAdjustDistance.orElse(-1);
++        if (adjustDistance > 0) {
++            if (xSmaller) { // adjust z -> x
++                if (Math.abs(z) > adjustDistance) {
++                    // limit z adjust and remove momentum to replicate it hitting a block
++                    this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 1.0, 0.0));
++                    z = Math.floor(this.getZ() + Math.copySign(adjustDistance, z)) - this.getZ() + 0.5;
++                }
++            } else { // adjust x -> z
++                if (Math.abs(x) > adjustDistance) {
++                    this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 1.0));
++                    x = Math.floor(this.getX() + Math.copySign(adjustDistance, x)) - this.getX() + 0.5;
++                }
++            }
++        }
++        // Sakura end - configurable left shooting and adjusting limits
+ 
+         if (y != 0.0) {
+             y = this.scanY(currBoundingBox, y, bbList);
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index b1f47ff80ed96c9f3ea1e4af45143c0d148c7226..a42f0867c0b8eb81a3922da495d8672ef02983cb 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -255,6 +255,7 @@ public class FallingBlockEntity extends Entity {
+                 // Sakura end - physics version api
+             }
+ 
++            this.limitLeftShooting(); // Sakura - configurable left shooting and adjusting limits
+             this.moveBasic(MoverType.SELF, this.getDeltaMovement()); // Sakura - optimise simple entity movement
+ 
+             // Paper start - fix sand duping

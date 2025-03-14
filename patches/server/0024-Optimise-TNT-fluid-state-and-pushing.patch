@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Mon, 16 Oct 2023 22:57:55 +0100
+Subject: [PATCH] Optimise TNT fluid state and pushing
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 587c5e456e47ab67b378800562e21545786957c4..c07a34f6b2a31f0235fd1b9ac9385b087d14ad57 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -1918,7 +1918,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         return this.isInWater() || flag;
+     }
+ 
+-    void updateInWaterStateAndDoWaterCurrentPushing() {
++    protected void updateInWaterStateAndDoWaterCurrentPushing() { // Sakura
+         if (this.getVehicle() instanceof Boat) {
+             this.wasTouchingWater = false;
+         } else if (this.updateFluidHeightAndDoFluidPushing(FluidTags.WATER, 0.014D)) {
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index c221dc8c1a271ec5b8ef8489274e9b1484aae03a..92fe040d9b43cb2a2ff8118335eaa007c0828115 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -84,6 +84,19 @@ public class PrimedTnt extends Entity {
+     }
+     // Sakura - specialised explosions
+     // Sakura end
++    // Sakura start
++    protected boolean updateInWaterStateAndDoFluidPushing() {
++        if (this.isPushedByFluid()) {
++            return super.updateInWaterStateAndDoFluidPushing();
++        } else {
++            // super method also handles lava fluid pushing
++            // we only need to search for water to negate fall distance
++            this.fluidHeight.clear();
++            this.updateInWaterStateAndDoWaterCurrentPushing();
++            return this.isInWater();
++        }
++    }
++    // Sakura end
+ 
+     @Override
+     public void tick() {

@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sat, 11 Sep 2021 22:23:39 +0100
+Subject: [PATCH] Optional Force Position Updates
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index f997647a7ff29100acd5bab1d77ac3a6305e4717..2e618e8d930f95ef74497097f1ab205e712b2f58 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -63,7 +63,9 @@ public class PrimedTnt extends Entity {
+ 
+     @Override
+     public void tick() {
+-        if (level.spigotConfig.maxTntTicksPerTick > 0 && ++level.spigotConfig.currentPrimedTnt > level.spigotConfig.maxTntTicksPerTick) { return; } // Spigot
++        if (level.spigotConfig.maxTntTicksPerTick > 0 && ++level.spigotConfig.currentPrimedTnt > level.spigotConfig.maxTntTicksPerTick) {
++            return;
++        } // Spigot
+         if (!this.isNoGravity()) {
+             this.addDeltaMovement(0.0D, -0.04D, 0.0D); // Sakura - reduce movement allocations
+         }
+@@ -98,6 +100,14 @@ public class PrimedTnt extends Entity {
+             }
+         }
+ 
++        // Sakura start - configure force position updates
++        if (this.level.sakuraConfig.forcePositionUpdates) {
++            this.forcePositionUpdate();
++        }
++    }
++
++    private void forcePositionUpdate() {
++        // Sakura end - configure force position updates
+         // Paper start - Optional prevent TNT from moving in water
+         if (!this.isRemoved() && this.wasTouchingWater && this.level.paperConfig.preventTntFromMovingInWater) {
+             /*

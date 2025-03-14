@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Thu, 7 Dec 2023 16:30:24 +0000
+Subject: [PATCH] Configure mob spawner defaults
+
+
+diff --git a/src/main/java/net/minecraft/world/level/BaseSpawner.java b/src/main/java/net/minecraft/world/level/BaseSpawner.java
+index 4bfebbb2e87464cd47a38a5da6275b2c662fa052..c0850e49aa677ecb16ce551ea0268ff9b172b642 100644
+--- a/src/main/java/net/minecraft/world/level/BaseSpawner.java
++++ b/src/main/java/net/minecraft/world/level/BaseSpawner.java
+@@ -44,7 +44,16 @@ public abstract class BaseSpawner {
+     private final Random random = new Random();
+     private int tickDelay = 0; // Paper
+ 
+-    public BaseSpawner() {}
++    // Sakura start - configure spawner defaults
++    public BaseSpawner() {
++        this.minSpawnDelay = me.samsuik.sakura.configuration.SakuraGlobalConfig.get().minSpawnDelay;
++        this.maxSpawnDelay = me.samsuik.sakura.configuration.SakuraGlobalConfig.get().maxSpawnDelay;
++        this.spawnCount = me.samsuik.sakura.configuration.SakuraGlobalConfig.get().spawnCount;
++        this.maxNearbyEntities = me.samsuik.sakura.configuration.SakuraGlobalConfig.get().maxNearbyEntities;
++        this.requiredPlayerRange = me.samsuik.sakura.configuration.SakuraGlobalConfig.get().requiredPlayerRange;
++        this.spawnRange = me.samsuik.sakura.configuration.SakuraGlobalConfig.get().spawnRange;
++    }
++    // Sakura end - configure spawner defaults
+ 
+     public void setEntityId(EntityType<?> type) {
+         this.nextSpawnData.getEntityToSpawn().putString("id", Registry.ENTITY_TYPE.getKey(type).toString());

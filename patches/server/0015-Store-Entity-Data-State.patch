@@ -1,0 +1,89 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Wed, 16 Aug 2023 22:34:49 +0100
+Subject: [PATCH] Store Entity Data/State
+
+
+diff --git a/src/main/java/me/samsuik/sakura/entity/EntityState.java b/src/main/java/me/samsuik/sakura/entity/EntityState.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5b72f13e6fb5d9999940e640c0341c2e9defb961
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/entity/EntityState.java
+@@ -0,0 +1,35 @@
++package me.samsuik.sakura.entity;
++
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.Vec3;
++
++public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed, boolean onGround, float fallDistance) {
++    public static EntityState of(Entity entity) {
++        return new EntityState(entity.position(), entity.getDeltaMovement(), entity.getBoundingBox(), entity.stuckSpeedMultiplier(), entity.onGround, entity.fallDistance);
++    }
++
++    public void apply(Entity entity) {
++        entity.setPos(position);
++        entity.setDeltaMovement(momentum);
++        entity.setBoundingBox(bb);
++        // null here is only safe for our use case (tnt and sand)
++        //noinspection DataFlowIssue
++        entity.makeStuckInBlock(null, stuckSpeed);
++        entity.onGround = onGround;
++        entity.fallDistance = fallDistance;
++    }
++
++    public void position(Entity entity) {
++        entity.setPos(position);
++        entity.setBoundingBox(bb);
++    }
++
++    public boolean isCurrentState(Entity entity) {
++        return entity.position().equals(position)
++            && entity.getDeltaMovement().equals(momentum);
++            // 1.14+ versions seem to correct morphed bounding boxes after a gametick.
++            // If there are any related issues uncomment this line of code.
++            // && entity.getBoundingBox().equals(bb);
++    }
++}
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 296b7b5a3c5bd80f51a5cea3e37f08dca5df2c53..7e1868bb483adefdab085f753acd71c65cb9c8c5 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -433,6 +433,25 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     public boolean isFallingBlock;
+     // Sakura end - visibility api and command
+     public boolean loadChunks = false; // Sakura - load chunks on cannon entity movement
++    // Sakura start - store entity data/state
++    private @Nullable me.samsuik.sakura.entity.EntityState entityState = null;
++
++    public final Vec3 stuckSpeedMultiplier() {
++        return this.stuckSpeedMultiplier;
++    }
++
++    public final void storeEntityState() {
++        this.entityState = me.samsuik.sakura.entity.EntityState.of(this);
++    }
++
++    public final @Nullable me.samsuik.sakura.entity.EntityState entityState() {
++        return this.entityState;
++    }
++
++    public final boolean compareState(Entity to) {
++        return to.entityState() != null && to.entityState().isCurrentState(this);
++    }
++    // Sakura end - store entity data/state
+ 
+     // Paper start
+     /**
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 9c28594590c57ced725f3e0c6fdb9c6a5ab9bfa2..ff6c4664c22aca6a7be44e3ccb7bff543c6a2a1b 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -942,6 +942,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+ 
+     public <T extends Entity> void guardEntityTick(Consumer<T> tickConsumer, T entity) {
+         try {
++            entity.storeEntityState(); // Sakura - store entity state
+             tickConsumer.accept(entity);
+             MinecraftServer.getServer().executeMidTickTasks(); // Paper - execute chunk tasks mid tick
+         } catch (Throwable throwable) {

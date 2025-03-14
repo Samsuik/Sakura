@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <40902469+Samsuik@users.noreply.github.com>
+Date: Mon, 20 Nov 2023 19:32:31 +0000
+Subject: [PATCH] Consistent Explosion Radius
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index d1a813d35fa624558b9ef8cc9fa0e1c5fb7c2423..076d353e59757232bc2bb3a19dcb3d7ed70d5edd 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -72,6 +72,7 @@ public class Explosion {
+     private final List<BlockPos> toBlow;
+     private final Map<Player, Vec3> hitPlayers;
+     public boolean wasCanceled = false; // CraftBukkit - add field
++    private final boolean consistentRadius; // Sakura - consistent explosion radius
+ 
+     public Explosion(Level world, @Nullable Entity entity, double x, double y, double z, float power) {
+         this(world, entity, x, y, z, power, false, Explosion.BlockInteraction.DESTROY);
+@@ -104,6 +105,7 @@ public class Explosion {
+         this.blockInteraction = destructionType;
+         this.damageSource = damageSource == null ? DamageSource.explosion(this) : damageSource;
+         this.damageCalculator = behavior == null ? this.makeDamageCalculator(entity) : behavior;
++        this.consistentRadius = world.localConfig().config(new BlockPos(x, y, z)).consistentRadius; // Sakura - consistent explosion radius
+     }
+ 
+     // Sakura start - optimise vanilla explosions
+@@ -180,7 +182,7 @@ public class Explosion {
+             double rayY = explosionRays[ray++];
+             double rayZ = explosionRays[ray++];
+ 
+-            float power = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
++            float power = this.radius * (0.7F + (this.consistentRadius ? 0.7F : this.level.random.nextFloat()) * 0.6F); // Sakura - consistent explosion radius
+             double x = this.x;
+             double y = this.y;
+             double z = this.z;
