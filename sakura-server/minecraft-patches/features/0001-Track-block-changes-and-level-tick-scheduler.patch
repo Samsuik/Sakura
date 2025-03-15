@@ -32,7 +32,7 @@ index 316dca7b4b20c6d05bf76f64a79984d10807dab5..9fbce0f31a73928a7db752e085fb3d00
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 761fdcd4a4e18f45547afd8edff44f61c6eeacb4..2fb04fa82cc7b726df1e42a1cf452ebfbdd4503a 100644
+index 761fdcd4a4e18f45547afd8edff44f61c6eeacb4..f8b5c74403ebf936bbac20d68a2dfa7b0aca9cfc 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -126,6 +126,21 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
@@ -65,11 +65,15 @@ index 761fdcd4a4e18f45547afd8edff44f61c6eeacb4..2fb04fa82cc7b726df1e42a1cf452ebf
      }
  
      public LevelChunk(ServerLevel level, ProtoChunk chunk, @Nullable LevelChunk.PostLoadProcessor postLoad) {
-@@ -404,6 +420,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -404,6 +420,11 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
                  if (!section.getBlockState(i, i1, i2).is(block)) {
                      return null;
                  } else {
-+                    this.blockChange(pos, state, blockState); // Sakura - track block changes and tick scheduler
++                    // Sakura start - track block changes and tick scheduler
++                    if (state.getBlock() != blockState.getBlock()) {
++                        this.blockChange(pos, state, blockState);
++                    }
++                    // Sakura end - track block changes and tick scheduler
                      if (!this.level.isClientSide && doPlace && (!this.level.captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
                          state.onPlace(this.level, pos, blockState, isMoving);
                      }
