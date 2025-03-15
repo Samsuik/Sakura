@@ -5,6 +5,7 @@ import me.samsuik.sakura.player.visibility.VisibilityTypes;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.command.Command;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,7 +18,6 @@ public final class SakuraCommands {
     static final Set<Command> SUB_COMMANDS = new HashSet<>();
 
     static {
-        COMMANDS.put("sakura", new SakuraCommand("sakura"));
         COMMANDS.put("config", new ConfigCommand("config"));
         COMMANDS.put("tps", new TPSCommand("tps"));
         COMMANDS.put("fps", new FPSCommand("fps"));
@@ -25,11 +25,21 @@ public final class SakuraCommands {
         COMMANDS.put("sandvisibility", new VisualCommand(VisibilityTypes.SAND, "sandtoggle"));
         SUB_COMMANDS.addAll(COMMANDS.values());
         SUB_COMMANDS.add(new DebugCommand("debug"));
+        // "sakura" isn't a subcommand
+        COMMANDS.put("sakura", new SakuraCommand("sakura"));
     }
 
     public static void registerCommands(MinecraftServer server) {
         COMMANDS.forEach((name, command) -> {
             server.server.getCommandMap().register(name, "sakura", command);
         });
+    }
+
+    @Nullable
+    public static Command getCommand(String name) {
+        return SUB_COMMANDS.stream()
+            .filter(cmd -> cmd.getName().equalsIgnoreCase(name))
+            .findFirst()
+            .orElse(null);
     }
 }

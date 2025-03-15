@@ -1,5 +1,6 @@
 package me.samsuik.sakura.command;
 
+import com.google.common.collect.Iterables;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -9,11 +10,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.jspecify.annotations.NullMarked;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Stream;
+import java.util.*;
 
 @NullMarked
 public final class SakuraCommand extends Command {
@@ -35,15 +32,8 @@ public final class SakuraCommand extends Command {
     @Override
     public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (args.length > 0) {
-            List<Command> commands = new ArrayList<>(SakuraCommands.SUB_COMMANDS);
-
-            // This part is copied from the VersionCommand SubCommand in paper
-            Command internalVersion = MinecraftServer.getServer().server.getCommandMap().getCommand("version");
-            if (internalVersion != null) {
-                commands.add(internalVersion);
-            }
-
-            for (Command base : commands) {
+            final Command versionCommand = MinecraftServer.getServer().server.getCommandMap().getCommand("version");
+            for (final Command base : Iterables.concat(SakuraCommands.SUB_COMMANDS, List.of(versionCommand))) {
                 if (base.getName().equalsIgnoreCase(args[0])) {
                     return base.execute(sender, commandLabel, Arrays.copyOfRange(args, 1, args.length));
                 }
@@ -57,27 +47,38 @@ public final class SakuraCommand extends Command {
     private void sendHelpMessage(CommandSender sender) {
         sender.sendMessage(HEADER_MESSAGE);
 
-        Stream<Command> uniqueCommands = SakuraCommands.SUB_COMMANDS
-            .stream()
-            .filter(command -> command != this);
-
-        uniqueCommands.forEach((command) -> {
-            sender.sendRichMessage(COMMAND_MSG, Placeholder.unparsed("command", command.getName()));
-        });
+        for (final Command command : SakuraCommands.COMMANDS.values()) {
+            if (command != this) {
+                sender.sendRichMessage(COMMAND_MSG, Placeholder.unparsed("command", command.getName()));
+            }
+        }
 
         sender.sendMessage(Component.text("'", NamedTextColor.DARK_PURPLE));
     }
 
     @Override
     public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
-        if (!this.testPermissionSilent(sender)) {
+        if (!this.testPermissionSilent(sender) || args.length == 0) {
             return Collections.emptyList();
         }
 
-        return SakuraCommands.SUB_COMMANDS.stream()
-            .filter(command -> command != this)
-            .map(Command::getName)
-            .filter(name -> args.length <= 1 || name.startsWith(args[args.length - 1]))
+        final Command command = SakuraCommands.getCommand(args[0]);
+        final List<String> completions = new ArrayList<>();
+        if (command != null && args.length > 1) {
+            final String[] newArgs = Arrays.copyOfRange(args, 1, args.length);
+            completions.addAll(command.tabComplete(sender, alias, newArgs));
+        } else {
+            for (final Command subCommand : SakuraCommands.SUB_COMMANDS) {
+                final String commandName = subCommand.getName();
+                if (commandName.startsWith(args[0])) {
+                    completions.add(commandName);
+                }
+            }
+        }
+
+        final String lastArg = args[args.length - 1];
+        return completions.stream()
+            .filter(result -> result.startsWith(lastArg))
             .toList();
     }
 }
