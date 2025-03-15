@@ -90,6 +90,13 @@ public final class BlockChangeTracker {
     }
 
     public interface BlockChangeFilter {
+        BlockChangeFilter ANY = (l, p, n, o) -> true;
+
+        BlockChangeFilter REDSTONE_COMPONENT = (level, pos, oldBlock, newBlock) -> {
+            return newBlock.isRedstoneConductor(level, pos) != oldBlock.isRedstoneConductor(level, pos)
+                || newBlock.isSignalSource() != oldBlock.isSignalSource();
+        };
+
         boolean test(Level level, BlockPos pos, BlockState newBlock, BlockState oldBlock);
     }
 
@@ -100,7 +107,8 @@ public final class BlockChangeTracker {
         }
 
         public boolean test(Level level, BlockPos pos, BlockState newBlock, BlockState oldBlock) {
-            return this.filter.test(level, pos, newBlock, oldBlock) && this.positions.contains(pos);
+            return this.filter.test(level, pos, newBlock, oldBlock)
+                && this.positions.contains(pos);
         }
     }
 }

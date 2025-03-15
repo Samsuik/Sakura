@@ -3,9 +3,11 @@ package me.samsuik.sakura.redstone;
 import io.papermc.paper.configuration.WorldConfiguration;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.*;
+import me.samsuik.sakura.listener.BlockChangeTracker;
 import me.samsuik.sakura.utils.TickExpiry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
@@ -31,15 +33,6 @@ public final class RedstoneNetwork {
         this.updates = new ObjectArrayList<>(updates);
         this.originalWirePower = new Object2ObjectOpenHashMap<>(originalWirePower);
         this.expiry = expiry;
-    }
-
-    private static boolean hasRedstoneComponentChanged(Level level, BlockPos pos, BlockState newBlock, BlockState oldBlock) {
-        return newBlock.isRedstoneConductor(level, pos) != oldBlock.isRedstoneConductor(level, pos)
-            || newBlock.isSignalSource() != oldBlock.isSignalSource();
-    }
-
-    private static boolean hasBlockChanged(Level level, BlockPos pos, BlockState newBlock, BlockState oldBlock) {
-        return newBlock.getBlock() != oldBlock.getBlock();
     }
 
     public List<BlockPos> getWirePositions() {
@@ -87,7 +80,7 @@ public final class RedstoneNetwork {
             if (processedWires.putAndMoveToFirst(wirePos, wireUpdate) == null) {
                 // It's possible for the block below the redstone to break while the network is updating
                 BlockState state = level.getBlockState(wirePos);
-                if (state.is(Blocks.PISTON_HEAD)) {
+                if (state.is(Blocks.PISTON_HEAD) || state.is(BlockTags.TRAPDOORS)) {
                     return false;
                 }
             } else if (skipWireUpdates && this.originalWirePower.get(wirePos).firstPower() != wireUpdate.getPower()) {
@@ -97,13 +90,19 @@ public final class RedstoneNetwork {
             }
         }
 
-        for (int i = 0; i < this.updates.size(); ++i) {
-            BlockPos updatePos = this.updates.get(i);
+        for (int updateIndex = 0; updateIndex < this.updates.size(); ++updateIndex) {
+            BlockPos updatePos = this.updates.get(updateIndex);
             BlockState state = level.getBlockState(updatePos);
 
+            // Never apply updates to redstone wires
+            if (state.is(Blocks.REDSTONE_WIRE)) {
+                this.updates.set(updateIndex, null);
+                continue;
+            }
+
             // Filter out redundant neighbor updates
-            if (state.isAir() || state.liquid() || !state.isSpecialBlock() || processedWires.containsKey(updatePos)) {
-                this.redundantUpdates.set(i);
+            if (state.isAir() || state.liquid() || !state.isSpecialBlock()) {
+                this.redundantUpdates.set(updateIndex);
             }
 
             // Look for blocks that actually need shape updates
@@ -117,17 +116,30 @@ public final class RedstoneNetwork {
         return true;
     }
 
+    private void allowNeighborUpdates() {
+        for (int updateIndex = 0; updateIndex < this.updates.size(); ++updateIndex) {
+            if (!this.redundantUpdates.get(updateIndex)) {
+                continue;
+            }
+            BlockPos pos = this.updates.get(updateIndex);
+            if (!this.originalWirePower.containsKey(pos)) {
+                this.redundantUpdates.clear(updateIndex);
+            }
+        }
+    }
+
     private void addBlockListeners(Level level) {
         ObjectOpenHashSet<BlockPos> positions = new ObjectOpenHashSet<>(this.updates);
         positions.addAll(this.originalWirePower.keySet());
+        positions.remove(null);
 
         // Register block change listeners
         this.listeners.add(level.blockChangeTracker.listenForChangesOnce(
-            RedstoneNetwork::hasRedstoneComponentChanged, positions, () -> this.invalidate(level)
+            BlockChangeTracker.BlockChangeFilter.REDSTONE_COMPONENT, positions, () -> this.invalidate(level)
         ));
 
         this.listeners.add(level.blockChangeTracker.listenForChangesOnce(
-            RedstoneNetwork::hasBlockChanged, positions, this.redundantUpdates::clear
+            BlockChangeTracker.BlockChangeFilter.ANY, positions, this::allowNeighborUpdates
         ));
     }
 
@@ -153,7 +165,9 @@ public final class RedstoneNetwork {
                 continue;
             }
             BlockPos updatePos = this.updates.get(updateIndex);
-            level.getBlockState(updatePos).handleNeighborChanged(level, updatePos, wireBlock, orientation, false);
+            if (updatePos != null) {
+                level.getBlockState(updatePos).handleNeighborChanged(level, updatePos, wireBlock, orientation, false);
+            }
         }
     }
 
