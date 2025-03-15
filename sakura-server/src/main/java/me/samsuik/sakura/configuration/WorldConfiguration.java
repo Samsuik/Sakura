@@ -82,7 +82,7 @@ public final class WorldConfiguration extends ConfigurationPart {
 
         public Explosion explosion = new Explosion();
         public class Explosion extends ConfigurationPart {
-            public boolean optimiseProtectedRegions = true;
+            public boolean optimiseProtectedRegions = false;
             public boolean avoidRedundantBlockSearches = false;
             public Map<Block, DurableMaterial> durableMaterials = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
                 map.put(Blocks.OBSIDIAN, new DurableMaterial(4, Blocks.COBBLESTONE.getExplosionResistance()));
