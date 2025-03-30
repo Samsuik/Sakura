@@ -32,6 +32,129 @@ index 9f17170179cc99d84ad25a1e838aff3d8cc66f93..cf3b148dacaa866610edc5fe0f61b1a4
              }
          }
  
+diff --git a/src/main/java/me/samsuik/sakura/command/SakuraCommand.java b/src/main/java/me/samsuik/sakura/command/SakuraCommand.java
+index f46883c6206b56af1b9f125b9b361e7efc666b49..26d7f8ad401e27f33db0b556296b44942c1354a2 100644
+--- a/src/main/java/me/samsuik/sakura/command/SakuraCommand.java
++++ b/src/main/java/me/samsuik/sakura/command/SakuraCommand.java
+@@ -37,7 +37,7 @@ public final class SakuraCommand extends Command {
+     @Override
+     public boolean execute(CommandSender sender, String commandLabel, String[] args) {
+         if (args.length > 0) {
+-            List<Command> commands = new ArrayList<>(SakuraCommands.COMMANDS.values());
++            List<Command> commands = new ArrayList<>(SakuraCommands.SUB_COMMANDS);
+ 
+             // This part is copied from the VersionCommand SubCommand in paper
+             Command internalVersion = MinecraftServer.getServer().server.getCommandMap().getCommand("version");
+diff --git a/src/main/java/me/samsuik/sakura/command/SakuraCommands.java b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
+index 14abbe35a401d4d21a13adcbf6afd836a76cb2bd..35b9f479e7682063e552fc2dd037041e1014e04f 100644
+--- a/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
++++ b/src/main/java/me/samsuik/sakura/command/SakuraCommands.java
+@@ -1,18 +1,18 @@
+ package me.samsuik.sakura.command;
+ 
+-import me.samsuik.sakura.command.subcommands.ConfigCommand;
+-import me.samsuik.sakura.command.subcommands.FPSCommand;
+-import me.samsuik.sakura.command.subcommands.VisualCommand;
+-import me.samsuik.sakura.command.subcommands.TPSCommand;
++import me.samsuik.sakura.command.subcommands.*;
+ import me.samsuik.sakura.player.visibility.Visibility;
+ import net.minecraft.server.MinecraftServer;
+ import org.bukkit.command.Command;
+ 
+ import java.util.HashMap;
++import java.util.HashSet;
+ import java.util.Map;
++import java.util.Set;
+ 
+ public final class SakuraCommands {
+     static final Map<String, Command> COMMANDS = new HashMap<>();
++    static final Set<Command> SUB_COMMANDS = new HashSet<>();
+     static {
+         COMMANDS.put("sakura", new SakuraCommand("sakura"));
+         COMMANDS.put("config", new ConfigCommand("config"));
+@@ -21,6 +21,8 @@ public final class SakuraCommands {
+         COMMANDS.put("sandvisibility", new VisualCommand(Visibility.Setting.SAND_VISIBILITY, "sandtoggle"));
+         COMMANDS.put("minimal", new VisualCommand(Visibility.Setting.MINIMAL, "minimaltnt", "tntlag"));
+         COMMANDS.put("tps", new TPSCommand("tps"));
++        SUB_COMMANDS.addAll(COMMANDS.values());
++        SUB_COMMANDS.add(new DebugCommand("debug"));
+     }
+ 
+     public static void registerCommands(MinecraftServer server) {
+diff --git a/src/main/java/me/samsuik/sakura/command/subcommands/DebugCommand.java b/src/main/java/me/samsuik/sakura/command/subcommands/DebugCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..fa07ca52aa9fbccbc5b58bbcbe7cc243f0267555
+--- /dev/null
++++ b/src/main/java/me/samsuik/sakura/command/subcommands/DebugCommand.java
+@@ -0,0 +1,68 @@
++package me.samsuik.sakura.command.subcommands;
++
++import me.samsuik.sakura.command.BaseSubCommand;
++import me.samsuik.sakura.redstone.RedstoneNetwork;
++import net.minecraft.core.BlockPos;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.world.level.Level;
++import org.bukkit.DyeColor;
++import org.bukkit.Location;
++import org.bukkit.Material;
++import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.entity.Player;
++import org.jspecify.annotations.NullMarked;
++
++import java.util.HashSet;
++import java.util.List;
++import java.util.Set;
++import java.util.concurrent.ThreadLocalRandom;
++
++@NullMarked
++public final class DebugCommand extends BaseSubCommand {
++    public DebugCommand(String name) {
++        super(name);
++    }
++
++    @Override
++    public void execute(CommandSender sender, String[] args) {
++        if (!(sender instanceof Player player) || args.length == 0) {
++            return;
++        }
++
++        ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
++        if (args[0].equalsIgnoreCase("redstone-cache")) {
++            this.showCachedWires(player, nmsPlayer.level());
++        }
++    }
++
++    @Override
++    public void tabComplete(List<String> list, String[] args) throws IllegalArgumentException {
++        list.add("redstone-cache");
++    }
++
++    private void showCachedWires(Player player, Level level) {
++        Set<Location> locations = new HashSet<>();
++        for (RedstoneNetwork network : level.redstoneWireCache.getNetworkCache().values()) {
++            byte randomColour = (byte) ThreadLocalRandom.current().nextInt(16);
++            DyeColor dyeColour = DyeColor.getByWoolData(randomColour);
++            Material material = Material.matchMaterial(dyeColour.name() + "_WOOL");
++
++            if (!network.isRegistered()) {
++                continue;
++            }
++
++            for (BlockPos pos : network.getWirePositions()) {
++                Location location = CraftLocation.toBukkit(pos, level);
++                if (player.getLocation().distance(location) >= 64.0) {
++                    continue;
++                }
++                player.sendBlockChange(location, material.createBlockData());
++                locations.add(location);
++            }
++        }
++
++        player.sendRichMessage("<red>Displaying %dx cached redstone wires".formatted(locations.size()));
++    }
++}
 diff --git a/src/main/java/me/samsuik/sakura/listener/BlockChangeTracker.java b/src/main/java/me/samsuik/sakura/listener/BlockChangeTracker.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..314e19499e950265f023a3bdabd9b61319cf651a
@@ -163,10 +286,10 @@ index 0000000000000000000000000000000000000000..1447aee927da8974c9cf7c7034fce91b
 +}
 diff --git a/src/main/java/me/samsuik/sakura/redstone/RedstoneNetwork.java b/src/main/java/me/samsuik/sakura/redstone/RedstoneNetwork.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9c2693d74192fc55101b363475f8301ed9d4e1dd
+index 0000000000000000000000000000000000000000..7ded5517dda5c438f802e77b3c6a41d6ac72ae1d
 --- /dev/null
 +++ b/src/main/java/me/samsuik/sakura/redstone/RedstoneNetwork.java
-@@ -0,0 +1,191 @@
+@@ -0,0 +1,216 @@
 +package me.samsuik.sakura.redstone;
 +
 +import io.papermc.paper.configuration.WorldConfiguration;
@@ -176,6 +299,7 @@ index 0000000000000000000000000000000000000000..9c2693d74192fc55101b363475f8301e
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
 +import net.minecraft.server.MinecraftServer;
++import net.minecraft.tags.BlockTags;
 +import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.block.*;
 +import net.minecraft.world.level.block.state.BlockState;
@@ -184,6 +308,7 @@ index 0000000000000000000000000000000000000000..9c2693d74192fc55101b363475f8301e
 +
 +import java.util.BitSet;
 +import java.util.List;
++import java.util.Objects;
 +
 +@NullMarked
 +public final class RedstoneNetwork {
@@ -255,7 +380,7 @@ index 0000000000000000000000000000000000000000..9c2693d74192fc55101b363475f8301e
 +            if (processedWires.putAndMoveToFirst(wirePos, wireUpdate) == null) {
 +                // It's possible for the block below the redstone to break while the network is updating
 +                BlockState state = level.getBlockState(wirePos);
-+                if (state.is(Blocks.PISTON_HEAD)) {
++                if (state.is(Blocks.PISTON_HEAD) || state.is(BlockTags.TRAPDOORS)) {
 +                    return false;
 +                }
 +            } else if (skipWireUpdates && this.originalWirePower.get(wirePos).firstPower() != wireUpdate.getPower()) {
@@ -269,8 +394,14 @@ index 0000000000000000000000000000000000000000..9c2693d74192fc55101b363475f8301e
 +            BlockPos updatePos = this.updates.get(i).position();
 +            BlockState state = level.getBlockState(updatePos);
 +
++            // Never apply updates to redstone wires
++            if (state.is(Blocks.REDSTONE_WIRE)) {
++                this.updates.set(i, null);
++                continue;
++            }
++
 +            // Filter out redundant neighbor updates
-+            if (state.isAir() || state.liquid() || !state.isSpecialBlock() || processedWires.containsKey(updatePos)) {
++            if (state.isAir() || state.liquid() || !state.isSpecialBlock()) {
 +                this.redundantUpdates.set(i);
 +            }
 +
@@ -285,8 +416,21 @@ index 0000000000000000000000000000000000000000..9c2693d74192fc55101b363475f8301e
 +        return true;
 +    }
 +
++    private void allowNeighborUpdates() {
++        for (int updateIndex = 0; updateIndex < this.updates.size(); ++updateIndex) {
++            if (!this.redundantUpdates.get(updateIndex)) {
++                continue;
++            }
++            RedstoneNeighborUpdate update = this.updates.get(updateIndex);
++            if (update != null && !this.originalWirePower.containsKey(update.position())) {
++                this.redundantUpdates.clear(updateIndex);
++            }
++        }
++    }
++
 +    private void addBlockListeners(Level level) {
 +        ObjectOpenHashSet<BlockPos> positions = this.updates.stream()
++            .filter(Objects::nonNull)
 +            .map(RedstoneNeighborUpdate::position)
 +            .collect(ObjectOpenHashSet.toSet());
 +        positions.addAll(this.originalWirePower.keySet());
@@ -297,7 +441,7 @@ index 0000000000000000000000000000000000000000..9c2693d74192fc55101b363475f8301e
 +        ));
 +
 +        this.listeners.add(level.blockChangeTracker.listenForChangesOnce(
-+            RedstoneNetwork::hasBlockChanged, positions, this.redundantUpdates::clear
++            RedstoneNetwork::hasBlockChanged, positions, this::allowNeighborUpdates
 +        ));
 +    }
 +
@@ -319,8 +463,12 @@ index 0000000000000000000000000000000000000000..9c2693d74192fc55101b363475f8301e
 +
 +    private void performUpdates(Level level, RedStoneWireBlock wireBlock, int updateFrom, int updateTo) {
 +        for (int updateIndex = updateFrom; updateIndex < updateTo; ++updateIndex) {
-+            if (!this.redundantUpdates.get(updateIndex)) {
-+                this.updates.get(updateIndex).updateBlock(level, wireBlock);
++            if (this.redundantUpdates.get(updateIndex)) {
++                continue;
++            }
++            final RedstoneNeighborUpdate update = this.updates.get(updateIndex);
++            if (update != null) {
++                update.updateBlock(level, wireBlock);
 +            }
 +        }
 +    }
@@ -712,7 +860,7 @@ index 61d1e3b9033a00da7cccadfcab92f0b211c28b00..d5f1e233f07be2ebb8190b9743499b16
  
          public Block getBlock() {
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index debd755263d92198b3bafb02cf5eb78f01f0cec1..f22ee34ba062dadc5d56a0276d0145632687ff9d 100644
+index debd755263d92198b3bafb02cf5eb78f01f0cec1..8523c874bad39b3b71b50a5a648dc5935913399f 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -85,6 +85,21 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
@@ -745,11 +893,15 @@ index debd755263d92198b3bafb02cf5eb78f01f0cec1..f22ee34ba062dadc5d56a0276d014563
      }
  
      // CraftBukkit start
-@@ -401,6 +417,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -401,6 +417,11 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
                  if (!chunksection.getBlockState(j, k, l).is(block)) {
                      return null;
                  } else {
-+                    this.blockChange(blockposition, iblockdata, iblockdata1); // Sakura - track block changes and tick scheduler
++                    // Sakura start - track block changes and tick scheduler
++                    if (iblockdata.getBlock() != iblockdata1.getBlock()) {
++                        this.blockChange(blockposition, iblockdata, iblockdata1);
++                    }
++                    // Sakura end - track block changes and tick scheduler
                      // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
                      if (!this.level.isClientSide && doPlace && (!this.level.captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) {
                          iblockdata.onPlace(this.level, blockposition, iblockdata1, flag);
