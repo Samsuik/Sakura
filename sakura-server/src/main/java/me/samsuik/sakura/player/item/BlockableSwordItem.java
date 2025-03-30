@@ -15,7 +15,7 @@ import net.minecraft.world.level.Level;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-public final class BlockableSwordItem extends SwordItem {
+public final class BlockableSwordItem extends Item {
     private static final Consumable BLOCKING_ANIMATION = Consumable.builder()
         .consumeSeconds(720000)
         .animation(ItemUseAnimation.BLOCK)
@@ -23,8 +23,8 @@ public final class BlockableSwordItem extends SwordItem {
         .hasConsumeParticles(false)
         .build();
 
-    public BlockableSwordItem(ToolMaterial material, float attackDamage, float attackSpeed, Properties properties) {
-        super(material, attackDamage, attackSpeed, properties);
+    public BlockableSwordItem(Properties properties) {
+        super(properties);
     }
 
     @Override

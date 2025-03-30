@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/inventory/AbstractContainerMenu.java
++++ b/net/minecraft/world/inventory/AbstractContainerMenu.java
+@@ -192,7 +_,7 @@
+ 
+         for (int size = this.slots.size(); i < size; i++) {
+             ItemStack item = this.slots.get(i).getItem();
+-            list.add(item.copy());
++            list.add(item.copyForPacket()); // Sakura - modify components sent to the client
+             this.remoteSlots.get(i).force(item);
+         }
+ 
+@@ -205,7 +_,7 @@
+         }
+ 
+         if (this.synchronizer != null) {
+-            this.synchronizer.sendInitialData(this, list, carried.copy(), this.remoteDataSlots.toIntArray());
++            this.synchronizer.sendInitialData(this, list, carried.copyForPacket(), this.remoteDataSlots.toIntArray()); // Sakura - modify components sent to the client
+             this.synchronizer.sendOffHandSlotChange(); // Paper - Sync offhand slot in menus; update player's offhand since the offhand slot is not added to the slots for menus but can be changed by swapping from a menu slot
+         }
+     }

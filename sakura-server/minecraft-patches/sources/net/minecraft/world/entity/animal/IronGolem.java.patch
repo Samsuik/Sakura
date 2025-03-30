@@ -1,19 +1,13 @@
 --- a/net/minecraft/world/entity/animal/IronGolem.java
 +++ b/net/minecraft/world/entity/animal/IronGolem.java
-@@ -228,6 +_,19 @@
+@@ -229,6 +_,13 @@
          }
      }
  
 +    // Sakura start - configure iron golems taking fall damage
 +    @Override
-+    protected int calculateFallDamage(float fallDistance, float damageMultiplier) {
-+        if (!this.level().sakuraConfig().entity.ironGolemsTakeFalldamage) {
-+            return super.calculateFallDamage(fallDistance, damageMultiplier);
-+        } else {
-+            float safeFallDistance = (float)this.getAttributeValue(Attributes.SAFE_FALL_DISTANCE);
-+            float damage = fallDistance - safeFallDistance;
-+            return net.minecraft.util.Mth.ceil(damage * damageMultiplier * this.getAttributeValue(Attributes.FALL_DAMAGE_MULTIPLIER));
-+        }
++    protected final boolean isFallDamageImmune() {
++        return !this.level().sakuraConfig().entity.ironGolemsTakeFalldamage && this.isFallDamageImmune();
 +    }
 +    // Sakura end - configure iron golems taking fall damage
 +

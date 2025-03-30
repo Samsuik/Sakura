@@ -44,16 +44,11 @@ public final class PlayerVisibilitySettings implements VisibilitySettings {
     }
 
     public void loadData(@NonNull CompoundTag tag) {
-        if (!tag.contains(SETTINGS_COMPOUND_TAG, CompoundTag.TAG_COMPOUND)) {
-            return;
-        }
-
-        CompoundTag settingsTag = tag.getCompound(SETTINGS_COMPOUND_TAG);
+        CompoundTag settingsTag = tag.getCompoundOrEmpty(SETTINGS_COMPOUND_TAG);
         for (VisibilityType type : VisibilityTypes.types()) {
-            if (settingsTag.contains(type.key(), CompoundTag.TAG_STRING)) {
-                VisibilityState state = VisibilityState.valueOf(settingsTag.getString(type.key()));
-                this.visibilityStates.put(type, state);
-            }
+            String typeKey = type.key();
+            String stateName = settingsTag.getStringOr(typeKey, type.getDefault().name());
+            this.set(type, VisibilityState.valueOf(stateName));
         }
     }
 

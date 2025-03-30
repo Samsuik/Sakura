@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/BaseSpawner.java
 +++ b/net/minecraft/world/level/BaseSpawner.java
-@@ -46,12 +_,24 @@
+@@ -48,12 +_,24 @@
      public int spawnRange = 4;
      private int tickDelay = 0; // Paper - Configurable mob spawner tick rate
  
@@ -17,7 +17,7 @@
 +
      public void setEntityId(EntityType<?> type, @Nullable Level level, RandomSource random, BlockPos pos) {
          this.getOrCreateNextSpawnData(level, random, pos).getEntityToSpawn().putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(type).toString());
-         this.spawnPotentials = SimpleWeightedRandomList.empty(); // CraftBukkit - SPIGOT-3496, MC-92282
+         this.spawnPotentials = WeightedList.of(); // CraftBukkit - SPIGOT-3496, MC-92282
      }
  
      public boolean isNearPlayer(Level level, BlockPos pos) {
@@ -25,7 +25,7 @@
          return level.hasNearbyAlivePlayerThatAffectsSpawning(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, this.requiredPlayerRange); // Paper - Affects Spawning API
      }
  
-@@ -117,7 +_,7 @@
+@@ -122,7 +_,7 @@
                              if (!customSpawnRules.isValidPosition(blockPos, serverLevel)) {
                                  continue;
                              }
@@ -34,22 +34,22 @@
                              continue;
                          }
  
-@@ -145,12 +_,19 @@
+@@ -150,12 +_,19 @@
                              return;
                          }
  
--                        int size1 = serverLevel.getEntities(
+-                        int size = serverLevel.getEntities(
 -                                EntityTypeTest.forExactClass(entity.getClass()),
 -                                new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1).inflate(this.spawnRange),
 -                                EntitySelector.NO_SPECTATORS
 -                            )
 -                            .size();
 +                        // Sakura start - configure mob spawner behaviour
-+                        final int size1;
++                        final int size;
 +                        if (serverLevel.sakuraConfig().environment.mobSpawner.ignoreEntityLimit) {
-+                            size1 = 0;
++                            size = 0;
 +                        } else {
-+                            size1 = serverLevel.getEntities(
++                            size = serverLevel.getEntities(
 +                                    EntityTypeTest.forExactClass(entity.getClass()),
 +                                    new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1).inflate(this.spawnRange),
 +                                    EntitySelector.NO_SPECTATORS
@@ -57,12 +57,12 @@
 +                                .size();
 +                        }
 +                        // Sakura end - configure mob spawner behaviour
-                         if (size1 >= this.maxNearbyEntities) {
+                         if (size >= this.maxNearbyEntities) {
                              this.delay(serverLevel, pos);
                              return;
-@@ -159,8 +_,11 @@
+@@ -164,8 +_,11 @@
                          entity.preserveMotion = true; // Paper - Fix Entity Teleportation and cancel velocity if teleported; preserve entity motion from tag
-                         entity.moveTo(entity.getX(), entity.getY(), entity.getZ(), random.nextFloat() * 360.0F, 0.0F);
+                         entity.snapTo(entity.getX(), entity.getY(), entity.getZ(), random.nextFloat() * 360.0F, 0.0F);
                          if (entity instanceof Mob mob) {
 -                            if (nextSpawnData.getCustomSpawnRules().isEmpty() && !mob.checkSpawnRules(serverLevel, EntitySpawnReason.SPAWNER)
 -                                || !mob.checkSpawnObstruction(serverLevel)) {

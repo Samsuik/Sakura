@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/CactusBlock.java
 +++ b/net/minecraft/world/level/block/CactusBlock.java
-@@ -48,6 +_,19 @@
+@@ -52,6 +_,19 @@
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
@@ -20,15 +20,16 @@
          BlockPos blockPos = pos.above();
          if (level.isEmptyBlock(blockPos)) {
              int i = 1;
-@@ -63,6 +_,11 @@
-                 if (ageValue >= 15 || (modifier != 100 && random.nextFloat() < (modifier / (100.0f * 16)))) { // Spigot - SPIGOT-7159: Better modifier
-                     org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, blockPos, this.defaultBlockState()); // CraftBukkit
-                     BlockState blockState = state.setValue(AGE, Integer.valueOf(0));
-+                    // Sakura start - use random chance for crop growth; fix cactus growing next to a block and not breaking
-+                    if (level.sakuraConfig().environment.crops.useRandomChanceToGrow) {
-+                        level.neighborShapeChanged(Direction.UP, blockPos, pos, state, 4, 1);
-+                    }
-+                    // Sakura end - use random chance for crop growth; fix cactus growing next to a block and not breaking
-                     level.setBlock(pos, blockState, 4);
-                     level.neighborChanged(blockState, blockPos, this, null, false);
-                 } else if (modifier == 100 || random.nextFloat() < (modifier / (100.0f * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
+@@ -75,6 +_,12 @@
+                 }
+                 // Paper end
+                 BlockState blockState = state.setValue(AGE, 0);
++                // Sakura start - use random chance for crop growth; fix cactus growing next to a block and not breaking
++                // todo: 1.21.5 update
++                /*if (level.sakuraConfig().environment.crops.useRandomChanceToGrow) {
++                    level.neighborShapeChanged(Direction.UP, blockPos, pos, state, 4, 1);
++                }*/
++                // Sakura end - use random chance for crop growth; fix cactus growing next to a block and not breaking
+                 level.setBlock(pos, blockState, 260);
+                 level.neighborChanged(blockState, blockPos, this, null, false);
+             }

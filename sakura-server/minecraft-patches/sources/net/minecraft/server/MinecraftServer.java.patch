@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -300,6 +_,7 @@
+@@ -299,6 +_,7 @@
      public volatile boolean abnormalExit; // Paper - Improved watchdog support
      public volatile Thread shutdownThread; // Paper - Improved watchdog support
      public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
@@ -8,10 +8,10 @@
      public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
      private final Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
      public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
-@@ -390,6 +_,17 @@
-         }
+@@ -317,6 +_,17 @@
+         thread.start();
+         return minecraftServer;
      }
-     // Paper end - rewrite chunk system
 +    // Sakura start - track tick information
 +    private final me.samsuik.sakura.tps.TickInformationCollector tickInformationCollector = new me.samsuik.sakura.tps.TickInformationCollector();
 +
@@ -26,7 +26,7 @@
  
      public MinecraftServer(
          // CraftBukkit start
-@@ -471,6 +_,10 @@
+@@ -398,6 +_,10 @@
          Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
          // CraftBukkit end
          this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
@@ -37,7 +37,7 @@
      }
  
      private void readScoreboard(DimensionDataStorage dataStorage) {
-@@ -1221,6 +_,7 @@
+@@ -1139,6 +_,7 @@
                  if (++MinecraftServer.currentTick % MinecraftServer.SAMPLE_INTERVAL == 0) {
                      final long diff = currentTime - tickSection;
                      final java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
@@ -45,10 +45,10 @@
                      tps1.add(currentTps, diff);
                      tps5.add(currentTps, diff);
                      tps15.add(currentTps, diff);
-@@ -1256,6 +_,7 @@
-                         throw new RuntimeException("Chunk system crash propagated to tick()", crash);
-                     }
-                     // Paper end - rewrite chunk system
+@@ -1167,6 +_,7 @@
+                     profilerFiller.push("tick");
+                     this.tickFrame.start();
+                     this.tickServer(flag ? () -> false : this::haveTime);
 +                    this.tickInformationCollector.tickDuration((System.nanoTime() - currentTime) / 1_000_000L); // Sakura - track tick information
                      this.tickFrame.end();
                      profilerFiller.popPush("nextTickWait");

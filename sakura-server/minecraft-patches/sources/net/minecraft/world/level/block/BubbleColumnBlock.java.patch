@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/level/block/BubbleColumnBlock.java
 +++ b/net/minecraft/world/level/block/BubbleColumnBlock.java
-@@ -49,6 +_,13 @@
+@@ -50,6 +_,13 @@
      @Override
-     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier) {
          if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
 +        // Sakura start - configure bubble columns affecting cannon entities
 +        if (!level.sakuraConfig().cannons.tntAndSandAffectedByBubbleColumns && (
@@ -12,5 +12,5 @@
 +        }
 +        // Sakura end - configure bubble columns affecting cannon entities
          BlockState blockState = level.getBlockState(pos.above());
-         if (blockState.isAir()) {
-             entity.onAboveBubbleCol(state.getValue(DRAG_DOWN));
+         boolean flag = blockState.getCollisionShape(level, pos).isEmpty() && blockState.getFluidState().isEmpty();
+         if (flag) {

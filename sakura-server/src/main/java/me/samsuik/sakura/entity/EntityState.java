@@ -10,7 +10,7 @@ import org.jspecify.annotations.NullMarked;
 import java.util.Optional;
 
 @NullMarked
-public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed, Optional<BlockPos> supportingPos, boolean onGround, float fallDistance) {
+public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed, Optional<BlockPos> supportingPos, boolean onGround, double fallDistance) {
     public static EntityState of(Entity entity) {
         return new EntityState(
             entity.position(), entity.getDeltaMovement(), entity.getBoundingBox(),

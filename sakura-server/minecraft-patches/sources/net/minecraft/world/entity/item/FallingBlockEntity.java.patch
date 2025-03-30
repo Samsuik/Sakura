@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -68,9 +_,11 @@
+@@ -70,9 +_,11 @@
      public boolean forceTickAfterTeleportToDuplicate;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
@@ -12,7 +12,7 @@
      }
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
-@@ -85,6 +_,27 @@
+@@ -87,6 +_,27 @@
          this.setStartPos(this.blockPosition());
      }
  
@@ -66,15 +66,15 @@
 +                            if (canBeReplaced && flag3 && isFallingBlockInBounds(this.level(), blockPos)) { // Sakura - falling block stacking restrictions
                                  if (this.blockState.hasProperty(BlockStateProperties.WATERLOGGED)
                                      && this.level().getFluidState(blockPos).getType() == Fluids.WATER) {
-                                     this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, Boolean.valueOf(true));
-@@ -243,6 +_,10 @@
-                                     this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+                                     this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
+@@ -240,6 +_,10 @@
+                                     this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
                                      this.callOnBrokenAfterFall(block, blockPos);
                                      this.spawnAtLocation(serverLevel, block);
 +                                    // Sakura start - fix falling blocks staying alive when entity drops are disabled
 +                                } else {
-+                                    this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
 +                                    // Sakura end - fix falling blocks staying alive when entity drops are disabled
                                  }
                              } else {
-                                 this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+                                 this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
