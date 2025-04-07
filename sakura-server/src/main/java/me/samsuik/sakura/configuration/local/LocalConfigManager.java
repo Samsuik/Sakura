@@ -62,9 +62,11 @@ public final class LocalConfigManager implements LocalStorageHandler {
 
     @Override
     public synchronized void put(@NonNull LocalRegion region, @NonNull LocalValueStorage storage) {
-        this.ensureNotOverlapping(region);
         int shift = this.regionExponent;
         int regionChunks = regionChunks(region, shift);
+
+        // make sure there's no overlapping regions
+        this.ensureRegionIsNotOverlapping(region, regionChunks);
 
         if (regionChunks <= SMALL_REGION_SIZE) {
             this.forEachRegionChunks(region, pos -> {
@@ -73,8 +75,9 @@ public final class LocalConfigManager implements LocalStorageHandler {
             });
         } else {
             this.largeRegions.add(region);
-            // The region exponent might be too small
-            if (this.largeRegions.size() % 24 == 0) {
+
+            // The region exponent may be too small
+            if ((this.largeRegions.size() & 15) == 0) {
                 this.resizeRegions();
             }
         }
@@ -189,14 +192,18 @@ public final class LocalConfigManager implements LocalStorageHandler {
         return config;
     }
 
-    private void ensureNotOverlapping(LocalRegion region) {
+    private void ensureRegionIsNotOverlapping(LocalRegion region, int regionChunks) {
         Set<LocalRegion> nearbyRegions = new ReferenceOpenHashSet<>();
-        this.forEachRegionChunks(region, pos -> {
-            nearbyRegions.addAll(this.smallRegions.getOrDefault(pos, List.of()));
-        });
+        if (regionChunks > SMALL_REGION_SIZE) {
+            nearbyRegions.addAll(this.storageMap.keySet());
+        } else {
+            this.forEachRegionChunks(region, pos -> {
+                nearbyRegions.addAll(this.smallRegions.getOrDefault(pos, List.of()));
+            });
+        }
         for (LocalRegion present : Iterables.concat(nearbyRegions, this.largeRegions)) {
             if (present != region && present.intersects(region)) {
-                throw new UnsupportedOperationException("overlapping region (%s, %s)".formatted(present, region));
+                throw new OverlappingRegionException(present, region);
             }
         }
     }

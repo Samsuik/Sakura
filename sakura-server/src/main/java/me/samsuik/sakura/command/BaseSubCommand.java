@@ -42,6 +42,10 @@ public abstract class BaseSubCommand extends Command {
         return completions;
     }
 
+    public void sendPlayerOnlyMessage(CommandSender sender) {
+        sender.sendRichMessage("<red>This command can only be ran by players");
+    }
+
     protected final Optional<Integer> parseInt(String[] args, int index) {
         return this.parse(args, index, Integer::parseInt);
     }

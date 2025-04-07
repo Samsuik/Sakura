@@ -1,6 +1,8 @@
 package me.samsuik.sakura.command;
 
 import me.samsuik.sakura.command.subcommands.*;
+import me.samsuik.sakura.command.subcommands.debug.DebugLocalRegions;
+import me.samsuik.sakura.command.subcommands.debug.DebugRedstoneCache;
 import me.samsuik.sakura.player.visibility.VisibilityTypes;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.command.Command;
@@ -14,8 +16,9 @@ import java.util.Set;
 
 @NullMarked
 public final class SakuraCommands {
-    static final Map<String, Command> COMMANDS = new HashMap<>();
-    static final Set<Command> SUB_COMMANDS = new HashSet<>();
+    public static final Map<String, Command> COMMANDS = new HashMap<>();
+    public static final Set<Command> SUB_COMMANDS = new HashSet<>();
+    public static final Set<Command> DEBUG_COMMANDS = new HashSet<>();
 
     static {
         COMMANDS.put("config", new ConfigCommand("config"));
@@ -27,6 +30,8 @@ public final class SakuraCommands {
         SUB_COMMANDS.add(new DebugCommand("debug"));
         // "sakura" isn't a subcommand
         COMMANDS.put("sakura", new SakuraCommand("sakura"));
+        DEBUG_COMMANDS.add(new DebugRedstoneCache("redstone-cache"));
+        DEBUG_COMMANDS.add(new DebugLocalRegions("local-regions"));
     }
 
     public static void registerCommands(MinecraftServer server) {
