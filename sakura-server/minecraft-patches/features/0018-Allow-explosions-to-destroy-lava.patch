@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sat, 25 Nov 2023 21:14:45 +0000
+Subject: [PATCH] Allow explosions to destroy lava
+
+
+diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
+index 26cd9559013ca2bb17b98f2675e7c43f76519d8b..3e4580903b85cb4aa4a48a9882a641f03d8a440d 100644
+--- a/net/minecraft/world/level/ServerExplosion.java
++++ b/net/minecraft/world/level/ServerExplosion.java
+@@ -404,6 +404,11 @@ public class ServerExplosion implements Explosion {
+                 return Optional.of(ZERO_RESISTANCE);
+             }
+             // Sakura end - destroy water logged blocks
++            // Sakura start - allow explosions to destroy lava
++            if (blockState.is(net.minecraft.world.level.block.Blocks.LAVA) && this.level.sakuraConfig().cannons.explosion.explodeLava) {
++                return Optional.of(ZERO_RESISTANCE);
++            }
++            // Sakura end - allow explosions to destroy lava
+         }
+ 
+         return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);
+diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
+index 834e27ef2f7b342b074ff9e1e390e02f3ca1c399..fed11ed5ab97826915710b66395d1bdc926935b0 100644
+--- a/net/minecraft/world/level/block/state/BlockBehaviour.java
++++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
+@@ -201,7 +201,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+                 state.getDrops(builder).forEach(stack -> dropConsumer.accept(stack, pos));
+             }
+ 
+-            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
++            level.setBlock(pos, Blocks.AIR.defaultBlockState(), level.sakuraConfig().cannons.explosion.explodeLava && state.is(Blocks.LAVA) ? 2 : 3); // Sakura - allow explosions to destroy lava; don't cause block updates when blowing up lava
+             block.wasExploded(level, pos, explosion);
+         }
+     }

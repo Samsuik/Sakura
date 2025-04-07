@@ -5,10 +5,10 @@
      // CraftBukkit end
      public boolean excludeSourceFromDamage = true; // Paper - Allow explosions to damage source
 +    private final boolean consistentRadius; // Sakura - consistent explosion radius
- 
-     public ServerExplosion(
-         ServerLevel level,
-@@ -80,6 +_,7 @@
+     // Paper start - collisions optimisations
+     private static final double[] CACHED_RAYS;
+     static {
+@@ -323,6 +_,7 @@
          this.damageSource = damageSource == null ? level.damageSources().explosion(this) : damageSource;
          this.damageCalculator = damageCalculator == null ? this.makeDamageCalculator(source) : damageCalculator;
          this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
@@ -16,16 +16,17 @@
      }
  
      private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
-@@ -145,7 +_,7 @@
-                         d /= squareRoot;
-                         d1 /= squareRoot;
-                         d2 /= squareRoot;
--                        float f = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
-+                        float f = this.radius * (0.7F + (this.consistentRadius ? 0.7F : this.level.random.nextFloat()) * 0.6F); // Sakura - consistent explosion radius
-                         double d3 = this.center.x;
-                         double d4 = this.center.y;
-                         double d5 = this.center.z;
-@@ -336,6 +_,12 @@
+@@ -411,8 +_,7 @@
+             final double incZ = CACHED_RAYS[ray + 2];
+ 
+             ray += 3;
+-
+-            float power = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
++            float power = this.radius * (0.7F + (this.consistentRadius ? 0.7F : this.level.random.nextFloat()) * 0.6F); // Sakura - consistent explosion radius
+ 
+             do {
+                 final int blockX = Mth.floor(currX);
+@@ -618,6 +_,12 @@
                  .getBlockState(blockPos)
                  .onExplosionHit(this.level, blockPos, this, (itemStack, blockPos1) -> addOrAppendStack(list, itemStack, blockPos1));
          }

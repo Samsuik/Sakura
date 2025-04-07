@@ -24,9 +24,9 @@
 +    }
 +    // Sakura end - track tick information
  
-     public MinecraftServer(
-         // CraftBukkit start
-@@ -398,6 +_,10 @@
+     // Paper start - rewrite chunk system
+     private volatile Throwable chunkSystemCrash;
+@@ -469,6 +_,10 @@
          Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
          // CraftBukkit end
          this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
@@ -37,7 +37,7 @@
      }
  
      private void readScoreboard(DimensionDataStorage dataStorage) {
-@@ -1139,6 +_,7 @@
+@@ -1219,6 +_,7 @@
                  if (++MinecraftServer.currentTick % MinecraftServer.SAMPLE_INTERVAL == 0) {
                      final long diff = currentTime - tickSection;
                      final java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
@@ -45,11 +45,11 @@
                      tps1.add(currentTps, diff);
                      tps5.add(currentTps, diff);
                      tps15.add(currentTps, diff);
-@@ -1167,6 +_,7 @@
-                     profilerFiller.push("tick");
-                     this.tickFrame.start();
-                     this.tickServer(flag ? () -> false : this::haveTime);
-+                    this.tickInformationCollector.tickDuration((System.nanoTime() - currentTime) / 1_000_000L); // Sakura - track tick information
+@@ -1256,6 +_,7 @@
+                     // Paper end - rewrite chunk system
                      this.tickFrame.end();
                      profilerFiller.popPush("nextTickWait");
++                    this.tickInformationCollector.tickDuration((System.nanoTime() - currentTime) / 1_000_000L); // Sakura - track tick information
                      this.mayHaveDelayedTasks = true;
+                     this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + l, this.nextTickTimeNanos);
+                     this.startMeasuringTaskExecutionTime();

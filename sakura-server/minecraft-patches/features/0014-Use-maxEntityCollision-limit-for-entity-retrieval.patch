@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 23 Sep 2021 18:50:13 +0100
+Subject: [PATCH] Use maxEntityCollision limit for entity retrieval
+
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index d4276654fe855d0f73b8c02f5576b69f48c269dd..3634a31f8ab0930bd4a5e249b7686036b0948f20 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -3691,7 +3691,17 @@ public abstract class LivingEntity extends Entity implements Attackable {
+             return;
+         }
+         // Paper end - don't run getEntities if we're not going to use its result
+-        List<Entity> pushableEntities = this.level().getPushableEntities(this, this.getBoundingBox());
++        // Sakura start - use maxEntityCollision limit for entity retrieval
++        //List<Entity> pushableEntities = this.level().getPushableEntities(this, this.getBoundingBox());
++        final int limit = Math.max(_int, this.level().paperConfig().collisions.maxEntityCollisions);
++        final int search = limit * limit;
++        final List<Entity> pushableEntities = new java.util.ArrayList<>(4);
++        this.level().getEntities(
++            net.minecraft.world.level.entity.EntityTypeTest.forClass(Entity.class),
++            this.getBoundingBox(), EntitySelector.pushableBy(this),
++            pushableEntities, limit, search
++        );
++        // Sakura end - use maxEntityCollision limit for entity retrieval
+         if (!pushableEntities.isEmpty()) {
+             if (this.level() instanceof ServerLevel serverLevel) {
+                 // Paper - don't run getEntities if we're not going to use its result; moved up

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/net/minecraft/world/level/material/FlowingFluid.java
-@@ -110,12 +_,12 @@
+@@ -152,12 +_,12 @@
      }
  
      protected void spread(ServerLevel level, BlockPos pos, BlockState blockState, FluidState fluidState) {
@@ -15,7 +15,7 @@
                  Fluid type = newLiquid.getType();
                  if (fluidState1.canBeReplacedWith(level, blockPos, type, Direction.DOWN) && canHoldSpecificFluid(level, blockPos, blockState1, type)) {
                      // CraftBukkit start
-@@ -157,6 +_,11 @@
+@@ -199,6 +_,11 @@
                  BlockPos blockPos = pos.relative(direction);
                  final BlockState blockStateIfLoaded = level.getBlockStateIfLoaded(blockPos); // Paper - Prevent chunk loading from fluid flowing
                  if (blockStateIfLoaded == null) continue; // Paper - Prevent chunk loading from fluid flowing
@@ -27,7 +27,7 @@
                  // CraftBukkit start
                  org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
                  org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
-@@ -171,17 +_,71 @@
+@@ -213,17 +_,71 @@
          }
      }
  
@@ -101,7 +101,7 @@
                  if (fluidState.isSource()) {
                      i1++;
                  }
-@@ -194,19 +_,11 @@
+@@ -236,19 +_,11 @@
              BlockState blockState1 = level.getBlockState(mutableBlockPos.setWithOffset(pos, Direction.DOWN));
              FluidState fluidState1 = blockState1.getFluidState();
              if (blockState1.isSolid() || this.isSourceBlockOfThisType(fluidState1)) {
@@ -122,8 +122,8 @@
 +        return i; // Sakura - optimise new liquid level
      }
  
-     private static boolean canPassThroughWall(
-@@ -362,7 +_,7 @@
+     // Paper start - fluid method optimisations
+@@ -414,7 +_,7 @@
              if (blockState == null) continue; // Paper - Prevent chunk loading from fluid flowing
              FluidState fluidState = blockState.getFluidState();
              if (this.canMaybePassThrough(level, pos, state, direction, blockPos, blockState, fluidState)) {
@@ -132,7 +132,7 @@
                  if (canHoldSpecificFluid(level, blockPos, blockState, newLiquid.getType())) {
                      if (spreadContext == null) {
                          spreadContext = new FlowingFluid.SpreadContext(level, pos);
-@@ -413,6 +_,11 @@
+@@ -465,6 +_,11 @@
      }
  
      private static boolean canHoldSpecificFluid(BlockGetter level, BlockPos pos, BlockState state, Fluid fluid) {
@@ -144,7 +144,7 @@
          return !(state.getBlock() instanceof LiquidBlockContainer liquidBlockContainer) || liquidBlockContainer.canPlaceLiquid(null, level, pos, state, fluid);
      }
  
-@@ -425,7 +_,7 @@
+@@ -477,7 +_,7 @@
      @Override
      public void tick(ServerLevel level, BlockPos pos, BlockState blockState, FluidState fluidState) {
          if (!fluidState.isSource()) {

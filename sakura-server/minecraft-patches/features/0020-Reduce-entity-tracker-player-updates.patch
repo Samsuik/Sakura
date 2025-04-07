@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 30 Nov 2023 15:54:49 +0000
+Subject: [PATCH] Reduce entity tracker player updates
+
+
+diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
+index 07d8bb89ed0f9cea6353905939ba9f91c6fb64a5..684af8df952b0e58a86f6c3b72635190fdc4a938 100644
+--- a/net/minecraft/server/level/ChunkMap.java
++++ b/net/minecraft/server/level/ChunkMap.java
+@@ -1015,7 +1015,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             if (tracker == null) {
+                 continue;
+             }
+-            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
++            // Sakura start - reduce entity tracker player updates
++            if (tracker.shouldUpdatePlayers()) {
++                ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
++            }
++            // Sakura end - reduce entity tracker player updates
+             if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
+                 || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
+                 tracker.serverEntity.sendChanges();
+@@ -1259,12 +1263,30 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             return state != me.samsuik.sakura.player.visibility.VisibilityState.OFF;
+         }
+         // Sakura end - client visibility settings; entity visibility
++        // Sakura start - reduce entity tracker player updates
++        private final int playerUpdateInterval;
++        private net.minecraft.world.phys.Vec3 entityPosition;
++
++        public final boolean shouldUpdatePlayers() {
++            // We have to always update players otherwise they can turn invisible on teleports (why?)
++            if (this.entity instanceof net.minecraft.world.entity.player.Player || this.entity.tickCount % this.playerUpdateInterval == 0) {
++                return true;
++            }
++            final net.minecraft.world.phys.Vec3 lastPosition = this.entityPosition;
++            this.entityPosition = this.entity.position();
++            return this.entity.position().distanceToSqr(lastPosition) >= (double) this.range / 2.0;
++        }
++        // Sakura start - reduce entity tracker player updates
+ 
+         public TrackedEntity(final Entity entity, final int range, final int updateInterval, final boolean trackDelta) {
+             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, updateInterval, trackDelta, this::broadcast, this::broadcastIgnorePlayers, this.seenBy); // Paper
+             this.entity = entity;
+             this.range = range;
+             this.lastSectionPos = SectionPos.of(entity);
++            // Sakura start - reduce entity tracker player updates
++            this.playerUpdateInterval = Math.min(updateInterval, 20);
++            this.entityPosition = entity.position();
++            // Sakura start - reduce entity tracker player updates
+         }
+ 
+         @Override

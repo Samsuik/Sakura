@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 3 May 2024 15:18:58 +0100
+Subject: [PATCH] Optimise explosions in protected regions
+
+
+diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
+index 38657fa606ae34a3bb752fcd01f7aa732fe17c7e..c597226b6a90ab687d176fe63e21c9c2cd71c7e1 100644
+--- a/net/minecraft/world/level/ServerExplosion.java
++++ b/net/minecraft/world/level/ServerExplosion.java
+@@ -342,6 +342,22 @@ public class ServerExplosion implements Explosion {
+         return rays;
+     }
+     // Sakura end - optimise paper explosions
++    // Sakura start - optimise explosion protected regions
++    protected final boolean isRegionUnprotected() {
++        // optimisation: We check if a plugin has cancelled the event or cleared the blockList.
++        // It tells us if the result was thrown away, so we can avoid the block searching logic.
++        // As a side effect the event is called twice which may interfere with some plugins.
++        if (this.source != null && this.level.sakuraConfig().cannons.explosion.optimiseProtectedRegions) {
++            Location location = new Location(this.level.getWorld(), this.center.x, this.center.y, this.center.z);
++            List<org.bukkit.block.Block> blocks = new ObjectArrayList<>(1);
++            blocks.add(location.getBlock());
++            org.bukkit.event.entity.EntityExplodeEvent event = CraftEventFactory.callEntityExplodeEvent(this.source, blocks, 0.0f, this.blockInteraction);
++            return !event.isCancelled() && !event.blockList().isEmpty();
++        }
++
++        return true;
++    }
++    // Sakura end - optimise explosion protected regions
+ 
+     public ServerExplosion(
+         ServerLevel level,
+@@ -446,6 +462,11 @@ public class ServerExplosion implements Explosion {
+             return ret;
+         }
+         // Sakura end - optimise paper explosions
++        // Sakura start - optimise protected explosions
++        if (!this.isRegionUnprotected()) {
++            return ret;
++        }
++        // Sakura end - optimise protected explosions
+ 
+         // only ~1/3rd of the loop iterations in vanilla will result in a ray, as it is iterating the perimeter of
+         // a 16x16x16 cube

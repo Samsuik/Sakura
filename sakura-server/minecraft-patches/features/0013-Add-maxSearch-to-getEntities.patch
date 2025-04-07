@@ -1,0 +1,117 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 27 Jun 2024 17:02:32 +0100
+Subject: [PATCH] Add maxSearch to getEntities
+
+
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+index 6e3a429bc165d8473ea50ee2ae1548270db599d1..417afe621f559d7fab0798ccf586b630e8878b23 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+@@ -314,7 +314,14 @@ public final class ChunkEntitySlices {
+ 
+     public boolean getEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
+                                final int maxCount) {
+-        return this.allEntities.getEntitiesLimited(except, box, into, predicate, maxCount);
++        // Sakura start - add maxSearch to getEntities
++        return this.getEntities(except, box, into, predicate, maxCount, Integer.MAX_VALUE);
++    }
++
++    public boolean getEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
++                               final int maxCount, final int maxSearch) {
++        return this.allEntities.getEntitiesLimited(except, box, into, predicate, maxCount, maxSearch);
++        // Sakura end - add maxSearch to getEntities
+     }
+ 
+     public <T extends Entity> void getEntities(final EntityType<?> type, final AABB box, final List<? super T> into,
+@@ -552,6 +559,13 @@ public final class ChunkEntitySlices {
+ 
+         public boolean getEntitiesLimited(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
+                                           final int maxCount) {
++            // Sakura start - add maxSearch to getEntities
++            return this.getEntitiesLimited(except, box, into, predicate, maxCount, Integer.MAX_VALUE);
++        }
++
++        public boolean getEntitiesLimited(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
++                                          final int maxCount, final int maxSearch) {
++            // Sakura end - add maxSearch to getEntities
+             if (this.count == 0) {
+                 return false;
+             }
+@@ -573,8 +587,14 @@ public final class ChunkEntitySlices {
+ 
+                 final Entity[] storage = list.storage;
+ 
+-                for (int i = 0, len = Math.min(storage.length, list.size()); i < len; ++i) {
+-                    final Entity entity = storage[i];
++                // Sakura start - add maxSearch to getEntities
++                final int len = Math.min(storage.length, list.size());
++                final int offset = this.slices.world.random.nextInt(len);
++                for (int i = 0; i < len; ++i) {
++                    final int pos = (i + offset) % len;
++                    final Entity entity = storage[pos];
++                    if (i > maxSearch) break;
++                    // Sakura end - add maxSearch to getEntities
+ 
+                     if (entity == null || entity == except || !entity.getBoundingBox().intersects(box)) {
+                         continue;
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
+index 7554c109c35397bc1a43dd80e87764fd78645bbf..d60f30f7afb15cc90c1bd4b816136d00b23a53e4 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
+@@ -722,6 +722,13 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
+ 
+     public void getEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
+                             final int maxCount) {
++        // Sakura start - add maxSearch to getEntities
++        this.getEntities(except, box, into, predicate, maxCount, Integer.MAX_VALUE);
++    }
++
++    public void getEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
++                            final int maxCount, final int maxSearch) {
++        // Sakura end - add maxSearch to getEntities
+         final int minChunkX = (Mth.floor(box.minX) - 2) >> 4;
+         final int minChunkZ = (Mth.floor(box.minZ) - 2) >> 4;
+         final int maxChunkX = (Mth.floor(box.maxX) + 2) >> 4;
+@@ -753,7 +760,7 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
+                             continue;
+                         }
+ 
+-                        if (chunk.getEntities(except, box, into, predicate, maxCount)) {
++                        if (chunk.getEntities(except, box, into, predicate, maxCount, maxSearch)) { // Sakura - add maxSearch to getEntities
+                             return;
+                         }
+                     }
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index d111bd5546613cefd8b4070788679901b7e5b8f4..99571af2e473cb14322625b0287b2f18fcf116d3 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -1779,10 +1779,18 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+         this.getEntities(entityTypeTest, bounds, predicate, output, Integer.MAX_VALUE);
+     }
+ 
+-    // Paper start - rewrite chunk system
+     public <T extends Entity> void getEntities(final EntityTypeTest<Entity, T> entityTypeTest,
+                                                final AABB boundingBox, final Predicate<? super T> predicate,
+                                                final List<? super T> into, final int maxCount) {
++        // Sakura start - add maxSearch to getEntities
++        this.getEntities(entityTypeTest, boundingBox, predicate, into, maxCount, Integer.MAX_VALUE);
++    }
++
++    // Paper start - rewrite chunk system
++    public <T extends Entity> void getEntities(final EntityTypeTest<Entity, T> entityTypeTest,
++                                               final AABB boundingBox, final Predicate<? super T> predicate,
++                                               final List<? super T> into, final int maxCount, final int maxSearch) {
++        // Sakura end - add maxSearch to getEntities
+         Profiler.get().incrementCounter("getEntities");
+ 
+         if (entityTypeTest instanceof net.minecraft.world.entity.EntityType<T> byType) {
+@@ -1799,7 +1807,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+ 
+         if (entityTypeTest == null) {
+             if (maxCount != Integer.MAX_VALUE) {
+-                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, boundingBox, (List)into, (Predicate)predicate, maxCount);
++                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, boundingBox, (List)into, (Predicate)predicate, maxCount, maxSearch); // Sakura - add maxSearch to getEntities
+                 ca.spottedleaf.moonrise.common.PlatformHooks.get().addToGetEntities((Level)(Object)this, entityTypeTest, boundingBox, predicate, into, maxCount);
+                 return;
+             } else {

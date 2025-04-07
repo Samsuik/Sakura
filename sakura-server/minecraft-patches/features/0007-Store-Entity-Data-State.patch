@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Wed, 16 Aug 2023 22:34:49 +0100
+Subject: [PATCH] Store Entity Data/State
+
+
+diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
+index b94c17c87628f2ff3aae700f731e7fa5160ed799..437d10c650f5aea171f2ea0d075f140d7f3cb058 100644
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -530,6 +530,21 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         return flags;
+     }
+     // Sakura end - load chunks on movement
++    // Sakura start - store entity data/state
++    private me.samsuik.sakura.entity.EntityState entityState = null;
++
++    public final void storeEntityState() {
++        this.entityState = me.samsuik.sakura.entity.EntityState.of(this);
++    }
++
++    public final me.samsuik.sakura.entity.EntityState entityState() {
++        return this.entityState;
++    }
++
++    public final boolean compareState(Entity to) {
++        return to.entityState() != null && to.entityState().comparePositionAndMotion(this);
++    }
++    // Sakura end - store entity data/state
+ 
+     public Entity(EntityType<?> entityType, Level level) {
+         this.type = entityType;
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 8aea98378fccb14f3eadab72a38e5661806b96c0..e704f4a84167c0cfe5afd99c5f24f6c24d3e4db1 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -1498,6 +1498,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+ 
+     public <T extends Entity> void guardEntityTick(Consumer<T> consumerEntity, T entity) {
+         try {
++            entity.storeEntityState(); // Sakura - store entity data/state
+             consumerEntity.accept(entity);
+         } catch (Throwable var6) {
+             // Paper start - Prevent block entity and entity crashes

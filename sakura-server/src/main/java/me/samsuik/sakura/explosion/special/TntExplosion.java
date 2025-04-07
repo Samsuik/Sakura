@@ -14,8 +14,6 @@ import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import org.bukkit.craftbukkit.util.CraftVector;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -112,14 +110,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
         }
     }
 
-    private Vector getCauseOrigin() {
-        Vector origin = this.cause.getOriginVector();
-        return origin == null ? CraftVector.toBukkit(this.center) : origin;
+    private Vec3 getCauseOrigin() {
+        return this.cause.origin == null ? this.center : this.cause.origin;
     }
 
     private EntityState nextSourceVelocity() {
-        Vector origin = this.getCauseOrigin(); // valid position to use while creating a temporary entity
-        PrimedTnt tnt = new PrimedTnt(this.level(), origin.getX(), origin.getY(), origin.getZ(), null);
+        Vec3 origin = this.getCauseOrigin(); // valid position to use while creating a temporary entity
+        PrimedTnt tnt = new PrimedTnt(this.level(), origin.x(), origin.y(), origin.z(), null);
         this.cause.entityState().apply(tnt);
         this.impactCannonEntity(tnt, this.center, 1, this.radius() * 2.0f);
         return EntityState.of(tnt);
@@ -166,7 +163,7 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
         entities.createRawIterator();
         // iterate over the entityTickList to find entities that are exploding in the same position.
         while ((index = entities.advanceRawIterator(index)) != -1) {
-            Entity foundEntity = entities.rawGet(index);
+            Entity foundEntity = entities.getListRaw()[index];
             if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, true))
                 break;
             this.level().mergeHandler.mergeEntity(mergeEntity, this.cause);
