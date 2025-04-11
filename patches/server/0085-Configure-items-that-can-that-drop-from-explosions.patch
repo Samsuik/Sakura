@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 11 Apr 2025 22:16:32 +0100
+Subject: [PATCH] Configure items that can that drop from explosions
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 8eb9e93427a4a43f8264e8bd73bca1f35ea9085e..4338729938f711bd4ab8e6eb3bfd853f1a1eb944 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -931,8 +931,15 @@ public class Explosion {
+             // Sakura end - config for explosions dropping items
+             Iterator iterator = list.iterator();
+ 
++            // Sakura start - configure items that can that drop from explosions
++            final List<net.minecraft.world.item.Item> explosionItemDrops = this.level.sakuraConfig().entity.items.explosionItemDrops.items;
++            final boolean whitelist = this.level.sakuraConfig().entity.items.explosionItemDrops.whitelistOverBlacklist;
+             while (iterator.hasNext()) {
+                 Pair<ItemStack, BlockPos> pair = (Pair) iterator.next();
++                if (explosionItemDrops.contains(pair.getFirst().getItem()) != whitelist) {
++                    continue;
++                }
++                // Sakura start - configure items that can that drop from explosions
+ 
+                 Block.popResource(this.level, (BlockPos) pair.getSecond(), (ItemStack) pair.getFirst());
+             }

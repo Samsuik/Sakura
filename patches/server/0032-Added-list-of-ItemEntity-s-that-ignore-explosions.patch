@@ -5,17 +5,19 @@ Subject: [PATCH] Added list of ItemEntity's that ignore explosions
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
-index 4423973d4d9a2c3879d98d1d4c8b8c117c677ac5..801e4ec55b3df7ed3e2b4cb9fdbd49567d434720 100644
+index 4423973d4d9a2c3879d98d1d4c8b8c117c677ac5..01ca80f2d44ca2a443a1a87fd8bbc0985bff7f3c 100644
 --- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
-@@ -590,6 +590,17 @@ public class ItemEntity extends Entity implements TraceableEntity {
+@@ -590,6 +590,19 @@ public class ItemEntity extends Entity implements TraceableEntity {
  
      }
  
 +    // Sakura start
 +    @Override
 +    public boolean ignoreExplosion(net.minecraft.world.level.Explosion explosion) {
-+        if (this.level().sakuraConfig().entity.items.explosionResistantItems.contains(this.getItem().getItem()) != this.level().sakuraConfig().entity.items.useWhitelistForExplosionResistantItems) {
++        final List<Item> blastResistantTypes = this.level().sakuraConfig().entity.items.blastResistant.items;
++        final boolean whitelist = this.level().sakuraConfig().entity.items.blastResistant.whitelistOverBlacklist;
++        if (blastResistantTypes.contains(this.getItem().getItem()) != whitelist) {
 +            return true;
 +        } else {
 +            return super.ignoreExplosion(explosion);
