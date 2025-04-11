@@ -1,11 +1,13 @@
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
-@@ -370,6 +_,11 @@
+@@ -370,6 +_,13 @@
  
      @Override
      public boolean ignoreExplosion(Explosion explosion) {
 +        // Sakura start - add list of items that ignore explosions
-+        if (this.level().sakuraConfig().entity.items.explosionResistantItems.contains(this.getItem().getItem()) != this.level().sakuraConfig().entity.items.useWhitelistForExplosionResistantItems) {
++        final java.util.Set<Item> blastResistantTypes = this.level().sakuraConfig().entity.items.blastResistant.items;
++        final boolean whitelist = this.level().sakuraConfig().entity.items.blastResistant.whitelistOverBlacklist;
++        if (blastResistantTypes.contains(this.getItem().getItem()) != whitelist) {
 +            return true;
 +        }
 +        // Sakura end - add list of items that ignore explosions

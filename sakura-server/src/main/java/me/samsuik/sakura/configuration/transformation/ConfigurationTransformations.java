@@ -25,6 +25,7 @@ public final class ConfigurationTransformations {
         V5_CombineLoadChunksOptions.apply(versionedBuilder);
         V6_FixIncorrectExtraKnockback.apply(versionedBuilder);
         V7_FixTntDuplicationName.apply(versionedBuilder);
+        V8_RenameExplosionResistantItems.apply(versionedBuilder);
         // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
         versionedBuilder.build().apply(node);
     }

@@ -26,16 +26,24 @@
  
              do {
                  final int blockX = Mth.floor(currX);
-@@ -618,6 +_,12 @@
-                 .getBlockState(blockPos)
+@@ -619,7 +_,20 @@
                  .onExplosionHit(this.level, blockPos, this, (itemStack, blockPos1) -> addOrAppendStack(list, itemStack, blockPos1));
          }
-+
+ 
 +        // Sakura start - configure explosions dropping items
 +        if (!this.level.sakuraConfig().cannons.explosion.explosionsDropItems) {
 +            list.clear();
 +        }
 +        // Sakura end - configure explosions dropping items
- 
++
++        // Sakura start - configure items that can that drop from explosions
++        final Set<net.minecraft.world.item.Item> explosionItemDrops = this.level.sakuraConfig().entity.items.explosionItemDrops.items;
++        final boolean whitelist = this.level.sakuraConfig().entity.items.explosionItemDrops.whitelistOverBlacklist;
          for (ServerExplosion.StackCollector stackCollector : list) {
++            if (explosionItemDrops.contains(stackCollector.stack.getItem()) != whitelist) {
++                continue;
++            }
++            // Sakura start - configure items that can that drop from explosions
              Block.popResource(this.level, stackCollector.pos, stackCollector.stack);
+         }
+     }

@@ -23,6 +23,7 @@ import org.spongepowered.configurate.objectmapping.meta.Setting;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic", "RedundantSuppression"})
 public final class WorldConfiguration extends ConfigurationPart {
@@ -191,7 +192,17 @@ public final class WorldConfiguration extends ConfigurationPart {
         public Items items = new Items();
         public class Items extends ConfigurationPart {
             public boolean useWhitelistForExplosionResistantItems = true;
-            public List<Item> explosionResistantItems = List.of();
+            public BlastResistant blastResistant = new BlastResistant();
+            public class BlastResistant extends ConfigurationPart {
+                public Set<Item> items = Set.of();
+                public boolean whitelistOverBlacklist = true;
+            }
+
+            public ExplosionItemDrops explosionItemDrops = new ExplosionItemDrops();
+            public class ExplosionItemDrops extends ConfigurationPart {
+                public Set<Item> items = Set.of();
+                public boolean whitelistOverBlacklist = false;
+            }
         }
 
         @Comment("Entity travel distance limits")
