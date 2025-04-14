@@ -16,10 +16,8 @@ import net.minecraft.world.level.Level;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.List;
-import java.util.Optional;
 
 @NullMarked
-@SuppressWarnings("OptionalAssignedToNull")
 public final class LegacyGoldenAppleItem extends Item {
     private static final Consumable LEGACY_ENCHANTED_GOLDEN_APPLE = Consumables.defaultFood()
         .onConsume(
@@ -40,8 +38,8 @@ public final class LegacyGoldenAppleItem extends Item {
 
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        ItemStack stack = player.getItemInHand(hand);
-        if (this.itemHasConsumableComponent(stack, level)) {
+        final ItemStack stack = player.getItemInHand(hand);
+        if (isItemConsumableOrDisabled(stack, level)) {
             return super.use(level, player, hand);
         } else {
             return LEGACY_ENCHANTED_GOLDEN_APPLE.startConsuming(player, stack, hand);
@@ -50,15 +48,15 @@ public final class LegacyGoldenAppleItem extends Item {
 
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
-        if (this.itemHasConsumableComponent(stack, level)) {
+        if (isItemConsumableOrDisabled(stack, level)) {
             return super.finishUsingItem(stack, level, entity);
         } else {
             return LEGACY_ENCHANTED_GOLDEN_APPLE.onConsume(level, entity, stack);
         }
     }
 
-    private boolean itemHasConsumableComponent(ItemStack stack, Level level) {
-        Optional<?> consumable = stack.getComponentsPatch().get(DataComponents.CONSUMABLE);
-        return consumable != null || !level.sakuraConfig().players.combat.oldEnchantedGoldenApple;
+    private static boolean isItemConsumableOrDisabled(ItemStack stack, Level level) {
+        return DataComponentHelper.itemHasComponent(stack, DataComponents.CONSUMABLE)
+            || !level.sakuraConfig().players.combat.oldEnchantedGoldenApple;
     }
 }

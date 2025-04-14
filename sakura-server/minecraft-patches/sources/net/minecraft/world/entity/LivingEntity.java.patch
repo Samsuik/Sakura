@@ -53,6 +53,31 @@
                      if (!flag) {
                          this.indicateDamage(d, d1);
                      }
+@@ -1583,6 +_,11 @@
+             if (itemBlockingWith == null) {
+                 return false;
+             } else {
++                // Sakura start - shield damage reduction & allow blocking with swords
++                if (itemBlockingWith.getItem() instanceof me.samsuik.sakura.player.item.BlockableSwordItem swordItem && swordItem.isSafeToOverrideBlocking(itemBlockingWith)) {
++                    return true;
++                }
++                 // Sakura end - shield damage reduction & allow blocking with swords
+                 BlocksAttacks blocksAttacks = itemBlockingWith.get(DataComponents.BLOCKS_ATTACKS);
+                 if (blocksAttacks != null && !blocksAttacks.bypassedBy().map(damageSource::is).orElse(false)) {
+                     if (damageSource.getDirectEntity() instanceof AbstractArrow abstractArrow && abstractArrow.getPierceLevel() > 0) {
+@@ -1609,6 +_,12 @@
+             acos = (float) Math.PI;
+         }
+ 
++        // Sakura start - shield damage reduction & allow blocking with swords
++        if (me.samsuik.sakura.player.combat.CombatUtil.overrideBlockingAndHalveDamage(this.getItemBlockingWith(), this)) {
++            final boolean lookingAtSource = acos <= (float) (Math.PI / 180.0) * 90.0;
++            return lookingAtSource ? damageAmount * 0.5f : 0.0f;
++        }
++        // Sakura end - shield damage reduction & allow blocking with swords
+         BlocksAttacks blocksAttacks = this.getItemBlockingWith().get(DataComponents.BLOCKS_ATTACKS);
+         return blocksAttacks.resolveBlockedDamage(damageSource, damageAmount, acos);
+     }
 @@ -1676,7 +_,7 @@
      }
  
@@ -142,19 +167,6 @@
          }
  
          return damageAmount;
-@@ -2312,6 +_,12 @@
-         amount += hardHatModifier;
- 
-         com.google.common.base.Function<Double, Double> blocking = mod -> {
-+            // Sakura start - shield damage reduction & allow blocking with swords
-+            // todo: 1.21.5 update
-+            if (LivingEntity.this.isBlockingWithSword() || LivingEntity.this.level().sakuraConfig().players.combat.shieldDamageReduction && !(damagesource.getDirectEntity() instanceof AbstractArrow)) {
-+                return -(LivingEntity.this.isBlocking() ? mod * 0.5 : 0.0);
-+            }
-+            // Sakura end - shield damage reduction & allow blocking with swords
-             if (!LivingEntity.this.canBlockAttack(damagesource, mod.floatValue())) {
-                 return 0D;
-             }
 @@ -2406,6 +_,12 @@
                  armorDamage += (float) event.getDamage(DamageModifier.BLOCKING);
                  armorDamage += (float) event.getDamage(DamageModifier.FREEZING);
@@ -189,22 +201,17 @@
              this.hurtServer(serverLevel, this.damageSources().drown(), 1.0F);
          }
      }
-@@ -4099,8 +_,16 @@
-     }
- 
-     public boolean isBlocking() {
--        return this.getItemBlockingWith() != null;
--    }
-+        // Sakura start - allow blocking with swords
-+        return this.getItemBlockingWith() != null || this.isBlockingWithSword();
-+    }
+@@ -4107,6 +_,13 @@
+         if (!this.isUsingItem()) {
+             return null;
+         } else {
++            // Sakura start - allow blocking with swords
++            final ItemStack usingItem = this.useItem;
++            if (usingItem.getItem() instanceof me.samsuik.sakura.player.item.BlockableSwordItem swordItem && swordItem.isSafeToOverrideBlocking(usingItem)) {
++                return usingItem;
++            }
++            // Sakura end - allow blocking with swords
 +
-+    public final boolean isBlockingWithSword() {
-+        return this.isUsingItem() && !this.useItem.isEmpty()
-+            && me.samsuik.sakura.configuration.GlobalConfiguration.get().players.combat.blockWithSwords
-+            && this.useItem.getItem() instanceof me.samsuik.sakura.player.item.BlockableSwordItem;
-+    }
-+    // Sakura end - allow blocking with swords
- 
-     @Nullable
-     public ItemStack getItemBlockingWith() {
+             BlocksAttacks blocksAttacks = this.useItem.get(DataComponents.BLOCKS_ATTACKS);
+             if (blocksAttacks != null) {
+                 int i = this.useItem.getItem().getUseDuration(this.useItem, this) - this.useItemRemaining;

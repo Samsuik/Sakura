@@ -1,5 +1,7 @@
 package me.samsuik.sakura.player.combat;
 
+import me.samsuik.sakura.player.item.BlockableSwordItem;
+import me.samsuik.sakura.player.item.DataComponentHelper;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
@@ -23,6 +25,12 @@ import org.apache.commons.lang3.mutable.MutableFloat;
 import java.util.OptionalDouble;
 
 public final class CombatUtil {
+    public static boolean overrideBlockingAndHalveDamage(ItemStack stack, LivingEntity entity) {
+        return stack.getItem() instanceof BlockableSwordItem swordItem && swordItem.isSafeToOverrideBlocking(stack)
+            || stack.is(Items.SHIELD) && !DataComponentHelper.itemHasComponent(stack, DataComponents.BLOCKS_ATTACKS)
+                && entity.level().sakuraConfig().players.combat.shieldDamageReduction;
+    }
+
     public static double getLegacyAttackDifference(ItemStack itemstack) {
         ItemAttributeModifiers defaultModifiers = itemstack.getItem().components().get(DataComponents.ATTRIBUTE_MODIFIERS);
         if (defaultModifiers != null && !defaultModifiers.modifiers().isEmpty()) { // exists

@@ -6,7 +6,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import me.samsuik.sakura.player.gui.ItemStackUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
