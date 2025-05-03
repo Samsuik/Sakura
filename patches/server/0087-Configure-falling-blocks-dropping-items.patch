@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sun, 4 May 2025 19:44:39 +0100
+Subject: [PATCH] Configure falling blocks dropping items
+
+
+diff --git a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+index b2ae26cb6cac23c8da52106c398fab1c954020b4..c4a6d05e090c2307e6f262510283b7ee8da04cdb 100644
+--- a/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
++++ b/src/main/java/me/samsuik/sakura/configuration/WorldConfiguration.java
+@@ -84,6 +84,8 @@ public class WorldConfiguration extends ConfigurationPart {
+                 return (!preventAgainstBorder || !io.papermc.paper.util.CollisionUtil.isCollidingWithBorder(entity.level().getWorldBorder(), entity.getBoundingBox().inflate(0.01)))
+                     && (!preventAtWorldHeight || entity.blockPosition().getY() < entity.level().getMaxBuildHeight() - 1);
+             }
++
++            public boolean dropItems = true;
+         }
+ 
+         public Explosion explosion = new Explosion();
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index c7ee16e80eab05fb80cc8ad04315cc68fa933af5..78dd7305ec1e8ca0d9e625b005c94f401f889811 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -72,6 +72,7 @@ public class FallingBlockEntity extends Entity {
+ 
+     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level world) {
+         super(type, world);
++        this.dropItem = world.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
+         this.blockState = Blocks.SAND.defaultBlockState();
+         this.dropItem = true;
+         this.fallDamageMax = 40;
