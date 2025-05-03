@@ -5,7 +5,7 @@ Subject: [PATCH] Merge Cannon Entities
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 59a9632d8fcfacf4828ba4228c813bca730a4c17..fc70f238f551e819a610c5cf61e3fe4e6a547196 100644
+index 2ed1d5d504a69c03f4860f05e146c320cdb48a60..a4428a3c23db6f795b5ff0ead634e2e21468e3a6 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -687,6 +687,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -85,7 +85,7 @@ index 437d10c650f5aea171f2ea0d075f140d7f3cb058..4c4a662306b698112242775f9701902b
          if (!(this instanceof ServerPlayer) && removalReason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 5cc110d0ce9b63d036e569890acc8a752f5bc477..eb2ce73058f9f95989a40ead9c215f07efcb5c18 100644
+index 45f08a65d8b423fbf69f66d695bb9d67cf0f2f23..6f0b77e77186dd394b5949977e3e1a66610bc354 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -50,7 +50,7 @@ import net.minecraft.world.phys.HitResult;
@@ -97,7 +97,7 @@ index 5cc110d0ce9b63d036e569890acc8a752f5bc477..eb2ce73058f9f95989a40ead9c215f07
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final BlockState DEFAULT_BLOCK_STATE = Blocks.SAND.defaultBlockState();
      private static final int DEFAULT_TIME = 0;
-@@ -72,11 +72,62 @@ public class FallingBlockEntity extends Entity {
+@@ -72,12 +72,63 @@ public class FallingBlockEntity extends Entity {
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
      public boolean heightParity; // Sakura - falling block height parity api
  
@@ -153,6 +153,7 @@ index 5cc110d0ce9b63d036e569890acc8a752f5bc477..eb2ce73058f9f95989a40ead9c215f07
 +
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> entityType, Level level) {
          super(entityType, level);
+         this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
          this.isFallingBlock = true; // Sakura - client visibility settings
          this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
@@ -160,7 +161,7 @@ index 5cc110d0ce9b63d036e569890acc8a752f5bc477..eb2ce73058f9f95989a40ead9c215f07
      }
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
-@@ -236,6 +287,7 @@ public class FallingBlockEntity extends Entity {
+@@ -237,6 +288,7 @@ public class FallingBlockEntity extends Entity {
                                      return;
                                  }
                                  // CraftBukkit end
@@ -168,7 +169,7 @@ index 5cc110d0ce9b63d036e569890acc8a752f5bc477..eb2ce73058f9f95989a40ead9c215f07
                                  if (this.level().setBlock(blockPos, this.blockState, 3)) {
                                      ((ServerLevel)this.level())
                                          .getChunkSource()
-@@ -340,6 +392,7 @@ public class FallingBlockEntity extends Entity {
+@@ -341,6 +393,7 @@ public class FallingBlockEntity extends Entity {
  
          compound.putBoolean("CancelDrop", this.cancelDrop);
          if (!this.autoExpire) compound.putBoolean("Paper.AutoExpire", false); // Paper - Expand FallingBlock API
@@ -176,7 +177,7 @@ index 5cc110d0ce9b63d036e569890acc8a752f5bc477..eb2ce73058f9f95989a40ead9c215f07
      }
  
      @Override
-@@ -355,6 +408,7 @@ public class FallingBlockEntity extends Entity {
+@@ -356,6 +409,7 @@ public class FallingBlockEntity extends Entity {
          this.blockData = compound.getCompound("TileEntityData").map(blockData -> this.level().paperConfig().entities.spawning.filterBadTileEntityNbtFromFallingBlocks && this.blockState.getBlock() instanceof net.minecraft.world.level.block.GameMasterBlock ? null : blockData).map(CompoundTag::copy).orElse(null); // Paper - Filter bad block entity nbt data from falling blocks
          this.cancelDrop = compound.getBooleanOr("CancelDrop", false);
          this.autoExpire = compound.getBooleanOr("Paper.AutoExpire", true); // Paper - Expand FallingBlock API
