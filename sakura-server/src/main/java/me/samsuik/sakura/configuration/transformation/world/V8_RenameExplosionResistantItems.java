@@ -16,8 +16,12 @@ public final class V8_RenameExplosionResistantItems {
 
     public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
         builder.addVersion(VERSION, ConfigurationTransformation.builder()
-            .addAction(OLD_WHITELIST_PATH, TransformAction.rename(NEW_WHITELIST_PATH))
-            .addAction(OLD_ITEMS_PATH, TransformAction.rename(NEW_ITEMS_PATH))
+            .addAction(OLD_WHITELIST_PATH, move(NEW_WHITELIST_PATH))
+            .addAction(OLD_ITEMS_PATH, move(NEW_ITEMS_PATH))
             .build());
+    }
+
+    private static TransformAction move(NodePath path) {
+        return (p, n) -> path.array();
     }
 }
