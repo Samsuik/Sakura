@@ -86,12 +86,16 @@ public interface MergeStrategy {
                 return previous;
             }
 
+            if (!mergeHistory.hasPreviousMerged(entity, previous)) {
+                this.entityTable.clear();
+            }
+
             Entity nextEntity = this.entityTable.getAndWrite(entity);
             if (nextEntity == null || entity == nextEntity || !nextEntity.level().equals(entity.level())) {
                 return null;
             }
 
-            return mergeHistory.hasPreviousMerged(entity, nextEntity) && entity.compareState(nextEntity) ? nextEntity : null;
+            return entity.compareState(nextEntity) ? nextEntity : null;
         }
     }
 
