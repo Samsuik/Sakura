@@ -78,7 +78,7 @@ public final class BlockChangeTracker {
     }
 
     public List<Listener> getListenersForChunk(ChunkPos chunkPos) {
-        return this.chunkListeners.getOrDefault(chunkPos.toLong(), Collections.emptyList());
+        return List.copyOf(this.chunkListeners.getOrDefault(chunkPos.toLong(), Collections.emptyList()));
     }
 
     private static Set<ChunkPos> getChunkPositions(Set<BlockPos> positions) {
