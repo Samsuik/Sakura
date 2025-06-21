@@ -1,16 +1,17 @@
 package me.samsuik.sakura.entity.merge;
 
 import net.minecraft.world.entity.Entity;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public interface MergeCondition {
-    default MergeCondition and(@NotNull MergeCondition condition) {
+    default MergeCondition and(MergeCondition condition) {
         return (e,c,t) -> this.accept(e,c,t) && condition.accept(e,c,t);
     }
 
-    default MergeCondition or(@NotNull MergeCondition condition) {
+    default MergeCondition or(MergeCondition condition) {
         return (e,c,t) -> this.accept(e,c,t) || condition.accept(e,c,t);
     }
 
-    boolean accept(@NotNull Entity entity, int attempts, long sinceCreation);
+    boolean accept(Entity entity, int attempts, long sinceCreation);
 }

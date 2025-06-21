@@ -6,7 +6,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-public class ItemStackUtil {
+public final class ItemStackUtil {
     public static ItemStack itemWithBlankName(Material material) {
         return itemWithName(material, Component.empty());
     }

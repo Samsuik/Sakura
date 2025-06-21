@@ -1,9 +1,11 @@
 package me.samsuik.sakura.entity.merge;
 
+import me.samsuik.sakura.entity.merge.strategy.MergeStrategy;
 import net.minecraft.world.entity.Entity;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public final class EntityMergeHandler {
     private final TrackedMergeHistory trackedHistory = new TrackedMergeHistory();
 
@@ -17,7 +19,7 @@ public final class EntityMergeHandler {
     public boolean tryMerge(@Nullable Entity entity, @Nullable Entity previous) {
         if (entity instanceof MergeableEntity mergeEntity && previous instanceof MergeableEntity) {
             MergeEntityData mergeEntityData = mergeEntity.getMergeEntityData();
-            MergeStrategy strategy = MergeStrategy.from(mergeEntityData.getMergeLevel());
+            MergeStrategy strategy = MergeStrategy.from(mergeEntityData.mergeLevel);
             Entity into = strategy.mergeEntity(entity, previous, this.trackedHistory);
             if (into instanceof MergeableEntity intoEntity && !into.isRemoved() && mergeEntity.isSafeToMergeInto(intoEntity, strategy.trackHistory())) {
                 return this.mergeEntity(mergeEntity, intoEntity);
@@ -35,7 +37,7 @@ public final class EntityMergeHandler {
     public void removeEntity(@Nullable Entity entity) {
         if (entity instanceof MergeableEntity mergeEntity) {
             MergeEntityData mergeEntityData = mergeEntity.getMergeEntityData();
-            MergeStrategy strategy = MergeStrategy.from(mergeEntityData.getMergeLevel());
+            MergeStrategy strategy = MergeStrategy.from(mergeEntityData.mergeLevel);
             if (mergeEntityData.hasMerged() && strategy.trackHistory()) {
                 this.trackedHistory.trackHistory(entity, mergeEntityData);
             }
@@ -60,7 +62,7 @@ public final class EntityMergeHandler {
      * @param into the entity to merge into
      * @return if successful
      */
-    public boolean mergeEntity(@NotNull MergeableEntity mergeEntity, @NotNull MergeableEntity into) {
+    public boolean mergeEntity(MergeableEntity mergeEntity, MergeableEntity into) {
         MergeEntityData entities = mergeEntity.getMergeEntityData();
         MergeEntityData mergeInto = into.getMergeEntityData();
         mergeInto.mergeWith(entities); // merge entities together

@@ -7,28 +7,36 @@ import me.samsuik.sakura.configuration.WorldConfiguration.Cannons.Mechanics.TNTS
 import me.samsuik.sakura.utils.TickExpiry;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.FallingBlockEntity;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public final class TrackedMergeHistory {
     private final Long2ObjectMap<PositionHistory> historyMap = new Long2ObjectOpenHashMap<>();
 
-    public boolean hasPreviousMerged(@NotNull Entity entity, @NotNull Entity into) {
+    public boolean hasPreviouslyMergedAndMeetsCondition(Entity entity, Entity into, MergeCondition condition) {
+        return this.hasPreviouslyMerged(entity, into) && this.hasMetCondition(entity, condition);
+    }
+
+    public boolean hasPreviouslyMerged(Entity entity, Entity into) {
         PositionHistory positions = this.getHistory(into, false);
         return positions != null && positions.hasPosition(entity);
     }
 
-    public boolean hasMetCondition(@NotNull Entity entity, MergeCondition condition) {
+    public boolean hasMetCondition(Entity entity, MergeCondition condition) {
         PositionHistory positions = this.getHistory(entity, false);
         return positions != null && positions.hasMetConditions(entity, condition);
     }
 
     private boolean shouldTrackAllPositions(Entity entity, MergeEntityData mergeEntityData) {
         return entity instanceof FallingBlockEntity
-            || mergeEntityData.getMergeLevel() == MergeLevel.LENIENT
+            || mergeEntityData.mergeLevel == MergeLevel.LENIENT
             || entity.level().sakuraConfig().cannons.mechanics.tntSpread == TNTSpread.ALL;
     }
 
-    public void trackHistory(@NotNull Entity entity, @NotNull MergeEntityData mergeEntityData) {
+    public void trackHistory(Entity entity, MergeEntityData mergeEntityData) {
         PositionHistory positions = this.getHistory(entity, true);
         LongOpenHashSet originPositions = mergeEntityData.getOriginPositions();
         long gameTime = entity.level().getGameTime();
@@ -43,9 +51,12 @@ public final class TrackedMergeHistory {
         this.historyMap.values().removeIf(p -> p.expiry().isExpired(gameTime));
     }
 
+    @Nullable
+    @Contract("_, false -> _; _, true -> !null")
     private PositionHistory getHistory(Entity entity, boolean create) {
         long originPosition = entity.getPackedOriginPosition();
         PositionHistory history = this.historyMap.get(originPosition);
+        //noinspection ConstantValue
         if (create && history == null) {
             history = new PositionHistory(entity.level().getGameTime());
             this.historyMap.put(originPosition, history);

@@ -44,10 +44,10 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
 
     @Override
     protected int getExplosionCount() {
-        if (this.cause.getMergeEntityData().getMergeLevel() == MergeLevel.NONE) {
+        if (this.cause.getMergeEntityData().mergeLevel == MergeLevel.NONE) {
             this.mergeEntitiesBeforeExploding();
         }
-        return this.cause.getMergeEntityData().getCount();
+        return this.cause.getMergeEntityData().count;
     }
 
     @Override

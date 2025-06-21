@@ -1,18 +1,19 @@
 package me.samsuik.sakura.entity.merge;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public interface MergeableEntity {
-    @NotNull MergeEntityData getMergeEntityData();
+    MergeEntityData getMergeEntityData();
 
-    boolean isSafeToMergeInto(@NotNull MergeableEntity entity, boolean ticksLived);
+    boolean isSafeToMergeInto(MergeableEntity entity, boolean ticksLived);
 
-    default boolean respawnEntity() {
+    default boolean tryToRespawnEntity() {
         MergeEntityData mergeData = this.getMergeEntityData();
-        int count = mergeData.getCount();
-        if (count > 1) {
-            mergeData.setCount(0);
-            this.respawnEntity(count);
+        int originalCount = mergeData.count;
+        if (originalCount > 1) {
+            mergeData.count = 0;
+            this.respawnEntity(originalCount);
             return true;
         }
         return false;
