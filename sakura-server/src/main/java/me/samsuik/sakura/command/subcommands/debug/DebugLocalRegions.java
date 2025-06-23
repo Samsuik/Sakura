@@ -1,19 +1,19 @@
 package me.samsuik.sakura.command.subcommands.debug;
 
-import me.samsuik.sakura.command.BaseSubCommand;
+import me.samsuik.sakura.command.PlayerOnlySubCommand;
 import me.samsuik.sakura.local.LocalRegion;
 import me.samsuik.sakura.local.storage.LocalStorageHandler;
 import me.samsuik.sakura.local.storage.LocalValueStorage;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jspecify.annotations.NullMarked;
 
+import java.util.List;
 import java.util.Optional;
 
 @NullMarked
-public final class DebugLocalRegions extends BaseSubCommand {
+public final class DebugLocalRegions extends PlayerOnlySubCommand {
     private static final int DEFAULT_REGION_SIZE = 16;
 
     public DebugLocalRegions(String name) {
@@ -21,9 +21,8 @@ public final class DebugLocalRegions extends BaseSubCommand {
     }
 
     @Override
-    public void execute(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
-            this.sendPlayerOnlyMessage(sender);
+    public void execute(Player player, String[] args) {
+        if (args.length == 0) {
             return;
         }
 
@@ -34,14 +33,18 @@ public final class DebugLocalRegions extends BaseSubCommand {
         final int blockZ = location.getBlockZ();
         final Optional<LocalRegion> currentRegion = storageHandler.locate(blockX, blockZ);
 
-        if ("create".equalsIgnoreCase(args[0])) {
+        if ("create".equalsIgnoreCase(args[0]) && args.length > 1) {
             final int size = parseInt(args, 1).orElse(DEFAULT_REGION_SIZE);
             final LocalRegion region = LocalRegion.at(blockX, blockZ, size);
-            storageHandler.put(region, new LocalValueStorage());
+            if (currentRegion.isPresent()) {
+                player.sendRichMessage("<red>regions cannot overlap");
+            } else {
+                storageHandler.put(region, new LocalValueStorage());
+            }
         }
 
         if ("get".equalsIgnoreCase(args[0])) {
-            sender.sendRichMessage("<red>" + (currentRegion.isPresent() ? currentRegion.get() : "not inside of a region"));
+            player.sendRichMessage("<red>" + (currentRegion.isPresent() ? currentRegion.get() : "not inside of a region"));
         }
 
         if (currentRegion.isPresent()) {
@@ -50,5 +53,10 @@ public final class DebugLocalRegions extends BaseSubCommand {
                 storageHandler.remove(region);
             }
         }
+    }
+
+    @Override
+    public void tabComplete(List<String> list, String[] args) throws IllegalArgumentException {
+        list.addAll(List.of("create", "get", "delete"));
     }
 }

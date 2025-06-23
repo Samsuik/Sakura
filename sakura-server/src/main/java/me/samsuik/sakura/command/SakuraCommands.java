@@ -7,7 +7,6 @@ import me.samsuik.sakura.player.visibility.VisibilityTypes;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.command.Command;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,13 +37,5 @@ public final class SakuraCommands {
         COMMANDS.forEach((name, command) -> {
             server.server.getCommandMap().register(name, "sakura", command);
         });
-    }
-
-    @Nullable
-    public static Command getCommand(String name) {
-        return SUB_COMMANDS.stream()
-            .filter(cmd -> cmd.getName().equalsIgnoreCase(name))
-            .findFirst()
-            .orElse(null);
     }
 }

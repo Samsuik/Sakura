@@ -1,13 +1,12 @@
 package me.samsuik.sakura.command.subcommands;
 
-import me.samsuik.sakura.command.BaseSubCommand;
+import me.samsuik.sakura.command.PlayerOnlySubCommand;
 import me.samsuik.sakura.player.visibility.VisibilityGui;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-public final class FPSCommand extends BaseSubCommand {
+public final class FPSCommand extends PlayerOnlySubCommand {
     private final VisibilityGui visibilityGui = new VisibilityGui();
 
     public FPSCommand(String name) {
@@ -15,9 +14,7 @@ public final class FPSCommand extends BaseSubCommand {
     }
 
     @Override
-    public void execute(CommandSender sender, String[] args) {
-        if (sender instanceof Player player) {
-            this.visibilityGui.showTo(player);
-        }
+    public void execute(Player player, String[] args) {
+        this.visibilityGui.showTo(player);
     }
 }

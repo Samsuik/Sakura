@@ -1,6 +1,6 @@
 package me.samsuik.sakura.command.subcommands.debug;
 
-import me.samsuik.sakura.command.BaseSubCommand;
+import me.samsuik.sakura.command.PlayerOnlySubCommand;
 import me.samsuik.sakura.redstone.RedstoneNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
@@ -8,7 +8,6 @@ import net.minecraft.world.level.Level;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.entity.Player;
@@ -19,18 +18,13 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 @NullMarked
-public final class DebugRedstoneCache extends BaseSubCommand {
+public final class DebugRedstoneCache extends PlayerOnlySubCommand {
     public DebugRedstoneCache(String name) {
         super(name);
     }
 
     @Override
-    public void execute(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
-            this.sendPlayerOnlyMessage(sender);
-            return;
-        }
-
+    public void execute(Player player, String[] args) {
         ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
         Level level = nmsPlayer.level();
         Set<Location> locations = new HashSet<>();

@@ -1,19 +1,18 @@
 package me.samsuik.sakura.command.subcommands;
 
-import me.samsuik.sakura.command.BaseSubCommand;
+import me.samsuik.sakura.command.PlayerOnlySubCommand;
 import me.samsuik.sakura.configuration.GlobalConfiguration;
 import me.samsuik.sakura.player.visibility.VisibilitySettings;
 import me.samsuik.sakura.player.visibility.VisibilityState;
 import me.samsuik.sakura.player.visibility.VisibilityType;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.Arrays;
 
 @NullMarked
-public final class VisualCommand extends BaseSubCommand {
+public final class VisualCommand extends PlayerOnlySubCommand {
     private final VisibilityType type;
 
     public VisualCommand(VisibilityType type, String... aliases) {
@@ -23,11 +22,7 @@ public final class VisualCommand extends BaseSubCommand {
     }
 
     @Override
-    public void execute(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
-            return;
-        }
-
+    public void execute(Player player, String[] args) {
         VisibilitySettings settings = player.getVisibility();
         VisibilityState state = settings.toggle(type);
 

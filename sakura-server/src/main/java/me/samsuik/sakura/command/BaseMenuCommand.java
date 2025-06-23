@@ -66,23 +66,18 @@ public abstract class BaseMenuCommand extends BaseSubCommand {
             return Collections.emptyList();
         }
 
-        final Command command = SakuraCommands.getCommand(args[0]);
         final List<String> completions = new ArrayList<>();
-        if (command != null && args.length > 1) {
-            final String[] newArgs = Arrays.copyOfRange(args, 1, args.length);
-            completions.addAll(command.tabComplete(sender, alias, newArgs));
-        } else {
-            for (final Command subCommand : SakuraCommands.SUB_COMMANDS) {
-                final String commandName = subCommand.getName();
-                if (commandName.startsWith(args[0])) {
-                    completions.add(commandName);
-                }
+        for (final Command subCommand : this.subCommands()) {
+            final String commandName = subCommand.getName();
+            if (commandName.startsWith(args[0])) {
+                completions.add(commandName);
+            }
+            if (commandName.equalsIgnoreCase(args[0])) {
+                final String[] newArgs = Arrays.copyOfRange(args, 1, args.length);
+                return subCommand.tabComplete(sender, alias, newArgs);
             }
         }
 
-        final String lastArg = args[args.length - 1];
-        return completions.stream()
-            .filter(result -> result.startsWith(lastArg))
-            .toList();
+        return completions;
     }
 }
