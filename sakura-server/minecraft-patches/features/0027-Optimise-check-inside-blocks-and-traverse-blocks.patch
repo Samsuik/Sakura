@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise check inside blocks and traverse blocks
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index ce666bcaba205c0ab08def735e016f8dd3a24ca5..45aae522d5644e8409dc41bf42f8fe236a4e32d4 100644
+index 6cd8e8bae0c62799fde7533f994eb71bf133fe35..61fc1dafd5af4c3d5a84f8c82b4350f2c311dc96 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1882,6 +1882,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1886,6 +1886,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      private void checkInsideBlocks(List<Entity.Movement> movements, InsideBlockEffectApplier.StepBasedCollector stepBasedCollector) {
          if (this.isAffectedByBlocks()) {
              LongSet set = this.visitedBlocks;
@@ -16,7 +16,7 @@ index ce666bcaba205c0ab08def735e016f8dd3a24ca5..45aae522d5644e8409dc41bf42f8fe23
  
              for (Entity.Movement movement : movements) {
                  Vec3 vec3 = movement.from();
-@@ -1897,7 +1898,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1901,7 +1902,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                      this.physics, // Sakura - configure cannon physics
                      (pos, step) -> {
                          if (this.isAlive()) {
