@@ -67,7 +67,7 @@ index 44aaaa87d63a2a2287f89feaa431ca0e80da3dab..194db5ff2a473b10fded4491c1173d42
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 98107921d7251e1b7fc621103a31afdfd3bb5af7..162062200a4ffa7bc669093779377f0d8d83172e 100644
+index 98107921d7251e1b7fc621103a31afdfd3bb5af7..d6833a7ba9f5885444ab409bca72eb55ac87ffec 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -570,6 +570,13 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -118,7 +118,23 @@ index 98107921d7251e1b7fc621103a31afdfd3bb5af7..162062200a4ffa7bc669093779377f0d
                      BlockHitResult blockHitResult = this.level()
                          .clip(
                              new ClipContext(this.position(), this.position().add(vec3), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this)
-@@ -1223,6 +1235,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1180,6 +1192,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                 }
+ 
+                 Vec3 vec31 = this.position();
++                if (physics.afterOrEqual(1_21_5)) { // Sakura - configure cannon physics
+                 List<Entity.Movement> list = new ObjectArrayList<>();
+ 
+                 for (Direction.Axis axis : axisStepOrder(vec3)) {
+@@ -1192,6 +1205,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                 }
+ 
+                 this.movementThisTick.add(list);
++                } // Sakura - configure cannon physics
+                 this.setPos(vec31);
+             }
+ 
+@@ -1223,6 +1237,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              } else {
                  if (this.horizontalCollision) {
                      Vec3 deltaMovement = this.getDeltaMovement();
@@ -131,7 +147,7 @@ index 98107921d7251e1b7fc621103a31afdfd3bb5af7..162062200a4ffa7bc669093779377f0d
                      this.setDeltaMovement(flag ? 0.0 : deltaMovement.x, deltaMovement.y, flag1 ? 0.0 : deltaMovement.z);
                  }
  
-@@ -1539,7 +1557,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1539,7 +1559,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              bb = currBoundingBox.expandTowards(movement.x, movement.y, movement.z);
          }
          this.collectCollisions(bb, voxelList, bbList, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
@@ -140,7 +156,7 @@ index 98107921d7251e1b7fc621103a31afdfd3bb5af7..162062200a4ffa7bc669093779377f0d
      }
  
      private Vec3 collideAxisScan(Vec3 movement, AABB currBoundingBox, List<VoxelShape> voxelList, List<AABB> bbList) {
-@@ -1547,7 +1565,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1547,7 +1567,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          double y = movement.y;
          double z = movement.z;
  
@@ -152,7 +168,7 @@ index 98107921d7251e1b7fc621103a31afdfd3bb5af7..162062200a4ffa7bc669093779377f0d
  
          if (y != 0.0) {
              y = this.scanY(currBoundingBox, y, voxelList, bbList);
-@@ -1669,7 +1690,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1669,7 +1692,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER  | this.getExtraCollisionFlags(), null // Sakura - load chunks on movement
          );
          potentialCollisionsBB.addAll(entityAABBs);
@@ -161,7 +177,7 @@ index 98107921d7251e1b7fc621103a31afdfd3bb5af7..162062200a4ffa7bc669093779377f0d
  
          final boolean collidedX = collided.x != movement.x;
          final boolean collidedY = collided.y != movement.y;
-@@ -1795,11 +1816,15 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1795,11 +1818,15 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              for (Entity.Movement movement : movements) {
                  Vec3 vec3 = movement.from();
                  Vec3 vec31 = movement.to();
@@ -789,7 +805,7 @@ index 6c789e56f21f01252c21786cfeb48d88485b5636..17ecdee7bd6a8369394115d6534c9d7e
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index 7277004b03287fdf9f3345d445740af27f02d772..c1ea33dc297409a8da73ee5145d800a4715b93ea 100644
+index 7277004b03287fdf9f3345d445740af27f02d772..564de0eccc2ab4063ee4de99ffa5554d5c5e12a1 100644
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 @@ -65,6 +65,150 @@ public class PistonMovingBlockEntity extends BlockEntity {
@@ -956,7 +972,19 @@ index 7277004b03287fdf9f3345d445740af27f02d772..c1ea33dc297409a8da73ee5145d800a4
                      for (AABB aabb1 : list) {
                          AABB movementArea = PistonMath.getMovementArea(moveByPositionAndProgress(pos, aabb1, piston), movementDirection, d);
                          AABB boundingBox = entity.getBoundingBox();
-@@ -308,12 +458,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -196,6 +346,11 @@ public class PistonMovingBlockEntity extends BlockEntity {
+         NOCLIP.set(noClipDirection);
+         Vec3 vec3 = entity.position();
+         entity.move(MoverType.PISTON, new Vec3(progress * direction.getStepX(), progress * direction.getStepY(), progress * direction.getStepZ()));
++        // Sakura start - configure cannon physics
++        if (entity.physics().before(1_21_5)) {
++            vec3 = entity.oldPosition();
++        }
++        // Sakura end - configure cannon physics
+         entity.applyEffectsFromBlocks(vec3, entity.position());
+         entity.removeLatestMovementRecordingBatch();
+         NOCLIP.set(null);
+@@ -308,12 +463,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
      }
  
      public static void tick(Level level, BlockPos pos, BlockState state, PistonMovingBlockEntity blockEntity) {
@@ -978,7 +1006,7 @@ index 7277004b03287fdf9f3345d445740af27f02d772..c1ea33dc297409a8da73ee5145d800a4
                  level.removeBlockEntity(pos);
                  blockEntity.setRemoved();
                  if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-@@ -335,12 +494,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -335,12 +499,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
              }
          } else {
              float f = blockEntity.progress + 0.5F;
