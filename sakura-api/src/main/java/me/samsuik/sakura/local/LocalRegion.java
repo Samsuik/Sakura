@@ -31,8 +31,8 @@ public record LocalRegion(int minX, int minZ, int maxX, int maxZ) {
     }
 
     public boolean intersects(LocalRegion region) {
-        return (this.minX < region.minX() && this.maxX > region.minX() || this.maxX > region.maxX() && this.minX < region.maxX())
-            && (this.minZ < region.minZ() && this.maxZ > region.minZ() || this.maxZ > region.maxZ() && this.minZ < region.maxZ());
+        return (this.minX <= region.minX() && this.maxX >= region.minX() || this.maxX >= region.maxX() && this.minX < region.maxX())
+            && (this.minZ <= region.minZ() && this.maxZ >= region.minZ() || this.maxZ >= region.maxZ() && this.minZ < region.maxZ());
     }
 
     public boolean contains(LocalRegion region) {
