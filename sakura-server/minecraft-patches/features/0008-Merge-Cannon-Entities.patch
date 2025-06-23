@@ -85,7 +85,7 @@ index cffd3f64b253dba53eacc60c8ae82dd297f98e5b..68e2b26835a2588a047e9ea175eb8e49
          if (!(this instanceof ServerPlayer) && removalReason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 45f08a65d8b423fbf69f66d695bb9d67cf0f2f23..6f0b77e77186dd394b5949977e3e1a66610bc354 100644
+index 45f08a65d8b423fbf69f66d695bb9d67cf0f2f23..3af6e04bb4dcd91de2794bbc8d3eff16def9efa8 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -50,7 +50,7 @@ import net.minecraft.world.phys.HitResult;
@@ -131,7 +131,7 @@ index 45f08a65d8b423fbf69f66d695bb9d67cf0f2f23..6f0b77e77186dd394b5949977e3e1a66
 +
 +            // If you horizontal stack into a moving piston block this condition will be met.
 +            if (!fallingBlock.isRemoved()) {
-+                this.mergeData.setCount(count + 1);
++                this.mergeData.count = count + 1;
 +                fallingBlock.storeEntityState();
 +                fallingBlock.entityState().apply(this);
 +                break;
@@ -144,7 +144,7 @@ index 45f08a65d8b423fbf69f66d695bb9d67cf0f2f23..6f0b77e77186dd394b5949977e3e1a66
 +    @Override
 +    public @Nullable ItemEntity spawnAtLocation(ServerLevel level, net.minecraft.world.level.ItemLike item) { // may be overridden by plugins
 +        ItemEntity itemEntity = null;
-+        for (int i = 0; i < this.mergeData.getCount(); ++i) {
++        for (int i = 0; i < this.mergeData.count; ++i) {
 +            itemEntity = super.spawnAtLocation(level, item);
 +        }
 +        return itemEntity;
@@ -157,7 +157,7 @@ index 45f08a65d8b423fbf69f66d695bb9d67cf0f2f23..6f0b77e77186dd394b5949977e3e1a66
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
          this.isFallingBlock = true; // Sakura - client visibility settings
          this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
-+        this.mergeData.setMergeLevel(level.sakuraConfig().cannons.mergeLevel); // Sakura - merge cannon entities
++        this.mergeData.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura - merge cannon entities
      }
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
@@ -165,7 +165,7 @@ index 45f08a65d8b423fbf69f66d695bb9d67cf0f2f23..6f0b77e77186dd394b5949977e3e1a66
                                      return;
                                  }
                                  // CraftBukkit end
-+                                if (this.respawnEntity()) return; // Sakura - merge cannon entities
++                                if (this.tryToRespawnEntity()) return; // Sakura - merge cannon entities
                                  if (this.level().setBlock(blockPos, this.blockState, 3)) {
                                      ((ServerLevel)this.level())
                                          .getChunkSource()
@@ -173,7 +173,7 @@ index 45f08a65d8b423fbf69f66d695bb9d67cf0f2f23..6f0b77e77186dd394b5949977e3e1a66
  
          compound.putBoolean("CancelDrop", this.cancelDrop);
          if (!this.autoExpire) compound.putBoolean("Paper.AutoExpire", false); // Paper - Expand FallingBlock API
-+        compound.putInt("merge_count", this.mergeData.getCount()); // Sakura - merge cannon entities; save to nbt
++        compound.putInt("merge_count", this.mergeData.count); // Sakura - merge cannon entities; save to nbt
      }
  
      @Override
@@ -181,12 +181,12 @@ index 45f08a65d8b423fbf69f66d695bb9d67cf0f2f23..6f0b77e77186dd394b5949977e3e1a66
          this.blockData = compound.getCompound("TileEntityData").map(blockData -> this.level().paperConfig().entities.spawning.filterBadTileEntityNbtFromFallingBlocks && this.blockState.getBlock() instanceof net.minecraft.world.level.block.GameMasterBlock ? null : blockData).map(CompoundTag::copy).orElse(null); // Paper - Filter bad block entity nbt data from falling blocks
          this.cancelDrop = compound.getBooleanOr("CancelDrop", false);
          this.autoExpire = compound.getBooleanOr("Paper.AutoExpire", true); // Paper - Expand FallingBlock API
-+        this.mergeData.setCount(compound.getIntOr("merge_count", 1)); // Sakura - merge cannon entities; load from nbt
++        this.mergeData.count = compound.getIntOr("merge_count", 1); // Sakura - merge cannon entities; load from nbt
      }
  
      public void setHurtsEntities(float fallDamagePerDistance, int fallDamageMax) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 0fbac85dd7b624899db3825149a5d2b167ecedaa..13fdcee0437695ae22180c6091b7aa72a1f1d087 100644
+index 0fbac85dd7b624899db3825149a5d2b167ecedaa..a1cbeb8216edda93ac6043b113314d53e9347fd6 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -35,7 +35,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
@@ -243,7 +243,7 @@ index 0fbac85dd7b624899db3825149a5d2b167ecedaa..13fdcee0437695ae22180c6091b7aa72
          this.blocksBuilding = true;
          this.isPrimedTNT = true; // Sakura - client visibility settings
          this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
-+        this.mergeData.setMergeLevel(level.sakuraConfig().cannons.mergeLevel); // Sakura - merge cannon entities
++        this.mergeData.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura - merge cannon entities
      }
  
      public PrimedTnt(Level level, double x, double y, double z, @Nullable LivingEntity owner) {
@@ -251,7 +251,7 @@ index 0fbac85dd7b624899db3825149a5d2b167ecedaa..13fdcee0437695ae22180c6091b7aa72
          if (i <= 0) {
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              //this.discard();
-+            this.respawnEntity(); // Sakura - merge cannon entities
++            this.tryToRespawnEntity(); // Sakura - merge cannon entities
              if (!this.level().isClientSide) {
                  this.explode();
              }
@@ -259,7 +259,7 @@ index 0fbac85dd7b624899db3825149a5d2b167ecedaa..13fdcee0437695ae22180c6091b7aa72
          if (this.explosionPower != 4.0F) {
              compound.putFloat("explosion_power", this.explosionPower);
          }
-+        compound.putInt("merge_count", this.mergeData.getCount()); // Sakura - merge cannon entities; save to nbt
++        compound.putInt("merge_count", this.mergeData.count); // Sakura - merge cannon entities; save to nbt
      }
  
      @Override
@@ -267,7 +267,7 @@ index 0fbac85dd7b624899db3825149a5d2b167ecedaa..13fdcee0437695ae22180c6091b7aa72
          this.setFuse(compound.getShortOr("fuse", (short)80));
          this.setBlockState(compound.read("block_state", BlockState.CODEC, registryOps).orElse(DEFAULT_BLOCK_STATE));
          this.explosionPower = Mth.clamp(compound.getFloatOr("explosion_power", 4.0F), 0.0F, 128.0F);
-+        this.mergeData.setCount(compound.getIntOr("merge_count", 1)); // Sakura - merge cannon entities; load from nbt
++        this.mergeData.count = compound.getIntOr("merge_count", 1); // Sakura - merge cannon entities; load from nbt
      }
  
      @Nullable
@@ -310,7 +310,7 @@ index 42ee3f32fe44c1f0680c994a69201f7bd7792673..96c977df11c660ccb9a9b32e61c86508
  
      protected abstract int getSignalForState(BlockState state);
 diff --git a/net/minecraft/world/level/block/WeightedPressurePlateBlock.java b/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
-index 5e095919828e89d12f2676b3c544842a81e047a1..94d699f1b8b1a85ea36341985666b21fcaaac761 100644
+index 5e095919828e89d12f2676b3c544842a81e047a1..e47a5010baea87ebf472ccac9ae98ede7a490b50 100644
 --- a/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
 @@ -39,6 +39,11 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
@@ -330,7 +330,7 @@ index 5e095919828e89d12f2676b3c544842a81e047a1..94d699f1b8b1a85ea36341985666b21f
              // We only want to block turning the plate on if all events are cancelled
              if (!cancellable.isCancelled()) {
 -                min++;
-+                min += !entityInside && entity instanceof me.samsuik.sakura.entity.merge.MergeableEntity mergeEntity ? mergeEntity.getMergeEntityData().getCount() : 1; // Sakura - merge cannon entities
++                min += !entityInside && entity instanceof me.samsuik.sakura.entity.merge.MergeableEntity mergeEntity ? mergeEntity.getMergeEntityData().count : 1; // Sakura - merge cannon entities
              }
          }
          // CraftBukkit end
