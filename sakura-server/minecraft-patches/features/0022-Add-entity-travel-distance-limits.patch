@@ -5,7 +5,7 @@ Subject: [PATCH] Add entity travel distance limits
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index effdd0e1382fc59b9d8a709c18a652fbd4e94e6d..8f17606889b767539c19015ae7f1cb7795616b88 100644
+index b9806bdd4d49ed3fd8c17125143703b6a792b10e..4b3ee01e9dac634941b6cfb0cab43ba1b9069fc9 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1295,6 +1295,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -21,10 +21,10 @@ index effdd0e1382fc59b9d8a709c18a652fbd4e94e6d..8f17606889b767539c19015ae7f1cb77
          } else {entity.inactiveTick();} // Paper - EAR 2
          profilerFiller.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 47ecc1ed0170e24b41b0a010307cc2bcab339a3a..06e919ddb07faa72721fd5660895abb3ad749dee 100644
+index d61ac5aae3deb9bd145787351fb85051d4ff1aed..ffe5ad8f3936386fd1fa2b961837fbea5c230407 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -581,6 +581,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -585,6 +585,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return this.physics;
      }
      // Sakura end - configure cannon physics
@@ -44,7 +44,7 @@ index 47ecc1ed0170e24b41b0a010307cc2bcab339a3a..06e919ddb07faa72721fd5660895abb3
  
      public Entity(EntityType<?> entityType, Level level) {
          this.type = entityType;
-@@ -610,6 +623,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -614,6 +627,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          this.setPos(0.0, 0.0, 0.0);
          this.eyeHeight = this.dimensions.eyeHeight();
          this.despawnTime = level == null || type == EntityType.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit

@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise cannon entity movement
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 4c4a662306b698112242775f9701902b70e3ae85..f7ba5db617582b16c5d101259dc60349fcdadd22 100644
+index 68e2b26835a2588a047e9ea175eb8e4912041976..98107921d7251e1b7fc621103a31afdfd3bb5af7 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1165,7 +1165,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1169,7 +1169,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              Vec3 vec3 = this.collide(movement);
              double d = vec3.lengthSqr();
              if (d > 1.0E-7 || movement.lengthSqr() - d < 1.0E-7) {
@@ -17,7 +17,7 @@ index 4c4a662306b698112242775f9701902b70e3ae85..f7ba5db617582b16c5d101259dc60349
                      BlockHitResult blockHitResult = this.level()
                          .clip(
                              new ClipContext(this.position(), this.position().add(vec3), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this)
-@@ -1506,6 +1506,131 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1510,6 +1510,131 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return distance;
      }
  
@@ -150,7 +150,7 @@ index 4c4a662306b698112242775f9701902b70e3ae85..f7ba5db617582b16c5d101259dc60349
      protected Vec3 collide(Vec3 movement) {
          final boolean xZero = movement.x == 0.0;
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index eb2ce73058f9f95989a40ead9c215f07efcb5c18..767bcc16b79d1a82fc9a73ab7b022c84aa66ede3 100644
+index 6f0b77e77186dd394b5949977e3e1a66610bc354..0dc8c7a74df21e10d3eec66682d5efc61b335e61 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -121,6 +121,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
