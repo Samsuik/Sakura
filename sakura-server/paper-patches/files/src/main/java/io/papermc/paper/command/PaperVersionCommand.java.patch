@@ -1,0 +1,29 @@
+--- a/src/main/java/io/papermc/paper/command/PaperVersionCommand.java
++++ b/src/main/java/io/papermc/paper/command/PaperVersionCommand.java
+@@ -52,8 +_,10 @@
+         final PaperVersionCommand command = new PaperVersionCommand();
+ 
+         return Commands.literal("version")
+-            .requires(source -> source.getSender().hasPermission("bukkit.command.version"))
++            // Sakura start - customise version command
+             .then(Commands.argument("plugin", StringArgumentType.word())
++                .requires(source -> source.getSender().hasPermission("bukkit.command.version"))
++                // Sakura end - customise version command
+                 .suggests(command::suggestPlugins)
+                 .executes(command::pluginVersion))
+             .executes(command::serverVersion)
+@@ -130,7 +_,13 @@
+     }
+ 
+     private int serverVersion(CommandContext<CommandSourceStack> context) {
+-        sendVersion(context.getSource().getSender());
++        // Sakura start - customise version command
++        final CommandSender sender = context.getSource().getSender();
++        if (sender.hasPermission("bukkit.command.version")) {
++            sendVersion(sender);
++        }
++        me.samsuik.sakura.configuration.SakuraBrandInformation.sendBrandToPlayer(sender);
++        // Sakura end - customise version command
+         return Command.SINGLE_SUCCESS;
+     }
+ 
