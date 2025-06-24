@@ -8,7 +8,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 
-public final class SakuraBrandInformation {
+public final class SakuraVersionInformation {
     private static final String VERSION_MESSAGE = """
                 <dark_purple>.
                 <dark_purple>| <white>This server is running <gradient:red:light_purple>Sakura</gradient>
@@ -16,7 +16,7 @@ public final class SakuraBrandInformation {
                 <dark_purple>| <white>Github<dark_gray>: \\<<yellow><click:open_url:'https://github.com/Samsuik/Sakura'>link</click></yellow>>
                 <dark_purple>'""";
 
-    public static void sendBrandToPlayer(final CommandSender sender) {
+    public static void sendVersionToPlayer(final CommandSender sender) {
         sender.sendMessage(MiniMessage.miniMessage().deserialize(VERSION_MESSAGE,
             Placeholder.component("commit", gitCommit()),
             Placeholder.unparsed("version", Bukkit.getMinecraftVersion())
