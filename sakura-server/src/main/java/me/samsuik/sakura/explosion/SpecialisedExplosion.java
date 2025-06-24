@@ -1,4 +1,4 @@
-package me.samsuik.sakura.explosion.special;
+package me.samsuik.sakura.explosion;
 
 import ca.spottedleaf.moonrise.common.util.WorldUtil;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
@@ -161,15 +161,15 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
 
         if (distanceFromBottom <= 1.0) {
             double x = entity.getX() - pos.x;
-            double y = entity.getEyeY() - pos.y; // Sakura - physics version api
+            double y = entity.getEyeY() - pos.y; // Sakura - configure cannon physics
             double z = entity.getZ() - pos.z;
             double distance = Math.sqrt(x * x + y * y + z * z);
-            // Sakura start - physics version api
+            // Sakura start - configure cannon physics
             if (this.physics.before(1_17_0)) {
                 distanceFromBottom = (float) distanceFromBottom;
                 distance = (float) distance;
             }
-            // Sakura end - physics version api
+            // Sakura end - configure cannon physics
 
             if (distance != 0.0D) {
                 x /= distance;

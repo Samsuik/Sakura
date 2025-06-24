@@ -1,4 +1,4 @@
-package me.samsuik.sakura.explosion.special;
+package me.samsuik.sakura.explosion;
 
 import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -35,12 +35,12 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
         this.bounds = new AABB(center, center);
     }
 
-    // Sakura start - physics version api
+    // Sakura start - configure cannon physics
     @Override
     protected double getExplosionOffset() {
         return this.physics.before(1_10_0) ? (double) 0.49f : super.getExplosionOffset();
     }
-    // Sakura end - physics version api
+    // Sakura end - configure cannon physics
 
     @Override
     protected int getExplosionCount() {
