@@ -2,7 +2,7 @@ Sakura
 ===========
 This is a fork of Paper to optimise cannoning and provide essential features for cannon testing and faction servers.
 
-There are branches from the latest version to 1.19.3. If you are looking for a 1.8.8 server jar check out the project Sakura was based on [Blossom](https://github.com/Samsuik/Blossom).
+There are branches from the latest version to 1.18.2. If you are looking for a 1.8.8 server jar check out the project Sakura was based on [Blossom](https://github.com/Samsuik/Blossom).
 
 ## There are compiled binaries on the releases page
 > https://github.com/Samsuik/Sakura/releases
@@ -33,19 +33,19 @@ The branches targeting minecraft versions before `1.21.4` have `legacy/` in fron
 You can skip this step if you're ok with the latest version.
 
 #### Applying Patches
-> If you're using Windows the file path limit causes the `applyPatches` task to fail.
+> If you're using Windows the file path limit causes the `applyAllPatches` task to fail.
 > This is because of the highly nested structure of this repository and the use of long file names.
 > There is a registry setting that can be changed to raise this limit.
 > https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
 
-All you have to do is run the `applyPatches` task.
+All you have to do is run the `applyAllPatches` task.
 ```
-./gradlew applyPatches
+./gradlew applyAllPatches
 ```
 
 If everything was successful, you should see that two directories have been created `sakura-api` and `sakura-server` these contain all the source code.
 
-If you want to switch branches after running `applyPatches`, you will need to run the `cleanCache` task.
+If you want to switch branches after running `applyAllPatches`, you will need to run the `cleanCache` task.
 ```
 ./gradlew cleanCache
 ```
@@ -53,16 +53,9 @@ If you want to switch branches after running `applyPatches`, you will need to ru
 ### Building
 The patches must be applied before building otherwise it will fail.
 
-The task used for building is different on older versions, make sure that you use the correct command.
-
-#### After 1.20.6
+The `createMojmapPaperclipJar` task will create a mojang-mapped paperclip jar.
 ```
 ./gradlew createMojmapPaperclipJar
-```
-
-#### Before 1.20.6
-```
-./gradlew createReobfPaperclipJar
 ```
 
 You can find the built paperclip jar under `build/libs`.
