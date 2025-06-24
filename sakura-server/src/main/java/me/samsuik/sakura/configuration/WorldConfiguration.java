@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.spongepowered.configurate.objectmapping.meta.Comment;
 import org.spongepowered.configurate.objectmapping.meta.Setting;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -192,7 +191,6 @@ public final class WorldConfiguration extends ConfigurationPart {
 
         public Items items = new Items();
         public class Items extends ConfigurationPart {
-            public boolean useWhitelistForExplosionResistantItems = true;
             public BlastResistant blastResistant = new BlastResistant();
             public class BlastResistant extends ConfigurationPart {
                 public Set<Item> items = Set.of();
