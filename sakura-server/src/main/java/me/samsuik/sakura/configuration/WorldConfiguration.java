@@ -83,6 +83,10 @@ public final class WorldConfiguration extends ConfigurationPart {
 
         public Explosion explosion = new Explosion();
         public class Explosion extends ConfigurationPart {
+            public boolean optimiseProtectedRegions = false;
+            public boolean avoidRedundantBlockSearches = false;
+            public boolean useBlockCacheAcrossExplosions = false;
+
             public Map<Block, DurableMaterial> durableMaterials = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
                 map.put(Blocks.OBSIDIAN, new DurableMaterial(4, Blocks.COBBLESTONE.getExplosionResistance()));
                 map.put(Blocks.ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
@@ -92,16 +96,20 @@ public final class WorldConfiguration extends ConfigurationPart {
             @Comment("When disabled all explosions will be able to damage durable materials.")
             public boolean requireTntToDamageDurableMaterials = true;
 
-            public boolean optimiseProtectedRegions = false;
-            public boolean avoidRedundantBlockSearches = false;
             public boolean protectScaffoldingFromCreepers = false;
             public boolean destroyWaterloggedBlocks = false;
             public boolean explodeLava = false;
             public boolean consistentRadius = false;
             public boolean explosionsHurtPlayers = true;
             public boolean explosionsDropItems = true;
-            public boolean useBlockCacheAcrossExplosions = false;
             public boolean breakBlocksWhenOutsideTheWorldBorder = true;
+
+            @Comment(
+                "Protects blocks above the configured height from explosions.\n" +
+                "Can be used to replicate the regen caps found on complexmc, and\n" +
+                "useful for protecting the nether roof when bedrock is a durable-material."
+            )
+            public IntOr.Disabled protectBlocksAboveY = IntOr.Disabled.DISABLED;
         }
 
         public Mechanics mechanics = new Mechanics();

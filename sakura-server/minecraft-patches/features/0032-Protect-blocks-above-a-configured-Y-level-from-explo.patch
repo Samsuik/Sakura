@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Wed, 25 Jun 2025 17:57:44 +0100
+Subject: [PATCH] Protect blocks above a configured Y-level from explosions
+
+
+diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
+index 82fdd92a7a8122a9e409db2491a56df0311cad30..1b48793a6472ab015d0f7d7755d77104cccd18c3 100644
+--- a/net/minecraft/world/level/ServerExplosion.java
++++ b/net/minecraft/world/level/ServerExplosion.java
+@@ -414,6 +414,11 @@ public class ServerExplosion implements Explosion {
+                 return Optional.of(net.minecraft.world.level.block.Blocks.BARRIER.getExplosionResistance());
+             }
+             // Sakura end - protect scaffolding from creepers
++            // Sakura start - protect blocks above a configured Y-level from explosions
++            if (this.level.sakuraConfig().cannons.explosion.protectBlocksAboveY.test(val -> pos.getY() >= val)) {
++                return Optional.of(net.minecraft.world.level.block.Blocks.BARRIER.getExplosionResistance());
++            }
++            // Sakura end - protect blocks above a configured Y-level from explosions
+         }
+ 
+         return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);
