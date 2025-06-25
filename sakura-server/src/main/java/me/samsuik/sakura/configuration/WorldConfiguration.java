@@ -99,6 +99,13 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean explosionsDropItems = true;
             public boolean useBlockCacheAcrossExplosions = false;
             public boolean breakBlocksWhenOutsideTheWorldBorder = true;
+
+            @Comment(
+                "Protects blocks above the configured height from explosions.\n" +
+                "Can be used to replicate the regen caps found on complexmc, and\n" +
+                "useful for protecting the nether roof when bedrock is a durable-material."
+            )
+            public IntOr.Disabled protectBlocksAboveY = IntOr.Disabled.DISABLED;
         }
 
         public Mechanics mechanics = new Mechanics();
