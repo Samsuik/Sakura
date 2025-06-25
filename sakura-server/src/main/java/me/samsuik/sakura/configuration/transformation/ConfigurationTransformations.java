@@ -11,6 +11,7 @@ import org.spongepowered.configurate.transformation.ConfigurationTransformation;
 import org.spongepowered.configurate.transformation.TransformAction;
 
 import java.util.List;
+import java.util.function.Function;
 
 public final class ConfigurationTransformations {
     private static final List<NodePath> REMOVED_GLOBAL_PATHS = List.of(
@@ -26,6 +27,7 @@ public final class ConfigurationTransformations {
         V6_FixIncorrectExtraKnockback.apply(versionedBuilder);
         V7_FixTntDuplicationName.apply(versionedBuilder);
         V8_RenameExplosionResistantItems.apply(versionedBuilder);
+        V9_RenameAllowNonTntBreakingDurableBlocks.apply(versionedBuilder);
         // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
         versionedBuilder.build().apply(node);
     }
@@ -42,6 +44,22 @@ public final class ConfigurationTransformations {
         V2_ConvertIconToMaterial.apply(versionedBuilder);
         // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
         versionedBuilder.build().apply(node);
+    }
+
+    public static TransformAction newValue(final Function<ConfigurationNode, Object> func) {
+        return (k, v) -> {
+            if (!v.virtual()) {
+                Object val = func.apply(v);
+                if (val != null) {
+                    v.raw(val);
+                }
+            }
+            return null;
+        };
+    }
+
+    public static TransformAction move(final NodePath path) {
+        return (p, n) -> path.array();
     }
 
     private ConfigurationTransformations() {}

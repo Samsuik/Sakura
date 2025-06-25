@@ -17,7 +17,9 @@ public final class V6_FixIncorrectExtraKnockback implements TransformAction {
     private V6_FixIncorrectExtraKnockback() {}
 
     public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
-        builder.addVersion(VERSION, ConfigurationTransformation.builder().addAction(PATH, INSTANCE).build());
+        builder.addVersion(VERSION, ConfigurationTransformation.builder()
+            .addAction(PATH, INSTANCE)
+            .build());
     }
 
     @Override

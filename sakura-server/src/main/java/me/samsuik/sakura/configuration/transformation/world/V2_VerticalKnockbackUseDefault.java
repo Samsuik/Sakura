@@ -18,7 +18,9 @@ public final class V2_VerticalKnockbackUseDefault implements TransformAction {
     private V2_VerticalKnockbackUseDefault() {}
 
     public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
-        builder.addVersion(VERSION, ConfigurationTransformation.builder().addAction(PATH, INSTANCE).build());
+        builder.addVersion(VERSION, ConfigurationTransformation.builder()
+            .addAction(PATH, INSTANCE)
+            .build());
     }
 
     @Override

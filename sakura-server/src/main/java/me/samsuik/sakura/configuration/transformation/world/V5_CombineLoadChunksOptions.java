@@ -22,7 +22,9 @@ public final class V5_CombineLoadChunksOptions implements TransformAction {
     private V5_CombineLoadChunksOptions() {}
 
     public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
-        builder.addVersion(VERSION, ConfigurationTransformation.builder().addAction(PATH, INSTANCE).build());
+        builder.addVersion(VERSION, ConfigurationTransformation.builder()
+            .addAction(PATH, INSTANCE)
+            .build());
     }
 
     @Override

@@ -21,7 +21,9 @@ public final class V4_RenameNonStrictMergeLevel implements TransformAction {
     private V4_RenameNonStrictMergeLevel() {}
 
     public static void apply(ConfigurationTransformation.VersionedBuilder builder) {
-        builder.addVersion(VERSION, ConfigurationTransformation.builder().addAction(PATH, INSTANCE).build());
+        builder.addVersion(VERSION, ConfigurationTransformation.builder()
+            .addAction(PATH, INSTANCE)
+            .build());
     }
 
     @Override

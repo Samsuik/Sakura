@@ -2,8 +2,8 @@ package me.samsuik.sakura.configuration.transformation.world;
 
 import org.spongepowered.configurate.NodePath;
 import org.spongepowered.configurate.transformation.ConfigurationTransformation;
-import org.spongepowered.configurate.transformation.TransformAction;
 
+import static me.samsuik.sakura.configuration.transformation.ConfigurationTransformations.move;
 import static org.spongepowered.configurate.NodePath.path;
 
 public final class V8_RenameExplosionResistantItems {
@@ -19,9 +19,5 @@ public final class V8_RenameExplosionResistantItems {
             .addAction(OLD_WHITELIST_PATH, move(NEW_WHITELIST_PATH))
             .addAction(OLD_ITEMS_PATH, move(NEW_ITEMS_PATH))
             .build());
-    }
-
-    private static TransformAction move(NodePath path) {
-        return (p, n) -> path.array();
     }
 }
