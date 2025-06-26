@@ -3,10 +3,10 @@ exit_on_error() {
     exit 1
 }
 
-git reset HEAD --hard
+#git reset HEAD --hard
 
 oldHash=$(grep "paperRef=" gradle.properties | cut -d "=" -f2)
-newHash=$(curl -s https://api.github.com/repos/PaperMC/paper/commits/master | jq -r .sha)
+newHash=$(curl -s https://api.github.com/repos/PaperMC/paper/commits/$1 | jq -r .sha)
 
 if [ "$oldHash" = "$newHash" ]; then
     echo "Upstream has not updated!"
@@ -18,9 +18,13 @@ echo "Updating paper: $oldHash -> $newHash"
 sed -i "s/$oldHash/$newHash/g" gradle.properties
 git add gradle.properties
 
-./gradlew applyPatches || exit_on_error "An error occurred when merging patches!"
-./gradlew rebuildPatches || exit_on_error "An error occurred when rebuilding patches!"
-./gradlew createReobfPaperclipJar || exit_on_error "An error occurred when building!"
+./gradlew cleanCache
+./gradlew applyPaperSingleFilePatchesFuzzy || exit_on_error "An error occurred when applying single file patches!"
+./gradlew rebuildPaperSingleFilePatches || exit_on_error "An error occurred when rebuilding single file patches!"
+./gradlew applyAllPatches || exit_on_error "An error occurred when merging patches!"
+./gradlew rebuildPaperApiPatches || exit_on_error "An error occurred when rebuilding api patches!"
+./gradlew rebuildAllServerPatches || exit_on_error "An error occurred when rebuilding server patches!"
+./gradlew createMojmapPaperclipJar || exit_on_error "An error occurred when building!"
 
 scripts/upstreamCommit.sh $oldHash $newHash
 
