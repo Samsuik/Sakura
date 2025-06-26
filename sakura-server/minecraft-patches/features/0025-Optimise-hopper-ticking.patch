@@ -42,7 +42,7 @@ index b382665cc125b8b5c0938e5e55984e4bf91d37ff..0c4358053076416fc2cd3f5c9b7f6d2f
  
      boolean isEmpty();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 769887ee6d798d0b11de72e9ffe80c9d358daf17..701a48ba3b0f4515a791684d63b3454dbed317f9 100644
+index 5aaa3f01b7e8b55742ba46dd614f1eaa233aa5c9..81378160d021a76d6fddca9c23a1a4691f48e71e 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1483,7 +1483,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -72,10 +72,10 @@ index 46a27f60ba407dacdac190b5e292ab3f1db5a078..ec05bb86803d878867b46e437cc73a39
          }
      }
 diff --git a/net/minecraft/world/level/block/entity/BlockEntity.java b/net/minecraft/world/level/block/entity/BlockEntity.java
-index a1075c26d55cc01219acd94d0138f81aa9d34c48..6aa0624eb99223dc13478a24f74a49654019fba5 100644
+index 5986825d6a381eeb445dd424dd127864aa703163..f77a8c45602d9b30c357557e80a6a97abea99eb2 100644
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -48,6 +48,60 @@ public abstract class BlockEntity {
+@@ -50,6 +50,60 @@ public abstract class BlockEntity {
      private BlockState blockState;
      private DataComponentMap components = DataComponentMap.EMPTY;
  
@@ -136,7 +136,7 @@ index a1075c26d55cc01219acd94d0138f81aa9d34c48..6aa0624eb99223dc13478a24f74a4965
      public BlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState blockState) {
          this.type = type;
          this.worldPosition = pos.immutable();
-@@ -204,11 +258,22 @@ public abstract class BlockEntity {
+@@ -229,11 +283,22 @@ public abstract class BlockEntity {
      public void setChanged() {
          if (this.level != null) {
              if (ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers
@@ -160,7 +160,7 @@ index a1075c26d55cc01219acd94d0138f81aa9d34c48..6aa0624eb99223dc13478a24f74a4965
          level.blockEntityChanged(pos);
          if (!state.isAir()) {
              level.updateNeighbourForOutputSignal(pos, state.getBlock());
-@@ -238,6 +303,7 @@ public abstract class BlockEntity {
+@@ -263,6 +328,7 @@ public abstract class BlockEntity {
  
      public void setRemoved() {
          this.remove = true;
@@ -169,11 +169,11 @@ index a1075c26d55cc01219acd94d0138f81aa9d34c48..6aa0624eb99223dc13478a24f74a4965
  
      public void clearRemoved() {
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 15d4f60942c0cc612c1468b4c0fda886867a67cb..98856a692b3ae5ac46cb67678642709b4f931ee7 100644
+index 800b7e78ae989868ed0b9e060c80dcd002759412..b40c1d20d5823fe63ec34e38a315c7f1bbb5831b 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-@@ -28,7 +28,7 @@ import net.minecraft.world.level.block.HopperBlock;
- import net.minecraft.world.level.block.state.BlockState;
+@@ -28,7 +28,7 @@ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  
 -public class HopperBlockEntity extends RandomizableContainerBlockEntity implements Hopper {
@@ -287,10 +287,10 @@ index 28e3b73507b988f7234cbf29c4024c88180d0aef..a0d247aa883553708c4b921582324255
 +    // Sakura end - optimise hopper ticking
  }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index cfc125d43cf3702d46c221f4e7b0d66a15c5d690..9f1a944b82051ea957a0fe725ca95b8f26491f1d 100644
+index a2185062fbb123549be21e37e84541d61ec301c9..d961788584520f5231d65cc63753da4320a48867 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -980,6 +980,13 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -987,6 +987,13 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
              return BlockEntityType.getKey(this.blockEntity.getType()).toString();
          }
  
@@ -304,7 +304,7 @@ index cfc125d43cf3702d46c221f4e7b0d66a15c5d690..9f1a944b82051ea957a0fe725ca95b8f
          @Override
          public String toString() {
              return "Level ticker for " + this.getType() + "@" + this.getPos();
-@@ -1028,6 +1035,13 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -1035,6 +1042,13 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
              return this.ticker.getType();
          }
  

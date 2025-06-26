@@ -1,9 +1,9 @@
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -76,7 +_,28 @@
+@@ -75,7 +_,28 @@
          this.yo = y;
          this.zo = z;
-         this.owner = owner;
+         this.owner = owner != null ? new EntityReference<>(owner) : null;
 -    }
 +        // Sakura start - configure cannon mechanics
 +        switch (level.sakuraConfig().cannons.mechanics.tntSpread) {
@@ -30,7 +30,7 @@
  
      @Override
      protected void defineSynchedData(SynchedEntityData.Builder builder) {
-@@ -101,7 +_,7 @@
+@@ -100,7 +_,7 @@
  
      @Override
      public void tick() {
@@ -39,7 +39,7 @@
          this.handlePortal();
          this.applyGravity();
          this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -133,6 +_,14 @@
+@@ -132,6 +_,14 @@
                  this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
              }
          }
@@ -53,8 +53,8 @@
 +        // Sakura end - configure force position updates
          // Paper start - Option to prevent TNT from moving in water
          if (!this.isRemoved() && this.wasTouchingWater && this.level().paperConfig().fixes.preventTntFromMovingInWater) {
-             /*
-@@ -250,7 +_,7 @@
+             this.hurtMarked = true;
+@@ -235,7 +_,7 @@
      // Paper start - Option to prevent TNT from moving in water
      @Override
      public boolean isPushedByFluid() {

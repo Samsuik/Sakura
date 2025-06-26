@@ -5,10 +5,10 @@ Subject: [PATCH] Add maxSearch to getEntities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-index 6e3a429bc165d8473ea50ee2ae1548270db599d1..417afe621f559d7fab0798ccf586b630e8878b23 100644
+index bd2055bc89c5672b514f1f7b1ad320a2fba7cbe2..7678696aa2fa74358a374a501a6b7f76f4805945 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-@@ -314,7 +314,14 @@ public final class ChunkEntitySlices {
+@@ -336,7 +336,14 @@ public final class ChunkEntitySlices {
  
      public boolean getEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
                                 final int maxCount) {
@@ -24,7 +24,7 @@ index 6e3a429bc165d8473ea50ee2ae1548270db599d1..417afe621f559d7fab0798ccf586b630
      }
  
      public <T extends Entity> void getEntities(final EntityType<?> type, final AABB box, final List<? super T> into,
-@@ -552,6 +559,13 @@ public final class ChunkEntitySlices {
+@@ -574,6 +581,13 @@ public final class ChunkEntitySlices {
  
          public boolean getEntitiesLimited(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
                                            final int maxCount) {
@@ -38,7 +38,7 @@ index 6e3a429bc165d8473ea50ee2ae1548270db599d1..417afe621f559d7fab0798ccf586b630
              if (this.count == 0) {
                  return false;
              }
-@@ -573,8 +587,14 @@ public final class ChunkEntitySlices {
+@@ -595,8 +609,14 @@ public final class ChunkEntitySlices {
  
                  final Entity[] storage = list.storage;
  
@@ -83,10 +83,10 @@ index 2d24d03bbdb5ee0d862cbfff2219f58afffafe12..1bf06038d51efcc103fad23670686c30
                          }
                      }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index d111bd5546613cefd8b4070788679901b7e5b8f4..99571af2e473cb14322625b0287b2f18fcf116d3 100644
+index c24f09cf9959310353bd0fc5a5ff7498c6ea47a0..ca5e2ec53590b731aedf33dfd69e728992f52b91 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1779,10 +1779,18 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -1772,10 +1772,18 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
          this.getEntities(entityTypeTest, bounds, predicate, output, Integer.MAX_VALUE);
      }
  
@@ -106,7 +106,7 @@ index d111bd5546613cefd8b4070788679901b7e5b8f4..99571af2e473cb14322625b0287b2f18
          Profiler.get().incrementCounter("getEntities");
  
          if (entityTypeTest instanceof net.minecraft.world.entity.EntityType<T> byType) {
-@@ -1799,7 +1807,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -1792,7 +1800,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
  
          if (entityTypeTest == null) {
              if (maxCount != Integer.MAX_VALUE) {

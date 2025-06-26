@@ -5,10 +5,10 @@ Subject: [PATCH] Specialised Explosions
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index fab973cb02218458f23e59665b4f2deb5d54da8d..aa99771955f069d63b90f34e2962f5e5323e8ca8 100644
+index 39cf9a8af79ce4c3f1d47eaf7cf3205199b35eb6..bad69adfbc492d851a3542dc7f77884d9f933c8a 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1891,7 +1891,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1913,7 +1913,16 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              case STANDARD -> Explosion.BlockInteraction.DESTROY; // CraftBukkit - handle custom explosion type
          };
          Vec3 vec3 = new Vec3(x, y, z);
@@ -26,7 +26,7 @@ index fab973cb02218458f23e59665b4f2deb5d54da8d..aa99771955f069d63b90f34e2962f5e5
          if (configurator != null) configurator.accept(serverExplosion);// Paper - Allow explosions to damage source
          serverExplosion.explode();
          // CraftBukkit start
-@@ -1899,6 +1908,15 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1921,6 +1930,15 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              return serverExplosion;
          }
          // CraftBukkit end
@@ -42,7 +42,7 @@ index fab973cb02218458f23e59665b4f2deb5d54da8d..aa99771955f069d63b90f34e2962f5e5
          ParticleOptions particleOptions = serverExplosion.isSmall() ? smallExplosionParticles : largeExplosionParticles;
  
          for (ServerPlayer serverPlayer : this.players) {
-@@ -1919,7 +1937,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1941,7 +1959,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              }
          }
  
@@ -52,10 +52,10 @@ index fab973cb02218458f23e59665b4f2deb5d54da8d..aa99771955f069d63b90f34e2962f5e5
  
      private Explosion.BlockInteraction getDestroyType(GameRules.Key<GameRules.BooleanValue> decayGameRule) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index a1cbeb8216edda93ac6043b113314d53e9347fd6..3511e852aebabed8d5f40611db4573f55ca21875 100644
+index 0c8343075f5523aa200b58f2afd313d718408ac8..8986a9876f9437fd8d65f4d43df3f39a98741210 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -80,20 +80,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -79,20 +79,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
  
      @Override
      public final void respawnEntity(int count) {
@@ -78,7 +78,7 @@ index a1cbeb8216edda93ac6043b113314d53e9347fd6..3511e852aebabed8d5f40611db4573f5
      // Sakura end - merge cannon entities
  
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index c776277ce455b32f99fe06ab409c1923f9dcd325..9f0dcaf0db44925c35fa46fdb2de83540ee959c4 100644
+index c1e6e27c8424483d5b7e2bce784463e9293b77a0..d45582bdfc3fa837c5aa95f499183b60b877b7c2 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -358,6 +358,38 @@ public class ServerExplosion implements Explosion {
@@ -120,7 +120,7 @@ index c776277ce455b32f99fe06ab409c1923f9dcd325..9f0dcaf0db44925c35fa46fdb2de8354
  
      public ServerExplosion(
          ServerLevel level,
-@@ -664,7 +696,10 @@ public class ServerExplosion implements Explosion {
+@@ -667,7 +699,10 @@ public class ServerExplosion implements Explosion {
                          // CraftBukkit end
                          entity.push(vec3);
                          if (entity instanceof Player player && !player.isSpectator() && (!player.isCreative() || !player.getAbilities().flying) && !level.paperConfig().environment.disableExplosionKnockback) { // Paper - Option to disable explosion knockback
@@ -132,10 +132,10 @@ index c776277ce455b32f99fe06ab409c1923f9dcd325..9f0dcaf0db44925c35fa46fdb2de8354
                          }
  
                          entity.onExplosionHit(this.source);
-@@ -774,14 +809,7 @@ public class ServerExplosion implements Explosion {
-             return;
-         }
-         // CraftBukkit end
+@@ -772,14 +807,7 @@ public class ServerExplosion implements Explosion {
+     }
+ 
+     public void explode() {
 -        // Paper start - collision optimisations
 -        this.blockCache = new it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<>();
 -        this.chunkPosCache = new long[CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH];
@@ -148,7 +148,7 @@ index c776277ce455b32f99fe06ab409c1923f9dcd325..9f0dcaf0db44925c35fa46fdb2de8354
          this.level.gameEvent(this.source, GameEvent.EXPLODE, this.center);
          List<BlockPos> list = this.calculateExplodedPositions();
          this.hurtEntities();
-@@ -795,13 +823,7 @@ public class ServerExplosion implements Explosion {
+@@ -793,13 +821,7 @@ public class ServerExplosion implements Explosion {
          if (this.fire) {
              this.createFire(list);
          }

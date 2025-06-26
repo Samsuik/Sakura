@@ -5,7 +5,7 @@ Subject: [PATCH] Client Visibility Settings
 
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index dff3cc7456fe69ebd735aa950f79ce0dfed7e25e..07d8bb89ed0f9cea6353905939ba9f91c6fb64a5 100644
+index df822f0e7c358d74737c749d6ba61ec31846a569..a88184f63f3cb539569942c5c982193973183984 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -173,6 +173,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -78,10 +78,10 @@ index dff3cc7456fe69ebd735aa950f79ce0dfed7e25e..07d8bb89ed0f9cea6353905939ba9f91
                  if (flag && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
                      flag = false;
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 6fa053b317fa51d0bf25a6d3f48addc55452257e..c5fffb6ca4ef4d447e4eb668e8980fe0885d99da 100644
+index 03a157f6c96b0f39effa24ae278eeac689c83ee8..5f38281763419123a0611cbb34d9a02a0e0302ea 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -561,6 +561,21 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -564,6 +564,21 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.playerTickingChunks.remove((LevelChunk)chunkHolder.getCurrentChunk());
      }
      // Paper end - chunk tick iteration
@@ -103,7 +103,7 @@ index 6fa053b317fa51d0bf25a6d3f48addc55452257e..c5fffb6ca4ef4d447e4eb668e8980fe0
  
      public ServerLevel(
          MinecraftServer server,
-@@ -671,6 +686,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -675,6 +690,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
          // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
@@ -111,7 +111,7 @@ index 6fa053b317fa51d0bf25a6d3f48addc55452257e..c5fffb6ca4ef4d447e4eb668e8980fe0
      }
  
      // Paper start
-@@ -1876,7 +1892,18 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1898,7 +1914,18 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          for (ServerPlayer serverPlayer : this.players) {
              if (serverPlayer.distanceToSqr(vec3) < 4096.0) {
                  Optional<Vec3> optional = Optional.ofNullable(serverExplosion.getHitPlayers().get(serverPlayer));
@@ -132,22 +132,22 @@ index 6fa053b317fa51d0bf25a6d3f48addc55452257e..c5fffb6ca4ef4d447e4eb668e8980fe0
          }
  
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 531336f7c09e74ed60f7c697c26a9639a9ea489c..5c7bb1ff36fe9d91958eda88a2631b7d60659fb2 100644
+index 94da87a5f468b0b4c80d63054e6184417d2c7b76..d5fdc43302fdbed0a6e83b6033fb05baa8b6445e 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -451,6 +451,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
-         return this.viewDistanceHolder;
+@@ -526,6 +526,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+         }
      }
-     // Paper end - rewrite chunk system
+     // Paper end - improve keepalives
 +    public final me.samsuik.sakura.player.visibility.PlayerVisibilitySettings visibilitySettings = new me.samsuik.sakura.player.visibility.PlayerVisibilitySettings(); // Sakura - client visibility settings
  
      public ServerPlayer(MinecraftServer server, ServerLevel level, GameProfile gameProfile, ClientInformation clientInformation) {
-         super(level, level.getSharedSpawnPos(), level.getSharedSpawnAngle(), gameProfile);
+         super(level, gameProfile);
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 186393485396cfe9b1baef29586198356e2d2600..a06f5a9b577cd9cc2cb948b2801b0aec31db8836 100644
+index 43f70a5561d6cc62aaeba6d1e39598ecb382e369..6ccc1cd38ccc4f346caad807db84b83a1c0f55dc 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -51,6 +51,21 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -53,6 +53,21 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
      public final java.util.Map<java.util.UUID, net.kyori.adventure.resource.ResourcePackCallback> packCallbacks = new java.util.concurrent.ConcurrentHashMap<>(); // Paper - adventure resource pack callbacks
      private static final long KEEPALIVE_LIMIT = Long.getLong("paper.playerconnection.keepalive", 30) * 1000; // Paper - provide property to set keepalive limit
      protected static final net.minecraft.resources.ResourceLocation MINECRAFT_BRAND = net.minecraft.resources.ResourceLocation.withDefaultNamespace("brand"); // Paper - Brand support
@@ -169,7 +169,7 @@ index 186393485396cfe9b1baef29586198356e2d2600..a06f5a9b577cd9cc2cb948b2801b0aec
  
      public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie, net.minecraft.server.level.ServerPlayer player) { // CraftBukkit
          this.server = server;
-@@ -291,6 +306,12 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -330,6 +345,12 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket defaultSpawnPositionPacket) {
              this.player.compassTarget = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(defaultSpawnPositionPacket.getPos(), this.getCraftPlayer().getWorld());
          }
@@ -182,7 +182,7 @@ index 186393485396cfe9b1baef29586198356e2d2600..a06f5a9b577cd9cc2cb948b2801b0aec
          // CraftBukkit end
          if (packet.isTerminal()) {
              this.close();
-@@ -303,7 +324,10 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -342,7 +363,10 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          } catch (Throwable var7) {
              CrashReport crashReport = CrashReport.forThrowable(var7, "Sending packet");
              CrashReportCategory crashReportCategory = crashReport.addCategory("Packet being sent");
@@ -195,10 +195,10 @@ index 186393485396cfe9b1baef29586198356e2d2600..a06f5a9b577cd9cc2cb948b2801b0aec
          }
      }
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 9041830c19e2899479e1519488faba5c416ccd88..2708d162c24e1d446485cd49f7b47abc0bcd5054 100644
+index 625eae18ab13ae27949128f6325b3608a557cf1f..74c11280979d170a635a997c3a3acf489b3eaa6a 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -3192,6 +3192,7 @@ public class ServerGamePacketListenerImpl
+@@ -3204,6 +3204,7 @@ public class ServerGamePacketListenerImpl
  
                          event.setCancelled(cancelled);
                          net.minecraft.world.inventory.AbstractContainerMenu oldContainer = this.player.containerMenu; // SPIGOT-1224
@@ -207,10 +207,10 @@ index 9041830c19e2899479e1519488faba5c416ccd88..2708d162c24e1d446485cd49f7b47abc
                          if (this.player.containerMenu != oldContainer) {
                              return;
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index d96d493b3d14cf84a7ecf0d531aa35d41a801601..92fd4bb2b2473a0630cd5edf8d301dc7c60b2998 100644
+index 46461fae4d4472bfdae75d12ac9cdaecafef848e..057ed507b8f8d6c45a8a49458d087d892ec29d8a 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -516,6 +516,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -533,6 +533,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
      // Paper end - optimise entity tracker
      public boolean pushedByFluid = true; // Sakura - entity pushed by fluid api
@@ -222,10 +222,10 @@ index d96d493b3d14cf84a7ecf0d531aa35d41a801601..92fd4bb2b2473a0630cd5edf8d301dc7
      public Entity(EntityType<?> entityType, Level level) {
          this.type = entityType;
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 5b036edf61c53596528bf722c46673b47c01f51d..6660e6c78303db5585a06d6836b035d0e8582922 100644
+index ae1f7a8b9cc6db4dd8dd3d6593a952166d35cc68..f7663d07a71582c332b38871211e648cffcf13c2 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -76,6 +76,7 @@ public class FallingBlockEntity extends Entity {
+@@ -79,6 +79,7 @@ public class FallingBlockEntity extends Entity {
          super(entityType, level);
          this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
@@ -234,10 +234,10 @@ index 5b036edf61c53596528bf722c46673b47c01f51d..6660e6c78303db5585a06d6836b035d0
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index deb5e9e4cdd235311ff4e51ffb2f02f35d580645..7e3d7d5b47557e57bf661aa8d3eefcb416cb408b 100644
+index dc9c8bdc81dec07a8e457431bbd35a54236b03ef..8755c76b679adcacbdd8e2faec363745fd583e48 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -64,6 +64,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -63,6 +63,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      public PrimedTnt(EntityType<? extends PrimedTnt> entityType, Level level) {
          super(entityType, level);
          this.blocksBuilding = true;

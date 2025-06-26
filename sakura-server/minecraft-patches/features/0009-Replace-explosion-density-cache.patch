@@ -5,10 +5,10 @@ Subject: [PATCH] Replace explosion density cache
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index a4428a3c23db6f795b5ff0ead634e2e21468e3a6..ae0b6d506f0344249bdc238fff0f5a3306d05334 100644
+index 5ddfbddbef13b58bf509e4c60bbd72cde2a7f59d..39cf9a8af79ce4c3f1d47eaf7cf3205199b35eb6 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -688,6 +688,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -692,6 +692,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
          this.levelTickScheduler.registerNewTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
          this.levelTickScheduler.registerNewTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
@@ -17,7 +17,7 @@ index a4428a3c23db6f795b5ff0ead634e2e21468e3a6..ae0b6d506f0344249bdc238fff0f5a33
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 37271a9e9d3d16a01c437629806508accefa1b9c..d111bd5546613cefd8b4070788679901b7e5b8f4 100644
+index 19788e29f796efd7b1fe79c398c5532eb99add58..c24f09cf9959310353bd0fc5a5ff7498c6ea47a0 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -829,6 +829,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -29,7 +29,7 @@ index 37271a9e9d3d16a01c437629806508accefa1b9c..d111bd5546613cefd8b4070788679901
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 71d79a1204d9335c98a63ecda9782755a964b22f..cc337b1656b5bf86da9125a3a1c2da06cc2814ba 100644
+index 1e9b92454edae054c6c3c50dc844c8fc3689f6f8..37721d49fbb5c8914866be4a2bde29a64e3f172e 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -294,7 +294,12 @@ public class ServerExplosion implements Explosion {
@@ -46,7 +46,7 @@ index 71d79a1204d9335c98a63ecda9782755a964b22f..cc337b1656b5bf86da9125a3a1c2da06
                          ++missedRays;
                      }
                  }
-@@ -382,8 +387,16 @@ public class ServerExplosion implements Explosion {
+@@ -385,8 +390,16 @@ public class ServerExplosion implements Explosion {
                          double d9 = Mth.lerp(d6, boundingBox.minY, boundingBox.maxY);
                          double d10 = Mth.lerp(d7, boundingBox.minZ, boundingBox.maxZ);
                          Vec3 vec3 = new Vec3(d8 + d3, d9, d10 + d4);
@@ -65,7 +65,7 @@ index 71d79a1204d9335c98a63ecda9782755a964b22f..cc337b1656b5bf86da9125a3a1c2da06
                              i++;
                          }
  
-@@ -679,6 +692,11 @@ public class ServerExplosion implements Explosion {
+@@ -682,6 +695,11 @@ public class ServerExplosion implements Explosion {
              return;
          }
          // CraftBukkit end
@@ -77,7 +77,7 @@ index 71d79a1204d9335c98a63ecda9782755a964b22f..cc337b1656b5bf86da9125a3a1c2da06
  
          for (BlockPos blockPos : blocks) {
              // CraftBukkit start - TNTPrimeEvent
-@@ -851,14 +869,12 @@ public class ServerExplosion implements Explosion {
+@@ -848,14 +866,12 @@ public class ServerExplosion implements Explosion {
  
      // Paper start - Optimize explosions
      protected float getBlockDensity(Vec3 vec3d, Entity entity) {
@@ -130,7 +130,7 @@ index 8a3a8b0fdf9545a41501dc992c6982d9c8ce7b66..5e2576a8b90de8a829c6136cc384f3fe
                  notifyNeighbors(block, level, blockPosx, opposite);
                  emitState(level, blockPosx, flag2, flag3, flag, flag1);
 diff --git a/net/minecraft/world/phys/AABB.java b/net/minecraft/world/phys/AABB.java
-index c22acc8889fbb3c9ee698624189c195ee4b5eefb..b08ab87278023e50c56a381240712cc2e18a0440 100644
+index 84f3073444ae9e11e5d11224d6af6474ced925e2..281366d8b256a2414e20872c0cb54c9d08501887 100644
 --- a/net/minecraft/world/phys/AABB.java
 +++ b/net/minecraft/world/phys/AABB.java
 @@ -19,6 +19,30 @@ public class AABB {

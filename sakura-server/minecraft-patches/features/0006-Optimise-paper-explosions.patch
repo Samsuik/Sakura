@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise paper explosions
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-index ba20e87d2105ce53cdaf4049de2388d05fcd1b56..6e3a429bc165d8473ea50ee2ae1548270db599d1 100644
+index b2bcfb3557a0326fd7ec1059f95d6da4568dfd80..bd2055bc89c5672b514f1f7b1ad320a2fba7cbe2 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-@@ -297,6 +297,12 @@ public final class ChunkEntitySlices {
+@@ -319,6 +319,12 @@ public final class ChunkEntitySlices {
          return true;
      }
  
@@ -21,7 +21,7 @@ index ba20e87d2105ce53cdaf4049de2388d05fcd1b56..6e3a429bc165d8473ea50ee2ae154827
      public void getHardCollidingEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate) {
          this.hardCollidingEntities.getEntities(except, box, into, predicate);
      }
-@@ -495,6 +501,17 @@ public final class ChunkEntitySlices {
+@@ -517,6 +523,17 @@ public final class ChunkEntitySlices {
              }
          }
  
@@ -40,7 +40,7 @@ index ba20e87d2105ce53cdaf4049de2388d05fcd1b56..6e3a429bc165d8473ea50ee2ae154827
              if (this.count == 0) {
                  return;
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 340d50be3cc94e47affddd4ad916e1c02e620636..5c029776df58976df6791f66618c97980fbfa4dc 100644
+index 250a46dbfdf3ba751dc081fae5cbf8aa16153f4e..1e9b92454edae054c6c3c50dc844c8fc3689f6f8 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -86,7 +86,7 @@ public class ServerExplosion implements Explosion {
@@ -92,7 +92,7 @@ index 340d50be3cc94e47affddd4ad916e1c02e620636..5c029776df58976df6791f66618c9798
  
      public ServerExplosion(
          ServerLevel level,
-@@ -395,6 +428,12 @@ public class ServerExplosion implements Explosion {
+@@ -398,6 +431,12 @@ public class ServerExplosion implements Explosion {
              initialCache = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
          }
  
@@ -105,7 +105,7 @@ index 340d50be3cc94e47affddd4ad916e1c02e620636..5c029776df58976df6791f66618c9798
          // only ~1/3rd of the loop iterations in vanilla will result in a ray, as it is iterating the perimeter of
          // a 16x16x16 cube
          // we can cache the rays and their normals as well, so that we eliminate the excess iterations / checks and
-@@ -473,16 +512,55 @@ public class ServerExplosion implements Explosion {
+@@ -476,16 +515,55 @@ public class ServerExplosion implements Explosion {
          // Paper end - collision optimisations
      }
  
@@ -165,7 +165,7 @@ index 340d50be3cc94e47affddd4ad916e1c02e620636..5c029776df58976df6791f66618c9798
              if (!entity.ignoreExplosion(this)) {
                  double d = Math.sqrt(entity.distanceToSqr(this.center)) / f;
                  if (d <= 1.0) {
-@@ -507,15 +585,16 @@ public class ServerExplosion implements Explosion {
+@@ -510,15 +588,16 @@ public class ServerExplosion implements Explosion {
                              // - Damaging EnderDragon does nothing
                              // - EnderDragon hitbox always covers the other parts and is therefore always present
                              if (entity instanceof EnderDragonPart) {
@@ -184,7 +184,7 @@ index 340d50be3cc94e47affddd4ad916e1c02e620636..5c029776df58976df6791f66618c9798
                                          dragonPart.hurtServer(this.level, this.damageSource, this.damageCalculator.getEntityDamageAmount(this, dragonPart, f1));
                                      }
                                  }
-@@ -524,7 +603,7 @@ public class ServerExplosion implements Explosion {
+@@ -527,7 +606,7 @@ public class ServerExplosion implements Explosion {
                              }
  
                              if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled

@@ -5,10 +5,10 @@ Subject: [PATCH] Track block changes and level tick scheduler
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 40c906959d2708bf3e589f8e8d541d47106a8465..b234215e59ac303ef7979031ab1b042ff6692b7a 100644
+index c86973892e2af63911eef1a00ea957eb33a96a03..1ade8d6da1a28044a354699293f4cfbda6133008 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1747,6 +1747,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1748,6 +1748,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              profilerFiller.pop();
              profilerFiller.pop();
              serverLevel.explosionDensityCache.clear(); // Paper - Optimize explosions
@@ -17,7 +17,7 @@ index 40c906959d2708bf3e589f8e8d541d47106a8465..b234215e59ac303ef7979031ab1b042f
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 787d7a76af7dfcaaa4b329df2cbe7cfcaa83d572..8aea98378fccb14f3eadab72a38e5661806b96c0 100644
+index ad5b75c9efa830823a7c09bcdf4b326c4c583803..7aa8d68800cdec91f24f015f9b2d56e969a7be17 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -824,6 +824,10 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -32,10 +32,10 @@ index 787d7a76af7dfcaaa4b329df2cbe7cfcaa83d572..8aea98378fccb14f3eadab72a38e5661
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 5d3fc807221392d378fec283bfdefb8747fb8376..cfc125d43cf3702d46c221f4e7b0d66a15c5d690 100644
+index 75578e6ed7233a03d9b6cd3c6d3997f1c6148392..a2185062fbb123549be21e37e84541d61ec301c9 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -127,6 +127,21 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -129,6 +129,21 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
          return this.getBlockStateFinal(x, y, z);
      }
      // Paper end - get block chunk optimisation
@@ -57,7 +57,7 @@ index 5d3fc807221392d378fec283bfdefb8747fb8376..cfc125d43cf3702d46c221f4e7b0d66a
  
      public LevelChunk(Level level, ChunkPos pos) {
          this(level, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
-@@ -164,6 +179,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -166,6 +181,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
          this.debug = !empty && this.level.isDebug();
          this.defaultBlockState = empty ? VOID_AIR_BLOCKSTATE : AIR_BLOCKSTATE;
          // Paper end - get block chunk optimisation
@@ -65,7 +65,7 @@ index 5d3fc807221392d378fec283bfdefb8747fb8376..cfc125d43cf3702d46c221f4e7b0d66a
      }
  
      public LevelChunk(ServerLevel level, ProtoChunk chunk, @Nullable LevelChunk.PostLoadProcessor postLoad) {
-@@ -412,6 +428,11 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -414,6 +430,11 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
                  if (!section.getBlockState(i, i1, i2).is(block)) {
                      return null;
                  } else {

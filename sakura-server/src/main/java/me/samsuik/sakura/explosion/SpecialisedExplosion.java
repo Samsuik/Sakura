@@ -15,6 +15,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -43,16 +44,9 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
 
     @Override
     public final void explode() {
-        if (this.radius() < 0.1F) {
-            // (radius < 0.1F) in bukkit is assumed to not be able to find any blocks or entities.
-            for (int i = this.getExplosionCount() - 1; i >= 0; --i) {
-                this.finalizeExplosionAndParticles(List.of());
-            }
-        } else {
-            this.createBlockCache();
-            this.startExplosion(); // search for blocks, impact entities, finalise if necessary
-            this.clearBlockCache();
-        }
+        this.createBlockCache();
+        this.startExplosion(); // search for blocks, impact entities, finalise if necessary
+        this.clearBlockCache();
     }
 
     protected final boolean requiresImpactEntities(List<BlockPos> blocks, Vec3 center) {
@@ -87,7 +81,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
             super.blockCache.clear();
         }
 
-        java.util.Arrays.fill(this.directMappedBlockCache, null);
+        Arrays.fill(this.directMappedBlockCache, null);
     }
 
     protected final void recalculateExplosionPosition() {

@@ -5,10 +5,10 @@ Subject: [PATCH] Add entity travel distance limits
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b9806bdd4d49ed3fd8c17125143703b6a792b10e..4b3ee01e9dac634941b6cfb0cab43ba1b9069fc9 100644
+index bad69adfbc492d851a3542dc7f77884d9f933c8a..9250806b12171ae4f14d8dbc9dd3d9478bc7b724 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1295,6 +1295,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1303,6 +1303,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          final boolean isActive = io.papermc.paper.entity.activation.ActivationRange.checkIfActive(entity); // Paper - EAR 2
          if (isActive) { // Paper - EAR 2
          entity.tick();
@@ -21,11 +21,11 @@ index b9806bdd4d49ed3fd8c17125143703b6a792b10e..4b3ee01e9dac634941b6cfb0cab43ba1
          } else {entity.inactiveTick();} // Paper - EAR 2
          profilerFiller.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index d61ac5aae3deb9bd145787351fb85051d4ff1aed..ffe5ad8f3936386fd1fa2b961837fbea5c230407 100644
+index f8efa8d7ea4e79a4baac820f0042c2da7259a849..13b7652cd95b4411927d1e041b246d063fa80fae 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -585,6 +585,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
-         return this.physics;
+@@ -631,6 +631,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         return newPosition;
      }
      // Sakura end - configure cannon physics
 +    // Sakura start - entity travel distance limits
@@ -44,7 +44,7 @@ index d61ac5aae3deb9bd145787351fb85051d4ff1aed..ffe5ad8f3936386fd1fa2b961837fbea
  
      public Entity(EntityType<?> entityType, Level level) {
          this.type = entityType;
-@@ -614,6 +627,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -660,6 +673,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          this.setPos(0.0, 0.0, 0.0);
          this.eyeHeight = this.dimensions.eyeHeight();
          this.despawnTime = level == null || type == EntityType.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit

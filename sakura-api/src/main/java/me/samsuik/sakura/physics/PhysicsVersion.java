@@ -19,6 +19,7 @@ public enum PhysicsVersion {
     v1_20("1.20", 1_20_0),
     v1_21_2("1.21.2", 1_21_2),
     v1_21_5("1.21.5", 1_21_5),
+    v1_21_6("1.21.6", 1_21_6),
     LATEST("latest", 9_99_9); // latest version
 
     private final String friendlyName;

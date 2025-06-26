@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -274,6 +_,43 @@
+@@ -287,6 +_,43 @@
      public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
      public int shieldBlockingDelay = this.level().paperConfig().misc.shieldBlockingDelay; // Paper - Make shield blocking delay configurable
      // CraftBukkit end
@@ -44,7 +44,7 @@
  
      protected LivingEntity(EntityType<? extends LivingEntity> entityType, Level level) {
          super(entityType, level);
-@@ -1481,7 +_,7 @@
+@@ -1513,7 +_,7 @@
                      }
                      // Paper end - Check distance in entity interactions
  
@@ -53,7 +53,7 @@
                      if (!flag) {
                          this.indicateDamage(d, d1);
                      }
-@@ -1583,6 +_,11 @@
+@@ -1615,6 +_,11 @@
              if (itemBlockingWith == null) {
                  return false;
              } else {
@@ -65,7 +65,7 @@
                  BlocksAttacks blocksAttacks = itemBlockingWith.get(DataComponents.BLOCKS_ATTACKS);
                  if (blocksAttacks != null && !blocksAttacks.bypassedBy().map(damageSource::is).orElse(false)) {
                      if (damageSource.getDirectEntity() instanceof AbstractArrow abstractArrow && abstractArrow.getPierceLevel() > 0) {
-@@ -1609,6 +_,12 @@
+@@ -1641,6 +_,12 @@
              acos = (float) Math.PI;
          }
  
@@ -78,7 +78,7 @@
          BlocksAttacks blocksAttacks = this.getItemBlockingWith().get(DataComponents.BLOCKS_ATTACKS);
          return blocksAttacks.resolveBlockedDamage(damageSource, damageAmount, acos);
      }
-@@ -1676,7 +_,7 @@
+@@ -1708,7 +_,7 @@
      }
  
      protected void blockedByItem(LivingEntity entity) {
@@ -87,7 +87,7 @@
      }
  
      private boolean checkTotemDeathProtection(DamageSource damageSource) {
-@@ -1833,6 +_,12 @@
+@@ -1865,6 +_,12 @@
  
              // Paper start
              if (this.dead) { // Paper
@@ -100,7 +100,7 @@
                  this.level().broadcastEntityEvent(this, (byte)3);
  
              this.setPose(Pose.DYING);
-@@ -2006,7 +_,7 @@
+@@ -2038,7 +_,7 @@
      }
  
      public void knockback(double strength, double x, double z, @Nullable Entity attacker, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause eventCause) { // Paper - knockback events
@@ -109,7 +109,7 @@
          if (true || !(strength <= 0.0)) { // CraftBukkit - Call event even when force is 0
              // this.hasImpulse = true; // CraftBukkit - Move down
              Vec3 deltaMovement = this.getDeltaMovement();
-@@ -2017,10 +_,18 @@
+@@ -2049,10 +_,18 @@
              }
  
              Vec3 vec3 = new Vec3(x, 0.0, z).normalize().scale(strength);
@@ -129,7 +129,7 @@
                  deltaMovement.z / 2.0 - vec3.z
              );
              Vec3 diff = finalVelocity.subtract(deltaMovement);
-@@ -2165,8 +_,14 @@
+@@ -2197,8 +_,14 @@
          }
      }
  
@@ -145,7 +145,7 @@
              return 0;
          } else {
              double d = this.calculateFallPower(fallDistance);
-@@ -2224,9 +_,21 @@
+@@ -2256,9 +_,21 @@
      protected float getDamageAfterArmorAbsorb(DamageSource damageSource, float damageAmount) {
          if (!damageSource.is(DamageTypeTags.BYPASSES_ARMOR)) {
              // this.hurtArmor(damageSource, damageAmount); // CraftBukkit - actuallyHurt(DamageSource, float, EntityDamageEvent) for damage handling
@@ -167,7 +167,7 @@
          }
  
          return damageAmount;
-@@ -2406,6 +_,12 @@
+@@ -2438,6 +_,12 @@
                  armorDamage += (float) event.getDamage(DamageModifier.BLOCKING);
                  armorDamage += (float) event.getDamage(DamageModifier.FREEZING);
                  armorDamage += (float) event.getDamage(DamageModifier.HARD_HAT);
@@ -180,7 +180,7 @@
                  this.hurtArmor(damageSource, armorDamage);
              }
  
-@@ -3332,6 +_,11 @@
+@@ -3384,6 +_,11 @@
                      if (this.level() instanceof ServerLevel serverLevel) {
                          EnchantmentHelper.runLocationChangedEffects(serverLevel, itemBySlot, this, equipmentSlot1);
                      }
@@ -192,7 +192,7 @@
                  }
              }
  
-@@ -3532,7 +_,7 @@
+@@ -3584,7 +_,7 @@
              }
          }
          // Paper end - Add EntityMoveEvent
@@ -201,7 +201,7 @@
              this.hurtServer(serverLevel, this.damageSources().drown(), 1.0F);
          }
      }
-@@ -4107,6 +_,13 @@
+@@ -4163,6 +_,13 @@
          if (!this.isUsingItem()) {
              return null;
          } else {
