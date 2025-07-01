@@ -132,28 +132,28 @@ index 03a157f6c96b0f39effa24ae278eeac689c83ee8..5f38281763419123a0611cbb34d9a02a
          }
  
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 94da87a5f468b0b4c80d63054e6184417d2c7b76..d5fdc43302fdbed0a6e83b6033fb05baa8b6445e 100644
+index 7b341b8c65ebab8e352252df2b47f40ce3c0db4f..5c812e81a74d8f1df8a1a7ac98f84f44aec264c3 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -526,6 +526,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
-         }
+@@ -460,6 +460,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+         return this.viewDistanceHolder;
      }
-     // Paper end - improve keepalives
+     // Paper end - rewrite chunk system
 +    public final me.samsuik.sakura.player.visibility.PlayerVisibilitySettings visibilitySettings = new me.samsuik.sakura.player.visibility.PlayerVisibilitySettings(); // Sakura - client visibility settings
  
      public ServerPlayer(MinecraftServer server, ServerLevel level, GameProfile gameProfile, ClientInformation clientInformation) {
          super(level, gameProfile);
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 43f70a5561d6cc62aaeba6d1e39598ecb382e369..6ccc1cd38ccc4f346caad807db84b83a1c0f55dc 100644
+index 2e7c4c74818befd25e296b58ef9f20319544c2fb..5c661e0eadcde02f2c5f00c86651a50fe68171ad 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -53,6 +53,21 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
-     public final java.util.Map<java.util.UUID, net.kyori.adventure.resource.ResourcePackCallback> packCallbacks = new java.util.concurrent.ConcurrentHashMap<>(); // Paper - adventure resource pack callbacks
-     private static final long KEEPALIVE_LIMIT = Long.getLong("paper.playerconnection.keepalive", 30) * 1000; // Paper - provide property to set keepalive limit
-     protected static final net.minecraft.resources.ResourceLocation MINECRAFT_BRAND = net.minecraft.resources.ResourceLocation.withDefaultNamespace("brand"); // Paper - Brand support
+@@ -57,6 +57,21 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+     public @Nullable String playerBrand;
+     public final java.util.Set<String> pluginMessagerChannels;
+     // Paper end - retain certain values
 +    // Sakura start - client visibility settings
 +    private @Nullable Packet<?> recreatePacket(final Packet<?> packet) {
-+        final me.samsuik.sakura.player.visibility.VisibilitySettings settings = this.player.visibilitySettings;
++        final me.samsuik.sakura.player.visibility.VisibilitySettings settings = this.connection.getPlayer().visibilitySettings;
 +        if (packet instanceof net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket bedPacket) {
 +            if (settings.isToggled(me.samsuik.sakura.player.visibility.VisibilityTypes.SPAWNERS) && bedPacket.getType() == net.minecraft.world.level.block.entity.BlockEntityType.MOB_SPAWNER) {
 +                return null;
@@ -167,14 +167,14 @@ index 43f70a5561d6cc62aaeba6d1e39598ecb382e369..6ccc1cd38ccc4f346caad807db84b83a
 +    }
 +    // Sakura end - client visibility settings
  
-     public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie, net.minecraft.server.level.ServerPlayer player) { // CraftBukkit
+     public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie) {
          this.server = server;
-@@ -330,6 +345,12 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
-         } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket defaultSpawnPositionPacket) {
-             this.player.compassTarget = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(defaultSpawnPositionPacket.getPos(), this.getCraftPlayer().getWorld());
+@@ -305,6 +320,12 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket defaultSpawnPositionPacket && this instanceof ServerGamePacketListenerImpl serverGamePacketListener) {
+             serverGamePacketListener.player.compassTarget = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(defaultSpawnPositionPacket.getPos(), serverGamePacketListener.getCraftPlayer().getWorld());
          }
 +        // Sakura start - client visibility settings
-+        if (this.player.visibilitySettings.playerModified()) {
++        if (this.connection.getPlayer().visibilitySettings.playerModified()) {
 +            packet = this.recreatePacket(packet);
 +            if (packet == null) return;
 +        }
@@ -182,7 +182,7 @@ index 43f70a5561d6cc62aaeba6d1e39598ecb382e369..6ccc1cd38ccc4f346caad807db84b83a
          // CraftBukkit end
          if (packet.isTerminal()) {
              this.close();
-@@ -342,7 +363,10 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -317,7 +338,10 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          } catch (Throwable var7) {
              CrashReport crashReport = CrashReport.forThrowable(var7, "Sending packet");
              CrashReportCategory crashReportCategory = crashReport.addCategory("Packet being sent");
@@ -195,10 +195,10 @@ index 43f70a5561d6cc62aaeba6d1e39598ecb382e369..6ccc1cd38ccc4f346caad807db84b83a
          }
      }
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 625eae18ab13ae27949128f6325b3608a557cf1f..74c11280979d170a635a997c3a3acf489b3eaa6a 100644
+index ef9a0cbf75fb79d289d1d788ba0e5f181e3cdddd..661046c8c0f6d6116a8b785820f4bcfbda7f43b4 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -3204,6 +3204,7 @@ public class ServerGamePacketListenerImpl
+@@ -3202,6 +3202,7 @@ public class ServerGamePacketListenerImpl
  
                          event.setCancelled(cancelled);
                          net.minecraft.world.inventory.AbstractContainerMenu oldContainer = this.player.containerMenu; // SPIGOT-1224
