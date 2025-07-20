@@ -26,8 +26,7 @@ public final class TickInformationCollector {
         int entities = 0;
         for (ServerLevel level : levels) {
             chunks += level.chunkSource.getFullChunksCount();
-            // todo 1.21.5 update
-            //entities += level.entityTickList.entities.size();
+            entities += level.entityTickList.entities.size();
         }
 
         double averageTick = this.tickSamples.longStream()
