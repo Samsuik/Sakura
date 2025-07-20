@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..548e3dc8e5fee004483b40a59e2502ba8b93e674 100644
+index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..0f61c8877694679f590cb79f4a34cf158b8ad610 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1885,6 +1885,7 @@ public final class CollisionUtil {
@@ -24,14 +24,18 @@ index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..548e3dc8e5fee004483b40a59e2502ba
          final ChunkSource chunkSource = world.getChunkSource();
  
          for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
-@@ -1954,6 +1956,13 @@ public final class CollisionUtil {
+@@ -1954,6 +1956,17 @@ public final class CollisionUtil {
                      continue;
                  }
  
 +                // Sakura start - load chunks on movement
 +                if (addTicket && chunk.movementTicketNeedsUpdate() && chunkSource instanceof net.minecraft.server.level.ServerChunkCache chunkCache) {
-+                    final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(currChunkX, currChunkZ);
-+                    chunkCache.chunkMap.getDistanceManager().moonrise$getChunkHolderManager().addTicketAtLevel(net.minecraft.server.level.TicketType.ENTITY_MOVEMENT, currChunkX, currChunkZ, 31, chunkKey);
++                    final net.minecraft.world.level.ChunkPos chunkPos = new net.minecraft.world.level.ChunkPos(currChunkX, currChunkZ);
++                    chunkCache.addTicketAtLevel(
++                        net.minecraft.server.level.TicketType.ENTITY_MOVEMENT,
++                        chunkPos,
++                        net.minecraft.server.level.ChunkLevel.ENTITY_TICKING_LEVEL
++                    );
 +                    chunk.updatedMovementTicket();
 +                }
 +                // Sakura end - load chunks on movement
@@ -39,14 +43,14 @@ index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..548e3dc8e5fee004483b40a59e2502ba
  
                  // bound y
 diff --git a/net/minecraft/server/level/TicketType.java b/net/minecraft/server/level/TicketType.java
-index 6a7dae136691fb2476633fa12897424daa6bb5b3..7af093dbbcb91ef0e2587f8cd932bcfbca4fc9dc 100644
+index 6a7dae136691fb2476633fa12897424daa6bb5b3..372fceb03ee24f0d9c0dc970824f3b637068385a 100644
 --- a/net/minecraft/server/level/TicketType.java
 +++ b/net/minecraft/server/level/TicketType.java
 @@ -56,6 +56,7 @@ public final class TicketType<T> implements ca.spottedleaf.moonrise.patches.chun
      public static final TicketType PLUGIN_TICKET = register("plugin_ticket", TicketType.NO_TIMEOUT, false, TicketType.TicketUse.LOADING_AND_SIMULATION); static { ((TicketType<org.bukkit.plugin.Plugin>)PLUGIN_TICKET).moonrise$setIdentifierComparator((org.bukkit.plugin.Plugin p1, org.bukkit.plugin.Plugin p2) -> p1.getName().compareTo(p2.getName())); } // Paper // Paper - rewrite chunk system
      public static final TicketType FUTURE_AWAIT = register("future_await", TicketType.NO_TIMEOUT, false, TicketType.TicketUse.LOADING_AND_SIMULATION); // Paper
      public static final TicketType CHUNK_LOAD = register("chunk_load", TicketType.NO_TIMEOUT, false, TicketType.TicketUse.LOADING); // Paper - moonrise
-+    public static final TicketType ENTITY_MOVEMENT = register("entity_movement", 200L, false, TicketUse.LOADING_AND_SIMULATION); // Sakura - load chunks on movement
++    public static final TicketType ENTITY_MOVEMENT = register("entity_movement", 200L, false, TicketType.TicketUse.LOADING_AND_SIMULATION); // Sakura - load chunks on movement
  
      public static TicketType register(String name, long timeout, boolean persist, TicketType.TicketUse use) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, persist, use));

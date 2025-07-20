@@ -5,18 +5,18 @@ Subject: [PATCH] Optimise block counting for cannon entities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 0de9f3d0fb5abbb86bcb9bd2546cea198d105d88..92b4914577b500e2114e9160f0af8d46d5096672 100644
+index 2401cca1388298db8b5007c8332f738f793880e5..f43bdff628ce94075137904ff9d714f128126e9d 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1943,6 +1943,7 @@ public final class CollisionUtil {
          final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
          final CollisionContext collisionShape = new LazyEntityCollisionContext(entity);
          final boolean useEntityCollisionShape = LazyEntityCollisionContext.useEntityCollisionShape(world, entity);
-+        final boolean cannonEntity = entity.isFallingBlock || entity.isPrimedTNT; // Sakura - optimise block counting for cannon entities
++        final boolean cannonEntity = entity != null && (entity.isFallingBlock || entity.isPrimedTNT); // Sakura - optimise block counting for cannon entities
  
          // special cases:
          if (minBlockY > maxBlockY) {
-@@ -2003,15 +2004,19 @@ public final class CollisionUtil {
+@@ -2007,15 +2008,19 @@ public final class CollisionUtil {
  
                      final boolean hasSpecial = !fullBlocks && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - collide with non-solid blocks
                      final int sectionAdjust = !hasSpecial ? 1 : 0;

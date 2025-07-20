@@ -4,6 +4,37 @@ Date: Tue, 21 Sep 2021 23:54:25 +0100
 Subject: [PATCH] Client Visibility Settings
 
 
+diff --git a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
+index 9f6d7c5dc0e591488a8a3763d8a1f1b3671d5299..0f5383dcec940db15205afbb65f1f8aa5899edf4 100644
+--- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
++++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
+@@ -31,7 +31,7 @@ public class ClientboundLevelChunkPacketData {
+     private static final int TWO_MEGABYTES = 2097152;
+     private final Map<Heightmap.Types, long[]> heightmaps;
+     private final byte[] buffer;
+-    private final List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData;
++    public final List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData; // Sakura - client visibility settings; private -> public; ATs for some reason don't work here
+     // Paper start - Handle oversized block entities in chunks
+     private final java.util.List<net.minecraft.network.protocol.Packet<?>> extraPackets = new java.util.ArrayList<>();
+     private static final int BLOCK_ENTITY_LIMIT = Integer.getInteger("Paper.excessiveTELimit", 750);
+@@ -153,7 +153,7 @@ public class ClientboundLevelChunkPacketData {
+         return this.heightmaps;
+     }
+ 
+-    static class BlockEntityInfo {
++    public static class BlockEntityInfo { // Sakura - client visibility settings; package-protected -> public; ATs for some reason don't work here
+         public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundLevelChunkPacketData.BlockEntityInfo> STREAM_CODEC = StreamCodec.ofMember(
+             ClientboundLevelChunkPacketData.BlockEntityInfo::write, ClientboundLevelChunkPacketData.BlockEntityInfo::new
+         );
+@@ -162,7 +162,7 @@ public class ClientboundLevelChunkPacketData {
+         );
+         final int packedXZ;
+         final int y;
+-        final BlockEntityType<?> type;
++        public final BlockEntityType<?> type; // Sakura - client visibility settings; private -> public; ATs for some reason don't work here
+         @Nullable
+         final CompoundTag tag;
+ 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
 index df822f0e7c358d74737c749d6ba61ec31846a569..a88184f63f3cb539569942c5c982193973183984 100644
 --- a/net/minecraft/server/level/ChunkMap.java
@@ -144,45 +175,340 @@ index 7b341b8c65ebab8e352252df2b47f40ce3c0db4f..5c812e81a74d8f1df8a1a7ac98f84f44
      public ServerPlayer(MinecraftServer server, ServerLevel level, GameProfile gameProfile, ClientInformation clientInformation) {
          super(level, gameProfile);
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 2e7c4c74818befd25e296b58ef9f20319544c2fb..5c661e0eadcde02f2c5f00c86651a50fe68171ad 100644
+index 2e7c4c74818befd25e296b58ef9f20319544c2fb..edb8af128184966304afa6d47331c193387fc0b4 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -57,6 +57,21 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -2,14 +2,30 @@ package net.minecraft.server.network;
+ 
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.logging.LogUtils;
++import io.netty.buffer.Unpooled;
+ import io.netty.channel.ChannelFutureListener;
+ import javax.annotation.Nullable;
++
++import io.papermc.paper.adventure.PaperAdventure;
++import io.papermc.paper.annotation.DoNotUse;
++import io.papermc.paper.configuration.GlobalConfiguration;
++import io.papermc.paper.connection.DisconnectionReason;
++import io.papermc.paper.connection.PaperCommonConnection;
++import io.papermc.paper.connection.PluginMessageBridgeImpl;
++import io.papermc.paper.util.KeepAlive;
++import me.samsuik.sakura.player.visibility.VisibilitySettings;
++import me.samsuik.sakura.player.visibility.VisibilityTypes;
++import net.kyori.adventure.audience.Audience;
++import net.kyori.adventure.resource.ResourcePackCallback;
++import net.kyori.adventure.resource.ResourcePackStatus;
++import net.kyori.adventure.text.format.NamedTextColor;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+ import net.minecraft.Util;
+ import net.minecraft.network.Connection;
+ import net.minecraft.network.DisconnectionDetails;
++import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.PacketSendListener;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.protocol.Packet;
+@@ -22,13 +38,32 @@ import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+ import net.minecraft.network.protocol.common.ServerboundKeepAlivePacket;
+ import net.minecraft.network.protocol.common.ServerboundPongPacket;
+ import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
++import net.minecraft.network.protocol.common.custom.DiscardedPayload;
+ import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
++import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
++import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
++import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
++import net.minecraft.resources.ResourceLocation;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ClientInformation;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.util.VisibleForDebug;
+ import net.minecraft.util.profiling.Profiler;
++import net.minecraft.world.level.block.entity.BlockEntityType;
++import net.minecraft.world.level.block.piston.PistonBaseBlock;
++import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.craftbukkit.util.Waitable;
++import org.bukkit.event.player.PlayerKickEvent;
++import org.bukkit.event.player.PlayerQuitEvent;
+ import org.slf4j.Logger;
+ 
++import java.nio.charset.StandardCharsets;
++import java.util.*;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.ExecutionException;
++import java.util.concurrent.TimeUnit;
++
+ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPacketListener {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final int LATENCY_CHECK_INTERVAL = 15000;
+@@ -44,19 +79,73 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+     private long closedListenerTime;
+     private boolean closed = false;
+     private volatile int latency; // Paper - improve keepalives - make volatile
+-    private final io.papermc.paper.util.KeepAlive keepAlive; // Paper - improve keepalives
++    private final KeepAlive keepAlive; // Paper - improve keepalives
+     private volatile boolean suspendFlushingOnServerThread = false;
+     // CraftBukkit start
+-    protected final org.bukkit.craftbukkit.CraftServer cserver;
++    protected final CraftServer cserver;
+     public boolean processedDisconnect;
+     // CraftBukkit end
+-    public final java.util.Map<java.util.UUID, net.kyori.adventure.resource.ResourcePackCallback> packCallbacks = new java.util.concurrent.ConcurrentHashMap<>(); // Paper - adventure resource pack callbacks
++    public final Map<UUID, ResourcePackCallback> packCallbacks = new ConcurrentHashMap<>(); // Paper - adventure resource pack callbacks
+     private static final long KEEPALIVE_LIMIT = Long.getLong("paper.playerconnection.keepalive", 30) * 1000; // Paper - provide property to set keepalive limit
+-    protected static final net.minecraft.resources.ResourceLocation MINECRAFT_BRAND = net.minecraft.resources.ResourceLocation.withDefaultNamespace("brand"); // Paper - Brand support
++    protected static final ResourceLocation MINECRAFT_BRAND = ResourceLocation.withDefaultNamespace("brand"); // Paper - Brand support
+     // Paper start - retain certain values
      public @Nullable String playerBrand;
-     public final java.util.Set<String> pluginMessagerChannels;
+-    public final java.util.Set<String> pluginMessagerChannels;
++    public final Set<String> pluginMessagerChannels;
      // Paper end - retain certain values
 +    // Sakura start - client visibility settings
-+    private @Nullable Packet<?> recreatePacket(final Packet<?> packet) {
-+        final me.samsuik.sakura.player.visibility.VisibilitySettings settings = this.connection.getPlayer().visibilitySettings;
-+        if (packet instanceof net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket bedPacket) {
-+            if (settings.isToggled(me.samsuik.sakura.player.visibility.VisibilityTypes.SPAWNERS) && bedPacket.getType() == net.minecraft.world.level.block.entity.BlockEntityType.MOB_SPAWNER) {
-+                return null;
-+            }
-+        } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundBlockEventPacket bePacket) {
-+            if (settings.isToggled(me.samsuik.sakura.player.visibility.VisibilityTypes.PISTONS) && bePacket.getBlock() instanceof net.minecraft.world.level.block.piston.PistonBaseBlock) {
-+                return null;
++    private boolean filterExtraPackets(final Packet<?> packet, final ServerPlayer player) {
++        final VisibilitySettings settings = player.visibilitySettings;
++        if (settings.isToggled(VisibilityTypes.SPAWNERS)) {
++            if (packet instanceof ClientboundBlockEntityDataPacket bedPacket && bedPacket.getType() == BlockEntityType.MOB_SPAWNER) {
++                return true;
 +            }
 +        }
-+        return packet;
++        return false;
++    }
++
++    private boolean filterOrModifyPacket(final Packet<?> packet, final ServerPlayer player) {
++        final VisibilitySettings settings = player.visibilitySettings;
++        final List<Packet<?>> extraPackets = packet.getExtraPackets();
++        if (extraPackets != null) {
++            // block entity data is sent as an extra packet
++            extraPackets.removeIf(extraPacket -> this.filterExtraPackets(extraPacket, player));
++        }
++
++        if (settings.isToggled(VisibilityTypes.SPAWNERS)) {
++            net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData chunkData = null;
++
++            if (packet instanceof net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket chunkPacket) {
++                chunkData = chunkPacket.getChunkData();
++            } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData chunkPacket) {
++                chunkData = chunkPacket;
++            }
++
++            if (chunkData != null) {
++                chunkData.blockEntitiesData.removeIf(blockEntityInfo -> blockEntityInfo.type == BlockEntityType.MOB_SPAWNER);
++            }
++
++            if (packet instanceof ClientboundBlockEntityDataPacket bedPacket && bedPacket.getType() == BlockEntityType.MOB_SPAWNER) {
++                return true;
++            }
++        }
++
++        if (packet instanceof ClientboundBlockEventPacket bePacket) {
++            if (settings.isToggled(VisibilityTypes.PISTONS) && bePacket.getBlock() instanceof PistonBaseBlock) {
++                return true;
++            }
++        }
++        
++        return false;
++    }
++
++    private ServerPlayer getPlayer() {
++        if (this instanceof ServerGamePacketListenerImpl gamePacketListener) {
++            return gamePacketListener.getPlayer();
++        } else {
++            return this.connection.getPlayer();
++        }
 +    }
 +    // Sakura end - client visibility settings
  
      public ServerCommonPacketListenerImpl(MinecraftServer server, Connection connection, CommonListenerCookie cookie) {
          this.server = server;
-@@ -305,6 +320,12 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
-         } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket defaultSpawnPositionPacket && this instanceof ServerGamePacketListenerImpl serverGamePacketListener) {
-             serverGamePacketListener.player.compassTarget = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(defaultSpawnPositionPacket.getPos(), serverGamePacketListener.getCraftPlayer().getWorld());
+@@ -97,11 +186,11 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+     public void handleKeepAlive(ServerboundKeepAlivePacket packet) {
+         // Paper start - improve keepalives
+         long now = System.nanoTime();
+-        io.papermc.paper.util.KeepAlive.PendingKeepAlive pending = this.keepAlive.pendingKeepAlives.peek();
++        KeepAlive.PendingKeepAlive pending = this.keepAlive.pendingKeepAlives.peek();
+         if (pending != null && pending.challengeId() == packet.getId()) {
+             this.keepAlive.pendingKeepAlives.remove(pending);
+ 
+-            io.papermc.paper.util.KeepAlive.KeepAliveResponse response = new io.papermc.paper.util.KeepAlive.KeepAliveResponse(pending.txTimeNS(), now);
++            KeepAlive.KeepAliveResponse response = new KeepAlive.KeepAliveResponse(pending.txTimeNS(), now);
+ 
+             this.keepAlive.pingCalculator1m.update(response);
+             this.keepAlive.pingCalculator5s.update(response);
+@@ -110,14 +199,14 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+             return;
          }
-+        // Sakura start - client visibility settings
-+        if (this.connection.getPlayer().visibilitySettings.playerModified()) {
-+            packet = this.recreatePacket(packet);
-+            if (packet == null) return;
+ 
+-        for (java.util.Iterator<io.papermc.paper.util.KeepAlive.PendingKeepAlive> itr = this.keepAlive.pendingKeepAlives.iterator(); itr.hasNext();) {
+-            io.papermc.paper.util.KeepAlive.PendingKeepAlive ka = itr.next();
++        for (Iterator<KeepAlive.PendingKeepAlive> itr = this.keepAlive.pendingKeepAlives.iterator(); itr.hasNext();) {
++            KeepAlive.PendingKeepAlive ka = itr.next();
+             if (ka.challengeId() == packet.getId()) {
+                 itr.remove();
+ 
+                 if (!this.processedDisconnect) {
+                     LOGGER.info("Disconnecting {} for sending keepalive response ({}) out-of-order!", this.playerProfile().getName(), packet.getId());
+-                    this.disconnectAsync(TIMEOUT_DISCONNECTION_MESSAGE, io.papermc.paper.connection.DisconnectionReason.TIMEOUT);
++                    this.disconnectAsync(TIMEOUT_DISCONNECTION_MESSAGE, DisconnectionReason.TIMEOUT);
+                     return;
+                 }
+                 break;
+@@ -126,7 +215,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+ 
+         if (!this.processedDisconnect) {
+             LOGGER.info("Disconnecting {} for sending keepalive response ({}) without matching challenge!", this.playerProfile().getName(), packet.getId());
+-            this.disconnectAsync(TIMEOUT_DISCONNECTION_MESSAGE, io.papermc.paper.connection.DisconnectionReason.TIMEOUT);
++            this.disconnectAsync(TIMEOUT_DISCONNECTION_MESSAGE, DisconnectionReason.TIMEOUT);
+             return;
+         }
+         // Paper end - improve keepalives
+@@ -137,20 +226,20 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+     }
+ 
+     // Paper start
+-    public static final net.minecraft.resources.ResourceLocation CUSTOM_REGISTER = net.minecraft.resources.ResourceLocation.withDefaultNamespace("register");
+-    private static final net.minecraft.resources.ResourceLocation CUSTOM_UNREGISTER = net.minecraft.resources.ResourceLocation.withDefaultNamespace("unregister");
++    public static final ResourceLocation CUSTOM_REGISTER = ResourceLocation.withDefaultNamespace("register");
++    private static final ResourceLocation CUSTOM_UNREGISTER = ResourceLocation.withDefaultNamespace("unregister");
+     // Paper end
+ 
+     @Override
+     public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {
+         // Paper start
+-        if (!(packet.payload() instanceof final net.minecraft.network.protocol.common.custom.DiscardedPayload discardedPayload)) {
++        if (!(packet.payload() instanceof final DiscardedPayload discardedPayload)) {
+             return;
+         }
+ 
+-        net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, this, this.server);
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.server);
+ 
+-        final net.minecraft.resources.ResourceLocation identifier = packet.payload().type().id();
++        final ResourceLocation identifier = packet.payload().type().id();
+         final byte[] data = discardedPayload.data();
+         try {
+             final boolean registerChannel = CUSTOM_REGISTER.equals(identifier);
+@@ -173,18 +262,18 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+             }
+ 
+             if (identifier.equals(MINECRAFT_BRAND)) {
+-                this.playerBrand = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.wrappedBuffer(data)).readUtf(256);
++                this.playerBrand = new FriendlyByteBuf(Unpooled.wrappedBuffer(data)).readUtf(256);
+             }
+ 
+             this.cserver.getMessenger().dispatchIncomingMessage(paperConnection(), identifier.toString(), data);
+         } catch (final Exception e) {
+             ServerGamePacketListenerImpl.LOGGER.error("Couldn't handle custom payload on channel {}", identifier, e);
+-            this.disconnect(net.minecraft.network.chat.Component.literal("Invalid custom payload payload!"), io.papermc.paper.connection.DisconnectionReason.INVALID_PAYLOAD); // Paper - kick event cause
++            this.disconnect(Component.literal("Invalid custom payload payload!"), DisconnectionReason.INVALID_PAYLOAD); // Paper - kick event cause
+         }
+     }
+ 
+     private void readChannelIdentifier(final byte[] data, final int from, final int to, final boolean register) {
+-        io.papermc.paper.connection.PluginMessageBridgeImpl bridge = switch (this) {
++        PluginMessageBridgeImpl bridge = switch (this) {
+             case ServerGamePacketListenerImpl gamePacketListener -> gamePacketListener.player.getBukkitEntity();
+             case ServerConfigurationPacketListenerImpl commonPacketListener -> commonPacketListener.paperConnection;
+             default -> null;
+@@ -199,7 +288,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+             return;
+         }
+ 
+-        final String channel = new String(data, from, length, java.nio.charset.StandardCharsets.US_ASCII);
++        final String channel = new String(data, from, length, StandardCharsets.US_ASCII);
+         if (register) {
+             bridge.addChannel(channel);
+         } else {
+@@ -219,24 +308,24 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.server);
+         if (packet.action() == ServerboundResourcePackPacket.Action.DECLINED && this.server.isResourcePackRequired()) {
+             LOGGER.info("Disconnecting {} due to resource pack {} rejection", this.playerProfile().getName(), packet.id());
+-            this.disconnect(Component.translatable("multiplayer.requiredTexturePrompt.disconnect"), io.papermc.paper.connection.DisconnectionReason.RESOURCE_PACK_REJECTION); // Paper - kick event cause
++            this.disconnect(Component.translatable("multiplayer.requiredTexturePrompt.disconnect"), DisconnectionReason.RESOURCE_PACK_REJECTION); // Paper - kick event cause
+         }
+         // Paper start - adventure pack callbacks
+         // call the callbacks before the previously-existing event so the event has final say
+-        final net.kyori.adventure.resource.ResourcePackCallback callback;
++        final ResourcePackCallback callback;
+         if (packet.action().isTerminal()) {
+             callback = this.packCallbacks.remove(packet.id());
+         } else {
+             callback = this.packCallbacks.get(packet.id());
+         }
+         if (callback != null) {
+-            net.kyori.adventure.audience.Audience audience = switch (this) {
++            Audience audience = switch (this) {
+                 case ServerGamePacketListenerImpl serverGamePacketListener -> serverGamePacketListener.getCraftPlayer();
+                 case ServerConfigurationPacketListenerImpl configurationPacketListener -> configurationPacketListener.paperConnection.getAudience();
+                 default -> throw new IllegalStateException("Unexpected value: " + this);
+             };
+ 
+-            callback.packEventReceived(packet.id(), net.kyori.adventure.resource.ResourcePackStatus.valueOf(packet.action().name()), audience);
++            callback.packEventReceived(packet.id(), ResourcePackStatus.valueOf(packet.action().name()), audience);
+         }
+         // Paper end
+     }
+@@ -244,7 +333,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+     @Override
+     public void handleCookieResponse(ServerboundCookieResponsePacket packet) {
+         if (this.paperConnection().handleCookieResponse(packet)) return; // Paper
+-        this.disconnect(DISCONNECT_UNEXPECTED_QUERY, io.papermc.paper.connection.DisconnectionReason.INVALID_COOKIE); // Paper - kick event cause
++        this.disconnect(DISCONNECT_UNEXPECTED_QUERY, DisconnectionReason.INVALID_COOKIE); // Paper - kick event cause
+     }
+ 
+     protected void keepConnectionAlive() {
+@@ -254,18 +343,18 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         if (this.checkIfClosed(millis) && !this.processedDisconnect) {
+             long currTime = System.nanoTime();
+ 
+-            if ((currTime - this.keepAlive.lastKeepAliveTx) >= java.util.concurrent.TimeUnit.SECONDS.toNanos(1L)) {
++            if ((currTime - this.keepAlive.lastKeepAliveTx) >= TimeUnit.SECONDS.toNanos(1L)) {
+                 this.keepAlive.lastKeepAliveTx = currTime;
+ 
+-                io.papermc.paper.util.KeepAlive.PendingKeepAlive pka = new io.papermc.paper.util.KeepAlive.PendingKeepAlive(currTime, millis);
++                KeepAlive.PendingKeepAlive pka = new KeepAlive.PendingKeepAlive(currTime, millis);
+                 this.keepAlive.pendingKeepAlives.add(pka);
+                 this.send(new ClientboundKeepAlivePacket(pka.challengeId()));
+             }
+ 
+-            io.papermc.paper.util.KeepAlive.PendingKeepAlive oldest = this.keepAlive.pendingKeepAlives.peek();
+-            if (oldest != null && (currTime - oldest.txTimeNS()) > java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(KEEPALIVE_LIMIT)) {
++            KeepAlive.PendingKeepAlive oldest = this.keepAlive.pendingKeepAlives.peek();
++            if (oldest != null && (currTime - oldest.txTimeNS()) > TimeUnit.MILLISECONDS.toNanos(KEEPALIVE_LIMIT)) {
+                 LOGGER.info("{} was kicked due to keepalive timeout!", this.playerProfile().getName());
+-                this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE, io.papermc.paper.connection.DisconnectionReason.TIMEOUT); // Paper - kick event cause
++                this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE, DisconnectionReason.TIMEOUT); // Paper - kick event cause
+                 // Paper end - improve keepalives
+             }
+         }
+@@ -276,7 +365,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+     private boolean checkIfClosed(long time) {
+         if (this.closed) {
+             if (time - this.closedListenerTime >= 15000L) {
+-                this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE, io.papermc.paper.connection.DisconnectionReason.TIMEOUT); // Paper - kick event cause
++                this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE, DisconnectionReason.TIMEOUT); // Paper - kick event cause
+             }
+ 
+             return false;
+@@ -302,9 +391,15 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         // CraftBukkit start
+         if (packet == null || this.processedDisconnect) { // Spigot
+             return;
+-        } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket defaultSpawnPositionPacket && this instanceof ServerGamePacketListenerImpl serverGamePacketListener) {
+-            serverGamePacketListener.player.compassTarget = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(defaultSpawnPositionPacket.getPos(), serverGamePacketListener.getCraftPlayer().getWorld());
++        } else if (packet instanceof ClientboundSetDefaultSpawnPositionPacket defaultSpawnPositionPacket && this instanceof ServerGamePacketListenerImpl serverGamePacketListener) {
++            serverGamePacketListener.player.compassTarget = CraftLocation.toBukkit(defaultSpawnPositionPacket.getPos(), serverGamePacketListener.getCraftPlayer().getWorld());
 +        }
++        // Sakura start - client visibility settings
++        final ServerPlayer player = this.getPlayer();
++        if (player != null && player.visibilitySettings.playerModified() && this.filterOrModifyPacket(packet, player)) {
++            return;
+         }
 +        // Sakura end - client visibility settings
          // CraftBukkit end
          if (packet.isTerminal()) {
              this.close();
-@@ -317,7 +338,10 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -317,19 +412,22 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          } catch (Throwable var7) {
              CrashReport crashReport = CrashReport.forThrowable(var7, "Sending packet");
              CrashReportCategory crashReportCategory = crashReport.addCategory("Packet being sent");
@@ -194,8 +520,103 @@ index 2e7c4c74818befd25e296b58ef9f20319544c2fb..5c661e0eadcde02f2c5f00c86651a50f
              throw new ReportedException(crashReport);
          }
      }
+ 
+-    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - kick event causes
++    @Deprecated @DoNotUse // Paper - kick event causes
+     public void disconnect(Component reason) {
+         // Paper start - kick event causes
+-        this.disconnect(reason, io.papermc.paper.connection.DisconnectionReason.UNKNOWN);
++        this.disconnect(reason, DisconnectionReason.UNKNOWN);
+     }
+ 
+-    public void disconnect(Component reason, io.papermc.paper.connection.DisconnectionReason cause) {
+-        this.disconnect(new DisconnectionDetails(reason, java.util.Optional.empty(), java.util.Optional.empty(), java.util.Optional.empty(), java.util.Optional.of(cause)));
++    public void disconnect(Component reason, DisconnectionReason cause) {
++        this.disconnect(new DisconnectionDetails(reason, Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(cause)));
+         // Paper end - kick event causes
+     }
+ 
+@@ -339,7 +437,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+             return;
+         }
+         if (!this.cserver.isPrimaryThread()) {
+-            org.bukkit.craftbukkit.util.Waitable waitable = new org.bukkit.craftbukkit.util.Waitable() {
++            Waitable waitable = new Waitable() {
+                 @Override
+                 protected Object evaluate() {
+                     ServerCommonPacketListenerImpl.this.disconnect(disconnectionDetails);
+@@ -353,7 +451,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+                 waitable.get();
+             } catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
+-            } catch (java.util.concurrent.ExecutionException e) {
++            } catch (ExecutionException e) {
+                 throw new RuntimeException(e);
+             }
+             return;
+@@ -362,13 +460,13 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         Component reason;
+         Component leaveMessage;
+         if (this instanceof ServerGamePacketListenerImpl serverGamePacketListener) {
+-            net.kyori.adventure.text.Component rawLeaveMessage = net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? serverGamePacketListener.player.getBukkitEntity().displayName() : net.kyori.adventure.text.Component.text(serverGamePacketListener.player.getScoreboardName())); // Paper - Adventure
++            net.kyori.adventure.text.Component rawLeaveMessage = net.kyori.adventure.text.Component.translatable("multiplayer.player.left", NamedTextColor.YELLOW, GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? serverGamePacketListener.player.getBukkitEntity().displayName() : net.kyori.adventure.text.Component.text(serverGamePacketListener.player.getScoreboardName())); // Paper - Adventure
+ 
+-            net.minecraft.server.level.ServerPlayer player = serverGamePacketListener.player;
+-            org.bukkit.event.player.PlayerKickEvent.Cause cause = disconnectionDetails.disconnectionReason().orElseThrow().game().orElse(org.bukkit.event.player.PlayerKickEvent.Cause.UNKNOWN);
+-            org.bukkit.event.player.PlayerKickEvent event = new org.bukkit.event.player.PlayerKickEvent(
++            ServerPlayer player = serverGamePacketListener.player;
++            PlayerKickEvent.Cause cause = disconnectionDetails.disconnectionReason().orElseThrow().game().orElse(PlayerKickEvent.Cause.UNKNOWN);
++            PlayerKickEvent event = new PlayerKickEvent(
+                     player.getBukkitEntity(),
+-                    io.papermc.paper.adventure.PaperAdventure.asAdventure(disconnectionDetails.reason()),
++                    PaperAdventure.asAdventure(disconnectionDetails.reason()),
+                     rawLeaveMessage, cause
+ 
+             );
+@@ -382,9 +480,9 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+                 return;
+             }
+ 
+-            reason = io.papermc.paper.adventure.PaperAdventure.asVanilla(event.reason());
+-            leaveMessage =  io.papermc.paper.adventure.PaperAdventure.asVanilla(event.leaveMessage());
+-            serverGamePacketListener.player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.KICKED; // Paper - Add API for quit reason
++            reason = PaperAdventure.asVanilla(event.reason());
++            leaveMessage =  PaperAdventure.asVanilla(event.leaveMessage());
++            serverGamePacketListener.player.quitReason = PlayerQuitEvent.QuitReason.KICKED; // Paper - Add API for quit reason
+             // Log kick to console *after* event was processed.
+             switch (cause) {
+                 case FLYING_PLAYER -> LOGGER.warn("{} was kicked for floating too long!", player.getName().getString());
+@@ -397,7 +495,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         }
+ 
+         // Send the possibly modified leave message
+-        this.disconnect0(new DisconnectionDetails(reason, disconnectionDetails.report(), disconnectionDetails.bugReportLink(), java.util.Optional.ofNullable(leaveMessage), disconnectionDetails.disconnectionReason()));
++        this.disconnect0(new DisconnectionDetails(reason, disconnectionDetails.report(), disconnectionDetails.bugReportLink(), Optional.ofNullable(leaveMessage), disconnectionDetails.disconnectionReason()));
+     }
+ 
+     private void disconnect0(DisconnectionDetails disconnectionDetails) {
+@@ -413,8 +511,8 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+     }
+ 
+     // Paper start - add proper async disconnect
+-    public final void disconnectAsync(Component component, io.papermc.paper.connection.DisconnectionReason reason) {
+-        this.disconnectAsync(new DisconnectionDetails(component, java.util.Optional.empty(), java.util.Optional.empty(), java.util.Optional.empty(), java.util.Optional.of(reason)));
++    public final void disconnectAsync(Component component, DisconnectionReason reason) {
++        this.disconnectAsync(new DisconnectionDetails(component, Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(reason)));
+     }
+ 
+     public final void disconnectAsync(Component component) {
+@@ -427,7 +525,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         return this.transferred;
+     }
+ 
+-    public abstract io.papermc.paper.connection.PaperCommonConnection<?> paperConnection();
++    public abstract PaperCommonConnection<?> paperConnection();
+     // Paper end - add proper async disconnect
+ 
+     protected boolean isSingleplayerOwner() {
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index ef9a0cbf75fb79d289d1d788ba0e5f181e3cdddd..661046c8c0f6d6116a8b785820f4bcfbda7f43b4 100644
+index 3bb431da22aaf4ed1965aa9bc89732b25b1e3648..1c4e4b95edae75c212e071e656cf36c007a1dce9 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -3202,6 +3202,7 @@ public class ServerGamePacketListenerImpl
