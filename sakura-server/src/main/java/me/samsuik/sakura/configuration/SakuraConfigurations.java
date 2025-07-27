@@ -6,8 +6,8 @@ import io.leangen.geantyref.TypeToken;
 import io.papermc.paper.configuration.*;
 import io.papermc.paper.configuration.mapping.InnerClassFieldDiscoverer;
 import io.papermc.paper.configuration.serializer.*;
-import io.papermc.paper.configuration.serializer.collections.FastutilMapSerializer;
-import io.papermc.paper.configuration.serializer.collections.TableSerializer;
+import io.papermc.paper.configuration.serializer.collection.map.FastutilMapSerializer;
+import io.papermc.paper.configuration.serializer.collection.TableSerializer;
 import io.papermc.paper.configuration.serializer.registry.RegistryHolderSerializer;
 import io.papermc.paper.configuration.serializer.registry.RegistryValueSerializer;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static io.leangen.geantyref.GenericTypeReflector.erase;
+import static io.papermc.paper.configuration.PaperConfigurations.defaultFieldProcessors;
 
 @NullMarked
 @SuppressWarnings("Convert2Diamond")
@@ -95,7 +96,7 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
     }
 
     private static ObjectMapper.Factory.Builder defaultGlobalFactoryBuilder(ObjectMapper.Factory.Builder builder) {
-        return builder.addDiscoverer(InnerClassFieldDiscoverer.globalConfig());
+        return builder.addDiscoverer(InnerClassFieldDiscoverer.globalConfig(defaultFieldProcessors()));
     }
 
     @Override
@@ -105,11 +106,7 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
     }
 
     private static ConfigurationOptions defaultGlobalOptions(ConfigurationOptions options) {
-        return options
-            .header(GLOBAL_HEADER)
-            .serializers(builder -> builder
-                .register(new PacketClassSerializer())
-            );
+        return options.header(GLOBAL_HEADER);
     }
 
     @Override
@@ -130,7 +127,7 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
         final Map<Class<?>, Object> overrides = Map.of(
             WorldConfiguration.class, createWorldConfigInstance(contextMap)
         );
-        return new InnerClassFieldDiscoverer(overrides);
+        return InnerClassFieldDiscoverer.create(overrides, defaultFieldProcessors());
     }
 
     private static WorldConfiguration createWorldConfigInstance(ContextMap contextMap) {
