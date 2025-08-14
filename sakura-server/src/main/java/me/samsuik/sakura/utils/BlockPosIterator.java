@@ -58,6 +58,7 @@ public final class BlockPosIterator extends AbstractIterator<BlockPos> {
             } else if (z < this.endZ) {
                 z += 1;
                 x = this.startX;
+                y = this.startY;
             } else {
                 return this.endOfData();
             }
