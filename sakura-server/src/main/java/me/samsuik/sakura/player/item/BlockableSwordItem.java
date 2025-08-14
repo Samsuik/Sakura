@@ -30,7 +30,7 @@ public final class BlockableSwordItem extends Item {
 
     @Override
     public void modifyComponentsSentToClient(PatchedDataComponentMap components) {
-        if (hasCustomAnimationOrDisabled(components)) {
+        if (!hasCustomAnimationOrDisabled(components)) {
             // When updating to 1.22 change CONSUMABLE to BLOCK_ATTACKS
             components.set(DataComponents.CONSUMABLE, BLOCKING_ANIMATION);
         }
