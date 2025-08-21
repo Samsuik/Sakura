@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @NullMarked
+@Deprecated(forRemoval = true)
 @SuppressWarnings("unchecked")
 public final class LocalValueStorage {
     private final Map<LocalValueKey<?>, Object> map = new Object2ObjectOpenHashMap<>();

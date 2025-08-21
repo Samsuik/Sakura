@@ -6,6 +6,7 @@ import org.bukkit.util.Vector;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
+@Deprecated(forRemoval = true)
 public record LocalRegion(int minX, int minZ, int maxX, int maxZ) {
     public static LocalRegion from(BoundingBox boundingBox) {
         return of(boundingBox.getMin(), boundingBox.getMax());

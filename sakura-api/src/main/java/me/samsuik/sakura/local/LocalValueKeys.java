@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+@Deprecated(forRemoval = true)
 public final class LocalValueKeys {
     private static final String NAMESPACE = "sakura";
 

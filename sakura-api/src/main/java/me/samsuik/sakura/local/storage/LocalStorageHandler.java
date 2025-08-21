@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 import java.util.Optional;
 
+@Deprecated(forRemoval = true)
 public interface LocalStorageHandler {
     default @NonNull Optional<LocalRegion> locate(@NonNull Location location) {
         return this.locate(location.blockX(), location.blockZ());

@@ -6,6 +6,7 @@ import org.jspecify.annotations.NullMarked;
 import java.util.function.Supplier;
 
 @NullMarked
+@Deprecated(forRemoval = true)
 public record LocalValueKey<T>(NamespacedKey key, Supplier<T> defaultSupplier) {
     @Override
     public boolean equals(Object o) {
