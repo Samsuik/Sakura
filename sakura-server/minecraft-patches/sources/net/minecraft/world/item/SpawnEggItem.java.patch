@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/item/SpawnEggItem.java
++++ b/net/minecraft/world/item/SpawnEggItem.java
+@@ -71,16 +_,18 @@
+                 }
+ 
+                 EntityType<?> type = this.getType(level.registryAccess(), itemInHand);
+-                if (type.spawn(
+-                        (ServerLevel)level,
+-                        itemInHand,
+-                        context.getPlayer(),
+-                        blockPos,
+-                        EntitySpawnReason.SPAWN_ITEM_USE,
+-                        true,
+-                        !Objects.equals(clickedPos, blockPos) && clickedFace == Direction.UP
+-                    )
+-                    != null) {
++                // Sakura start - prevent placing spawn eggs inside blocks
++                final Entity entity = type.spawn(
++                    (ServerLevel)level,
++                    itemInHand,
++                    context.getPlayer(),
++                    blockPos,
++                    EntitySpawnReason.SPAWN_ITEM_USE,
++                    true,
++                    !Objects.equals(clickedPos, blockPos) && clickedFace == Direction.UP
++                );
++                if (entity != null && (!level.sakuraConfig().players.preventPlacingSpawnEggsInsideBlocks || level.noCollision(null, entity.getBoundingBox()))) {
++                    // Sakura end - prevent placing spawn eggs inside blocks
+                     itemInHand.shrink(1);
+                     level.gameEvent(context.getPlayer(), GameEvent.ENTITY_PLACE, clickedPos);
+                 }
+@@ -103,7 +_,7 @@
+             } else if (level.mayInteract(player, blockPos) && player.mayUseItemAt(blockPos, playerPovHitResult.getDirection(), itemInHand)) {
+                 EntityType<?> type = this.getType(serverLevel.registryAccess(), itemInHand);
+                 Entity entity = type.spawn(serverLevel, itemInHand, player, blockPos, EntitySpawnReason.SPAWN_ITEM_USE, false, false);
+-                if (entity == null) {
++                if (entity == null || level.sakuraConfig().players.preventPlacingSpawnEggsInsideBlocks && !level.noCollision(null, entity.getBoundingBox())) { // Sakura - prevent placing spawn eggs inside blocks
+                     return InteractionResult.PASS;
+                 } else {
+                     itemInHand.consume(1, player);

@@ -186,9 +186,10 @@ public final class WorldConfiguration extends ConfigurationPart {
             public double shieldHitKnockback = 0.5;
         }
 
-        @Comment("Prevents players swimming using elytra or riptide to enter holes")
+        @Comment("Prevents players swimming, gliding or using riptide to enter small holes")
         public boolean posesShrinkCollisionBox = true;
         public boolean fishingHooksPullEntities = true;
+        public boolean preventPlacingSpawnEggsInsideBlocks = false;
     }
 
     public Entity entity;
