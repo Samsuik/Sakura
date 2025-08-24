@@ -1,16 +1,32 @@
 --- a/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
 +++ b/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
-@@ -182,6 +_,13 @@
+@@ -118,6 +_,15 @@
+             if (owner != null && isAllowedToTeleportOwner(owner, serverLevel)) {
+                 Vec3 vec3 = this.oldPosition();
+                 if (owner instanceof ServerPlayer serverPlayer) {
++                    // Sakura start - prevent ender pearls teleporting inside blocks
++                    if (this.level().sakuraConfig().entity.enderPearl.preventTeleportingInsideBlocks && serverPlayer.insideAnyCollisionAt(serverLevel, this.position())) {
++                        this.setPos(Vec3.atBottomCenterOf(this.blockPosition()));
++                        if (serverPlayer.insideAnyCollisionAt(serverLevel, this.position())) {
++                            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT);
++                            return;
++                        }
++                    }
++                    // Sakura end - prevent ender pearls teleporting inside blocks
+                     if (serverPlayer.connection.isAcceptingMessages()) {
+                         // CraftBukkit start
+                         // Store pre teleportation position as the teleport has been moved up.
+@@ -181,6 +_,13 @@
+             return entity.canUsePortal(true);
          }
      }
- 
++
 +    // Sakura start - enderpearls use outline for collision
 +    @Override
 +    protected net.minecraft.world.level.ClipContext.Block getClipType() {
 +        return this.level().sakuraConfig().entity.enderPearl.useOutlineForCollision ? net.minecraft.world.level.ClipContext.Block.OUTLINE : super.getClipType();
 +    }
 +    // Sakura end - enderpearls use outline for collision
-+
+ 
      @Override
      public void tick() {
-         int sectionPosX = SectionPos.blockToSectionCoord(this.position().x());

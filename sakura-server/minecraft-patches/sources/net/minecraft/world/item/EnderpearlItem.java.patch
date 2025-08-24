@@ -1,0 +1,15 @@
+--- a/net/minecraft/world/item/EnderpearlItem.java
++++ b/net/minecraft/world/item/EnderpearlItem.java
+@@ -26,6 +_,12 @@
+             // Paper start - PlayerLaunchProjectileEvent
+             final Projectile.Delayed<ThrownEnderpearl> thrownEnderpearl = Projectile.spawnProjectileFromRotationDelayed(ThrownEnderpearl::new, serverLevel, itemInHand, player, 0.0F, EnderpearlItem.PROJECTILE_SHOOT_POWER, 1.0F);
+             com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent event = new com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) player.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemInHand), (org.bukkit.entity.Projectile) thrownEnderpearl.projectile().getBukkitEntity());
++            // Sakura start - prevent ender pearls teleporting inside blocks
++            final ThrownEnderpearl pearl = thrownEnderpearl.projectile();
++            if (level.sakuraConfig().entity.enderPearl.preventTeleportingInsideBlocks && player.isInsideAnyCollision()) {
++                event.setCancelled(true);
++            }
++            // Sakura end - prevent ender pearls teleporting inside blocks
+             if (event.callEvent() && thrownEnderpearl.attemptSpawn()) {
+                 if (event.shouldConsume()) {
+                     itemInHand.consume(1, player);

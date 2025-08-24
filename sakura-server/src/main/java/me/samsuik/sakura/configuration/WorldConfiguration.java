@@ -229,6 +229,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         public EnderPearl enderPearl = new EnderPearl();
         public class EnderPearl extends ConfigurationPart {
             public boolean useOutlineForCollision = false;
+            public boolean preventTeleportingInsideBlocks = false;
         }
     }
 
