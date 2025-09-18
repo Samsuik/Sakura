@@ -162,8 +162,8 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
 
         entities.createRawIterator();
         // iterate over the entityTickList to find entities that are exploding in the same position.
-        while ((index = entities.advanceRawIterator(index)) != -1) {
-            Entity foundEntity = entities.getListRaw()[index];
+        while ((index = entities.advanceRawIterator(index)) != Integer.MAX_VALUE) {
+            Entity foundEntity = entities.rawGet(index);
             if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, true))
                 break;
             this.level().mergeHandler.mergeEntity(mergeEntity, this.cause);
