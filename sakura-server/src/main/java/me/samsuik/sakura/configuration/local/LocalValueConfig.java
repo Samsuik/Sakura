@@ -32,7 +32,8 @@ public final class LocalValueConfig {
         storage.get(LocalValueKeys.DURABLE_MATERIALS).ifPresent(materials -> {
             materials.forEach((materialType, materialProperties) -> {
                 Block nmsBlock = CraftMagicNumbers.getBlock(materialType);
-                DurableMaterial durableMaterial = new DurableMaterial(materialProperties.getKey(), materialProperties.getValue());
+                // temp, will be updated later
+                DurableMaterial durableMaterial = new DurableMaterial(materialProperties.getKey(), materialProperties.getValue(), false);
                 this.durableMaterials.put(nmsBlock, durableMaterial);
             });
         });

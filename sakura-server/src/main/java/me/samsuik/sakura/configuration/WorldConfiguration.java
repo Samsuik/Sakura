@@ -28,7 +28,7 @@ import java.util.Set;
 public final class WorldConfiguration extends ConfigurationPart {
 
     private static final Logger LOGGER = LogUtils.getClassLogger();
-    static final int CURRENT_VERSION = 9; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
+    static final int CURRENT_VERSION = 10; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
 
     private transient final ResourceLocation worldKey;
     WorldConfiguration(ResourceLocation worldKey) {
@@ -88,13 +88,11 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean useBlockCacheAcrossExplosions = false;
 
             public Map<Block, DurableMaterial> durableMaterials = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
-                map.put(Blocks.OBSIDIAN, new DurableMaterial(4, Blocks.COBBLESTONE.getExplosionResistance()));
-                map.put(Blocks.ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
-                map.put(Blocks.CHIPPED_ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
-                map.put(Blocks.DAMAGED_ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance()));
+                map.put(Blocks.OBSIDIAN, new DurableMaterial(4, Blocks.COBBLESTONE.getExplosionResistance(), true));
+                map.put(Blocks.ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance(), true));
+                map.put(Blocks.CHIPPED_ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance(), true));
+                map.put(Blocks.DAMAGED_ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance(), true));
             });
-            @Comment("When disabled all explosions will be able to damage durable materials.")
-            public boolean requireTntToDamageDurableMaterials = true;
 
             public boolean protectScaffoldingFromCreepers = false;
             public boolean destroyWaterloggedBlocks = false;

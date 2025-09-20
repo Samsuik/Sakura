@@ -5,7 +5,7 @@ Subject: [PATCH] Explosion Durable Blocks
 
 
 diff --git a/net/minecraft/world/item/BlockItem.java b/net/minecraft/world/item/BlockItem.java
-index b5b53168755525eccaa0a4361172006522cf4e05..56acdfc2a8d2ecd716065263c59dbcb0ec7135bf 100644
+index 6db566adf2d0df1d26221eda04aa01738df6d3d2..a12068c3adbb147eeb41a093fcd2938cc2c34a15 100644
 --- a/net/minecraft/world/item/BlockItem.java
 +++ b/net/minecraft/world/item/BlockItem.java
 @@ -38,8 +38,31 @@ public class BlockItem extends Item {
@@ -41,7 +41,7 @@ index b5b53168755525eccaa0a4361172006522cf4e05..56acdfc2a8d2ecd716065263c59dbcb0
          return !interactionResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
              ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index ca5e2ec53590b731aedf33dfd69e728992f52b91..5aaa3f01b7e8b55742ba46dd614f1eaa233aa5c9 100644
+index 44849a074694a3f4438cf7f0672c78219859a20f..72537c6455ff0e38c98a83fd81c5afe17a0b387e 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -830,6 +830,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -53,7 +53,7 @@ index ca5e2ec53590b731aedf33dfd69e728992f52b91..5aaa3f01b7e8b55742ba46dd614f1eaa
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index d45582bdfc3fa837c5aa95f499183b60b877b7c2..4a6677fbc520d3f5d537f35a92dab9ec69db47a0 100644
+index d45582bdfc3fa837c5aa95f499183b60b877b7c2..341b162252efc4e65cba8a32b4c7936defede097 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -131,7 +131,7 @@ public class ServerExplosion implements Explosion {
@@ -75,7 +75,7 @@ index d45582bdfc3fa837c5aa95f499183b60b877b7c2..4a6677fbc520d3f5d537f35a92dab9ec
 +            final Block block = blockState.getBlock();
 +            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().config(pos).durableMaterials.get(block);
 +
-+            if (material != null && material.resistance() >= 0.0f && pos.getY() > this.level.getMinY() && (!this.level.sakuraConfig().cannons.explosion.requireTntToDamageDurableMaterials || this.source instanceof net.minecraft.world.entity.item.PrimedTnt)) {
++            if (material != null && material.resistance() >= 0.0f && pos.getY() > this.level.getMinY()) {
 +                return Optional.of(material.resistance());
 +            }
 +        }
@@ -91,9 +91,9 @@ index d45582bdfc3fa837c5aa95f499183b60b877b7c2..4a6677fbc520d3f5d537f35a92dab9ec
              }
              // CraftBukkit end
 +            // Sakura start - explosion durable blocks
-+            if (!this.level.sakuraConfig().cannons.explosion.requireTntToDamageDurableMaterials || this.source instanceof net.minecraft.world.entity.item.PrimedTnt) {
-+                final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().config(blockPos).durableMaterials.get(block);
-+                if (material != null && material.durability() >= 0 && !this.level.durabilityManager.damage(blockPos, material)) {
++            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().config(blockPos).durableMaterials.get(block);
++            if (material != null && material.durability() >= 0) { // if durability is < 0 then only altar the blast resistance
++                if (material.onlyDamagedByTnt() && !(this.source instanceof PrimedTnt) || !this.level.durabilityManager.damage(blockPos, material)) {
 +                    continue;
 +                }
 +            }

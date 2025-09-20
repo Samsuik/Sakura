@@ -28,6 +28,7 @@ public final class ConfigurationTransformations {
         V7_FixTntDuplicationName.apply(versionedBuilder);
         V8_RenameExplosionResistantItems.apply(versionedBuilder);
         V9_RenameAllowNonTntBreakingDurableBlocks.apply(versionedBuilder);
+        V10_DurableMaterialOnlyDamagedByTnt.apply(versionedBuilder);
         // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
         versionedBuilder.build().apply(node);
     }
