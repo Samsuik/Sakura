@@ -14,7 +14,9 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
+import me.samsuik.sakura.configuration.serializer.MinecraftMechanicsTargetSerializer;
 import me.samsuik.sakura.configuration.transformation.ConfigurationTransformations;
+import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -141,6 +143,7 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
             .defaultOptions(options -> options
                 .header(contextMap.require(WORLD_NAME).equals(WORLD_DEFAULTS) ? WORLD_DEFAULTS_HEADER : WORLD_HEADER.apply(contextMap))
                 .serializers(serializers -> serializers
+                    .register(new TypeToken<MinecraftMechanicsTarget>() {}, new MinecraftMechanicsTargetSerializer())
                     .register(new TypeToken<Reference2IntMap<?>>() {}, new FastutilMapSerializer.SomethingToPrimitive<Reference2IntMap<?>>(Reference2IntOpenHashMap::new, Integer.TYPE))
                     .register(new TypeToken<Reference2LongMap<?>>() {}, new FastutilMapSerializer.SomethingToPrimitive<Reference2LongMap<?>>(Reference2LongOpenHashMap::new, Long.TYPE))
                     .register(new TypeToken<Table<?, ?, ?>>() {}, new TableSerializer())

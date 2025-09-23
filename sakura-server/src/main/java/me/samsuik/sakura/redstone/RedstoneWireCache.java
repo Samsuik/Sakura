@@ -1,7 +1,7 @@
 package me.samsuik.sakura.redstone;
 
 import it.unimi.dsi.fastutil.objects.*;
-import me.samsuik.sakura.configuration.local.LocalValueConfig;
+import me.samsuik.sakura.configuration.local.CachedLocalConfiguration;
 import me.samsuik.sakura.utils.TickExpiry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -41,8 +41,8 @@ public final class RedstoneWireCache {
     }
 
     public boolean tryApplyFromCache(BlockPos pos, @Nullable Orientation orientation, int newPower, int oldPower) {
-        LocalValueConfig localConfig = this.level.localConfig().config(pos);
-        if (!localConfig.redstoneCache || this.isTrackingWireUpdates()) {
+        final CachedLocalConfiguration localConfiguration = this.level.localConfig().at(pos);
+        if (!localConfiguration.redstoneBehaviour.cache() || this.isTrackingWireUpdates()) {
             return false;
         }
 
@@ -51,7 +51,7 @@ public final class RedstoneWireCache {
             return true;
         }
 
-        RedstoneNetworkSource networkSource = RedstoneNetworkSource.createNetworkSource(this.level, localConfig, pos, orientation, newPower, oldPower);
+        RedstoneNetworkSource networkSource = RedstoneNetworkSource.createNetworkSource(this.level, localConfiguration, pos, orientation, newPower, oldPower);
         RedstoneNetwork network = this.networkCache.get(networkSource);
         if (network != null) {
             try {

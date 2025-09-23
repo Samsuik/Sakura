@@ -4,7 +4,7 @@
      public float yield;
      // CraftBukkit end
      public boolean excludeSourceFromDamage = true; // Paper - Allow explosions to damage source
-+    private final boolean consistentRadius; // Sakura - consistent explosion radius
++    private final boolean consistentExplosionRadius; // Sakura - consistent explosion radius
      // Paper start - collisions optimisations
      private static final double[] CACHED_RAYS;
      static {
@@ -12,7 +12,7 @@
          this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F;
          this.yield = Double.isFinite(this.yield) ? this.yield : 0; // Paper - Don't allow infinite default yields
          // Paper end - add yield
-+        this.consistentRadius = level.localConfig().config(BlockPos.containing(this.center)).consistentRadius; // Sakura - consistent explosion radius
++        this.consistentExplosionRadius = level.localConfig().at(this.center).consistentExplosionRadius; // Sakura - consistent explosion radius
      }
  
      private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
@@ -22,7 +22,7 @@
              ray += 3;
 -
 -            float power = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
-+            float power = this.radius * (0.7F + (this.consistentRadius ? 0.7F : this.level.random.nextFloat()) * 0.6F); // Sakura - consistent explosion radius
++            float power = this.radius * (0.7F + (this.consistentExplosionRadius ? 0.7F : this.level.random.nextFloat()) * 0.6F); // Sakura - consistent explosion radius
  
              do {
                  final int blockX = Mth.floor(currX);

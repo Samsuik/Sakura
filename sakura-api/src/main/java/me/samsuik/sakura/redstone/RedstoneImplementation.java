@@ -2,6 +2,9 @@ package me.samsuik.sakura.redstone;
 
 import org.jspecify.annotations.NullMarked;
 
+/**
+ * The redstone implementation to use.
+ */
 @NullMarked
 public enum RedstoneImplementation {
     VANILLA("vanilla"),
@@ -10,11 +13,11 @@ public enum RedstoneImplementation {
 
     private final String friendlyName;
 
-    RedstoneImplementation(String friendlyName) {
+    RedstoneImplementation(final String friendlyName) {
         this.friendlyName = friendlyName;
     }
 
-    public String getFriendlyName() {
+    public final String getFriendlyName() {
         return this.friendlyName;
     }
 }

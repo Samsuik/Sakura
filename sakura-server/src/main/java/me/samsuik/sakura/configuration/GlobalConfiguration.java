@@ -4,6 +4,9 @@ import com.mojang.logging.LogUtils;
 import io.papermc.paper.configuration.Configuration;
 import io.papermc.paper.configuration.ConfigurationPart;
 import io.papermc.paper.configuration.type.number.IntOr;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Material;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.objectmapping.meta.Comment;
@@ -32,6 +35,14 @@ public final class GlobalConfiguration extends ConfigurationPart {
         public String durableBlockInteraction = "<dark_gray>(<light_purple>S</light_purple>) <white>This block has <gray><remaining></gray> of <gray><durability>";
         public String fpsSettingChange = "<dark_gray>(<light_purple>S</light_purple>) <gray><state> <yellow><name>";
         public boolean tpsShowEntityAndChunkCount = true;
+
+        public Component durableBlockInteractionComponent(final int remaining, final int durability) {
+            return MiniMessage.miniMessage().deserialize(
+                GlobalConfiguration.get().messages.durableBlockInteraction,
+                Placeholder.unparsed("remaining", String.valueOf(remaining)),
+                Placeholder.unparsed("durability", String.valueOf(durability))
+            );
+        }
     }
 
     public Fps fps;

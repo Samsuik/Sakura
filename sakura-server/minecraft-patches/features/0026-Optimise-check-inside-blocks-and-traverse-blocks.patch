@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise check inside blocks and traverse blocks
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index ee7da44161fee45ce3de26d7e990eab3a3f5ff6e..b804964e620c49130c89d67e0371f06881b95eca 100644
+index 2304e3e33edfce64b79001d2f70d731da3114d77..d1688f01a9564b5ef4c9e905015a174550cab6ae 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1936,6 +1936,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1910,6 +1910,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      private void checkInsideBlocks(List<Entity.Movement> movements, InsideBlockEffectApplier.StepBasedCollector stepBasedCollector) {
          if (this.isAffectedByBlocks()) {
              LongSet set = this.visitedBlocks;
@@ -16,7 +16,7 @@ index ee7da44161fee45ce3de26d7e990eab3a3f5ff6e..b804964e620c49130c89d67e0371f068
  
              for (Entity.Movement movement : movements) {
                  Vec3 vec3 = movement.from;
-@@ -1945,12 +1946,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1919,12 +1920,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                          double d = vec31.get(axis);
                          if (d != 0.0) {
                              Vec3 vec32 = vec3.relative(axis.getPositive(), d);
@@ -31,7 +31,7 @@ index ee7da44161fee45ce3de26d7e990eab3a3f5ff6e..b804964e620c49130c89d67e0371f068
                  }
              }
  
-@@ -1958,7 +1959,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1932,7 +1933,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          }
      }
  
@@ -41,9 +41,9 @@ index ee7da44161fee45ce3de26d7e990eab3a3f5ff6e..b804964e620c49130c89d67e0371f068
 +                                   LongSet set, net.minecraft.world.level.chunk.ChunkAccess[] chunkCache) {
 +        // Sakura end - optimise check inside blocks
          // Sakura start - configure cannon physics
-         double margin = this.physics.afterOrEqual(1_21_2) ? 1.0E-5f : this.physics.afterOrEqual(1_19_3) ? 1.0E-7 : 0.001;
-         AABB aabb = this.makeBoundingBox(vec31).deflate(margin);
-@@ -1972,7 +1976,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         final double margin;
+         if (this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
+@@ -1953,7 +1957,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  if (!this.isAlive()) {
                      return false;
                  } else {
@@ -66,19 +66,19 @@ index ee7da44161fee45ce3de26d7e990eab3a3f5ff6e..b804964e620c49130c89d67e0371f068
                          this.debugBlockIntersection(pos, false, false);
                          return true;
 diff --git a/net/minecraft/world/level/BlockGetter.java b/net/minecraft/world/level/BlockGetter.java
-index 67c9393133f4509abf1bd352fbbc8e21dbb116e2..9e235b8bec7ed8da7c0cb099c47c3b23fbccb9b4 100644
+index 353ad0c1db2ee374ac5487539c77b2b067dc7c0a..1cdc68aab80390b5f1fb67c14c0a8aaa64f28250 100644
 --- a/net/minecraft/world/level/BlockGetter.java
 +++ b/net/minecraft/world/level/BlockGetter.java
-@@ -221,7 +221,7 @@ public interface BlockGetter extends LevelHeightAccessor {
+@@ -227,7 +227,7 @@ public interface BlockGetter extends LevelHeightAccessor {
          Vec3 vec3 = to.subtract(from);
-         if (physics != null && physics.before(1_21_2) || vec3.lengthSqr() < Mth.square(0.99999F)) {
+         if (vec3.lengthSqr() < Mth.square(0.99999F) || mechanicsTarget != null && mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
              // Sakura end - configure cannon physics
 -            for (BlockPos blockPos : BlockPos.betweenClosed(boundingBox)) {
 +            for (BlockPos blockPos : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
                  if (!visitor.visit(blockPos, 0)) {
                      return false;
                  }
-@@ -229,6 +229,20 @@ public interface BlockGetter extends LevelHeightAccessor {
+@@ -235,6 +235,20 @@ public interface BlockGetter extends LevelHeightAccessor {
  
              return true;
          } else {
@@ -99,7 +99,7 @@ index 67c9393133f4509abf1bd352fbbc8e21dbb116e2..9e235b8bec7ed8da7c0cb099c47c3b23
              LongSet set = new LongOpenHashSet();
              Vec3 minPosition = boundingBox.getMinPosition();
              Vec3 vec31 = minPosition.subtract(vec3);
-@@ -236,7 +250,7 @@ public interface BlockGetter extends LevelHeightAccessor {
+@@ -242,7 +256,7 @@ public interface BlockGetter extends LevelHeightAccessor {
              if (i < 0) {
                  return false;
              } else {

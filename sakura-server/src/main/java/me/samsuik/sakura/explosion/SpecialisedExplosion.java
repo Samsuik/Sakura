@@ -4,6 +4,7 @@ import ca.spottedleaf.moonrise.common.util.WorldUtil;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import me.samsuik.sakura.mechanics.MechanicVersion;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
@@ -159,7 +160,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
             double z = entity.getZ() - pos.z;
             double distance = Math.sqrt(x * x + y * y + z * z);
             // Sakura start - configure cannon physics
-            if (this.physics.before(1_17_0)) {
+            if (this.mechanicsTarget.before(MechanicVersion.v1_17)) {
                 distanceFromBottom = (float) distanceFromBottom;
                 distance = (float) distance;
             }

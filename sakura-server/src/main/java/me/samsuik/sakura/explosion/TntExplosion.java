@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import me.samsuik.sakura.entity.EntityState;
 import me.samsuik.sakura.entity.merge.MergeLevel;
 import me.samsuik.sakura.entity.merge.MergeableEntity;
+import me.samsuik.sakura.mechanics.MechanicVersion;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -38,7 +39,7 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     // Sakura start - configure cannon physics
     @Override
     protected double getExplosionOffset() {
-        return this.physics.before(1_10_0) ? (double) 0.49f : super.getExplosionOffset();
+        return this.mechanicsTarget.before(MechanicVersion.v1_10) ? (double) 0.49f : super.getExplosionOffset();
     }
     // Sakura end - configure cannon physics
 

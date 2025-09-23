@@ -5,29 +5,28 @@ Subject: [PATCH] Explosion Durable Blocks
 
 
 diff --git a/net/minecraft/world/item/BlockItem.java b/net/minecraft/world/item/BlockItem.java
-index 6db566adf2d0df1d26221eda04aa01738df6d3d2..a12068c3adbb147eeb41a093fcd2938cc2c34a15 100644
+index 6db566adf2d0df1d26221eda04aa01738df6d3d2..23c135a6355e920535734e946e5bd4d06f7f33b7 100644
 --- a/net/minecraft/world/item/BlockItem.java
 +++ b/net/minecraft/world/item/BlockItem.java
-@@ -38,8 +38,31 @@ public class BlockItem extends Item {
+@@ -38,8 +38,30 @@ public class BlockItem extends Item {
          this.block = block;
      }
  
 +    // Sakura start - explosion durable blocks
-+    private void sendBlockDurabilityToPlayer(UseOnContext context) {
-+        Player player = context.getPlayer();
-+        BlockState state = context.getLevel().getBlockState(context.getClickedPos());
-+        Block block = state.getBlock();
-+        me.samsuik.sakura.explosion.durable.DurableMaterial material = context.getLevel().localConfig().config(context.getClickedPos()).durableMaterials.get(block);
++    private void sendBlockDurabilityToPlayer(final UseOnContext context) {
++        final Player player = context.getPlayer();
++        final Level level = context.getLevel();
++        final BlockPos clickedPos = context.getClickedPos();
++
++        // If the clicked block is a durable material then send the durability to the player
++        final BlockState state = level.getBlockState(clickedPos);
++        final Block clickedBlock = state.getBlock();
++        final me.samsuik.sakura.explosion.durable.DurableMaterial material = level.localConfig().at(clickedPos).durableMaterials.get(clickedBlock);
 +
 +        if (material != null) {
-+            int remaining = context.getLevel().durabilityManager.durability(context.getClickedPos(), material);
-+            int durability = material.durability();
-+
-+            player.getBukkitEntity().sendRichMessage(
-+                me.samsuik.sakura.configuration.GlobalConfiguration.get().messages.durableBlockInteraction,
-+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("remaining", String.valueOf(remaining)),
-+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("durability", String.valueOf(durability))
-+            );
++            final int remaining = context.getLevel().durabilityManager.durability(clickedPos, material);
++            final int durability = material.durability();
++            player.getBukkitEntity().sendMessage(me.samsuik.sakura.configuration.GlobalConfiguration.get().messages.durableBlockInteractionComponent(remaining, durability));
 +        }
 +    }
 +
@@ -41,7 +40,7 @@ index 6db566adf2d0df1d26221eda04aa01738df6d3d2..a12068c3adbb147eeb41a093fcd2938c
          return !interactionResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
              ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 44849a074694a3f4438cf7f0672c78219859a20f..72537c6455ff0e38c98a83fd81c5afe17a0b387e 100644
+index 7a922d26952be2f19161053542fa3a4b1a3bdf80..68cc49c65c3098f0aeb2d6dfbe75262e1fff1681 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -830,6 +830,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -53,7 +52,7 @@ index 44849a074694a3f4438cf7f0672c78219859a20f..72537c6455ff0e38c98a83fd81c5afe1
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index d45582bdfc3fa837c5aa95f499183b60b877b7c2..341b162252efc4e65cba8a32b4c7936defede097 100644
+index dfe4058155a83ec213a37553996d2dbb9744881b..7f57531254031f7134fc6d72a5077aab5b48c7f0 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -131,7 +131,7 @@ public class ServerExplosion implements Explosion {
@@ -70,12 +69,12 @@ index d45582bdfc3fa837c5aa95f499183b60b877b7c2..341b162252efc4e65cba8a32b4c7936d
      }
      // Sakura end - specialised explosions
 +    // Sakura start - explosion durable blocks
-+    private Optional<Float> calculateBlockResistance(BlockState blockState, FluidState fluidState, BlockPos pos) {
++    private Optional<Float> calculateBlockResistance(final BlockState blockState, final FluidState fluidState, final BlockPos pos) {
 +        if (!blockState.isAir()) {
 +            final Block block = blockState.getBlock();
-+            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().config(pos).durableMaterials.get(block);
++            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().at(pos).durableMaterials.get(block);
 +
-+            if (material != null && material.resistance() >= 0.0f && pos.getY() > this.level.getMinY()) {
++            if (material != null && material.replaceBlastResistance() && pos.getY() > this.level.getMinY()) {
 +                return Optional.of(material.resistance());
 +            }
 +        }
@@ -91,8 +90,8 @@ index d45582bdfc3fa837c5aa95f499183b60b877b7c2..341b162252efc4e65cba8a32b4c7936d
              }
              // CraftBukkit end
 +            // Sakura start - explosion durable blocks
-+            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().config(blockPos).durableMaterials.get(block);
-+            if (material != null && material.durability() >= 0) { // if durability is < 0 then only altar the blast resistance
++            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().at(blockPos).durableMaterials.get(block);
++            if (material != null && material.applyDurability()) { // if durability is < 0 then only altar the blast resistance
 +                if (material.onlyDamagedByTnt() && !(this.source instanceof PrimedTnt) || !this.level.durabilityManager.damage(blockPos, material)) {
 +                    continue;
 +                }

@@ -3,9 +3,11 @@ package me.samsuik.sakura.explosion.durable;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import net.minecraft.core.BlockPos;
+import org.jspecify.annotations.NullMarked;
 
 import java.util.concurrent.TimeUnit;
 
+@NullMarked
 public final class DurableBlockManager {
     private final Cache<BlockPos, DurableBlock> durableBlocks = CacheBuilder.newBuilder()
             .expireAfterAccess(1, TimeUnit.MINUTES)
