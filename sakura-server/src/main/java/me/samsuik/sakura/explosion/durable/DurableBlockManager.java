@@ -11,18 +11,18 @@ import java.util.concurrent.TimeUnit;
 public final class DurableBlockManager {
     private final Cache<BlockPos, DurableBlock> durableBlocks = CacheBuilder.newBuilder()
             .expireAfterAccess(1, TimeUnit.MINUTES)
-            .maximumSize(65534)
+            .maximumSize(Short.MAX_VALUE)
             .build();
 
-    public boolean damage(BlockPos pos, DurableMaterial material) {
-        DurableBlock block = this.durableBlocks.getIfPresent(pos);
+    public boolean damage(final BlockPos blockPos, final DurableMaterial material) {
+        DurableBlock block = this.durableBlocks.getIfPresent(blockPos);
         if (block == null) {
-            this.durableBlocks.put(pos, block = new DurableBlock(material.durability()));
+            this.durableBlocks.put(blockPos, block = new DurableBlock(material.durability()));
         }
         return block.damage();
     }
 
-    public int durability(BlockPos pos, DurableMaterial material) {
+    public int durability(final BlockPos pos, final DurableMaterial material) {
         final DurableBlock block = this.durableBlocks.getIfPresent(pos);
         return block != null ? block.durability() : material.durability();
     }
@@ -30,7 +30,7 @@ public final class DurableBlockManager {
     private static final class DurableBlock {
         private int durability;
 
-        public DurableBlock(int durability) {
+        public DurableBlock(final int durability) {
             this.durability = durability;
         }
 

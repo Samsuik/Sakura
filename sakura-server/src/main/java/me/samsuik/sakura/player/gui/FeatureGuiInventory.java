@@ -24,7 +24,7 @@ public final class FeatureGuiInventory implements InventoryHolder {
     private final Multimap<NamespacedKey, GuiComponent> componentsUnderKey = HashMultimap.create();
     private final Object2ObjectMap<GuiComponent, NamespacedKey> componentKeys = new Object2ObjectLinkedOpenHashMap<>();
 
-    public FeatureGuiInventory(FeatureGui gui, int size, Component component) {
+    public FeatureGuiInventory(final FeatureGui gui, final int size, final Component component) {
         this.inventory = Bukkit.createInventory(this, size, component);
         this.gui = gui;
     }
@@ -42,36 +42,36 @@ public final class FeatureGuiInventory implements InventoryHolder {
         return ImmutableList.copyOf(this.componentKeys.keySet());
     }
 
-    public ImmutableList<GuiComponent> findComponents(NamespacedKey key) {
+    public ImmutableList<GuiComponent> findComponents(final NamespacedKey key) {
         return ImmutableList.copyOf(this.componentsUnderKey.get(key));
     }
 
-    public Optional<GuiComponent> findFirst(NamespacedKey key) {
-        Collection<GuiComponent> components = this.componentsUnderKey.get(key);
+    public Optional<GuiComponent> findFirst(final NamespacedKey key) {
+        final Collection<GuiComponent> components = this.componentsUnderKey.get(key);
         return components.stream().findFirst();
     }
 
-    public void removeComponents(NamespacedKey key) {
-        Collection<GuiComponent> removed = this.componentsUnderKey.removeAll(key);
-        for (GuiComponent component : removed) {
+    public void removeComponents(final NamespacedKey key) {
+        final Collection<GuiComponent> removed = this.componentsUnderKey.removeAll(key);
+        for (final GuiComponent component : removed) {
             this.componentKeys.remove(component);
         }
     }
 
-    public void addComponent(GuiComponent component, NamespacedKey key) {
+    public void addComponent(final GuiComponent component, final NamespacedKey key) {
         Preconditions.checkArgument(!this.componentKeys.containsKey(component), "component has already been added");
         this.componentKeys.put(component, key);
         this.componentsUnderKey.put(key, component);
         this.inventoryUpdate(component);
     }
 
-    public void removeComponent(GuiComponent component) {
-        NamespacedKey key = this.componentKeys.remove(component);
+    public void removeComponent(final GuiComponent component) {
+        final NamespacedKey key = this.componentKeys.remove(component);
         this.componentsUnderKey.remove(key, component);
     }
 
-    public void replaceComponent(GuiComponent component, GuiComponent replacement) {
-        NamespacedKey key = this.componentKeys.remove(component);
+    public void replaceComponent(final GuiComponent component, final GuiComponent replacement) {
+        final NamespacedKey key = this.componentKeys.remove(component);
         Preconditions.checkNotNull(key, "component does not exist");
         this.componentKeys.put(replacement, key);
         this.componentsUnderKey.remove(key, component);
@@ -84,7 +84,7 @@ public final class FeatureGuiInventory implements InventoryHolder {
         this.componentsUnderKey.clear();
     }
 
-    private void inventoryUpdate(GuiComponent component) {
+    private void inventoryUpdate(final GuiComponent component) {
         component.creation(this.inventory);
     }
 }

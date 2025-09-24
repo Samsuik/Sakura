@@ -15,21 +15,18 @@ import java.util.Arrays;
 public final class VisualCommand extends PlayerOnlySubCommand {
     private final VisibilityType type;
 
-    public VisualCommand(VisibilityType type, String... aliases) {
+    public VisualCommand(final VisibilityType type, final String... aliases) {
         super(type.key() + "visibility");
         this.setAliases(Arrays.asList(aliases));
         this.type = type;
     }
 
     @Override
-    public void execute(Player player, String[] args) {
-        VisibilitySettings settings = player.getVisibility();
-        VisibilityState state = settings.toggle(type);
+    public void execute(final Player player, final String[] args) {
+        final VisibilitySettings settings = player.getVisibility();
+        final VisibilityState state = settings.toggle(type);
 
-        String stateName = (state == VisibilityState.ON) ? "Enabled" : "Disabled";
-        player.sendRichMessage(GlobalConfiguration.get().messages.fpsSettingChange,
-            Placeholder.unparsed("name", this.type.key()),
-            Placeholder.unparsed("state", stateName)
-        );
+        final String stateName = (state == VisibilityState.ON) ? "Enabled" : "Disabled";
+        player.sendMessage(GlobalConfiguration.get().messages.fpsSettingChangeComponent(this.type.key(), stateName));
     }
 }

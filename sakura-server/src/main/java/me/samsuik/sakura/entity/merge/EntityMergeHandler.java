@@ -16,11 +16,11 @@ public final class EntityMergeHandler {
      * @param entity the entity being merged
      * @return success
      */
-    public boolean tryMerge(@Nullable Entity entity, @Nullable Entity previous) {
+    public boolean tryMerge(final @Nullable Entity entity, final @Nullable Entity previous) {
         if (entity instanceof MergeableEntity mergeEntity && previous instanceof MergeableEntity) {
-            MergeEntityData mergeEntityData = mergeEntity.getMergeEntityData();
-            MergeStrategy strategy = MergeStrategy.from(mergeEntityData.mergeLevel);
-            Entity into = strategy.mergeEntity(entity, previous, this.trackedHistory);
+            final MergeEntityData mergeEntityData = mergeEntity.getMergeEntityData();
+            final MergeStrategy strategy = MergeStrategy.from(mergeEntityData.mergeLevel);
+            final Entity into = strategy.mergeEntity(entity, previous, this.trackedHistory);
             if (into instanceof MergeableEntity intoEntity && !into.isRemoved() && mergeEntity.isSafeToMergeInto(intoEntity, strategy.trackHistory())) {
                 return this.mergeEntity(mergeEntity, intoEntity);
             }
@@ -34,10 +34,10 @@ public final class EntityMergeHandler {
      *
      * @param entity provided entity
      */
-    public void removeEntity(@Nullable Entity entity) {
+    public void removeEntity(final @Nullable Entity entity) {
         if (entity instanceof MergeableEntity mergeEntity) {
-            MergeEntityData mergeEntityData = mergeEntity.getMergeEntityData();
-            MergeStrategy strategy = MergeStrategy.from(mergeEntityData.mergeLevel);
+            final MergeEntityData mergeEntityData = mergeEntity.getMergeEntityData();
+            final MergeStrategy strategy = MergeStrategy.from(mergeEntityData.mergeLevel);
             if (mergeEntityData.hasMerged() && strategy.trackHistory()) {
                 this.trackedHistory.trackHistory(entity, mergeEntityData);
             }
@@ -45,11 +45,13 @@ public final class EntityMergeHandler {
     }
 
     /**
-     * Called every 200 ticks and the tick is used remove any unneeded merge history.
+     * Remove old entries from the tracked history.
+     * <p>
+     * This method is called every 200 ticks.
      *
      * @param tick server tick
      */
-    public void expire(long tick) {
+    public void expire(final long tick) {
         this.trackedHistory.expire(tick);
     }
 
@@ -62,13 +64,13 @@ public final class EntityMergeHandler {
      * @param into the entity to merge into
      * @return if successful
      */
-    public boolean mergeEntity(MergeableEntity mergeEntity, MergeableEntity into) {
-        MergeEntityData entities = mergeEntity.getMergeEntityData();
-        MergeEntityData mergeInto = into.getMergeEntityData();
+    public boolean mergeEntity(final MergeableEntity mergeEntity, final MergeableEntity into) {
+        final MergeEntityData entities = mergeEntity.getMergeEntityData();
+        final MergeEntityData mergeInto = into.getMergeEntityData();
         mergeInto.mergeWith(entities); // merge entities together
 
         // discard the entity and update the bukkit handle
-        Entity nmsEntity = (Entity) mergeEntity;
+        final Entity nmsEntity = (Entity) mergeEntity;
         nmsEntity.discard();
         nmsEntity.updateBukkitHandle((Entity) into);
         return true;

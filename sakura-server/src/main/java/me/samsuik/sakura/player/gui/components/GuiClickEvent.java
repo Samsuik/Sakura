@@ -6,5 +6,5 @@ import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public interface GuiClickEvent {
-    void doSomething(InventoryClickEvent event, FeatureGuiInventory inventory);
+    void doSomething(final InventoryClickEvent event, final FeatureGuiInventory inventory);
 }

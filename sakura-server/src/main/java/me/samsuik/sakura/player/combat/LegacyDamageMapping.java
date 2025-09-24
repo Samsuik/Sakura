@@ -12,19 +12,21 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
+import org.jspecify.annotations.NullMarked;
 
 import java.util.OptionalDouble;
 
+@NullMarked
 public final class LegacyDamageMapping {
     private static final Reference2DoubleMap<Item> LEGACY_ITEM_DAMAGE_MAP = new Reference2DoubleOpenHashMap<>();
 
-    public static OptionalDouble itemAttackDamage(Item item) {
-        double result = LEGACY_ITEM_DAMAGE_MAP.getDouble(item);
+    public static OptionalDouble itemAttackDamage(final Item item) {
+        final double result = LEGACY_ITEM_DAMAGE_MAP.getDouble(item);
         return result == Double.MIN_VALUE ? OptionalDouble.empty() : OptionalDouble.of(result);
     }
 
     private interface ItemDamageRemapper {
-        double apply(Item item, double attackDamage);
+        double apply(final Item item, final double attackDamage);
     }
 
     static {
@@ -38,36 +40,30 @@ public final class LegacyDamageMapping {
         LEGACY_ITEM_DAMAGE_MAP.put(Items.DIAMOND_AXE, 6.0);
         LEGACY_ITEM_DAMAGE_MAP.put(Items.NETHERITE_AXE, 7.0);
 
-        Reference2ObjectMap<TagKey<Item>, ItemDamageRemapper> remapUsingItemTags = new Reference2ObjectArrayMap<>();
+        final Reference2ObjectMap<TagKey<Item>, ItemDamageRemapper> remapUsingItemTags = new Reference2ObjectArrayMap<>();
         remapUsingItemTags.put(ItemTags.SWORDS, (item, attack) -> 1.0);
         remapUsingItemTags.put(ItemTags.PICKAXES, (item, attack) -> 1.0);
         remapUsingItemTags.put(ItemTags.SHOVELS, (item, attack) -> -0.5);
         remapUsingItemTags.put(ItemTags.HOES, (item, attack) -> -attack);
 
-        for (Item item : BuiltInRegistries.ITEM) {
-            ItemAttributeModifiers modifiers = item.components().get(DataComponents.ATTRIBUTE_MODIFIERS);
-
+        for (final Item item : BuiltInRegistries.ITEM) {
+            final ItemAttributeModifiers modifiers = item.components().get(DataComponents.ATTRIBUTE_MODIFIERS);
             if (modifiers == null || LEGACY_ITEM_DAMAGE_MAP.containsKey(item)) {
                 continue;
             }
 
-            Holder.Reference<Item> itemHolder = item.builtInRegistryHolder();
-            assert itemHolder.is(ItemTags.AXES) : "missing axe mapping";
-
-            double attackDamage = modifiers.modifiers().stream()
+            final double attackDamage = modifiers.modifiers().stream()
                 .filter(e -> e.attribute().is(Attributes.ATTACK_DAMAGE))
                 .mapToDouble(e -> e.modifier().amount())
                 .sum();
 
             if (attackDamage > 0.0) {
-                double adjustment = 0.0;
-                for (TagKey<Item> key : remapUsingItemTags.keySet()) {
-                    if (itemHolder.is(key)) {
-                        ItemDamageRemapper remapper = remapUsingItemTags.get(key);
-                        adjustment = remapper.apply(item, attackDamage);
-                    }
-                }
-
+                final Holder.Reference<Item> itemHolder = item.builtInRegistryHolder();
+                final double adjustment = remapUsingItemTags.keySet().stream()
+                    .filter(itemHolder::is)
+                    .mapToDouble(itemTagKey -> remapUsingItemTags.get(itemTagKey).apply(item, attackDamage))
+                    .findFirst()
+                    .orElse(0.0);
                 LEGACY_ITEM_DAMAGE_MAP.put(item, attackDamage + adjustment);
             }
         }

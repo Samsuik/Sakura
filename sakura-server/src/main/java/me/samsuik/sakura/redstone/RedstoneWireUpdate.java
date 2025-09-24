@@ -11,7 +11,7 @@ public final class RedstoneWireUpdate {
     private boolean updateShape;
     private boolean skipWire;
 
-    public RedstoneWireUpdate(BlockPos position, int power, int updateIndex) {
+    public RedstoneWireUpdate(final BlockPos position, final int power, final int updateIndex) {
         this.position = position;
         this.power = power;
         this.updateIndex = updateIndex;

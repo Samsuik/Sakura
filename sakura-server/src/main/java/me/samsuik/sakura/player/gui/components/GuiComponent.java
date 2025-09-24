@@ -7,7 +7,7 @@ import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public interface GuiComponent {
-    boolean interaction(InventoryClickEvent event, FeatureGuiInventory featureInventory);
+    boolean interaction(final InventoryClickEvent event, final FeatureGuiInventory featureInventory);
 
-    void creation(Inventory inventory);
+    void creation(final Inventory inventory);
 }

@@ -1,4 +1,4 @@
-package me.samsuik.sakura.command.subcommands;
+package me.samsuik.sakura.command.subcommands.debug;
 
 import me.samsuik.sakura.command.BaseMenuCommand;
 import me.samsuik.sakura.command.SakuraCommands;
@@ -7,13 +7,13 @@ import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public final class DebugCommand extends BaseMenuCommand {
-    public DebugCommand(String name) {
+    public DebugCommand(final String name) {
         super(name);
     }
 
     @Override
     public String header() {
-        return "Debug command for testing Sakura features and api";
+        return "Command for debugging Sakura features and api";
     }
 
     @Override

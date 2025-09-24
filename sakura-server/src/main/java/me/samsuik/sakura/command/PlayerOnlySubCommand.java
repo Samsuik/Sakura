@@ -6,13 +6,13 @@ import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public abstract class PlayerOnlySubCommand extends BaseSubCommand {
-    public PlayerOnlySubCommand(String name) {
+    public PlayerOnlySubCommand(final String name) {
         super(name);
     }
 
-    public abstract void execute(Player player, String[] args);
+    public abstract void execute(final Player player, final String[] args);
 
-    public final void execute(CommandSender sender, String[] args) {
+    public final void execute(final CommandSender sender, final String[] args) {
         if (sender instanceof Player player) {
             this.execute(player, args);
         } else {

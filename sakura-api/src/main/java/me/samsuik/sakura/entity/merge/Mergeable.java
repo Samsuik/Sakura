@@ -6,7 +6,7 @@ import org.jspecify.annotations.NullMarked;
 public interface Mergeable {
     MergeLevel getMergeLevel();
 
-    void setMergeLevel(MergeLevel level);
+    void setMergeLevel(final MergeLevel mergeLevel);
 
     int getStacked();
 

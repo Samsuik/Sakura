@@ -7,8 +7,8 @@ import net.minecraft.world.level.material.FluidState;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-public final class LiquidBehaviour {
-    public static boolean canLiquidSolidify(
+public final class LegacyBlockFormation {
+    public static boolean canLiquidFormBlock(
         final Level level,
         final BlockPos pos,
         final FluidState fluidState,

@@ -15,8 +15,7 @@ final class NoneStrategy implements MergeStrategy {
     }
 
     @Override
-    @Nullable
-    public Entity mergeEntity(Entity entity, Entity previous, TrackedMergeHistory mergeHistory) {
+    public @Nullable Entity mergeEntity(final Entity entity, final Entity previous, final TrackedMergeHistory mergeHistory) {
         return null;
     }
 }

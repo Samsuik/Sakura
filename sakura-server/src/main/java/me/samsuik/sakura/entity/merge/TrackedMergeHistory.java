@@ -8,7 +8,6 @@ import me.samsuik.sakura.utils.TickExpiry;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -16,52 +15,49 @@ import org.jspecify.annotations.Nullable;
 public final class TrackedMergeHistory {
     private final Long2ObjectMap<PositionHistory> historyMap = new Long2ObjectOpenHashMap<>();
 
-    public boolean hasPreviouslyMergedAndMeetsCondition(Entity entity, Entity into, MergeCondition condition) {
+    public boolean hasPreviouslyMergedAndMeetsCondition(final Entity entity, final Entity into, final MergeCondition condition) {
         return this.hasPreviouslyMerged(entity, into) && this.hasMetCondition(entity, condition);
     }
 
-    public boolean hasPreviouslyMerged(Entity entity, Entity into) {
-        PositionHistory positions = this.getHistory(into, false);
+    public boolean hasPreviouslyMerged(final Entity entity, final Entity into) {
+        final PositionHistory positions = this.getHistory(into, false);
         return positions != null && positions.hasPosition(entity);
     }
 
-    public boolean hasMetCondition(Entity entity, MergeCondition condition) {
-        PositionHistory positions = this.getHistory(entity, false);
+    public boolean hasMetCondition(final Entity entity, final MergeCondition condition) {
+        final PositionHistory positions = this.getHistory(entity, false);
         return positions != null && positions.hasMetConditions(entity, condition);
     }
 
-    private boolean shouldTrackAllPositions(Entity entity, MergeEntityData mergeEntityData) {
+    private boolean shouldTrackAllPositions(final Entity entity, final MergeEntityData mergeEntityData) {
         return entity instanceof FallingBlockEntity
             || mergeEntityData.mergeLevel == MergeLevel.LENIENT
             || entity.level().sakuraConfig().cannons.mechanics.tntSpread == TNTSpread.ALL;
     }
 
-    public void trackHistory(Entity entity, MergeEntityData mergeEntityData) {
-        PositionHistory positions = this.getHistory(entity, true);
-        LongOpenHashSet originPositions = mergeEntityData.getOriginPositions();
-        long gameTime = entity.level().getGameTime();
-        boolean retainHistory = positions.hasTicksPassed(gameTime, 160);
+    public void trackHistory(final Entity entity, final MergeEntityData mergeEntityData) {
+        final PositionHistory positionHistory = this.getHistory(entity, true);
+        final LongOpenHashSet positions = mergeEntityData.getOriginPositions();
+        final long gameTime = entity.level().getGameTime();
+        final boolean retainHistory = positionHistory.hasTicksPassed(gameTime, 160);
+
         if (!retainHistory && this.shouldTrackAllPositions(entity, mergeEntityData)) {
-            originPositions.forEach(pos -> this.historyMap.put(pos, positions));
+            positions.forEach(pos -> this.historyMap.put(pos, positionHistory));
         }
-        positions.trackPositions(originPositions, retainHistory);
+
+        positionHistory.trackPositions(positions, retainHistory);
     }
 
-    public void expire(long gameTime) {
-        this.historyMap.values().removeIf(p -> p.expiry().isExpired(gameTime));
+    public void expire(final long gameTime) {
+        this.historyMap.values().removeIf(history -> history.expiry().isExpired(gameTime));
     }
 
-    @Nullable
     @Contract("_, false -> _; _, true -> !null")
-    private PositionHistory getHistory(Entity entity, boolean create) {
-        long originPosition = entity.getPackedOriginPosition();
-        PositionHistory history = this.historyMap.get(originPosition);
-        //noinspection ConstantValue
-        if (create && history == null) {
-            history = new PositionHistory(entity.level().getGameTime());
-            this.historyMap.put(originPosition, history);
-        }
-        return history;
+    private @Nullable PositionHistory getHistory(final Entity entity, final boolean create) {
+        final long position = entity.getPackedOriginPosition();
+        return this.historyMap.computeIfAbsent(position, p -> {
+            return create ? new PositionHistory(entity.level().getGameTime()) : null;
+        });
     }
 
     private static final class PositionHistory {
@@ -70,7 +66,7 @@ public final class TrackedMergeHistory {
         private final long created;
         private int cycles = 0;
 
-        public PositionHistory(long gameTime) {
+        public PositionHistory(final long gameTime) {
             this.expiry = new TickExpiry(gameTime, 200);
             this.created = gameTime;
         }
@@ -79,12 +75,12 @@ public final class TrackedMergeHistory {
             return this.expiry;
         }
 
-        public boolean hasPosition(Entity entity) {
+        public boolean hasPosition(final Entity entity) {
             this.expiry.refresh(entity.level().getGameTime());
             return this.positions.contains(entity.getPackedOriginPosition());
         }
 
-        public void trackPositions(LongOpenHashSet positions, boolean retain) {
+        public void trackPositions(final LongOpenHashSet positions, final boolean retain) {
             if (retain) {
                 this.positions.retainAll(positions);
             } else {
@@ -93,16 +89,16 @@ public final class TrackedMergeHistory {
             this.cycles++;
         }
 
-        public boolean hasMetConditions(@NotNull Entity entity, @NotNull MergeCondition condition) {
-            long gameTime = entity.level().getGameTime();
+        public boolean hasMetConditions(final Entity entity, final MergeCondition condition) {
+            final long gameTime = entity.level().getGameTime();
             return condition.accept(entity, this.cycles, this.timeSinceCreation(gameTime));
         }
 
-        public boolean hasTicksPassed(long gameTime, int ticks) {
+        public boolean hasTicksPassed(final long gameTime, final int ticks) {
             return this.timeSinceCreation(gameTime) > ticks;
         }
 
-        private long timeSinceCreation(long gameTime) {
+        private long timeSinceCreation(final long gameTime) {
             return gameTime - this.created;
         }
     }

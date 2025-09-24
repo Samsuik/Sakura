@@ -5,9 +5,11 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.jspecify.annotations.NullMarked;
 
 import java.util.List;
 
+@NullMarked
 public final class GraphComponents {
     private static final Style STRIKE_THROUGH_STYLE = Style.style(TextDecoration.STRIKETHROUGH);
     private static final Style REMOVE_STRIKE_THROUGH_STYLE = Style.style(TextDecoration.STRIKETHROUGH.withState(false));
@@ -29,14 +31,14 @@ public final class GraphComponents {
         NamedTextColor.RED, NamedTextColor.DARK_GRAY, TextColor.color(40, 40, 40)
     );
 
-    public static TextColor colour(float num) {
-        float segment = 1.0f / COLOURS.size();
-        float a = (1.0f - num) / segment;
-        float t = a % 1.0f;
-        int startIndex = Math.clamp((int) a, 0, COLOURS.size() - 2);
-        int endIndex = startIndex + 1;
-        TextColor startColour = COLOURS.get(startIndex);
-        TextColor endColour = COLOURS.get(endIndex);
+    public static TextColor colour(final float num) {
+        final float segment = 1.0f / COLOURS.size();
+        final float a = (1.0f - num) / segment;
+        final float t = a % 1.0f;
+        final int startIndex = Math.clamp((int) a, 0, COLOURS.size() - 2);
+        final int endIndex = startIndex + 1;
+        final TextColor startColour = COLOURS.get(startIndex);
+        final TextColor endColour = COLOURS.get(endIndex);
         return TextColor.lerp(t, startColour, endColour);
     }
 }

@@ -24,12 +24,12 @@ public final class BlockableSwordItem extends Item {
         .hasConsumeParticles(false)
         .build();
 
-    public BlockableSwordItem(Properties properties) {
+    public BlockableSwordItem(final Properties properties) {
         super(properties);
     }
 
     @Override
-    public void modifyComponentsSentToClient(PatchedDataComponentMap components) {
+    public void modifyComponentsSentToClient(final PatchedDataComponentMap components) {
         if (!hasCustomAnimationOrDisabled(components)) {
             // When updating to 1.22 change CONSUMABLE to BLOCK_ATTACKS
             components.set(DataComponents.CONSUMABLE, BLOCKING_ANIMATION);
@@ -37,7 +37,7 @@ public final class BlockableSwordItem extends Item {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(final Level level, final Player player, final InteractionHand hand) {
         final ItemStack stack = player.getItemInHand(hand);
         if (hasCustomAnimationOrDisabled(stack.getComponents())) {
             return super.use(level, player, hand);
@@ -48,7 +48,7 @@ public final class BlockableSwordItem extends Item {
     }
 
     @Override
-    public int getUseDuration(ItemStack stack, LivingEntity entity) {
+    public int getUseDuration(final ItemStack stack, final LivingEntity entity) {
         if (hasCustomAnimationOrDisabled(stack.getComponents())) {
             return super.getUseDuration(stack, entity);
         } else {
@@ -56,11 +56,11 @@ public final class BlockableSwordItem extends Item {
         }
     }
 
-    public boolean isSafeToOverrideBlocking(ItemStack stack) {
+    public boolean isSafeToOverrideBlocking(final ItemStack stack) {
         return !hasCustomAnimationOrDisabled(stack.getComponents());
     }
 
-    private static boolean hasCustomAnimationOrDisabled(DataComponentMap componentMap) {
+    private static boolean hasCustomAnimationOrDisabled(final DataComponentMap componentMap) {
         final GlobalConfiguration config = GlobalConfiguration.get();
         return (config == null || !config.players.combat.blockWithSwords)
             || componentMap.has(DataComponents.CONSUMABLE)

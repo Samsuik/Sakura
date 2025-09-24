@@ -33,19 +33,19 @@ index ff747a1ecdf3c888bca0d69de4f85dcd810b6139..d90f6aa4557b5863eba6a206226f763c
          }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 9250806b12171ae4f14d8dbc9dd3d9478bc7b724..a3306fcdc83bb5f0157e1d9805a4d134403ce5f9 100644
+index 29e1683741241f4f1e578041371a116170f2d1d2..fa109c801fd556e9e09dd0a81d5e05cb942082dd 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -693,6 +693,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-         this.levelTickScheduler.registerNewTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
-         this.levelTickScheduler.registerNewTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
-         this.levelTickScheduler.registerNewTask(this.densityCache::invalidate, 0); // Sakura - explosion density cache
-+        this.levelTickScheduler.registerNewTask(this.redstoneWireCache::expire, 300); // Sakura - cache vanilla and eigencraft wires
+@@ -694,6 +694,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+         this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
+         this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
+         this.levelTickScheduler.repeatingTask(this.densityCache::invalidate, 0); // Sakura - explosion density cache
++        this.levelTickScheduler.repeatingTask(this.redstoneWireCache::expire, 300); // Sakura - cache vanilla and eigencraft wires
      }
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 81378160d021a76d6fddca9c23a1a4691f48e71e..e894c404d58f95c8f54987739ad24b6a0b96dfc3 100644
+index 92b3a69b2f87f44cb0c797d5986d501a649f4fe4..c1f9d65aba951963ebb297393580df3d6969c021 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -831,6 +831,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -57,7 +57,7 @@ index 81378160d021a76d6fddca9c23a1a4691f48e71e..e894c404d58f95c8f54987739ad24b6a
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
-index 270c405a7384e3290b4eea58e0b231aa6235d85a..a1428aab6923a58c04d206d63babd93242ed1ff9 100644
+index 9dbd97607866f8bd356044318ab670bcc794074f..cc0abc586908631747ceb1c920e7c3cb3f7828dd 100644
 --- a/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
 @@ -306,6 +306,12 @@ public class RedStoneWireBlock extends Block {
@@ -65,7 +65,7 @@ index 270c405a7384e3290b4eea58e0b231aa6235d85a..a1428aab6923a58c04d206d63babd932
              newPower = event.getNewCurrent();
  
 +            // Sakura start - cache vanilla and eigencraft wires
-+            if (level.redstoneWireCache.tryApplyFromCache(pos, null, newPower, oldPower)) {
++            if (level.redstoneWireCache.applyFromCache(pos, null, newPower, oldPower)) {
 +                return state;
 +            }
 +            // Sakura end - cache vanilla and eigencraft wires
@@ -81,6 +81,15 @@ index 270c405a7384e3290b4eea58e0b231aa6235d85a..a1428aab6923a58c04d206d63babd932
              }
          }
          return state;
+@@ -398,7 +405,7 @@ public class RedStoneWireBlock extends Block {
+ 
+     @Override
+     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, @Nullable Orientation orientation, boolean movedByPiston) {
+-        if (!level.isClientSide) {
++        if (!level.isClientSide && !level.redstoneWireCache.isApplyingCache()) { // Sakura - cache vanilla and eigencraft wires; ignore redstone updates when applying from cache
+             // Paper start - optimize redstone (Alternate Current)
+             // Alternate Current handles breaking of redstone wires in the WireHandler.
+             if (level.localConfig().at(pos).paperRedstoneImplementation() == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) { // Sakura - redstone implementation api
 @@ -432,8 +439,14 @@ public class RedStoneWireBlock extends Block {
              if (powerValue == 0) {
                  return 0;
@@ -91,7 +100,7 @@ index 270c405a7384e3290b4eea58e0b231aa6235d85a..a1428aab6923a58c04d206d63babd932
 +                if (side == Direction.UP) {
 +                    return powerValue;
 +                }
-+                final boolean updating = blockAccess instanceof Level level && level.redstoneWireCache.isWireUpdating(pos);
++                final boolean updating = blockAccess instanceof Level level && level.redstoneWireCache.isUpdatingRedstoneWire(pos);
 +                final BlockState state = updating ? blockState : this.getConnectionState(blockAccess, blockState, pos);
 +                return !state.getValue(PROPERTY_BY_DIRECTION.get(side.getOpposite())).isConnected()
 +                    // Sakura end - cache vanilla and eigencraft wires
@@ -99,7 +108,7 @@ index 270c405a7384e3290b4eea58e0b231aa6235d85a..a1428aab6923a58c04d206d63babd932
                      : powerValue;
              }
 diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 969488021cfc462b85750f25c1c256ab6709ff89..bfc63f858b229d9ccd1827821b66ba55124d2fda 100644
+index fed11ed5ab97826915710b66395d1bdc926935b0..d6131c5ec6a4229291f7cecb9cec9251d54244ed 100644
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -521,6 +521,13 @@ public abstract class BlockBehaviour implements FeatureElement {
@@ -151,7 +160,7 @@ index 028eae2f9a459b60e92f3344091083aa93b54485..9fbf679b54088f89ac4ba727ccb645d6
              this.addedThisLayer.clear();
              this.count = 0;
 diff --git a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
-index abcc144a086a45bf4cfa4d1a33e2ae10952e0da2..3fc901aa038e65e3e219b92d0fa37e5dd620926f 100644
+index abcc144a086a45bf4cfa4d1a33e2ae10952e0da2..b76f54d9573b9f3ddd77915e9209ee8d9b497192 100644
 --- a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
 +++ b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
 @@ -27,7 +27,14 @@ public class DefaultRedstoneWireEvaluator extends RedstoneWireEvaluator {
@@ -160,7 +169,7 @@ index abcc144a086a45bf4cfa4d1a33e2ae10952e0da2..3fc901aa038e65e3e219b92d0fa37e5d
              // CraftBukkit end
 +            // Sakura start - cache vanilla and eigencraft wires
 +            final me.samsuik.sakura.redstone.RedstoneWireCache wireCache = level.redstoneWireCache;
-+            if (wireCache.tryApplyFromCache(pos, orientation, i, oldPower)) {
++            if (wireCache.applyFromCache(pos, orientation, i, oldPower)) {
 +                return;
 +            }
              if (level.getBlockState(pos) == state) {

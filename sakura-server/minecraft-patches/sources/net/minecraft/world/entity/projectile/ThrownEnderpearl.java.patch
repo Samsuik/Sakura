@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
 +++ b/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
+@@ -39,6 +_,15 @@
+         super(EntityType.ENDER_PEARL, owner, level, item);
+     }
+ 
++    // Sakura start - enderpearls use outline for collision
++    @Override
++    protected final net.minecraft.world.level.ClipContext.Block getClipType() {
++        return this.level().sakuraConfig().entity.enderPearl.useOutlineForCollision
++            ? net.minecraft.world.level.ClipContext.Block.OUTLINE
++            : super.getClipType();
++    }
++    // Sakura end - enderpearls use outline for collision
++
+     @Override
+     public Item getDefaultItem() {
+         return Items.ENDER_PEARL;
 @@ -118,6 +_,15 @@
              if (owner != null && isAllowedToTeleportOwner(owner, serverLevel)) {
                  Vec3 vec3 = this.oldPosition();
@@ -16,17 +32,3 @@
                      if (serverPlayer.connection.isAcceptingMessages()) {
                          // CraftBukkit start
                          // Store pre teleportation position as the teleport has been moved up.
-@@ -181,6 +_,13 @@
-             return entity.canUsePortal(true);
-         }
-     }
-+
-+    // Sakura start - enderpearls use outline for collision
-+    @Override
-+    protected net.minecraft.world.level.ClipContext.Block getClipType() {
-+        return this.level().sakuraConfig().entity.enderPearl.useOutlineForCollision ? net.minecraft.world.level.ClipContext.Block.OUTLINE : super.getClipType();
-+    }
-+    // Sakura end - enderpearls use outline for collision
- 
-     @Override
-     public void tick() {

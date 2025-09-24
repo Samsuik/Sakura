@@ -12,14 +12,14 @@ public final class ItemButton implements GuiComponent {
     private final int slot;
     private final GuiClickEvent whenClicked;
 
-    public ItemButton(ItemStack bukkitItem, int slot, GuiClickEvent whenClicked) {
+    public ItemButton(final ItemStack bukkitItem, final int slot, final GuiClickEvent whenClicked) {
         this.bukkitItem = bukkitItem;
         this.slot = slot;
         this.whenClicked = whenClicked;
     }
 
     @Override
-    public boolean interaction(InventoryClickEvent event, FeatureGuiInventory featureInventory) {
+    public boolean interaction(final InventoryClickEvent event, final FeatureGuiInventory featureInventory) {
         if (event.getSlot() == this.slot) {
             this.whenClicked.doSomething(event, featureInventory);
             return true;
@@ -28,7 +28,7 @@ public final class ItemButton implements GuiComponent {
     }
 
     @Override
-    public void creation(Inventory inventory) {
+    public void creation(final Inventory inventory) {
         inventory.setItem(this.slot, this.bukkitItem);
     }
 }

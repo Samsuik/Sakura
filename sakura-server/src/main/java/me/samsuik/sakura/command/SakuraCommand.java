@@ -9,7 +9,7 @@ import java.util.*;
 
 @NullMarked
 public final class SakuraCommand extends BaseMenuCommand {
-    public SakuraCommand(String name) {
+    public SakuraCommand(final String name) {
         super(name);
         this.description = "";
     }

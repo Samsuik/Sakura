@@ -14,7 +14,7 @@ public final class ComponentCanvas {
     private final int height;
     private final Component[][] components;
 
-    public ComponentCanvas(int width, int height) {
+    public ComponentCanvas(final int width, final int height) {
         this.width = width;
         this.height = height;
         // [x, y] is flipped as it makes converting the components into a list easier
@@ -24,7 +24,7 @@ public final class ComponentCanvas {
     public void flip() {
         for (int y = 0; y < this.height; ++y) {
             if (y >= this.height / 2) {
-                Component[] row = this.components[y];
+                final Component[] row = this.components[y];
                 int relocatingRow = this.height - 1 - y;
                 this.components[y] = this.components[relocatingRow];
                 this.components[relocatingRow] = row;
@@ -32,7 +32,7 @@ public final class ComponentCanvas {
         }
     }
 
-    public void fill(Component component) {
+    public void fill(final Component component) {
         for (int x = 0; x < this.width; ++x) {
             for (int y = 0; y < this.height; ++y) {
                 this.set(x, y, component);
@@ -40,12 +40,12 @@ public final class ComponentCanvas {
         }
     }
 
-    public Component get(int x, int y) {
-        Component component = this.components[y][x];
+    public Component get(final int x, final int y) {
+        final Component component = this.components[y][x];
         return Preconditions.checkNotNull(component, "missing component at x:{} y:{}", x, y);
     }
 
-    public void set(int x, int y, Component component) {
+    public void set(final int x, final int y, final Component component) {
         this.components[y][x] = component;
     }
 
@@ -54,8 +54,8 @@ public final class ComponentCanvas {
     }
 
     private List<Component> joinComponents() {
-        List<Component> componentList = new ObjectArrayList<>(this.height);
-        for (Component[] row : this.components) {
+        final List<Component> componentList = new ObjectArrayList<>(this.height);
+        for (final Component[] row : this.components) {
             componentList.add(Component.join(JoinConfiguration.noSeparators(), row));
         }
         return componentList;

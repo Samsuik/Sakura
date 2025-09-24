@@ -83,8 +83,8 @@
                              if (f4 > 0.0F) {
 -                                if (target instanceof LivingEntity livingEntity1) {
 +                                // Sakura start - configure entity knockback; extra sprinting knockback
-+                                long millis = System.currentTimeMillis();
-+                                long sinceLastKnockback = millis - this.lastSprintKnockback;
++                                final long millis = System.currentTimeMillis();
++                                final long sinceLastKnockback = millis - this.lastSprintKnockback;
 +                                if (flag1) { // attackHasExtraKnockback
 +                                    double knockbackToApply = 0.0;
 +                                    if (sinceLastKnockback >= this.level().sakuraConfig().players.knockback.sprinting.knockbackDelay.value().orElse(0)) {
@@ -127,11 +127,15 @@
                                      int i = (int)(f7 * 0.5);
                                      ((ServerLevel)this.level())
                                          .sendParticles(ParticleTypes.DAMAGE_INDICATOR, target.getX(), target.getY(0.5), target.getZ(), i, 0.1, 0.0, 0.1, 0.2);
-@@ -1764,6 +_,7 @@
+@@ -1764,6 +_,11 @@
  
      // Paper start - send while respecting visibility
      private static void sendSoundEffect(Player fromEntity, double x, double y, double z, SoundEvent soundEffect, SoundSource soundCategory, float volume, float pitch) {
-+        if (fromEntity.level().sakuraConfig().players.combat.oldSoundsAndParticleEffects) return; // Sakura - old combat sounds and particles
++        // Sakura start - old combat sounds and particles
++        if (fromEntity.level().sakuraConfig().players.combat.oldSoundsAndParticleEffects) {
++            return;
++        }
++        // Sakura end - old combat sounds and particles
          fromEntity.level().playSound(fromEntity, x, y, z, soundEffect, soundCategory, volume, pitch); // This will not send the effect to the entity itself
          if (fromEntity instanceof ServerPlayer serverPlayer) {
              serverPlayer.connection.send(new net.minecraft.network.protocol.game.ClientboundSoundPacket(net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT.wrapAsHolder(soundEffect), soundCategory, x, y, z, volume, pitch, fromEntity.random.nextLong()));

@@ -5,13 +5,13 @@ import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public interface MergeCondition {
-    default MergeCondition and(MergeCondition condition) {
+    default MergeCondition and(final MergeCondition condition) {
         return (e,c,t) -> this.accept(e,c,t) && condition.accept(e,c,t);
     }
 
-    default MergeCondition or(MergeCondition condition) {
+    default MergeCondition or(final MergeCondition condition) {
         return (e,c,t) -> this.accept(e,c,t) || condition.accept(e,c,t);
     }
 
-    boolean accept(Entity entity, int attempts, long sinceCreation);
+    boolean accept(final Entity entity, final int attempts, final long sinceCreation);
 }

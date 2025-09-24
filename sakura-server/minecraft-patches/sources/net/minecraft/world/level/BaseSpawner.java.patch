@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/BaseSpawner.java
 +++ b/net/minecraft/world/level/BaseSpawner.java
-@@ -55,12 +_,24 @@
+@@ -55,6 +_,17 @@
      public int spawnRange = 4;
      private int tickDelay = 0; // Paper - Configurable mob spawner tick rate
  
@@ -18,13 +18,15 @@
      public void setEntityId(EntityType<?> type, @Nullable Level level, RandomSource random, BlockPos pos) {
          this.getOrCreateNextSpawnData(level, random, pos).getEntityToSpawn().putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(type).toString());
          this.spawnPotentials = WeightedList.of(); // CraftBukkit - SPIGOT-3496, MC-92282
-     }
- 
-     public boolean isNearPlayer(Level level, BlockPos pos) {
-+        if (!level.sakuraConfig().environment.mobSpawner.requireNearbyPlayer) return true; // Sakura - configure mob spawner behaviour
-         return level.hasNearbyAlivePlayerThatAffectsSpawning(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, this.requiredPlayerRange); // Paper - Affects Spawning API
-     }
- 
+@@ -90,7 +_,7 @@
+         tickDelay = serverLevel.paperConfig().tickRates.mobSpawner;
+         if (tickDelay == -1) { return; } // If disabled
+         // Paper end - Configurable mob spawner tick rate
+-        if (this.isNearPlayer(serverLevel, pos)) {
++        if (!serverLevel.sakuraConfig().environment.mobSpawner.requireNearbyPlayer || this.isNearPlayer(serverLevel, pos)) { // Sakura - configure mob spawner behaviour
+             if (this.spawnDelay < -tickDelay) { // Paper - Configurable mob spawner tick rate
+                 this.delay(serverLevel, pos);
+             }
 @@ -130,7 +_,7 @@
                                  if (!customSpawnRules.isValidPosition(blockPos, serverLevel)) {
                                      continue;

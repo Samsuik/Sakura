@@ -5,19 +5,19 @@ Subject: [PATCH] Track block changes and level tick scheduler
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 61d5876aa60e8e257b5cdf8d343370153d58f841..84c00a30e15a703227e6161ba7929fbf43cf59cc 100644
+index 4dabb2a689d4bceb054e819e2fd53420e95a283d..65bd8e94d7d7b815a2c8fe2a6fd1fa1ad9e60bc6 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1750,6 +1750,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              profilerFiller.pop();
              profilerFiller.pop();
              serverLevel.explosionDensityCache.clear(); // Paper - Optimize explosions
-+            serverLevel.levelTickScheduler.levelTick(serverLevel); // Sakura - level tick and block change listeners
++            serverLevel.levelTickScheduler.tick(); // Sakura - level tick and block change listeners
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index c75099957654ee65edfafab449e665ea1fcddf5b..3ecb573ea476336f367bd3abbaff8e7073623d82 100644
+index b0b5d32b374a3ff32dc9f6757361ee4ace962a46..44e4c907801b934c188cf67bf3c75023a52a948f 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -824,6 +824,10 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
@@ -25,14 +25,14 @@ index c75099957654ee65edfafab449e665ea1fcddf5b..3ecb573ea476336f367bd3abbaff8e70
      }
      // Paper end - optimise random ticking
 +    // Sakura start - track block changes and tick scheduler
-+    public final me.samsuik.sakura.listener.LevelTickScheduler levelTickScheduler = new me.samsuik.sakura.listener.LevelTickScheduler();
++    public final me.samsuik.sakura.listener.LevelTickScheduler levelTickScheduler = new me.samsuik.sakura.listener.LevelTickScheduler(this);
 +    public final me.samsuik.sakura.listener.BlockChangeTracker blockChangeTracker = new me.samsuik.sakura.listener.BlockChangeTracker(this);
 +    // Sakura end - track block changes and tick scheduler
  
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 75578e6ed7233a03d9b6cd3c6d3997f1c6148392..a2185062fbb123549be21e37e84541d61ec301c9 100644
+index 75578e6ed7233a03d9b6cd3c6d3997f1c6148392..a39077ba4e1e40462ee9a96ce6f3871a5ecb85c7 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -129,6 +129,21 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
@@ -42,12 +42,12 @@ index 75578e6ed7233a03d9b6cd3c6d3997f1c6148392..a2185062fbb123549be21e37e84541d6
 +    // Sakura start - track block changes and tick scheduler
 +    private java.util.List<me.samsuik.sakura.listener.BlockChangeTracker.Listener> blockChangeListeners;
 +
-+    public final void updateBlockChangeListeners(java.util.List<me.samsuik.sakura.listener.BlockChangeTracker.Listener> listeners) {
++    public final void updateBlockChangeListeners(final java.util.List<me.samsuik.sakura.listener.BlockChangeTracker.Listener> listeners) {
 +        this.blockChangeListeners = listeners;
 +    }
 +
-+    private void blockChange(BlockPos pos, BlockState newBlock, BlockState oldBlock) {
-+        for (me.samsuik.sakura.listener.BlockChangeTracker.Listener listener : this.blockChangeListeners) {
++    private void blockChange(final BlockPos pos, final BlockState newBlock, final BlockState oldBlock) {
++        for (final me.samsuik.sakura.listener.BlockChangeTracker.Listener listener : this.blockChangeListeners) {
 +            if (listener.test(this.level, pos, newBlock, oldBlock)) {
 +                listener.call();
 +            }

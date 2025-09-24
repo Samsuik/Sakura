@@ -17,7 +17,7 @@ public abstract class BaseMenuCommand extends BaseSubCommand {
     private static final String HEADER_MESSAGE = "<dark_purple>| <white><message>";
     private static final String COMMAND_MSG = "<dark_purple>| <dark_gray>*</dark_gray> /<light_purple><command>";
 
-    public BaseMenuCommand(String name) {
+    public BaseMenuCommand(final String name) {
         super(name);
     }
 
@@ -30,7 +30,7 @@ public abstract class BaseMenuCommand extends BaseSubCommand {
     public abstract Iterable<Command> subCommands();
 
     @Override
-    public final void execute(CommandSender sender, String[] args) {
+    public final void execute(final CommandSender sender, final String[] args) {
         if (args.length > 0) {
             for (final Command base : this.subCommands()) {
                 if (base.getName().equalsIgnoreCase(args[0])) {
@@ -43,7 +43,7 @@ public abstract class BaseMenuCommand extends BaseSubCommand {
         this.sendHelpMessage(sender);
     }
 
-    private void sendHelpMessage(CommandSender sender) {
+    private void sendHelpMessage(final CommandSender sender) {
         sender.sendMessage(Component.text(".", NamedTextColor.DARK_PURPLE));
         for (final String header : this.header().split("\n")) {
             if (!header.isEmpty()) {
@@ -61,7 +61,7 @@ public abstract class BaseMenuCommand extends BaseSubCommand {
     }
 
     @Override
-    public final List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
+    public final List<String> tabComplete(final CommandSender sender, final String alias, final String[] args) throws IllegalArgumentException {
         if (!this.testPermissionSilent(sender) || args.length == 0) {
             return Collections.emptyList();
         }

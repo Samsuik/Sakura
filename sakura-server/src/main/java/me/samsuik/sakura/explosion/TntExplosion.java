@@ -16,10 +16,12 @@ import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
 
 import java.util.List;
 import java.util.function.Consumer;
 
+@NullMarked
 public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     private static final int ALL_DIRECTIONS = 0b111;
     private static final int FOUND_ALL_BLOCKS = ALL_DIRECTIONS + 12;
@@ -30,21 +32,56 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     private int swinging = 0;
     private boolean moved = false;
 
-    public TntExplosion(ServerLevel level, PrimedTnt tnt, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator behavior, Vec3 center, float power, boolean createFire, BlockInteraction destructionType, Consumer<SpecialisedExplosion<PrimedTnt>> applyEffects) {
+    public TntExplosion(
+        final ServerLevel level,
+        final PrimedTnt tnt,
+        final @Nullable DamageSource damageSource,
+        final @Nullable ExplosionDamageCalculator behavior,
+        final Vec3 center,
+        final float power,
+        final boolean createFire,
+        final BlockInteraction destructionType,
+        final Consumer<SpecialisedExplosion<PrimedTnt>> applyEffects
+    ) {
         super(level, tnt, damageSource, behavior, center, power, createFire, destructionType, applyEffects);
         this.originalPosition = center;
         this.bounds = new AABB(center, center);
     }
 
-    // Sakura start - configure cannon physics
     @Override
     protected double getExplosionOffset() {
-        return this.mechanicsTarget.before(MechanicVersion.v1_10) ? (double) 0.49f : super.getExplosionOffset();
+        return this.mechanicsTarget.before(MechanicVersion.v1_10)
+            ? (double) 0.49f
+            : super.getExplosionOffset();
     }
-    // Sakura end - configure cannon physics
 
-    @Override
-    protected int getExplosionCount() {
+    private void mergeEntitiesBeforeExploding() {
+        final IteratorSafeOrderedReferenceSet<Entity> entities = this.level().entityTickList.entities;
+        int index = entities.indexOf(this.cause);
+
+        entities.createRawIterator();
+        // iterate over the entityTickList to find entities that are exploding in the same position.
+        while ((index = entities.advanceRawIterator(index)) != Integer.MAX_VALUE) {
+            final Entity foundEntity = entities.rawGet(index);
+
+            // Make sure the found entity is alive and it's a mergeable entity.
+            if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved()) {
+                break;
+            }
+
+            // Check if the found entity is the same type and has the same state as the explosion source.
+            if (!foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, true)) {
+                break;
+            }
+
+            // Merge the found entity into the explosion source
+            this.level().mergeHandler.mergeEntity(mergeEntity, this.cause);
+        }
+        entities.finishRawIterator();
+    }
+
+    private int mergeAndGetExplosionPotential() {
+        // Try to merge entities before exploding
         if (this.cause.getMergeEntityData().mergeLevel == MergeLevel.NONE) {
             this.mergeEntitiesBeforeExploding();
         }
@@ -52,34 +89,31 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     }
 
     @Override
-    protected void startExplosion() {
-        for (int i = this.getExplosionCount() - 1; i >= 0; --i) {
-            boolean lastCycle = i == 0;
-            List<BlockPos> toBlow = this.midExplosion(lastCycle); // search for blocks and impact entities
-            boolean destroyedBlocks = this.finalizeExplosionAndParticles(toBlow); // call events, break blocks and send particles
+    protected void beginExplosion() {
+        for (int remaining = this.mergeAndGetExplosionPotential() - 1; remaining >= 0; --remaining) {
+            final boolean lastCycle = remaining == 0;
+            final List<BlockPos> toBlow = this.midExplosion(lastCycle); // search for blocks and impact entities
+            final boolean destroyedBlocks = this.finalizeExplosionAndParticles(toBlow); // call events, break blocks and send particles
 
             if (!lastCycle) {
-                EntityState entityState = this.nextSourceVelocity();
+                final EntityState entityState = this.nextSourceVelocity();
                 this.postExplosion(toBlow, destroyedBlocks);
                 this.updateExplosionPosition(entityState, destroyedBlocks);
             }
         }
     }
 
-    private List<BlockPos> midExplosion(boolean lastCycle) {
-        final List<BlockPos> explodedPositions;
-        if (this.swinging < FOUND_ALL_BLOCKS) {
-            explodedPositions = this.calculateExplodedPositions();
-        } else {
-            explodedPositions = List.of();
-        }
+    private List<BlockPos> midExplosion(final boolean lastCycle) {
+        final List<BlockPos> explodedPositions = this.swinging < FOUND_ALL_BLOCKS
+            ? this.calculateExplodedPositions()
+            : List.of();
 
-        Vec3 center = this.center;
+        final Vec3 center = this.center;
         this.bounds = this.bounds.expand(center);
         this.explosions.add(center);
 
         if (lastCycle || this.requiresImpactEntities(explodedPositions, center)) {
-            this.locateAndImpactEntitiesInBounds();
+            this.locateAndImpactEntitiesInBounds(this.bounds, this.explosions);
             this.bounds = new AABB(center, center);
             this.explosions.clear();
         }
@@ -88,7 +122,7 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     }
 
     @Override
-    protected void postExplosion(List<BlockPos> foundBlocks, boolean destroyedBlocks) {
+    protected void postExplosion(final List<BlockPos> foundBlocks, final boolean destroyedBlocks) {
         super.postExplosion(foundBlocks, destroyedBlocks);
         if (this.swinging >= ALL_DIRECTIONS) {
             // Increment "swinging" if no blocks have been found, and it has swung in every direction.
@@ -101,10 +135,10 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
         }
     }
 
-    private void updateSwingingState(Vec3 momentum, Vec3 previousMomentum) {
-        for (Direction.Axis axis : Direction.Axis.VALUES) {
-            double current  = momentum.get(axis);
-            double previous = previousMomentum.get(axis);
+    private void updateSwingingState(final Vec3 momentum, final Vec3 previousMomentum) {
+        for (final Direction.Axis axis : Direction.Axis.VALUES) {
+            final double current  = momentum.get(axis);
+            final double previous = previousMomentum.get(axis);
             if (current == previous || current * previous <= 0.0) {
                 this.swinging |= 1 << axis.ordinal();
             }
@@ -116,25 +150,26 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     }
 
     private EntityState nextSourceVelocity() {
-        Vec3 origin = this.getCauseOrigin(); // valid position to use while creating a temporary entity
-        PrimedTnt tnt = new PrimedTnt(this.level(), origin.x(), origin.y(), origin.z(), null);
+        final Vec3 origin = this.getCauseOrigin(); // valid position to use while creating a temporary entity
+        final PrimedTnt tnt = new PrimedTnt(this.level(), origin.x(), origin.y(), origin.z(), null);
         this.cause.entityState().apply(tnt);
         this.impactCannonEntity(tnt, this.center, 1, this.radius() * 2.0f);
         return EntityState.of(tnt);
     }
 
-    private void updateExplosionPosition(EntityState entityState, boolean destroyedBlocks) {
+    private void updateExplosionPosition(final EntityState entityState, final boolean destroyedBlocks) {
         // Before setting entity state, otherwise we might cause issues.
-        Vec3 entityMomentum = this.cause.entityState().momentum();
+        final Vec3 entityMomentum = this.cause.entityState().momentum();
         final boolean hasMoved;
         if (this.moved) {
             hasMoved = true;
         } else if (this.center.equals(this.cause.position())) {
             hasMoved = false;
         } else {
-            double newMomentum = entityState.momentum().lengthSqr();
-            double oldMomentum = entityMomentum.lengthSqr();
-            hasMoved = oldMomentum <= Math.pow(this.radius() * 2.0 + 1.0, 2.0) || newMomentum <= oldMomentum;
+            final double newMomentumSqr = entityState.momentum().lengthSqr();
+            final double oldMomentumSqr = entityMomentum.lengthSqr();
+            final double maxExplosionRadiusSqr = Math.pow(this.radius() * 2.0 + 1.0, 2.0);
+            hasMoved = oldMomentumSqr <= maxExplosionRadiusSqr || newMomentumSqr <= oldMomentumSqr;
         }
 
         // Keep track of entity state
@@ -154,61 +189,6 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
             this.updateSwingingState(entityState.momentum(), entityMomentum);
         } else {
             this.swinging = ALL_DIRECTIONS;
-        }
-    }
-
-    private void mergeEntitiesBeforeExploding() {
-        IteratorSafeOrderedReferenceSet<Entity> entities = this.level().entityTickList.entities;
-        int index = entities.indexOf(this.cause);
-
-        entities.createRawIterator();
-        // iterate over the entityTickList to find entities that are exploding in the same position.
-        while ((index = entities.advanceRawIterator(index)) != Integer.MAX_VALUE) {
-            Entity foundEntity = entities.rawGet(index);
-            if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, true))
-                break;
-            this.level().mergeHandler.mergeEntity(mergeEntity, this.cause);
-        }
-        entities.finishRawIterator();
-    }
-
-    private void locateAndImpactEntitiesInBounds() {
-        double radius = this.radius() * 2.0f;
-        AABB bb = this.bounds;
-
-        Vec3 center = bb.getCenter();
-        double change = Math.max(bb.getXsize(), Math.max(bb.getYsize(), bb.getZsize()));
-        double maxDistanceSqr = Math.pow(radius + change, 2.0);
-        boolean positionChanged = change != 0.0;
-
-        this.forEachEntitySliceInBounds(bb.inflate(radius), entities -> {
-            if (positionChanged) {
-                this.impactEntitiesSwinging(entities, center, radius, maxDistanceSqr);
-            } else {
-                this.impactEntitiesFromPosition(entities, this.explosions.getFirst(), this.explosions.size(), radius);
-            }
-        });
-    }
-
-    private void impactEntitiesSwinging(Entity[] entities, Vec3 center, double radius, double maxDistanceSqr) {
-        for (int i = 0; i < entities.length; ++i) {
-            Entity entity = entities[i];
-            if (entity == null) break;
-
-            if (entity != this.source && !entity.ignoreExplosion(this) && entity.distanceToSqr(center.x, center.y, center.z) <= maxDistanceSqr) {
-                this.impactEntitySwinging(entity, radius);
-            }
-
-            if (entities[i] != entity) {
-                i--;
-            }
-        }
-    }
-
-    private void impactEntitySwinging(Entity entity, double radius) {
-        //noinspection ForLoopReplaceableByForEach
-        for (int i = 0; i < this.explosions.size(); i++) {
-            this.impactEntity(entity, this.explosions.get(i), 1, radius);
         }
     }
 }

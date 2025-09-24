@@ -4,22 +4,22 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public final class PlayerVisibilitySettings implements VisibilitySettings {
     private static final String SETTINGS_COMPOUND_TAG = "clientVisibilitySettings";
     private final Reference2ObjectMap<VisibilityType, VisibilityState> visibilityStates = new Reference2ObjectOpenHashMap<>();
 
-    @NonNull
     @Override
-    public VisibilityState get(@NonNull VisibilityType type) {
-        VisibilityState state = this.visibilityStates.get(type);
+    public VisibilityState get(final VisibilityType type) {
+        final VisibilityState state = this.visibilityStates.get(type);
+        //noinspection ConstantValue
         return state != null ? state : type.getDefault();
     }
 
-    @NonNull
     @Override
-    public VisibilityState set(@NonNull VisibilityType type, @NonNull VisibilityState state) {
+    public VisibilityState set(final VisibilityType type, final VisibilityState state) {
         if (type.isDefault(state)) {
             this.visibilityStates.remove(type);
         } else {
@@ -28,10 +28,9 @@ public final class PlayerVisibilitySettings implements VisibilitySettings {
         return state;
     }
 
-    @NonNull
     @Override
     public VisibilityState currentState() {
-        int modifiedCount = this.visibilityStates.size();
+        final int modifiedCount = this.visibilityStates.size();
         if (modifiedCount == 0) {
             return VisibilityState.ON;
         } else if (modifiedCount != VisibilityTypes.types().size()) {
@@ -46,18 +45,18 @@ public final class PlayerVisibilitySettings implements VisibilitySettings {
         return !this.visibilityStates.isEmpty();
     }
 
-    public void loadData(@NonNull ValueInput input) {
+    public void loadData(final ValueInput input) {
         input.child(SETTINGS_COMPOUND_TAG).ifPresent(settings -> {
-            for (VisibilityType type : VisibilityTypes.types()) {
-                String typeKey = type.key();
-                String stateName = settings.getStringOr(typeKey, type.getDefault().name());
+            for (final VisibilityType type : VisibilityTypes.types()) {
+                final String typeKey = type.key();
+                final String stateName = settings.getStringOr(typeKey, type.getDefault().name());
                 this.set(type, VisibilityState.valueOf(stateName));
             }
         });
     }
 
-    public void saveData(@NonNull ValueOutput output) {
-        ValueOutput settings = output.child(SETTINGS_COMPOUND_TAG);
+    public void saveData(final ValueOutput output) {
+        final ValueOutput settings = output.child(SETTINGS_COMPOUND_TAG);
         this.visibilityStates.forEach((type, state) -> settings.putString(type.key(), state.name()));
     }
 }

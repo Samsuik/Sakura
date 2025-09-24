@@ -9,12 +9,12 @@ import org.jspecify.annotations.NullMarked;
 public final class FPSCommand extends PlayerOnlySubCommand {
     private final VisibilityGui visibilityGui = new VisibilityGui();
 
-    public FPSCommand(String name) {
+    public FPSCommand(final String name) {
         super(name);
     }
 
     @Override
-    public void execute(Player player, String[] args) {
+    public void execute(final Player player, final String[] args) {
         this.visibilityGui.showTo(player);
     }
 }

@@ -10,16 +10,28 @@ import org.jspecify.annotations.NullMarked;
 import java.util.Optional;
 
 @NullMarked
-public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed, Optional<BlockPos> supportingPos, boolean onGround, double fallDistance) {
-    public static EntityState of(Entity entity) {
+public record EntityState(
+    Vec3 position,
+    Vec3 momentum,
+    AABB bb,
+    Vec3 stuckSpeed,
+    Optional<BlockPos> supportingPos,
+    boolean onGround,
+    double fallDistance
+) {
+    public static EntityState of(final Entity entity) {
         return new EntityState(
-            entity.position(), entity.getDeltaMovement(), entity.getBoundingBox(),
-            entity.stuckSpeedMultiplier, entity.mainSupportingBlockPos,
-            entity.onGround(), entity.fallDistance
+            entity.position(),
+            entity.getDeltaMovement(),
+            entity.getBoundingBox(),
+            entity.stuckSpeedMultiplier,
+            entity.mainSupportingBlockPos,
+            entity.onGround(),
+            entity.fallDistance
         );
     }
 
-    public void apply(Entity entity) {
+    public void apply(final Entity entity) {
         entity.setPos(this.position);
         entity.setDeltaMovement(this.momentum);
         entity.setBoundingBox(this.bb);
@@ -27,11 +39,6 @@ public record EntityState(Vec3 position, Vec3 momentum, AABB bb, Vec3 stuckSpeed
         entity.onGround = this.onGround;
         entity.mainSupportingBlockPos = this.supportingPos;
         entity.fallDistance = this.fallDistance;
-    }
-
-    public void applyEntityPosition(Entity entity) {
-        entity.setPos(this.position);
-        entity.setBoundingBox(this.bb);
     }
 
     public boolean comparePositionAndMotion(Entity entity) {

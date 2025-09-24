@@ -32,12 +32,12 @@ public final class LegacyGoldenAppleItem extends Item {
         )
         .build();
 
-    public LegacyGoldenAppleItem(Properties settings) {
+    public LegacyGoldenAppleItem(final Properties settings) {
         super(settings);
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(final Level level, final Player player, final InteractionHand hand) {
         final ItemStack stack = player.getItemInHand(hand);
         if (isItemConsumableOrDisabled(stack, level)) {
             return super.use(level, player, hand);
@@ -47,7 +47,7 @@ public final class LegacyGoldenAppleItem extends Item {
     }
 
     @Override
-    public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
+    public ItemStack finishUsingItem(final ItemStack stack, final Level level, final LivingEntity entity) {
         if (isItemConsumableOrDisabled(stack, level)) {
             return super.finishUsingItem(stack, level, entity);
         } else {
@@ -55,7 +55,7 @@ public final class LegacyGoldenAppleItem extends Item {
         }
     }
 
-    private static boolean isItemConsumableOrDisabled(ItemStack stack, Level level) {
+    private static boolean isItemConsumableOrDisabled(final ItemStack stack, final Level level) {
         return DataComponentHelper.itemHasComponent(stack, DataComponents.CONSUMABLE)
             || !level.sakuraConfig().players.combat.oldEnchantedGoldenApple;
     }

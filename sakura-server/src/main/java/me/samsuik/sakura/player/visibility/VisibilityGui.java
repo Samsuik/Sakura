@@ -25,16 +25,16 @@ public final class VisibilityGui extends FeatureGui {
     }
 
     @Override
-    protected void fillInventory(Inventory inventory) {
+    protected void fillInventory(final Inventory inventory) {
         for (int slot = 0; slot < inventory.getSize(); ++slot) {
             // x, y from top left of the inventory
-            int x = slot % 9;
-            int y = slot / 9;
+            final int x = slot % 9;
+            final int y = slot / 9;
             // from center
-            int rx = x - 4;
-            int ry = y - 2;
-            double d = Math.sqrt(rx * rx + ry * ry);
-            if (d <= 3.25) {
+            final int rx = x - 4;
+            final int ry = y - 2;
+
+            if (Math.sqrt(rx * rx + ry * ry) <= 3.25) {
                 inventory.setItem(slot, itemWithBlankName(GlobalConfiguration.get().fps.material));
             } else if (x % 8 == 0) {
                 inventory.setItem(slot, itemWithBlankName(Material.BLACK_STAINED_GLASS_PANE));
@@ -45,16 +45,17 @@ public final class VisibilityGui extends FeatureGui {
     }
 
     @Override
-    protected void afterFill(Player player, FeatureGuiInventory inventory) {
-        VisibilitySettings settings = player.getVisibility();
-        IntArrayFIFOQueue slots = this.availableSlots();
+    protected void afterFill(final Player player, final FeatureGuiInventory inventory) {
+        final VisibilitySettings settings = player.getVisibility();
+        final IntArrayFIFOQueue slots = this.availableSlots();
         this.updateToggleButton(settings, player, inventory);
-        for (VisibilityType type : VisibilityTypes.types()) {
-            VisibilityState state = settings.get(type);
-            int index = type.states().indexOf(state);
-            int slot = slots.dequeueInt();
+        for (final VisibilityType type : VisibilityTypes.types()) {
+            final VisibilityState state = settings.get(type);
+            final int index = type.states().indexOf(state);
+            final int slot = slots.dequeueInt();
 
-            ItemSwitch itemSwitch = new ItemSwitch(
+            // Switch between the visibility states
+            final ItemSwitch itemSwitch = new ItemSwitch(
                 VisibilityGuiItems.GUI_ITEMS.get(type),
                 slot, index,
                 (e, inv) -> {
@@ -67,10 +68,10 @@ public final class VisibilityGui extends FeatureGui {
         }
     }
 
-    private void updateToggleButton(VisibilitySettings settings, Player player, FeatureGuiInventory inventory) {
+    private void updateToggleButton(final VisibilitySettings settings, final Player player, final FeatureGuiInventory inventory) {
         inventory.removeComponents(TOGGLE_BUTTON_KEY);
-        VisibilityState settingsState = settings.currentState();
-        ItemButton button = new ItemButton(
+        final VisibilityState settingsState = settings.currentState();
+        final ItemButton button = new ItemButton(
             VisibilityGuiItems.TOGGLE_BUTTON_ITEMS.get(settingsState),
             (2 * 9) + 8,
             (e, inv) -> {
@@ -83,7 +84,7 @@ public final class VisibilityGui extends FeatureGui {
     }
 
     private IntArrayFIFOQueue availableSlots() {
-        IntArrayFIFOQueue slots = new IntArrayFIFOQueue();
+        final IntArrayFIFOQueue slots = new IntArrayFIFOQueue();
         for (int row = 1; row < 4; ++row) {
             for (int column = 3; column < 6; ++column) {
                 if ((column + row) % 2 == 0) {

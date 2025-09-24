@@ -18,7 +18,7 @@ public abstract class TPSGraph {
     protected final int height;
     protected final double scale;
 
-    public TPSGraph(int width, int height, double scale, List<ServerTickInformation> tickInformation) {
+    public TPSGraph(final int width, final int height, final double scale, final List<ServerTickInformation> tickInformation) {
         Preconditions.checkArgument(tickInformation.size() == width);
         this.width = width;
         this.height = height;
@@ -28,23 +28,23 @@ public abstract class TPSGraph {
 
     public abstract BuiltComponentCanvas plot();
 
-    protected final int rowFromColumn(int x) {
-        int clamped = Math.clamp(x, 0, this.width - 1);
-        ServerTickInformation tickInformation = this.tickInformation.get(clamped);
+    protected final int rowFromColumn(final int x) {
+        final int clamped = Math.clamp(x, 0, this.width - 1);
+        final ServerTickInformation tickInformation = this.tickInformation.get(clamped);
         return this.rowFromTPS(tickInformation.tps());
     }
 
-    protected final int rowFromTPS(double tps) {
-        int row = Mth.floor((tps / 3) * this.scale);
+    protected final int rowFromTPS(final double tps) {
+        final int row = Mth.floor((tps / 3) * this.scale);
         return Mth.clamp(row, 0, this.height - 1);
     }
 
-    protected final void addColourAndHoverInformation(ComponentCanvas canvas) {
+    protected final void addColourAndHoverInformation(final ComponentCanvas canvas) {
         for (int x = 0; x < this.width; ++x) {
-            ServerTickInformation tickInformation = this.tickInformation.get(x);
-            TextColor colourFromTPS = tickInformation.colour();
-            Component hoverComponent = tickInformation.hoverComponent(colourFromTPS);
-            HoverEvent<Component> hoverEvent = HoverEvent.showText(hoverComponent);
+            final ServerTickInformation tickInformation = this.tickInformation.get(x);
+            final TextColor colourFromTPS = tickInformation.colour();
+            final Component hoverComponent = tickInformation.hoverComponent(colourFromTPS);
+            final HoverEvent<Component> hoverEvent = HoverEvent.showText(hoverComponent);
 
             for (int y = 0; y < this.height; ++y) {
                 Component component = canvas.get(x, y);

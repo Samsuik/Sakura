@@ -14,17 +14,17 @@ public final class MergeEntityData {
     public int count = 1;
     public MergeLevel mergeLevel = MergeLevel.NONE;
 
-    public MergeEntityData(Entity entity) {
+    public MergeEntityData(final Entity entity) {
         this.entity = entity;
     }
 
-    private void updateEntityHandles(Entity entity) {
-        for (MergeEntityData entityData : this.connected) {
+    private void updateEntityHandles(final Entity entity) {
+        for (final MergeEntityData entityData : this.connected) {
             entityData.entity.updateBukkitHandle(entity);
         }
     }
 
-    public void mergeWith(MergeEntityData mergeEntityData) {
+    public void mergeWith(final MergeEntityData mergeEntityData) {
         this.connected.add(mergeEntityData);
         this.connected.addAll(mergeEntityData.connected);
         this.count += mergeEntityData.count;
@@ -38,7 +38,7 @@ public final class MergeEntityData {
     }
 
     public LongOpenHashSet getOriginPositions() {
-        LongOpenHashSet positions = new LongOpenHashSet();
+        final LongOpenHashSet positions = new LongOpenHashSet();
         this.connected.forEach(entityData -> positions.add(entityData.entity.getPackedOriginPosition()));
         return positions;
     }

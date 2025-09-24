@@ -1,20 +1,16 @@
 package me.samsuik.sakura.configuration.serializer;
 
-import io.leangen.geantyref.TypeToken;
 import me.samsuik.sakura.mechanics.MechanicVersion;
 import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
-import me.samsuik.sakura.mechanics.MinecraftVersionEncoding;
 import me.samsuik.sakura.mechanics.ServerType;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jspecify.annotations.NullMarked;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.NodePath;
-import org.spongepowered.configurate.serialize.ScalarSerializer;
 import org.spongepowered.configurate.serialize.SerializationException;
 import org.spongepowered.configurate.serialize.TypeSerializer;
 
 import java.lang.reflect.Type;
-import java.util.function.Predicate;
 
 @NullMarked
 public final class MinecraftMechanicsTargetSerializer implements TypeSerializer<MinecraftMechanicsTarget> {

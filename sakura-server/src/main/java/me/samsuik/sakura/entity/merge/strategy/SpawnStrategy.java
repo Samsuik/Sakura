@@ -17,8 +17,7 @@ final class SpawnStrategy implements MergeStrategy {
     }
 
     @Override
-    @Nullable
-    public Entity mergeEntity(Entity entity, Entity previous, TrackedMergeHistory mergeHistory) {
+    public @Nullable Entity mergeEntity(final Entity entity, final Entity previous, final TrackedMergeHistory mergeHistory) {
         final Entity mergeInto;
         if (entity.tickCount == 1 && mergeHistory.hasPreviouslyMergedAndMeetsCondition(entity, previous, CONDITION)) {
             mergeInto = previous;

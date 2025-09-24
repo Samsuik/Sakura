@@ -4,45 +4,47 @@ import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public interface VisibilitySettings {
-    default boolean isEnabled(VisibilityType type) {
+    default boolean isEnabled(final VisibilityType type) {
         return this.get(type) == VisibilityState.ON;
     }
 
-    default boolean isDisabled(VisibilityType type) {
+    default boolean isDisabled(final VisibilityType type) {
         return this.get(type) == VisibilityState.OFF;
     }
 
-    default boolean isToggled(VisibilityType type) {
+    default boolean isToggled(final VisibilityType type) {
         return !type.isDefault(this.get(type));
     }
 
-    default VisibilityState toggle(VisibilityType type) {
-        VisibilityState state = this.get(type);
+    default VisibilityState toggle(final VisibilityType type) {
+        final VisibilityState state = this.get(type);
         return this.set(type, toggleState(state));
     }
 
-    default VisibilityState cycle(VisibilityType type) {
-        VisibilityState state = this.get(type);
+    default VisibilityState cycle(final VisibilityType type) {
+        final VisibilityState state = this.get(type);
         return this.set(type, type.cycle(state));
     }
 
     default void toggleAll() {
-        VisibilityState state = this.currentState();
-        VisibilityState newState = toggleState(state);
-        for (VisibilityType type : VisibilityTypes.types()) {
+        final VisibilityState state = this.currentState();
+        final VisibilityState newState = toggleState(state);
+        for (final VisibilityType type : VisibilityTypes.types()) {
             this.set(type, newState);
         }
     }
 
-    VisibilityState get(VisibilityType type);
+    VisibilityState get(final VisibilityType type);
 
-    VisibilityState set(VisibilityType type, VisibilityState state);
+    VisibilityState set(final VisibilityType type, final VisibilityState state);
 
     VisibilityState currentState();
 
     boolean playerModified();
 
-    static VisibilityState toggleState(VisibilityState state) {
-        return state != VisibilityState.OFF ? VisibilityState.OFF : VisibilityState.ON;
+    static VisibilityState toggleState(final VisibilityState state) {
+        return state != VisibilityState.OFF
+            ? VisibilityState.OFF
+            : VisibilityState.ON;
     }
 }

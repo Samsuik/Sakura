@@ -4,6 +4,7 @@ import io.papermc.paper.configuration.transformation.Transformations;
 import me.samsuik.sakura.configuration.transformation.global.V1_RelocateMessages;
 import me.samsuik.sakura.configuration.transformation.global.V2_ConvertIconToMaterial;
 import me.samsuik.sakura.configuration.transformation.world.*;
+import org.jspecify.annotations.NullMarked;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.NodePath;
@@ -13,6 +14,7 @@ import org.spongepowered.configurate.transformation.TransformAction;
 import java.util.List;
 import java.util.function.Function;
 
+@NullMarked
 public final class ConfigurationTransformations {
     private static final List<NodePath> REMOVED_GLOBAL_PATHS = List.of(
         NodePath.path("cannons")
@@ -46,6 +48,10 @@ public final class ConfigurationTransformations {
         V2_ConvertIconToMaterial.apply(versionedBuilder);
         // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
         versionedBuilder.build().apply(node);
+    }
+
+    public static ConfigurationTransformation transform(final NodePath path, final TransformAction transform) {
+        return ConfigurationTransformation.builder().addAction(path, transform).build();
     }
 
     public static TransformAction newValue(final Function<ConfigurationNode, Object> func) {

@@ -17,7 +17,7 @@ public final class ItemSwitch implements GuiComponent {
     private final int selected;
     private final GuiClickEvent whenClicked;
 
-    public ItemSwitch(List<ItemStack> items, int slot, int selected, GuiClickEvent whenClicked) {
+    public ItemSwitch(final List<ItemStack> items, final int slot, final int selected, final GuiClickEvent whenClicked) {
         Preconditions.checkArgument(!items.isEmpty());
         this.items = Collections.unmodifiableList(items);
         this.slot = slot;
@@ -26,10 +26,10 @@ public final class ItemSwitch implements GuiComponent {
     }
 
     @Override
-    public boolean interaction(InventoryClickEvent event, FeatureGuiInventory featureInventory) {
+    public boolean interaction(final InventoryClickEvent event, final FeatureGuiInventory featureInventory) {
         if (this.slot == event.getSlot()) {
-            int next = (this.selected + 1) % this.items.size();
-            ItemSwitch itemSwitch = new ItemSwitch(this.items, this.slot, next, this.whenClicked);
+            final int next = (this.selected + 1) % this.items.size();
+            final ItemSwitch itemSwitch = new ItemSwitch(this.items, this.slot, next, this.whenClicked);
             featureInventory.replaceComponent(this, itemSwitch);
             this.whenClicked.doSomething(event, featureInventory);
             return true;
@@ -38,7 +38,7 @@ public final class ItemSwitch implements GuiComponent {
     }
 
     @Override
-    public void creation(Inventory inventory) {
+    public void creation(final Inventory inventory) {
         inventory.setItem(this.slot, this.items.get(this.selected));
     }
 }

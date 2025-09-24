@@ -23,23 +23,26 @@ public final class TPSCommand extends BaseSubCommand {
     private static final int GRAPH_HEIGHT = 10;
     private static final Style GRAY_WITH_STRIKETHROUGH = Style.style(NamedTextColor.GRAY, TextDecoration.STRIKETHROUGH);
 
-    public TPSCommand(String name) {
+    public TPSCommand(final String name) {
         super(name);
         this.description = "Displays the current ticks per second";
     }
 
     @Override
-    public void execute(CommandSender sender, String[] args) {
-        ServerTickInformation tickInformation = MinecraftServer.getServer().latestTickInformation();
-        long identifier = this.parseLong(args, 1).orElse(tickInformation.identifier());
+    public void execute(final CommandSender sender, final String[] args) {
+        final ServerTickInformation tickInformation = MinecraftServer.getServer().latestTickInformation();
+        final long identifier = this.parseLong(args, 1).orElse(tickInformation.identifier());
         double scale = this.parseDouble(args, 0).orElse(-1.0);
         if (scale < 0.0) {
+            // Scale the tps graph to the current server tps
             scale = this.dynamicScale(identifier);
         }
 
-        ImmutableList<ServerTickInformation> tickHistory = MinecraftServer.getServer().tickHistory(identifier - GRAPH_WIDTH, identifier);
-        DetailedTPSGraph graph = new DetailedTPSGraph(GRAPH_WIDTH, GRAPH_HEIGHT, scale, tickHistory);
-        BuiltComponentCanvas canvas = graph.plot();
+        final ImmutableList<ServerTickInformation> tickHistory = MinecraftServer.getServer().tickHistory(identifier - GRAPH_WIDTH, identifier);
+        final DetailedTPSGraph graph = new DetailedTPSGraph(GRAPH_WIDTH, GRAPH_HEIGHT, scale, tickHistory);
+        final BuiltComponentCanvas canvas = graph.plot();
+
+        // Add the sidebars, header and footer
         canvas.appendLeft(Component.text(":", NamedTextColor.BLACK));
         canvas.appendRight(Component.text(":", NamedTextColor.BLACK));
         canvas.header(this.createHeaderComponent(tickInformation, identifier));
@@ -47,24 +50,24 @@ public final class TPSCommand extends BaseSubCommand {
             .append(Component.text(Strings.repeat(" ", GRAPH_WIDTH - 1), GRAY_WITH_STRIKETHROUGH))
             .append(Component.text("*")));
 
-        for (Component component : canvas.components()) {
+        for (final Component component : canvas.components()) {
             sender.sendMessage(component);
         }
     }
 
-    private double dynamicScale(long identifier) {
-        ImmutableList<ServerTickInformation> tickHistory = MinecraftServer.getServer().tickHistory(identifier - 5, identifier);
-        double averageTps = tickHistory.stream()
+    private double dynamicScale(final long identifier) {
+        final ImmutableList<ServerTickInformation> tickHistory = MinecraftServer.getServer().tickHistory(identifier - 5, identifier);
+        final double averageTps = tickHistory.stream()
             .mapToDouble(ServerTickInformation::tps)
             .average()
             .orElse(0.0);
-        return 20 / averageTps;
+        return 20.0 / averageTps;
     }
 
-    private Component createHeaderComponent(ServerTickInformation tickInformation, long identifier) {
-        int scrollAmount = GRAPH_WIDTH / 3 * 2;
-        double memoryUsage = memoryUsage();
-        TextComponent.Builder builder = Component.text();
+    private Component createHeaderComponent(final ServerTickInformation tickInformation, final long identifier) {
+        final int scrollAmount = GRAPH_WIDTH / 3 * 2;
+        final double memoryUsage = memoryUsage();
+        final TextComponent.Builder builder = Component.text();
         builder.color(NamedTextColor.DARK_GRAY);
         builder.append(Component.text("< ")
             .clickEvent(ClickEvent.runCommand("/tps -1 " + (identifier + scrollAmount))));
@@ -83,10 +86,10 @@ public final class TPSCommand extends BaseSubCommand {
     }
 
     private static double memoryUsage() {
-        Runtime runtime = Runtime.getRuntime();
-        double free  = runtime.freeMemory();
-        double max   = runtime.maxMemory();
-        double alloc = runtime.totalMemory();
+        final Runtime runtime = Runtime.getRuntime();
+        final double free  = runtime.freeMemory();
+        final double max   = runtime.maxMemory();
+        final double alloc = runtime.totalMemory();
         return (alloc - free) / max;
     }
 }

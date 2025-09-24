@@ -6,11 +6,11 @@ import org.jspecify.annotations.NullMarked;
 public interface MergeableEntity {
     MergeEntityData getMergeEntityData();
 
-    boolean isSafeToMergeInto(MergeableEntity entity, boolean ticksLived);
+    boolean isSafeToMergeInto(final MergeableEntity entity, final boolean ticksLived);
 
     default boolean tryToRespawnEntity() {
-        MergeEntityData mergeData = this.getMergeEntityData();
-        int originalCount = mergeData.count;
+        final MergeEntityData mergeData = this.getMergeEntityData();
+        final int originalCount = mergeData.count;
         if (originalCount > 1) {
             mergeData.count = 0;
             this.respawnEntity(originalCount);
@@ -19,5 +19,5 @@ public interface MergeableEntity {
         return false;
     }
 
-    void respawnEntity(int count);
+    void respawnEntity(final int count);
 }

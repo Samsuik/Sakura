@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 @NullMarked
 public final class EntityBehaviour {
-    public static void pre1_21_6$changeEntityPosition(
+    public static void changeEntityPosition(
         final Entity entity,
         final Vec3 position,
         final Vec3 relativeMovement,

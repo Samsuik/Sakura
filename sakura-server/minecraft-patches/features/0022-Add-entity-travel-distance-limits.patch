@@ -5,10 +5,10 @@ Subject: [PATCH] Add entity travel distance limits
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index bad69adfbc492d851a3542dc7f77884d9f933c8a..9250806b12171ae4f14d8dbc9dd3d9478bc7b724 100644
+index 573b1695abde0d89d5702a60a84919167ef4baab..29e1683741241f4f1e578041371a116170f2d1d2 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1303,6 +1303,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1304,6 +1304,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          final boolean isActive = io.papermc.paper.entity.activation.ActivationRange.checkIfActive(entity); // Paper - EAR 2
          if (isActive) { // Paper - EAR 2
          entity.tick();
@@ -21,13 +21,13 @@ index bad69adfbc492d851a3542dc7f77884d9f933c8a..9250806b12171ae4f14d8dbc9dd3d947
          } else {entity.inactiveTick();} // Paper - EAR 2
          profilerFiller.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index e63a24188e07f50fc4ef67ca87866063fbc51516..96f430c55c3cfe7791e25e4506f5fdf1ceb1b18b 100644
+index 528d45eb5ff968ef14c3ff74a0c3bdb58ab21b86..b39b2cd2f4b85535bea19752ca1ecd334531b86c 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -601,6 +601,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -600,6 +600,18 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return this.mechanicsTarget;
      }
-     // Sakura end - configure cannon physics
+     // Sakura end - configure server mechanics
 +    // Sakura start - entity travel distance limits
 +    private final double travelDistanceLimit;
 +
@@ -35,16 +35,15 @@ index e63a24188e07f50fc4ef67ca87866063fbc51516..96f430c55c3cfe7791e25e4506f5fdf1
 +        if (this.origin == null) {
 +            return false;
 +        }
-+
-+        double x = Math.pow(this.origin.x() - this.position.x(), 2);
-+        double z = Math.pow(this.origin.z() - this.position.z(), 2);
++        final double x = Math.pow(this.origin.x() - this.position.x(), 2.0);
++        final double z = Math.pow(this.origin.z() - this.position.z(), 2.0);
 +        return Math.max(x, z) >= this.travelDistanceLimit;
 +    }
 +    // Sakura end - entity travel distance limits
  
      public Entity(EntityType<?> entityType, Level level) {
          this.type = entityType;
-@@ -630,6 +643,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -629,6 +641,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          this.setPos(0.0, 0.0, 0.0);
          this.eyeHeight = this.dimensions.eyeHeight();
          this.despawnTime = level == null || type == EntityType.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit

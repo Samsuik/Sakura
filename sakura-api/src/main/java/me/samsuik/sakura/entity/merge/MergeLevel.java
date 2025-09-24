@@ -28,15 +28,15 @@ public enum MergeLevel {
 
     private final int level;
 
-    MergeLevel(int level) {
+    MergeLevel(final int level) {
         this.level = level;
     }
 
-    public boolean atLeast(MergeLevel level) {
+    public final boolean atLeast(MergeLevel level) {
         return this.getLevel() >= level.getLevel();
     }
 
-    public int getLevel() {
+    public final int getLevel() {
         return this.level;
     }
 }

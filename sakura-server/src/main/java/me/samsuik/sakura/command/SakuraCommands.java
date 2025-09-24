@@ -1,6 +1,7 @@
 package me.samsuik.sakura.command;
 
 import me.samsuik.sakura.command.subcommands.*;
+import me.samsuik.sakura.command.subcommands.debug.DebugCommand;
 import me.samsuik.sakura.command.subcommands.debug.DebugLocalConfiguration;
 import me.samsuik.sakura.command.subcommands.debug.DebugRedstoneCache;
 import me.samsuik.sakura.player.visibility.VisibilityTypes;

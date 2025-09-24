@@ -9,27 +9,27 @@ public record VisibilityType(String key, ImmutableList<VisibilityState> states) 
         return this.states.getFirst();
     }
 
-    public boolean isDefault(VisibilityState state) {
+    public boolean isDefault(final VisibilityState state) {
         return state == this.getDefault();
     }
 
-    public VisibilityState cycle(VisibilityState state) {
-        int index = this.states.indexOf(state);
-        int next = (index + 1) % this.states.size();
+    public VisibilityState cycle(final VisibilityState state) {
+        final int index = this.states.indexOf(state);
+        final int next = (index + 1) % this.states.size();
         return this.states.get(next);
     }
 
-    public static VisibilityType from(String key, boolean minimal) {
+    public static VisibilityType from(final String key, final boolean minimal) {
         return new VisibilityType(key, states(minimal));
     }
 
-    private static ImmutableList<VisibilityState> states(boolean minimal) {
-        ImmutableList.Builder<VisibilityState> listBuilder = ImmutableList.builder();
-        listBuilder.add(VisibilityState.ON);
+    private static ImmutableList<VisibilityState> states(final boolean minimal) {
+        final ImmutableList.Builder<VisibilityState> states = ImmutableList.builder();
+        states.add(VisibilityState.ON);
         if (minimal) {
-            listBuilder.add(VisibilityState.MINIMAL);
+            states.add(VisibilityState.MINIMAL);
         }
-        listBuilder.add(VisibilityState.OFF);
-        return listBuilder.build();
+        states.add(VisibilityState.OFF);
+        return states.build();
     }
 }

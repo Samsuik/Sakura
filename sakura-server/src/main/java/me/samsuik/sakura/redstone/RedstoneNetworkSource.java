@@ -9,13 +9,27 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public record RedstoneNetworkSource(WorldConfiguration.Misc.RedstoneImplementation redstoneImplementation,
-                                    BlockPos position, @Nullable Orientation orientation,
-                                    int updateDepth, int newPower, int oldPower) {
-
-    public static RedstoneNetworkSource createNetworkSource(Level level, CachedLocalConfiguration localConfiguration, BlockPos pos,
-                                                            @Nullable Orientation orientation, int newPower, int oldPower) {
-        int updateDepth = level.neighborUpdater.getUpdateDepth();
+public record RedstoneNetworkSource(
+    WorldConfiguration.Misc.RedstoneImplementation redstoneImplementation,
+    BlockPos position,
+    @Nullable Orientation orientation,
+    int updateDepth,
+    int newPower,
+    int oldPower
+) {
+    public static RedstoneNetworkSource createNetworkSource(
+        final Level level,
+        final CachedLocalConfiguration localConfiguration,
+        final BlockPos pos,
+        final @Nullable Orientation orientation,
+        final int newPower,
+        final int oldPower
+    ) {
+        final int updateDepth = level.neighborUpdater.getUpdateDepth();
         return new RedstoneNetworkSource(localConfiguration.paperRedstoneImplementation(), pos, orientation, updateDepth, newPower, oldPower);
+    }
+
+    public boolean isVanilla() {
+        return this.redstoneImplementation == WorldConfiguration.Misc.RedstoneImplementation.VANILLA;
     }
 }

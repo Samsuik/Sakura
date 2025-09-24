@@ -5,7 +5,7 @@ Subject: [PATCH] Reduce entity tracker player updates
 
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 07d8bb89ed0f9cea6353905939ba9f91c6fb64a5..684af8df952b0e58a86f6c3b72635190fdc4a938 100644
+index e164d7fbda422dbcffd753c3373b1c08fa3b5d68..98512bdd9cae7f4070587386382c0615074b122d 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -1015,7 +1015,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -30,7 +30,7 @@ index 07d8bb89ed0f9cea6353905939ba9f91c6fb64a5..684af8df952b0e58a86f6c3b72635190
 +        private net.minecraft.world.phys.Vec3 entityPosition;
 +
 +        public final boolean shouldUpdatePlayers() {
-+            // We have to always update players otherwise they can turn invisible on teleports (why?)
++            // Always update players otherwise they sometimes turn invisible when teleporting
 +            if (this.entity instanceof net.minecraft.world.entity.player.Player || this.entity.tickCount % this.playerUpdateInterval == 0) {
 +                return true;
 +            }
@@ -48,7 +48,7 @@ index 07d8bb89ed0f9cea6353905939ba9f91c6fb64a5..684af8df952b0e58a86f6c3b72635190
 +            // Sakura start - reduce entity tracker player updates
 +            this.playerUpdateInterval = Math.min(updateInterval, 20);
 +            this.entityPosition = entity.position();
-+            // Sakura start - reduce entity tracker player updates
++            // Sakura end - reduce entity tracker player updates
          }
  
          @Override

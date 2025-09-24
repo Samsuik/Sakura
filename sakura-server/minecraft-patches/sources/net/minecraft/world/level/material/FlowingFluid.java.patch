@@ -27,20 +27,25 @@
                  // CraftBukkit start
                  org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
                  org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
-@@ -213,17 +_,71 @@
+@@ -213,17 +_,83 @@
          }
      }
  
 +    // Sakura start - optimise new liquid level
 +    private static final int FORM_LIQUID_SOURCE = 0xff;
 +
-+    private boolean canLiquidFlowDown(final ServerLevel level, final BlockPos pos, final BlockState state,
-+                                      final BlockPos.MutableBlockPos mutableBlockPos) {
++    private boolean canLiquidFlowDown(
++        final ServerLevel level,
++        final BlockPos pos,
++        final BlockState state,
++        final BlockPos.MutableBlockPos mutableBlockPos
++    ) {
 +        final BlockPos abovePos = mutableBlockPos.setWithOffset(pos, Direction.UP);
 +        final BlockState stateAbove = level.getBlockState(abovePos);
 +        final FluidState fluidStateAbove = stateAbove.getFluidState();
 +
-+        return !fluidStateAbove.isEmpty() && fluidStateAbove.getType().isSame(this)
++        return !fluidStateAbove.isEmpty()
++            && fluidStateAbove.getType().isSame(this)
 +            && canPassThroughWall(Direction.UP, level, pos, state, abovePos, stateAbove);
 +    }
 +
@@ -58,9 +63,12 @@
 +        return this.getLiquidFromSurroundings(level, pos, state, null);
 +    }
 +
-+    @org.jspecify.annotations.NullUnmarked
-+    private FluidState getLiquidFromSurroundings(final ServerLevel level, final BlockPos pos, final BlockState state,
-+                                                 final Direction flowing) {
++    private FluidState getLiquidFromSurroundings(
++        final ServerLevel level,
++        final BlockPos pos,
++        final BlockState state,
++        final @org.jspecify.annotations.Nullable Direction flowing
++    ) {
 +        final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
 +        final boolean flowingDown = flowing == Direction.DOWN || this.canLiquidFlowDown(level, pos, state, mutableBlockPos);
 +
@@ -83,9 +91,13 @@
 +        }
 +    }
 +
-+    @org.jspecify.annotations.NullUnmarked
-+    private int getLiquidLevelFromSurroundings(final ServerLevel level, final BlockPos pos, final BlockState state,
-+                                               final BlockPos.MutableBlockPos mutableBlockPos, final Direction incoming) {
++    private int getLiquidLevelFromSurroundings(
++        final ServerLevel level,
++        final BlockPos pos,
++        final BlockState state,
++        final BlockPos.MutableBlockPos mutableBlockPos,
++        final @org.jspecify.annotations.Nullable Direction incoming
++    ) {
          int i = 0;
          int i1 = 0;
 -        BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();

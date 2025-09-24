@@ -8,20 +8,20 @@ import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public final class MilkBucketItem extends Item {
-    public MilkBucketItem(Properties properties) {
+    public MilkBucketItem(final Properties properties) {
         super(properties);
     }
 
     @Override
-    public void verifyComponentsAfterLoad(ItemStack stack) {
-        int maxStackSize = DataComponentHelper.bucketMaxStackSize();
+    public void verifyComponentsAfterLoad(final ItemStack stack) {
+        final int maxStackSize = DataComponentHelper.bucketMaxStackSize();
         if (maxStackSize > 0 && maxStackSize < 100 && stackableMilkBuckets()) {
             stack.set(DataComponents.MAX_STACK_SIZE, maxStackSize);
         }
     }
 
     private static boolean stackableMilkBuckets() {
-        GlobalConfiguration config = GlobalConfiguration.get();
+        final GlobalConfiguration config = GlobalConfiguration.get();
         return config != null && config.players.stackableMilkBuckets;
     }
 }

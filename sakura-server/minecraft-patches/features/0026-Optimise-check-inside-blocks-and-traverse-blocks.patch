@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise check inside blocks and traverse blocks
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 2304e3e33edfce64b79001d2f70d731da3114d77..d1688f01a9564b5ef4c9e905015a174550cab6ae 100644
+index 0810ca0de7035bc913c63f8c26ccd247d27957be..5c772c05908f59b0f3d8636492685c3b853bcb47 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -1910,6 +1910,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -31,19 +31,26 @@ index 2304e3e33edfce64b79001d2f70d731da3114d77..d1688f01a9564b5ef4c9e905015a1745
                  }
              }
  
-@@ -1932,7 +1933,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1932,8 +1933,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          }
      }
  
 -    private void checkInsideBlocks(Vec3 vec3, Vec3 vec31, InsideBlockEffectApplier.StepBasedCollector stepBasedCollector, LongSet set) {
+-        // Sakura start - configure server mechanics
 +    // Sakura start - optimise check inside blocks
-+    private void checkInsideBlocks(Vec3 vec3, Vec3 vec31, InsideBlockEffectApplier.StepBasedCollector stepBasedCollector,
-+                                   LongSet set, net.minecraft.world.level.chunk.ChunkAccess[] chunkCache) {
++    private void checkInsideBlocks(
++        final Vec3 vec3,
++        final Vec3 vec31,
++        final InsideBlockEffectApplier.StepBasedCollector stepBasedCollector,
++        final LongSet set,
++        final net.minecraft.world.level.chunk.ChunkAccess[] chunkCache
++    ) {
 +        // Sakura end - optimise check inside blocks
-         // Sakura start - configure cannon physics
++        // Sakura start - configure cannon physics
          final double margin;
          if (this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
-@@ -1953,7 +1957,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+             margin = 1.0e-5f;
+@@ -1953,7 +1962,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  if (!this.isAlive()) {
                      return false;
                  } else {
@@ -66,15 +73,15 @@ index 2304e3e33edfce64b79001d2f70d731da3114d77..d1688f01a9564b5ef4c9e905015a1745
                          this.debugBlockIntersection(pos, false, false);
                          return true;
 diff --git a/net/minecraft/world/level/BlockGetter.java b/net/minecraft/world/level/BlockGetter.java
-index 353ad0c1db2ee374ac5487539c77b2b067dc7c0a..1cdc68aab80390b5f1fb67c14c0a8aaa64f28250 100644
+index b6ddb1ad889a115daeba64321d38b236033f62ff..0d8dda4e914e7570d08f595fd20e5f45e366cd0d 100644
 --- a/net/minecraft/world/level/BlockGetter.java
 +++ b/net/minecraft/world/level/BlockGetter.java
 @@ -227,7 +227,7 @@ public interface BlockGetter extends LevelHeightAccessor {
          Vec3 vec3 = to.subtract(from);
          if (vec3.lengthSqr() < Mth.square(0.99999F) || mechanicsTarget != null && mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
-             // Sakura end - configure cannon physics
+             // Sakura end - configure server mechanics
 -            for (BlockPos blockPos : BlockPos.betweenClosed(boundingBox)) {
-+            for (BlockPos blockPos : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
++            for (final BlockPos blockPos : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
                  if (!visitor.visit(blockPos, 0)) {
                      return false;
                  }
@@ -104,7 +111,7 @@ index 353ad0c1db2ee374ac5487539c77b2b067dc7c0a..1cdc68aab80390b5f1fb67c14c0a8aaa
                  return false;
              } else {
 -                for (BlockPos blockPos1 : BlockPos.betweenClosed(boundingBox)) {
-+                for (BlockPos blockPos1 : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
++                for (final BlockPos blockPos1 : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
                      if (!set.contains(blockPos1.asLong()) && !visitor.visit(blockPos1, i + 1)) {
                          return false;
                      }

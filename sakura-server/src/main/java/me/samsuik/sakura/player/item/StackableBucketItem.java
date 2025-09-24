@@ -8,14 +8,14 @@ import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public final class StackableBucketItem extends BucketItem {
-    public StackableBucketItem(Fluid content, Properties properties) {
+    public StackableBucketItem(final Fluid content, final Properties properties) {
         super(content, properties);
     }
 
     @Override
-    public void verifyComponentsAfterLoad(ItemStack stack) {
+    public void verifyComponentsAfterLoad(final ItemStack stack) {
         // It's also possible to override the components method and modify the stack size through the DataComponentHelper
-        int maxStackSize = DataComponentHelper.bucketMaxStackSize();
+        final int maxStackSize = DataComponentHelper.bucketMaxStackSize();
         if (maxStackSize > 0 && maxStackSize < 100) {
             stack.set(DataComponents.MAX_STACK_SIZE, maxStackSize);
         }

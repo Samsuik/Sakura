@@ -8,16 +8,24 @@ import net.kyori.adventure.text.format.TextColor;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-public record ServerTickInformation(long identifier, double tps, double averageTick, long longestTick, float targetTickRate, int chunks, int entities) {
-    public static final ServerTickInformation FILLER = new ServerTickInformation(0, 0.0, 0.0, 0, 0.0f, 0, 0);
+public record ServerTickInformation(
+    long identifier,
+    double tps,
+    double averageTick,
+    long longestTick,
+    float targetTickRate,
+    int chunks,
+    int entities
+) {
+    public static final ServerTickInformation UNKNOWN = new ServerTickInformation(0, 0.0, 0.0, 0, 0.0f, 0, 0);
 
     public TextColor colour() {
-        float lag = (float) this.tps / this.targetTickRate;
-        return GraphComponents.colour(lag);
+        final float tpsLoss = (float) this.tps / this.targetTickRate;
+        return GraphComponents.colour(tpsLoss);
     }
 
-    public Component hoverComponent(TextColor colour) {
-        TextComponent.Builder builder = Component.text();
+    public Component hoverComponent(final TextColor colour) {
+        final TextComponent.Builder builder = Component.text();
         builder.append(Component.text("TPS: ")
             .append(Component.text("%.1f".formatted(this.tps), colour)));
         builder.appendNewline();

@@ -11,19 +11,19 @@ import java.util.function.Function;
 
 @NullMarked
 public abstract class BaseSubCommand extends Command {
-    public BaseSubCommand(String name) {
+    public BaseSubCommand(final String name) {
         super(name);
         this.description = "Sakura Command " + name;
         this.setPermission("bukkit.command." + name);
     }
 
-    public abstract void execute(CommandSender sender, String[] args);
+    public abstract void execute(final CommandSender sender, final String[] args);
 
-    public void tabComplete(List<String> list, String[] args) throws IllegalArgumentException {}
+    public void tabComplete(final List<String> completions, final String[] args) throws IllegalArgumentException {}
 
     @Override
     @Deprecated
-    public final boolean execute(CommandSender sender, String label, String[] args) {
+    public final boolean execute(final CommandSender sender, final String label, final String[] args) {
         if (this.testPermission(sender)) {
             this.execute(sender, args);
         }
@@ -32,8 +32,8 @@ public abstract class BaseSubCommand extends Command {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
-        List<String> completions = new ArrayList<>(0);
+    public List<String> tabComplete(final CommandSender sender, final String alias, final String[] args) throws IllegalArgumentException {
+        final List<String> completions = new ArrayList<>(0);
 
         if (this.testPermissionSilent(sender)) {
             this.tabComplete(completions, args);
@@ -42,26 +42,26 @@ public abstract class BaseSubCommand extends Command {
         return completions;
     }
 
-    protected final Optional<Integer> parseInt(String[] args, int index) {
+    protected final Optional<Integer> parseInt(final String[] args, final int index) {
         return this.parse(args, index, Integer::parseInt);
     }
 
-    protected final Optional<Long> parseLong(String[] args, int index) {
+    protected final Optional<Long> parseLong(final String[] args, final int index) {
         return this.parse(args, index, Long::parseLong);
     }
 
-    protected final Optional<Float> parseFloat(String[] args, int index) {
+    protected final Optional<Float> parseFloat(final String[] args, final int index) {
         return this.parse(args, index, Float::parseFloat);
     }
 
-    protected final Optional<Double> parseDouble(String[] args, int index) {
+    protected final Optional<Double> parseDouble(final String[] args, final int index) {
         return this.parse(args, index, Double::parseDouble);
     }
 
-    protected final <T> Optional<T> parse(String[] args, int index, Function<String, T> func) {
+    protected final <T> Optional<T> parse(final String[] args, final int index, final Function<String, T> parseFunction) {
         try {
-            String arg = args[index];
-            return Optional.of(func.apply(arg));
+            final String toParse = args[index];
+            return Optional.of(parseFunction.apply(toParse));
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {
             return Optional.empty();
         }

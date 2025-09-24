@@ -5,7 +5,7 @@ Subject: [PATCH] Collide with non-solid blocks
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index bfb220f0808767fec561d9903955514729a7448f..7dddc1fda846c362c0f3d0cae89e15aba37abf5a 100644
+index 432bc933c4e31dff9737748e8b81521bfc45530a..2b3f37b2c4add7fe5c5e9500cd087517fa11600b 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1902,6 +1902,7 @@ public final class CollisionUtil {
@@ -24,16 +24,16 @@ index bfb220f0808767fec561d9903955514729a7448f..7dddc1fda846c362c0f3d0cae89e15ab
          final ChunkSource chunkSource = world.getChunkSource();
  
          for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
-@@ -1997,7 +1999,7 @@ public final class CollisionUtil {
+@@ -1996,7 +1998,7 @@ public final class CollisionUtil {
                          continue;
                      }
  
 -                    final boolean hasSpecial = ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks();
-+                    final boolean hasSpecial = !fullBlocks && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - collide with non-solid blocks
++                    final boolean hasSpecial = !fullBlocks && section.moonrise$hasSpecialCollidingBlocks(); // Sakura - collide with non-solid blocks
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
  
                      final PalettedContainer<BlockState> blocks = section.states;
-@@ -2036,6 +2038,11 @@ public final class CollisionUtil {
+@@ -2035,6 +2037,11 @@ public final class CollisionUtil {
                                      mutablePos.set(blockX, blockY, blockZ);
                                      if (useEntityCollisionShape) {
                                          blockCollision = collisionShape.getCollisionShape(blockData, world, mutablePos);
@@ -46,16 +46,16 @@ index bfb220f0808767fec561d9903955514729a7448f..7dddc1fda846c362c0f3d0cae89e15ab
                                          blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
                                      }
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a8ace187724ce0e26fd9b1d289ec1db4756b85b6..e63a24188e07f50fc4ef67ca87866063fbc51516 100644
+index 88348c5e20041bcb1f327e601625980f4ab1392a..528d45eb5ff968ef14c3ff74a0c3bdb58ab21b86 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -547,6 +547,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -546,6 +546,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              flags |= ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_ADD_TICKET;
          }
  
 +        // Sakura start - collide with non-solid blocks
 +        if (this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMoving && (this.isPrimedTNT || this.isFallingBlock)) {
-+            double horizontalMovementSqr = this.getDeltaMovement().horizontalDistanceSqr();
++            final double horizontalMovementSqr = this.getDeltaMovement().horizontalDistanceSqr();
 +            if (horizontalMovementSqr > Math.pow(this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMovingFasterThan, 2.0)) {
 +                flags |= ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_FULL_BLOCKS;
 +            }

@@ -21,21 +21,23 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.apache.commons.lang3.mutable.MutableFloat;
+import org.jspecify.annotations.NullMarked;
 
 import java.util.OptionalDouble;
 
+@NullMarked
 public final class CombatUtil {
-    public static boolean overrideBlockingAndHalveDamage(ItemStack stack, LivingEntity entity) {
+    public static boolean overrideBlockingAndHalveDamage(final ItemStack stack, final LivingEntity entity) {
         return stack.getItem() instanceof BlockableSwordItem swordItem && swordItem.isSafeToOverrideBlocking(stack)
             || stack.is(Items.SHIELD) && !DataComponentHelper.itemHasComponent(stack, DataComponents.BLOCKS_ATTACKS)
                 && entity.level().sakuraConfig().players.combat.shieldDamageReduction;
     }
 
-    public static double getLegacyAttackDifference(ItemStack itemstack) {
-        ItemAttributeModifiers defaultModifiers = itemstack.getItem().components().get(DataComponents.ATTRIBUTE_MODIFIERS);
+    public static double getLegacyAttackDifference(final ItemStack itemstack) {
+        final ItemAttributeModifiers defaultModifiers = itemstack.getItem().components().get(DataComponents.ATTRIBUTE_MODIFIERS);
         if (defaultModifiers != null && !defaultModifiers.modifiers().isEmpty()) { // exists
             double baseAttack = 0.0;
-            for (ItemAttributeModifiers.Entry entry : defaultModifiers.modifiers()) {
+            for (final ItemAttributeModifiers.Entry entry : defaultModifiers.modifiers()) {
                 if (!entry.slot().test(EquipmentSlot.MAINHAND) || !entry.attribute().is(Attributes.ATTACK_DAMAGE))
                     continue;
                 if (entry.modifier().operation() != AttributeModifier.Operation.ADD_VALUE)
@@ -43,19 +45,20 @@ public final class CombatUtil {
                 baseAttack += entry.modifier().amount();
             }
 
-            OptionalDouble legacyAttack = LegacyDamageMapping.itemAttackDamage(itemstack.getItem());
+            final OptionalDouble legacyAttack = LegacyDamageMapping.itemAttackDamage(itemstack.getItem());
             if (baseAttack != 0.0 && legacyAttack.isPresent()) {
                 return legacyAttack.getAsDouble() - baseAttack;
             }
         }
-        return 0;
+
+        return 0.0;
     }
 
-    public static float calculateLegacySharpnessDamage(LivingEntity entity, ItemStack itemstack, DamageSource damageSource) {
-        Holder<Enchantment> enchantment = getEnchantmentHolder(Enchantments.SHARPNESS);
-        ItemEnchantments itemEnchantments = itemstack.getEnchantments();
-        int enchantmentLevel = itemEnchantments.getLevel(enchantment);
-        MutableFloat damage = new MutableFloat();
+    public static float calculateLegacySharpnessDamage(final LivingEntity entity, final ItemStack itemstack, final DamageSource damageSource) {
+        final Holder<Enchantment> enchantment = getEnchantmentHolder(Enchantments.SHARPNESS);
+        final ItemEnchantments itemEnchantments = itemstack.getEnchantments();
+        final int enchantmentLevel = itemEnchantments.getLevel(enchantment);
+        final MutableFloat damage = new MutableFloat();
 
         if (entity.level() instanceof ServerLevel level) {
             enchantment.value().modifyDamage(level, enchantmentLevel, itemstack, entity, damageSource, damage);
@@ -64,9 +67,9 @@ public final class CombatUtil {
         return enchantmentLevel * 1.25F - damage.getValue();
     }
 
-    private static Holder<Enchantment> getEnchantmentHolder(ResourceKey<Enchantment> enchantmentKey) {
-        RegistryAccess registryAccess = MinecraftServer.getServer().registryAccess();
-        HolderLookup.RegistryLookup<Enchantment> enchantments = registryAccess.lookupOrThrow(Registries.ENCHANTMENT);
+    private static Holder<Enchantment> getEnchantmentHolder(final ResourceKey<Enchantment> enchantmentKey) {
+        final RegistryAccess registryAccess = MinecraftServer.getServer().registryAccess();
+        final HolderLookup.RegistryLookup<Enchantment> enchantments = registryAccess.lookupOrThrow(Registries.ENCHANTMENT);
         return enchantments.getOrThrow(enchantmentKey);
     }
 }

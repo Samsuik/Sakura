@@ -28,15 +28,15 @@ public final class DensityData {
     }
 
     public boolean hasPosition(Vec3 explosion, AABB entity) {
-        return this.isExplosionPosition(explosion) && this.entity.isAABBInBounds(entity);
+        return this.isExplosionPosition(explosion) && this.entity.containsInclusive(entity);
     }
 
     public boolean isKnownPosition(Vec3 point) {
-        return this.entity.isVec3InBounds(point);
+        return this.entity.containsInclusive(point);
     }
 
     public boolean isExplosionPosition(Vec3 explosion) {
-        return this.source.isVec3InBounds(explosion);
+        return this.source.containsInclusive(explosion);
     }
 
     public void expand(Vec3 explosion, Entity entity) {

@@ -7,7 +7,9 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public final class SakuraVersionInformation {
     private static final String VERSION_MESSAGE = """
                 <dark_purple>.

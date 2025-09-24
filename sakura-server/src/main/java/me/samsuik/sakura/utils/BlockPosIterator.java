@@ -19,19 +19,19 @@ public final class BlockPosIterator extends AbstractIterator<BlockPos> {
     private final int endZ;
     private @Nullable MutableBlockPos pos = null;
 
-    public static Iterable<BlockPos> iterable(AABB bb) {
+    public static Iterable<BlockPos> iterable(final AABB bb) {
         return () -> new BlockPosIterator(bb);
     }
 
-    public static Iterable<BlockPos> traverseArea(Vec3 vec, AABB boundingBox) {
-        double toTravel = Math.min(16.0 / vec.length(), 1.0);
-        Vec3 movement = vec.scale(toTravel);
-        AABB fromBB = boundingBox.move(-vec.x, -vec.y, -vec.z);
-        AABB searchArea = fromBB.expandTowards(movement);
-        return me.samsuik.sakura.utils.BlockPosIterator.iterable(searchArea);
+    public static Iterable<BlockPos> traverseArea(final Vec3 vec, final AABB boundingBox) {
+        final double toTravel = Math.min(16.0 / vec.length(), 1.0);
+        final Vec3 movement = vec.scale(toTravel);
+        final AABB fromBB = boundingBox.move(-vec.x, -vec.y, -vec.z);
+        final AABB searchArea = fromBB.expandTowards(movement);
+        return BlockPosIterator.iterable(searchArea);
     }
 
-    public BlockPosIterator(AABB bb) {
+    public BlockPosIterator(final AABB bb) {
         this.startX = Mth.floor(bb.minX);
         this.startY = Mth.floor(bb.minY);
         this.startZ = Mth.floor(bb.minZ);
@@ -42,7 +42,7 @@ public final class BlockPosIterator extends AbstractIterator<BlockPos> {
 
     @Override
     protected BlockPos computeNext() {
-        MutableBlockPos pos = this.pos;
+        final MutableBlockPos pos = this.pos;
         if (pos == null) {
             return this.pos = new MutableBlockPos(this.startX, this.startY, this.startZ);
         } else {

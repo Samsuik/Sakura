@@ -5,23 +5,23 @@ Subject: [PATCH] Optimise explosions in protected regions
 
 
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 37721d49fbb5c8914866be4a2bde29a64e3f172e..c1e6e27c8424483d5b7e2bce784463e9293b77a0 100644
+index c3c90cc17c4f1ebcaddffea4087929e3708aa22f..000e1ffcebd6f529133af1edbed6da80b9848e75 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -342,6 +342,22 @@ public class ServerExplosion implements Explosion {
-         return rays;
+@@ -309,6 +309,22 @@ public class ServerExplosion implements Explosion {
+         return (float)missedRays / (float)totalRays;
      }
-     // Sakura end - optimise paper explosions
+     // Paper end - collisions optimisations
 +    // Sakura start - optimise explosion protected regions
 +    protected final boolean isRegionUnprotected() {
 +        // optimisation: We check if a plugin has cancelled the event or cleared the blockList.
 +        // It tells us if the result was thrown away, so we can avoid the block searching logic.
 +        // As a side effect the event is called twice which may interfere with some plugins.
 +        if (this.source != null && this.level.sakuraConfig().cannons.explosion.optimiseProtectedRegions) {
-+            Location location = new Location(this.level.getWorld(), this.center.x, this.center.y, this.center.z);
-+            List<org.bukkit.block.Block> blocks = new ObjectArrayList<>(1);
++            final Location location = new Location(this.level.getWorld(), this.center.x, this.center.y, this.center.z);
++            final List<org.bukkit.block.Block> blocks = new ObjectArrayList<>(1);
 +            blocks.add(location.getBlock());
-+            org.bukkit.event.entity.EntityExplodeEvent event = CraftEventFactory.callEntityExplodeEvent(this.source, blocks, 0.0f, this.blockInteraction);
++            final org.bukkit.event.entity.EntityExplodeEvent event = CraftEventFactory.callEntityExplodeEvent(this.source, blocks, 0.0f, this.blockInteraction);
 +            return !event.isCancelled() && !event.blockList().isEmpty();
 +        }
 +
@@ -31,7 +31,7 @@ index 37721d49fbb5c8914866be4a2bde29a64e3f172e..c1e6e27c8424483d5b7e2bce784463e9
  
      public ServerExplosion(
          ServerLevel level,
-@@ -449,6 +465,11 @@ public class ServerExplosion implements Explosion {
+@@ -416,6 +432,11 @@ public class ServerExplosion implements Explosion {
              return ret;
          }
          // Sakura end - optimise paper explosions

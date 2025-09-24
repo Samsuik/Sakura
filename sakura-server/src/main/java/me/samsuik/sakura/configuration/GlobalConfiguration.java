@@ -36,9 +36,17 @@ public final class GlobalConfiguration extends ConfigurationPart {
         public String fpsSettingChange = "<dark_gray>(<light_purple>S</light_purple>) <gray><state> <yellow><name>";
         public boolean tpsShowEntityAndChunkCount = true;
 
+        public Component fpsSettingChangeComponent(final String name, final String state) {
+            return MiniMessage.miniMessage().deserialize(
+                this.fpsSettingChange,
+                Placeholder.unparsed("name", name),
+                Placeholder.unparsed("state", state)
+            );
+        }
+
         public Component durableBlockInteractionComponent(final int remaining, final int durability) {
             return MiniMessage.miniMessage().deserialize(
-                GlobalConfiguration.get().messages.durableBlockInteraction,
+                this.durableBlockInteraction,
                 Placeholder.unparsed("remaining", String.valueOf(remaining)),
                 Placeholder.unparsed("durability", String.valueOf(durability))
             );

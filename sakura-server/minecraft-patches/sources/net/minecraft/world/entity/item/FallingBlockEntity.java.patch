@@ -13,7 +13,7 @@
      }
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
-@@ -90,6 +_,27 @@
+@@ -90,6 +_,26 @@
          this.setStartPos(this.blockPosition());
      }
  
@@ -24,17 +24,16 @@
 +    }
 +    // Sakura end - falling block height parity api
 +    // Sakura start - falling block stacking restrictions
-+    private static boolean isFallingBlockInBounds(Level level, BlockPos blockPosition) {
++    private static boolean isFallingBlockInBounds(final Level level, final BlockPos blockPosition) {
++        // Prevent stacking one block below build limit
 +        if (level.sakuraConfig().cannons.sand.preventAtWorldHeight && blockPosition.getY() >= level.getMaxY() - 1) {
 +            return false;
 +        }
 +
-+        Vec3 center = blockPosition.getBottomCenter();
-+        if (level.sakuraConfig().cannons.sand.preventAgainstBorder && !level.getWorldBorder().isWithinBounds(center.x(), center.z(), -1.0)) {
-+            return false;
-+        }
-+
-+        return true;
++        final Vec3 center = blockPosition.getBottomCenter();
++        // Prevent stacking directly against the world border
++        return !level.sakuraConfig().cannons.sand.preventAgainstBorder
++            || level.getWorldBorder().isWithinBounds(center.x(), center.z(), -1.0);
 +    }
 +    // Sakura end - falling block stacking restrictions
 +

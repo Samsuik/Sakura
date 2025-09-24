@@ -27,8 +27,7 @@ public interface MergeStrategy {
      * @param previous last entity to tick
      * @return success
      */
-    @Nullable
-    Entity mergeEntity(Entity entity, Entity previous, TrackedMergeHistory mergeHistory);
+    @Nullable Entity mergeEntity(final Entity entity, final Entity previous, final TrackedMergeHistory mergeHistory);
 
     /**
      * Gets the {@link MergeStrategy} for the {@link MergeLevel}.
@@ -36,7 +35,7 @@ public interface MergeStrategy {
      * @param level provided level
      * @return strategy
      */
-    static MergeStrategy from(MergeLevel level) {
+    static MergeStrategy from(final MergeLevel level) {
         return switch (level) {
             case NONE -> NoneStrategy.INSTANCE;
             case STRICT -> StrictStrategy.INSTANCE;

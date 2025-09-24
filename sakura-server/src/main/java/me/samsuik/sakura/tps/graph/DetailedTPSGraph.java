@@ -7,13 +7,18 @@ import java.util.List;
 
 @NullMarked
 public final class DetailedTPSGraph extends TPSGraph {
-    public DetailedTPSGraph(int width, int height, double scale, List<ServerTickInformation> tickInformation) {
+    public DetailedTPSGraph(
+        final int width,
+        final int height,
+        final double scale,
+        final List<ServerTickInformation> tickInformation
+    ) {
         super(width, height, scale, tickInformation);
     }
 
     @Override
     public BuiltComponentCanvas plot() {
-        ComponentCanvas canvas = new ComponentCanvas(this.width, this.height);
+        final ComponentCanvas canvas = new ComponentCanvas(this.width, this.height);
         canvas.fill(GraphComponents.BACKGROUND);
 
         this.basicOutline(canvas);
@@ -24,12 +29,12 @@ public final class DetailedTPSGraph extends TPSGraph {
         return canvas.build();
     }
 
-    private void basicOutline(ComponentCanvas canvas) {
+    private void basicOutline(final ComponentCanvas canvas) {
         for (int x = 0; x < this.width; ++x) {
-            int row = this.rowFromColumn(x);
-            int nextRow = this.rowFromColumn(x + 1);
-            int minRow = Math.min(row, nextRow);
-            int maxRow = Math.max(row, nextRow);
+            final int row = this.rowFromColumn(x);
+            final int nextRow = this.rowFromColumn(x + 1);
+            final int minRow = Math.min(row, nextRow);
+            final int maxRow = Math.max(row, nextRow);
 
             if (maxRow - minRow >= 2) {
                 canvas.set(x, minRow, GraphComponents.TOP_DOTTED_LINE);
@@ -44,13 +49,13 @@ public final class DetailedTPSGraph extends TPSGraph {
         }
     }
 
-    private void prettifyOutline(ComponentCanvas canvas) {
+    private void prettifyOutline(final ComponentCanvas canvas) {
         for (int x = 0; x < this.width; ++x) {
-            int row = this.rowFromColumn(x);
-            int nextRow = this.rowFromColumn(x + 1);
-            int prevRow = this.rowFromColumn(x - 1);
-            int minRow = Math.min(row, nextRow);
-            int maxRow = Math.max(row, nextRow);
+            final int row = this.rowFromColumn(x);
+            final int nextRow = this.rowFromColumn(x + 1);
+            final int prevRow = this.rowFromColumn(x - 1);
+            final int minRow = Math.min(row, nextRow);
+            final int maxRow = Math.max(row, nextRow);
 
             if (maxRow - minRow >= 2) {
                 this.prettifyVerticalOutline(canvas, x, row, nextRow, prevRow, minRow, maxRow);
@@ -60,7 +65,15 @@ public final class DetailedTPSGraph extends TPSGraph {
         }
     }
 
-    private void prettifyVerticalOutline(ComponentCanvas canvas, int x, int row, int nextRow, int prevRow, int minRow, int maxRow) {
+    private void prettifyVerticalOutline(
+        final ComponentCanvas canvas,
+        final int x,
+        final int row,
+        final int nextRow,
+        final int prevRow,
+        final int minRow,
+        final int maxRow
+    ) {
         if (minRow == nextRow) {
             canvas.set(x, minRow, GraphComponents.CONE_BOTTOM_LEFT);
         } else if (prevRow <= minRow) {
@@ -79,9 +92,15 @@ public final class DetailedTPSGraph extends TPSGraph {
         }
     }
 
-    private void prettifySlopes(ComponentCanvas canvas, int x, int row, int nextRow, int prevRow) {
-        int slopeDirection = nextRow - prevRow;
-        int slopeChange = Math.abs(slopeDirection);
+    private void prettifySlopes(
+        final ComponentCanvas canvas,
+        final int x,
+        final int row,
+        final int nextRow,
+        final int prevRow
+    ) {
+        final int slopeDirection = nextRow - prevRow;
+        final int slopeChange = Math.abs(slopeDirection);
 
         if (slopeChange >= 2 && Math.max(nextRow, prevRow) == row + 1) {
             canvas.set(x, row, slopeDirection < 0 ? GraphComponents.TL_TO_BR : GraphComponents.BL_TO_TR);
