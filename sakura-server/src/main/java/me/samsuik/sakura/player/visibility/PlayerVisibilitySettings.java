@@ -8,7 +8,7 @@ import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public final class PlayerVisibilitySettings implements VisibilitySettings {
-    private static final String SETTINGS_COMPOUND_TAG = "clientVisibilitySettings";
+    private static final String VISIBILITY_SETTINGS_TAG = "client_visibility_settings";
     private final Reference2ObjectMap<VisibilityType, VisibilityState> visibilityStates = new Reference2ObjectOpenHashMap<>();
 
     @Override
@@ -46,7 +46,7 @@ public final class PlayerVisibilitySettings implements VisibilitySettings {
     }
 
     public void loadData(final ValueInput input) {
-        input.child(SETTINGS_COMPOUND_TAG).ifPresent(settings -> {
+        input.child(VISIBILITY_SETTINGS_TAG).ifPresent(settings -> {
             for (final VisibilityType type : VisibilityTypes.types()) {
                 final String typeKey = type.key();
                 final String stateName = settings.getStringOr(typeKey, type.getDefault().name());
@@ -56,7 +56,7 @@ public final class PlayerVisibilitySettings implements VisibilitySettings {
     }
 
     public void saveData(final ValueOutput output) {
-        final ValueOutput settings = output.child(SETTINGS_COMPOUND_TAG);
+        final ValueOutput settings = output.child(VISIBILITY_SETTINGS_TAG);
         this.visibilityStates.forEach((type, state) -> settings.putString(type.key(), state.name()));
     }
 }
