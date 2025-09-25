@@ -1,10 +1,24 @@
 --- a/net/minecraft/world/item/SpawnEggItem.java
 +++ b/net/minecraft/world/item/SpawnEggItem.java
-@@ -71,16 +_,18 @@
+@@ -13,6 +_,7 @@
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.stats.Stats;
++import net.minecraft.util.Mth;
+ import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.InteractionResult;
+ import net.minecraft.world.entity.AgeableMob;
+@@ -71,16 +_,21 @@
                  }
  
                  EntityType<?> type = this.getType(level.registryAccess(), itemInHand);
--                if (type.spawn(
++                // Sakura start - prevent placing spawn eggs inside blocks
++                if (level.sakuraConfig().players.preventPlacingSpawnEggsInsideBlocks && !level.noCollision(type.getSpawnAABB(blockPos.getX() + 0.5, blockPos.getY(), blockPos.getZ() + 0.5))) {
++                    return InteractionResult.PASS;
++                }
++                // Sakura end - prevent placing spawn eggs inside blocks
++
+                 if (type.spawn(
 -                        (ServerLevel)level,
 -                        itemInHand,
 -                        context.getPlayer(),
@@ -14,8 +28,6 @@
 -                        !Objects.equals(clickedPos, blockPos) && clickedFace == Direction.UP
 -                    )
 -                    != null) {
-+                // Sakura start - prevent placing spawn eggs inside blocks
-+                final Entity entity = type.spawn(
 +                    (ServerLevel)level,
 +                    itemInHand,
 +                    context.getPlayer(),
@@ -23,9 +35,7 @@
 +                    EntitySpawnReason.SPAWN_ITEM_USE,
 +                    true,
 +                    !Objects.equals(clickedPos, blockPos) && clickedFace == Direction.UP
-+                );
-+                if (entity != null && (!level.sakuraConfig().players.preventPlacingSpawnEggsInsideBlocks || level.noCollision(null, entity.getBoundingBox()))) {
-+                    // Sakura end - prevent placing spawn eggs inside blocks
++                ) != null) {
                      itemInHand.shrink(1);
                      level.gameEvent(context.getPlayer(), GameEvent.ENTITY_PLACE, clickedPos);
                  }
