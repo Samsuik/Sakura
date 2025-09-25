@@ -98,7 +98,10 @@ public final class LocalConfiguration implements LocalConfigurationAccessor {
         CachedLocalConfiguration cache = this.cachedConfiguration.get(sectionKey);
         //noinspection ConstantValue
         if (cache == null) {
-            final ConfigurationContainer container = this.getContainer(x, y, z);
+            ConfigurationContainer container = this.getContainer(x, y, z);
+            if (container == null) {
+                container = new ConfigurationContainer();
+            }
             cache = new CachedLocalConfiguration(level, container, sectionKey);
             this.cachedConfiguration.put(sectionKey, cache);
         }

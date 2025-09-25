@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise block counting for cannon entities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 2b3f37b2c4add7fe5c5e9500cd087517fa11600b..035008bc65c3a3a85512edc30cb4e311aab96006 100644
+index 0e16ec857c6f9005f6a56b2a79493ce4eeec59a6..1269bf2f22d162b96ace840aadb49907ddb14bce 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-@@ -1937,6 +1937,8 @@ public final class CollisionUtil {
+@@ -1940,6 +1940,8 @@ public final class CollisionUtil {
          final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
          final CollisionContext collisionShape = new LazyEntityCollisionContext(entity);
          final boolean useEntityCollisionShape = LazyEntityCollisionContext.useEntityCollisionShape(world, entity);
@@ -17,7 +17,7 @@ index 2b3f37b2c4add7fe5c5e9500cd087517fa11600b..035008bc65c3a3a85512edc30cb4e311
  
          // special cases:
          if (minBlockY > maxBlockY) {
-@@ -2000,15 +2002,19 @@ public final class CollisionUtil {
+@@ -2003,15 +2005,19 @@ public final class CollisionUtil {
  
                      final boolean hasSpecial = !fullBlocks && section.moonrise$hasSpecialCollidingBlocks(); // Sakura - collide with non-solid blocks
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
@@ -43,7 +43,7 @@ index 2b3f37b2c4add7fe5c5e9500cd087517fa11600b..035008bc65c3a3a85512edc30cb4e311
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index c1f9d65aba951963ebb297393580df3d6969c021..02e29e2e10f399906dcc9bd7bdbabe62b1a97245 100644
+index 307542eff210e8824f651ca42e15b00c22df98fc..c3cc64d75338e5fd58db074284cb10b5f778f007 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -616,6 +616,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl

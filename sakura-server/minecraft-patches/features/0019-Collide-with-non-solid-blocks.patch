@@ -5,10 +5,10 @@ Subject: [PATCH] Collide with non-solid blocks
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 432bc933c4e31dff9737748e8b81521bfc45530a..2b3f37b2c4add7fe5c5e9500cd087517fa11600b 100644
+index 82689f3a737a80c1c3fd5c46aa271e70fc7b8866..0e16ec857c6f9005f6a56b2a79493ce4eeec59a6 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-@@ -1902,6 +1902,7 @@ public final class CollisionUtil {
+@@ -1905,6 +1905,7 @@ public final class CollisionUtil {
      public static final int COLLISION_FLAG_CHECK_BORDER = 1 << 2;
      public static final int COLLISION_FLAG_CHECK_ONLY = 1 << 3;
      public static final int COLLISION_FLAG_ADD_TICKET = 1 << 4; // Sakura - load chunks on movement
@@ -16,7 +16,7 @@ index 432bc933c4e31dff9737748e8b81521bfc45530a..2b3f37b2c4add7fe5c5e9500cd087517
  
      public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
                                                                final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
-@@ -1954,6 +1955,7 @@ public final class CollisionUtil {
+@@ -1957,6 +1958,7 @@ public final class CollisionUtil {
  
          final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
          final boolean addTicket  = (collisionFlags & COLLISION_FLAG_ADD_TICKET) != 0; // Sakura - load chunks on movement
@@ -24,7 +24,7 @@ index 432bc933c4e31dff9737748e8b81521bfc45530a..2b3f37b2c4add7fe5c5e9500cd087517
          final ChunkSource chunkSource = world.getChunkSource();
  
          for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
-@@ -1996,7 +1998,7 @@ public final class CollisionUtil {
+@@ -1999,7 +2001,7 @@ public final class CollisionUtil {
                          continue;
                      }
  
@@ -33,7 +33,7 @@ index 432bc933c4e31dff9737748e8b81521bfc45530a..2b3f37b2c4add7fe5c5e9500cd087517
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
  
                      final PalettedContainer<BlockState> blocks = section.states;
-@@ -2035,6 +2037,11 @@ public final class CollisionUtil {
+@@ -2038,6 +2040,11 @@ public final class CollisionUtil {
                                      mutablePos.set(blockX, blockY, blockZ);
                                      if (useEntityCollisionShape) {
                                          blockCollision = collisionShape.getCollisionShape(blockData, world, mutablePos);
@@ -46,7 +46,7 @@ index 432bc933c4e31dff9737748e8b81521bfc45530a..2b3f37b2c4add7fe5c5e9500cd087517
                                          blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
                                      }
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 88348c5e20041bcb1f327e601625980f4ab1392a..528d45eb5ff968ef14c3ff74a0c3bdb58ab21b86 100644
+index 098b5a8cfe1ce37f5c1ed51c2bb913990a820838..2107fb073fc6bee12a80652c08cdc82e2fe495f8 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -546,6 +546,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess

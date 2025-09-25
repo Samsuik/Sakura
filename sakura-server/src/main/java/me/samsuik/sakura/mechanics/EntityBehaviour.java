@@ -1,10 +1,15 @@
 package me.samsuik.sakura.mechanics;
 
+import ca.spottedleaf.moonrise.patches.collisions.CollisionUtil;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+
+import java.util.List;
 
 @NullMarked
 public final class EntityBehaviour {
@@ -48,5 +53,18 @@ public final class EntityBehaviour {
         return mechanicsTarget == null || mechanicsTarget.atLeast(MechanicVersion.v1_14)
             ? Math.abs(x) < Math.abs(z)
             : mechanicsTarget.isLegacy() && Math.abs(x) > Math.abs(z);
+    }
+
+    public static void convertVoxelsIntoAABBs(final Vec3 movement, final AABB bb, final List<VoxelShape> voxels, final List<AABB> aabbs) {
+        final AABB collisions = bb.expandTowards(movement);
+        for (final VoxelShape shape : voxels) {
+            for (final AABB boundingBox : shape.toAabbs()) {
+                if (CollisionUtil.voxelShapeIntersect(boundingBox, collisions) && !CollisionUtil.isEmpty(boundingBox)) {
+                    aabbs.add(boundingBox);
+                }
+            }
+        }
+
+        voxels.clear();
     }
 }

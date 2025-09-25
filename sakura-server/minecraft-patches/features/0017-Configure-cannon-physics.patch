@@ -5,7 +5,7 @@ Subject: [PATCH] Configure cannon physics
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 5cc6fe6984d59a94c037b2c327a5d72b5a2a740d..432bc933c4e31dff9737748e8b81521bfc45530a 100644
+index 5cc6fe6984d59a94c037b2c327a5d72b5a2a740d..82689f3a737a80c1c3fd5c46aa271e70fc7b8866 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1774,6 +1774,13 @@ public final class CollisionUtil {
@@ -31,7 +31,7 @@ index 5cc6fe6984d59a94c037b2c327a5d72b5a2a740d..432bc933c4e31dff9737748e8b81521b
  
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, potentialCollisions);
-@@ -1811,9 +1818,18 @@ public final class CollisionUtil {
+@@ -1811,9 +1818,21 @@ public final class CollisionUtil {
      public static Vec3 performCollisions(final Vec3 moveVector, AABB axisalignedbb,
                                           final List<VoxelShape> voxels,
                                           final List<AABB> aabbs) {
@@ -43,6 +43,9 @@ index 5cc6fe6984d59a94c037b2c327a5d72b5a2a740d..432bc933c4e31dff9737748e8b81521b
 +                                         final List<VoxelShape> voxels,
 +                                         final List<AABB> aabbs,
 +                                         final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget) {
++        if (mechanicsTarget.isServerType(me.samsuik.sakura.mechanics.ServerType.PAPER) && mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2, me.samsuik.sakura.mechanics.MechanicVersion.v1_20_2)) {
++            me.samsuik.sakura.mechanics.EntityBehaviour.convertVoxelsIntoAABBs(moveVector, axisalignedbb, voxels, aabbs);
++        }
 +        // Sakura end - configure server mechanics
          if (voxels.isEmpty()) {
              // fast track only AABBs
@@ -51,7 +54,7 @@ index 5cc6fe6984d59a94c037b2c327a5d72b5a2a740d..432bc933c4e31dff9737748e8b81521b
          }
  
          double x = moveVector.x;
-@@ -1828,7 +1844,7 @@ public final class CollisionUtil {
+@@ -1828,7 +1847,7 @@ public final class CollisionUtil {
              }
          }
  
@@ -60,6 +63,25 @@ index 5cc6fe6984d59a94c037b2c327a5d72b5a2a740d..432bc933c4e31dff9737748e8b81521b
  
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
+diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
+index ca02c4c71a0a5a1a0ae8bbb40f0b1b7eac64e6fd..476b1330455cb30a582147bcf95d4f199ade3c6f 100644
+--- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
++++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
+@@ -462,6 +462,14 @@ public interface DispenseItemBehavior {
+                         }
+                     }
+ 
++                    // Sakura start - configure server mechanics
++                    final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicTarget = serverLevel.localConfig().at(blockPos).mechanicsTarget;
++                    if (!mechanicTarget.isServerType(me.samsuik.sakura.mechanics.ServerType.VANILLA)
++                        && mechanicTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_9)
++                        && !mechanicTarget.isLegacy()) {
++                        event.getVelocity().setY(event.getVelocity().getY() + 0.5);
++                    }
++                    // Sakura end - configure server mechanics
+                     PrimedTnt primedTnt = new PrimedTnt(serverLevel, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), null);
+                     // CraftBukkit end
+                     serverLevel.addFreshEntity(primedTnt);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
 index eaa57560a20841a2b218ff2fd9059f82339a678c..098b5a8cfe1ce37f5c1ed51c2bb913990a820838 100644
 --- a/net/minecraft/world/entity/Entity.java
@@ -462,18 +484,28 @@ index 2146efa860d8323a88f3ad365c0cdb66de42154a..b6ddb1ad889a115daeba64321d38b236
                  if (!visitor.visit(blockPos, 0)) {
                      return false;
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index e6ca200bf17e097f65204d7cead78306573e4782..5ac921b85f4dd200dd9932c7a702c07cfad36e63 100644
+index e6ca200bf17e097f65204d7cead78306573e4782..41a9da18ec229f9e489de2ac3af9d9e5f9b58963 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -376,6 +376,7 @@ public class ServerExplosion implements Explosion {
+@@ -376,6 +376,17 @@ public class ServerExplosion implements Explosion {
          return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);
      }
      // Sakura end - explosion durable blocks
-+    protected final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget; // Sakura - configure server mechanics
++    // Sakura start - configure server mechanics
++    protected final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget;
++
++    private float sakura$getSeenPercent(final Vec3 explosionPos, final Entity entity) {
++        if (this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)) {
++            return this.getSeenFraction(explosionPos, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
++        } else {
++            return getSeenPercent(explosionPos, entity);
++        }
++    }
++    // Sakura end - configure server mechanics
  
      public ServerExplosion(
          ServerLevel level,
-@@ -400,6 +401,7 @@ public class ServerExplosion implements Explosion {
+@@ -400,6 +411,7 @@ public class ServerExplosion implements Explosion {
          this.yield = Double.isFinite(this.yield) ? this.yield : 0; // Paper - Don't allow infinite default yields
          // Paper end - add yield
          this.consistentExplosionRadius = level.localConfig().at(this.center).consistentExplosionRadius; // Sakura - consistent explosion radius
@@ -481,7 +513,7 @@ index e6ca200bf17e097f65204d7cead78306573e4782..5ac921b85f4dd200dd9932c7a702c07c
      }
  
      private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
-@@ -429,8 +431,15 @@ public class ServerExplosion implements Explosion {
+@@ -429,8 +441,15 @@ public class ServerExplosion implements Explosion {
                          final float density = entity.level().densityCache.getKnownDensity(vec3);
                          if (density != me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
                              hitResult = density != 0.0f ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
@@ -498,7 +530,7 @@ index e6ca200bf17e097f65204d7cead78306573e4782..5ac921b85f4dd200dd9932c7a702c07c
                          }
                          if (hitResult == HitResult.Type.MISS) {
                              // Sakura end - replace density cache
-@@ -528,6 +537,15 @@ public class ServerExplosion implements Explosion {
+@@ -528,6 +547,15 @@ public class ServerExplosion implements Explosion {
                  }
  
                  if (cachedBlock.outOfWorld) {
@@ -514,7 +546,7 @@ index e6ca200bf17e097f65204d7cead78306573e4782..5ac921b85f4dd200dd9932c7a702c07c
                      break;
                  }
                  final BlockState iblockdata = cachedBlock.blockState;
-@@ -630,6 +648,12 @@ public class ServerExplosion implements Explosion {
+@@ -630,6 +658,12 @@ public class ServerExplosion implements Explosion {
                      double d2 = (entity instanceof PrimedTnt ? entity.getY() : entity.getEyeY()) - this.center.y;
                      double d3 = entity.getZ() - this.center.z;
                      double squareRoot = Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3);
@@ -527,32 +559,15 @@ index e6ca200bf17e097f65204d7cead78306573e4782..5ac921b85f4dd200dd9932c7a702c07c
                      if (squareRoot != 0.0) {
                          d1 /= squareRoot;
                          d2 /= squareRoot;
-@@ -913,7 +937,7 @@ public class ServerExplosion implements Explosion {
+@@ -913,7 +947,7 @@ public class ServerExplosion implements Explosion {
          // Sakura start - replace density cache
          float blockDensity = this.level.densityCache.getBlockDensity(vec3d, entity);
          if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
 -            blockDensity = this.getSeenFraction(vec3d, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
-+            blockDensity = this.sakura_getSeenPercent(vec3d, entity); // Sakura - configure server mechanics
++            blockDensity = this.sakura$getSeenPercent(vec3d, entity); // Sakura - configure server mechanics
              this.level.densityCache.putDensity(vec3d, entity, blockDensity);
              // Sakura end - replace density cache
          }
-@@ -921,6 +945,16 @@ public class ServerExplosion implements Explosion {
-         return blockDensity;
-     }
- 
-+    // Sakura start - configure server mechanics
-+    private float sakura_getSeenPercent(final Vec3 vec3d, final Entity entity) {
-+        if (this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)) {
-+            return this.getSeenFraction(vec3d, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
-+        } else {
-+            return getSeenPercent(vec3d, entity);
-+        }
-+    }
-+    // Sakura end - configure server mechanics
-+
-     static class CacheKey {
-         private final Level world;
-         private final double posX, posY, posZ;
 diff --git a/net/minecraft/world/level/block/FallingBlock.java b/net/minecraft/world/level/block/FallingBlock.java
 index 4fa238d1cd6b19f16c0d0a8a9a913e9e42debbed..96a02601636cdf7cf6e360fc933e5764fbb7eab8 100644
 --- a/net/minecraft/world/level/block/FallingBlock.java
