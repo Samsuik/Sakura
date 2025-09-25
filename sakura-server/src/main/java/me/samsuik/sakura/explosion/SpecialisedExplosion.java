@@ -84,7 +84,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
     protected void postExplosion(final List<BlockPos> foundBlocks, final boolean destroyedBlocks) {
         // Reuse the block cache between explosions. This can help a lot when searching for blocks and raytracing.
         // This is disabled by default as it's incompatible with plugins that modify blocks in the explosion event.
-        if (this.level().sakuraConfig().cannons.explosion.useBlockCacheAcrossExplosions && !foundBlocks.isEmpty() && !destroyedBlocks) {
+        if (this.level().sakuraConfig().cannons.explosion.reuseBlockCacheAcrossExplosions && !foundBlocks.isEmpty() && !destroyedBlocks) {
             this.markBlocksInCacheAsExplodable(foundBlocks);
         } else {
             super.blockCache.clear();

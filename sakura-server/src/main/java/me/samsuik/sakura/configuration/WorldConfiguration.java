@@ -28,7 +28,7 @@ import java.util.Set;
 public final class WorldConfiguration extends ConfigurationPart {
 
     private static final Logger LOGGER = LogUtils.getClassLogger();
-    static final int CURRENT_VERSION = 11; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
+    static final int CURRENT_VERSION = 12; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
 
     private transient final ResourceLocation worldKey;
     WorldConfiguration(ResourceLocation worldKey) {
@@ -85,7 +85,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         public class Explosion extends ConfigurationPart {
             public boolean optimiseProtectedRegions = false;
             public boolean avoidRedundantBlockSearches = false;
-            public boolean useBlockCacheAcrossExplosions = false;
+            public boolean reuseBlockCacheAcrossExplosions = false;
 
             public Map<Block, DurableMaterial> durableMaterials = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
                 map.put(Blocks.OBSIDIAN, new DurableMaterial(4, Blocks.COBBLESTONE.getExplosionResistance(), true));
