@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..5cc6fe6984d59a94c037b2c327a5d72b5a2a740d 100644
+index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..c9bafad13e831f7254f397629f07d3c92fc2a8bb 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1885,6 +1885,7 @@ public final class CollisionUtil {
@@ -16,7 +16,15 @@ index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..5cc6fe6984d59a94c037b2c327a5d72b
  
      public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
                                                                final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
-@@ -1936,6 +1937,7 @@ public final class CollisionUtil {
+@@ -1919,6 +1920,7 @@ public final class CollisionUtil {
+         final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
+         final CollisionContext collisionShape = new LazyEntityCollisionContext(entity);
+         final boolean useEntityCollisionShape = LazyEntityCollisionContext.useEntityCollisionShape(world, entity);
++        final long gameTime = world.getGameTime(); // Sakura - load chunks on movement
+ 
+         // special cases:
+         if (minBlockY > maxBlockY) {
+@@ -1936,6 +1938,7 @@ public final class CollisionUtil {
          final int maxChunkZ = maxBlockZ >> 4;
  
          final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
@@ -24,7 +32,7 @@ index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..5cc6fe6984d59a94c037b2c327a5d72b
          final ChunkSource chunkSource = world.getChunkSource();
  
          for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
-@@ -1954,6 +1956,16 @@ public final class CollisionUtil {
+@@ -1954,6 +1957,16 @@ public final class CollisionUtil {
                      continue;
                  }
  
