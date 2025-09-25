@@ -1,62 +1,85 @@
 package me.samsuik.sakura.explosion.density;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import net.minecraft.util.Mth;
+import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
-/**
- * This is a replacement for papers explosion density cache to be more lenient and efficient.
- */
+@NullMarked
 public final class BlockDensityCache {
     public static final float UNKNOWN_DENSITY = -1.0f;
 
-    private final Int2ObjectOpenHashMap<DensityData> densityDataMap = new Int2ObjectOpenHashMap<>();
-    private DensityData data;
-    private int key;
+    private final Object2FloatOpenHashMap<BlockDensityCacheKey> paperExactPosDensityCache = new Object2FloatOpenHashMap<>();
+    private final Int2ObjectOpenHashMap<CachedBlockDensity> lenientDensityCache = new Int2ObjectOpenHashMap<>();
+    private @Nullable BlockDensityCacheKey densityCacheKey;
+    private @Nullable CachedBlockDensity cacheInUse;
+    private int cacheKeyInUse;
     private boolean knownSource;
+    private final Level level;
 
-    public float getDensity(Vec3 explosion, Entity entity) {
-        int key = getKey(explosion, entity);
-        DensityData data = this.densityDataMap.get(key);
+    public BlockDensityCache(final Level level) {
+        this.level = level;
+        this.paperExactPosDensityCache.defaultReturnValue(UNKNOWN_DENSITY);
+    }
 
-        if (data != null && data.hasPosition(explosion, entity.getBoundingBox())) {
-            return data.density();
-        } else {
-            this.knownSource = data != null && data.complete() && data.isExplosionPosition(explosion);
-            this.data = data;
-            this.key = key;
-            return UNKNOWN_DENSITY;
+    public float getBlockDensity(final Vec3 explosionPos, final Entity entity) {
+        final int lenientKey = BlockDensityCacheKey.getLenientKey(explosionPos, entity.blockPosition());
+        final CachedBlockDensity cache = this.lenientDensityCache.get(lenientKey);
+
+        // Check if the density is cached
+        if (cache != null && cache.hasPosition(explosionPos, entity.getBoundingBox())) {
+            return cache.blockDensity();
+        }
+
+        // Replicate the broken behaviour of optimize-explosions
+        if (this.level.paperConfig().environment.optimizeExplosions) {
+            final BlockDensityCacheKey cacheKey = new BlockDensityCacheKey(explosionPos, entity);
+            final float blockDensity = this.paperExactPosDensityCache.getFloat(cacheKey);
+            if (blockDensity != UNKNOWN_DENSITY) {
+                return blockDensity;
+            }
+            this.densityCacheKey = cacheKey;
+        }
+
+        this.knownSource = cache != null && cache.complete() && cache.isExplosionPosition(explosionPos);
+        this.cacheInUse = cache;
+        this.cacheKeyInUse = lenientKey;
+        return UNKNOWN_DENSITY;
+    }
+
+    public float getKnownDensity(final Vec3 point) {
+        return this.knownSource && this.cacheInUse.isKnownPosition(point)
+            ? this.cacheInUse.blockDensity()
+            : UNKNOWN_DENSITY;
+    }
+
+    public void putDensity(final Vec3 explosionPos, final Entity entity, final float blockDensity) {
+        final CachedBlockDensity cache = this.cacheInUse;
+        if (cache == null || !cache.complete()) {
+            this.lenientDensityCache.put(this.cacheKeyInUse, new CachedBlockDensity(explosionPos, entity, blockDensity));
+        } else if (cache.blockDensity() == blockDensity) {
+            cache.expand(explosionPos, entity);
+        }
+
+        if (this.level.paperConfig().environment.optimizeExplosions && this.densityCacheKey != null) {
+            this.paperExactPosDensityCache.put(this.densityCacheKey, blockDensity);
         }
     }
 
-    public float getKnownDensity(Vec3 point) {
-        if (this.knownSource && this.data.isKnownPosition(point)) {
-            return this.data.density();
-        } else {
-            return UNKNOWN_DENSITY;
-        }
-    }
+    public void expire(final long tick) {
+        this.invalidate();
 
-    public void putDensity(Vec3 explosion, Entity entity, float density) {
-        if (this.data == null || !this.data.complete()) {
-            this.densityDataMap.put(this.key, new DensityData(explosion, entity, density));
-        } else if (this.data.density() == density) {
-            this.data.expand(explosion, entity);
+        if (tick % 600 == 0) {
+            // Trim everything down every 600 ticks
+            this.paperExactPosDensityCache.trim(0);
+            this.lenientDensityCache.trim(0);
         }
     }
 
     public void invalidate() {
-        this.densityDataMap.clear();
-    }
-
-    private static int getKey(Vec3 explosion, Entity entity) {
-        int key        = Mth.floor(explosion.x());
-        key = 31 * key + Mth.floor(explosion.y());
-        key = 31 * key + Mth.floor(explosion.z());
-        key = 31 * key + entity.getBlockX();
-        key = 31 * key + entity.getBlockY();
-        key = 31 * key + entity.getBlockZ();
-        return key;
+        this.lenientDensityCache.clear();
     }
 }

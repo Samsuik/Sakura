@@ -40,19 +40,19 @@ index 6db566adf2d0df1d26221eda04aa01738df6d3d2..23c135a6355e920535734e946e5bd4d0
          return !interactionResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
              ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 4a258b105b4d27f214178439df1c4ee569c12895..d4b2f81aebc888e6fe041537b71ac52d8dc8b4e7 100644
+index a99273ac64a223cc0a728137abca9331e79a546b..f41caed876beff43778e6138ac444f6e2608883d 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -830,6 +830,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      // Sakura end - track block changes and tick scheduler
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
-     public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
+     public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
 +    public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
  
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index d2b33fb06ce9a806466208d7afd65fa8d3da0292..f8933e198a250f2184fb64bb987575b441ae8a32 100644
+index 88192b561c2a071f583d16d1de926917108a8f45..d12473581f5285aff5867e8bebfe34ccbdb1285f 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -131,7 +131,7 @@ public class ServerExplosion implements Explosion {

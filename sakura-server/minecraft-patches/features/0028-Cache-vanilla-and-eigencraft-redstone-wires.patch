@@ -33,24 +33,24 @@ index ff747a1ecdf3c888bca0d69de4f85dcd810b6139..d90f6aa4557b5863eba6a206226f763c
          }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 29e1683741241f4f1e578041371a116170f2d1d2..fa109c801fd556e9e09dd0a81d5e05cb942082dd 100644
+index 8a046ad7590bd358d416f4aa21a3c173d0931d2a..cdcc64da3481ea8ab4bc680fef775bc193e65c41 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -694,6 +694,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
          this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
-         this.levelTickScheduler.repeatingTask(this.densityCache::invalidate, 0); // Sakura - explosion density cache
+         this.levelTickScheduler.repeatingTask(this.densityCache::expire, 0); // Sakura - explosion density cache
 +        this.levelTickScheduler.repeatingTask(this.redstoneWireCache::expire, 300); // Sakura - cache vanilla and eigencraft wires
      }
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 92b3a69b2f87f44cb0c797d5986d501a649f4fe4..c1f9d65aba951963ebb297393580df3d6969c021 100644
+index 38baa1b6c846fd1f8cdbe9faf5e38300dade87e9..307542eff210e8824f651ca42e15b00c22df98fc 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -831,6 +831,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
-     public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
+     public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
 +    public final me.samsuik.sakura.redstone.RedstoneWireCache redstoneWireCache = new me.samsuik.sakura.redstone.RedstoneWireCache(this); // Sakura - cache vanilla and eigencraft wires
  

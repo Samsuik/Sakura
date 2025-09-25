@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Thu, 25 Sep 2025 11:26:32 +0100
+Subject: [PATCH] fixup! Configure cannon physics
+
+
+diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
+index f8ad47d47ee060be66b735eacdcb19ee8e5c7628..f008ffa972eddf1d6bd0c3c2ef75332a56fb3448 100644
+--- a/net/minecraft/world/level/ServerExplosion.java
++++ b/net/minecraft/world/level/ServerExplosion.java
+@@ -391,7 +391,17 @@ public class ServerExplosion implements Explosion {
+         return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);
+     }
+     // Sakura end - explosion durable blocks
+-    protected final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget; // Sakura - configure server mechanics
++    // Sakura start - configure server mechanics
++    protected final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget;
++
++    private float sakura$getSeenPercent(final Vec3 explosionPos, final Entity entity) {
++        if (this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)) {
++            return this.getSeenFraction(explosionPos, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
++        } else {
++            return getSeenPercent(explosionPos, entity);
++        }
++    }
++    // Sakura end - configure server mechanics
+ 
+     public ServerExplosion(
+         ServerLevel level,

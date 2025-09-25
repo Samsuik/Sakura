@@ -5,31 +5,31 @@ Subject: [PATCH] Replace explosion density cache
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 496e23c110cbb3b60a6565e1903545e09715f79e..8c4b4cb9e98b8c0334bb7e247e67206bd57c3de2 100644
+index 496e23c110cbb3b60a6565e1903545e09715f79e..a73395c1ec0f36019de553c39199957032e316c4 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -693,6 +693,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
          this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
          this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
-+        this.levelTickScheduler.repeatingTask(this.densityCache::invalidate, 0); // Sakura - explosion density cache
++        this.levelTickScheduler.repeatingTask(this.densityCache::expire, 0); // Sakura - explosion density cache
      }
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 7b9e61b2286d18f55a365eebda1fe2128023bec9..3e4784e7dbb264e08f944e03d1f59218fafe710b 100644
+index 7b9e61b2286d18f55a365eebda1fe2128023bec9..7a30a227a417ecf9f16ce97d53b238935e652d68 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -829,6 +829,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
      public final me.samsuik.sakura.listener.BlockChangeTracker blockChangeTracker = new me.samsuik.sakura.listener.BlockChangeTracker(this);
      // Sakura end - track block changes and tick scheduler
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
-+    public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(); // Sakura - explosion density cache
++    public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
  
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index cc6ee993470a274cdad124b4a7befb016d9a2b6e..c3c90cc17c4f1ebcaddffea4087929e3708aa22f 100644
+index cc6ee993470a274cdad124b4a7befb016d9a2b6e..fde0528e00939972adc2f48b1456002dcd28343b 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -294,7 +294,12 @@ public class ServerExplosion implements Explosion {
@@ -88,7 +88,7 @@ index cc6ee993470a274cdad124b4a7befb016d9a2b6e..c3c90cc17c4f1ebcaddffea4087929e3
 -        Float blockDensity = this.level.explosionDensityCache.get(key);
 -        if (blockDensity == null) {
 +        // Sakura start - replace density cache
-+        float blockDensity = this.level.densityCache.getDensity(vec3d, entity);
++        float blockDensity = this.level.densityCache.getBlockDensity(vec3d, entity);
 +        if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
              blockDensity = this.getSeenFraction(vec3d, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
 -            this.level.explosionDensityCache.put(key, blockDensity);
