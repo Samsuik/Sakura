@@ -543,7 +543,7 @@ index 41c036324499d4e408030d1e19f78468b6b3d8a6..ba2e7efe147b26bea5d73eac1f4b2fe6
                  if (!visitor.visit(blockPos, 0)) {
                      return false;
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 16575c1222b28f7809db39d320848153e3b97044..a24e728476a64e49f2e5139fc103e19d5650d6e1 100644
+index b13aae809e974b42bc1b17f4f4455999adca6f5f..0a279388e965a8d059189a8dfdbec3ff951af876 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -378,6 +378,17 @@ public class ServerExplosion implements Explosion {
@@ -798,15 +798,26 @@ index 0b1ec05fcd799536c8d7393bb42dc4b2f46ca48b..5968a30d21367b882501bbb70029b9e0
                      if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, block.defaultBlockState(), 3)) {
                          this.fizz(level, pos);
 diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
-index 7390a21f7c6991d3fb62fda9e88bc9212159177b..497cc0156cbd87e591f1f50090fc5fe055b71916 100644
+index 4c6c68eedba2d5acdde6cf760e53b8e81f75f001..ce27dfb14974d452f50c191a3eeec65d3deff6a3 100644
 --- a/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
-@@ -542,7 +542,7 @@ public class RedStoneWireBlock extends Block {
+@@ -322,6 +322,10 @@ public class RedStoneWireBlock extends Block {
+     private void updatePowerStrength(Level level, BlockPos pos, BlockState state, @Nullable Orientation orientation, boolean updateShape) {
+         if (useExperimentalEvaluator(level)) {
+             new ExperimentalRedstoneWireEvaluator(this).updatePowerStrength(level, pos, state, orientation, updateShape);
++            // Sakura start - configure server mechanics
++        } else if (level.localConfig().at(pos).mechanicsTarget.isLegacy()) {
++            new me.samsuik.sakura.redstone.PandaRedstoneWireEvaluator(this).updatePowerStrength(level, pos, state, orientation, updateShape);
++            // Sakura end - configure server mechanics
+         } else {
+             this.evaluator.updatePowerStrength(level, pos, state, orientation, updateShape);
+         }
+@@ -542,7 +546,7 @@ public class RedStoneWireBlock extends Block {
  
      @Override
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
 -        if (!player.getAbilities().mayBuild) {
-+        if (!player.getAbilities().mayBuild || level.localConfig().at(pos).mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)) { // Sakura - configure server mechanics
++        if (!player.getAbilities().mayBuild || isCross(state) && level.localConfig().at(pos).mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)) { // Sakura - configure server mechanics
              return InteractionResult.PASS;
          } else {
              if (isCross(state) || isDot(state)) {
@@ -916,10 +927,10 @@ index 72e39ceeca8d684569c4250263b41034362f8abd..0f723f8eb814931f949b1a467b79266e
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index 4c4dbd7ade2b8836064242bb43eeb871cac023ce..c1afb74f19ad627b02bed2e3ffec67b877625c9f 100644
+index 4c4dbd7ade2b8836064242bb43eeb871cac023ce..7816e0ab95634d93ced2dea47aa58edc087f2caa 100644
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-@@ -64,6 +64,163 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -64,6 +64,165 @@ public class PistonMovingBlockEntity extends BlockEntity {
          this.isSourcePiston = isSourcePiston;
      }
  
@@ -1034,6 +1045,7 @@ index 4c4dbd7ade2b8836064242bb43eeb871cac023ce..c1afb74f19ad627b02bed2e3ffec67b8
 +                    relativeProgress * (float) direction.getStepZ()
 +                );
 +                entity.move(MoverType.PISTON, pistonMovement);
++                entity.applyEffectsFromBlocks(entity.position(), entity.position());
 +            }
 +        }
 +    }
@@ -1077,13 +1089,14 @@ index 4c4dbd7ade2b8836064242bb43eeb871cac023ce..c1afb74f19ad627b02bed2e3ffec67b8
 +            moveZ * direction.getStepZ()
 +        );
 +        entity.move(MoverType.PISTON, pistonMovement);
++        entity.applyEffectsFromBlocks(entity.position(), entity.position());
 +    }
 +    // Sakura end - configure server mechanics
 +
      @Override
      public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
          return this.saveCustomOnly(registries);
-@@ -168,6 +325,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -168,6 +327,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
  
                      double d4 = 0.0;
  
@@ -1096,7 +1109,7 @@ index 4c4dbd7ade2b8836064242bb43eeb871cac023ce..c1afb74f19ad627b02bed2e3ffec67b8
                      for (AABB aabb1 : list) {
                          AABB movementArea = PistonMath.getMovementArea(moveByPositionAndProgress(pos, aabb1, piston), movementDirection, d);
                          AABB boundingBox = entity.getBoundingBox();
-@@ -195,6 +358,11 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -195,6 +360,11 @@ public class PistonMovingBlockEntity extends BlockEntity {
          NOCLIP.set(noClipDirection);
          Vec3 vec3 = entity.position();
          entity.move(MoverType.PISTON, new Vec3(progress * direction.getStepX(), progress * direction.getStepY(), progress * direction.getStepZ()));
@@ -1108,7 +1121,7 @@ index 4c4dbd7ade2b8836064242bb43eeb871cac023ce..c1afb74f19ad627b02bed2e3ffec67b8
          entity.applyEffectsFromBlocks(vec3, entity.position());
          entity.removeLatestMovementRecording();
          NOCLIP.set(null);
-@@ -307,12 +475,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -307,12 +477,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
      }
  
      public static void tick(Level level, BlockPos pos, BlockState state, PistonMovingBlockEntity blockEntity) {
@@ -1130,7 +1143,7 @@ index 4c4dbd7ade2b8836064242bb43eeb871cac023ce..c1afb74f19ad627b02bed2e3ffec67b8
                  level.removeBlockEntity(pos);
                  blockEntity.setRemoved();
                  if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-@@ -334,12 +511,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -334,12 +513,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
              }
          } else {
              float f = blockEntity.progress + 0.5F;

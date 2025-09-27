@@ -22,27 +22,27 @@ public final class LegacyExplosionBlockClipping {
 
     private Vec3 currentPos;
     private final Vec3 endPos;
-    private final int toX;
-    private final int toY;
-    private final int toZ;
+    private final int endX;
+    private final int endY;
+    private final int endZ;
 
     private LegacyExplosionBlockClipping(final Vec3 currentPos, final Vec3 endPos) {
         this.currentPos = currentPos;
         this.endPos = endPos;
-        this.toX = Mth.floor(endPos.x);
-        this.toY = Mth.floor(endPos.y);
-        this.toZ = Mth.floor(endPos.z);
+        this.endX = Mth.floor(endPos.x);
+        this.endY = Mth.floor(endPos.y);
+        this.endZ = Mth.floor(endPos.z);
     }
 
-    public static BlockHitResult.Type clip(final Level level, final Vec3 currentPos, final Vec3 endPos) {
-        final LegacyExplosionBlockClipping clipDetection = new LegacyExplosionBlockClipping(currentPos, endPos);
-        final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+    public static BlockHitResult.Type clip(final Level level, final Vec3 startPos, final Vec3 endPos) {
+        final LegacyExplosionBlockClipping clipDetection = new LegacyExplosionBlockClipping(startPos, endPos);
+        final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos(startPos.x(), startPos.y(), startPos.z());
         LevelChunk chunk = null;
         int steps = 0;
 
         do {
-            final int chunkX = Mth.floor(currentPos.x) >> 4;
-            final int chunkZ = Mth.floor(currentPos.z) >> 4;
+            final int chunkX = mutableBlockPos.getX() >> 4;
+            final int chunkZ = mutableBlockPos.getZ() >> 4;
             if (chunk == null || chunkX != chunk.locX || chunkZ != chunk.locZ) {
                 chunk = level.getChunkIfLoaded(chunkX, chunkZ);
                 if (chunk == null) break;
@@ -51,7 +51,7 @@ public final class LegacyExplosionBlockClipping {
             final BlockState state = chunk.getBlockState(mutableBlockPos);
             final VoxelShape shape = state.getShape(level, mutableBlockPos);
             for (final AABB shapeBB : shape.toAabbs()) {
-                if (clip(shapeBB, mutableBlockPos, currentPos, endPos)) {
+                if (clip(shapeBB, mutableBlockPos, clipDetection.currentPos, endPos)) {
                     return HitResult.Type.BLOCK;
                 }
             }
@@ -64,9 +64,9 @@ public final class LegacyExplosionBlockClipping {
         final int currX = mutableBlockPos.getX();
         final int currY = mutableBlockPos.getY();
         final int currZ = mutableBlockPos.getZ();
-        final int toX = this.toX;
-        final int toY = this.toY;
-        final int toZ = this.toZ;
+        final int toX = this.endX;
+        final int toY = this.endY;
+        final int toZ = this.endZ;
 
         if (currX == toX && currY == toY && currZ == toZ) {
             return false;
@@ -135,9 +135,9 @@ public final class LegacyExplosionBlockClipping {
         }
 
         mutableBlockPos.set(
-            Mth.floor(currPos.x) - (moveDir == Direction.EAST ? 1 : 0),
-            Mth.floor(currPos.y) - (moveDir == Direction.UP ? 1 : 0),
-            Mth.floor(currPos.z) - (moveDir == Direction.SOUTH ? 1 : 0)
+            Mth.floor(newCurrentPos.x) - (moveDir == Direction.EAST ? 1 : 0),
+            Mth.floor(newCurrentPos.y) - (moveDir == Direction.UP ? 1 : 0),
+            Mth.floor(newCurrentPos.z) - (moveDir == Direction.SOUTH ? 1 : 0)
         );
 
         this.currentPos = newCurrentPos;
