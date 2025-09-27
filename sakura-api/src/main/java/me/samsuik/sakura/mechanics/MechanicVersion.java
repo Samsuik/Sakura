@@ -24,6 +24,7 @@ public final class MechanicVersion {
     public static final short v1_21_2 = MinecraftVersionEncoding.v1xy(21, 2);
     public static final short v1_21_5 = MinecraftVersionEncoding.v1xy(21, 5);
     public static final short v1_21_6 = MinecraftVersionEncoding.v1xy(21, 6);
+    public static final short v1_21_9 = MinecraftVersionEncoding.v1xy(21, 9);
 
     public static String name(final short version) {
         if (version == LATEST) {

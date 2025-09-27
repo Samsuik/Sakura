@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..c9bafad13e831f7254f397629f07d3c92fc2a8bb 100644
+index 2082b7506a403ed6815076cbd0d3b7eecd7225a0..82dac4fbaf3572391dad61356ba5351b725194ff 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1885,6 +1885,7 @@ public final class CollisionUtil {
@@ -50,22 +50,22 @@ index 01cd38bba2deb6cf65c82b4e4ec352a2998fd339..c9bafad13e831f7254f397629f07d3c9
  
                  // bound y
 diff --git a/net/minecraft/server/level/TicketType.java b/net/minecraft/server/level/TicketType.java
-index 6a7dae136691fb2476633fa12897424daa6bb5b3..372fceb03ee24f0d9c0dc970824f3b637068385a 100644
+index e3a4b57f374bbe9792d86e60da1a115abcc9cd66..c22a4c45da0a4c3f6c043d40b6a9a9cd50a64667 100644
 --- a/net/minecraft/server/level/TicketType.java
 +++ b/net/minecraft/server/level/TicketType.java
-@@ -56,6 +56,7 @@ public final class TicketType<T> implements ca.spottedleaf.moonrise.patches.chun
-     public static final TicketType PLUGIN_TICKET = register("plugin_ticket", TicketType.NO_TIMEOUT, false, TicketType.TicketUse.LOADING_AND_SIMULATION); static { ((TicketType<org.bukkit.plugin.Plugin>)PLUGIN_TICKET).moonrise$setIdentifierComparator((org.bukkit.plugin.Plugin p1, org.bukkit.plugin.Plugin p2) -> p1.getName().compareTo(p2.getName())); } // Paper // Paper - rewrite chunk system
-     public static final TicketType FUTURE_AWAIT = register("future_await", TicketType.NO_TIMEOUT, false, TicketType.TicketUse.LOADING_AND_SIMULATION); // Paper
-     public static final TicketType CHUNK_LOAD = register("chunk_load", TicketType.NO_TIMEOUT, false, TicketType.TicketUse.LOADING); // Paper - moonrise
-+    public static final TicketType ENTITY_MOVEMENT = register("entity_movement", 200L, false, TicketType.TicketUse.LOADING_AND_SIMULATION); // Sakura - load chunks on movement
+@@ -62,6 +62,7 @@ public final class TicketType<T> implements ca.spottedleaf.moonrise.patches.chun
+     public static final TicketType PLUGIN_TICKET = register("plugin_ticket", NO_TIMEOUT, FLAG_LOADING | FLAG_SIMULATION); // Paper
+     public static final TicketType FUTURE_AWAIT = register("future_await", NO_TIMEOUT, FLAG_LOADING | FLAG_SIMULATION); // Paper
+     public static final TicketType CHUNK_LOAD = register("chunk_load", NO_TIMEOUT, FLAG_LOADING); // Paper - moonrise
++    public static final TicketType ENTITY_MOVEMENT = register("entity_movement", 200L, FLAG_LOADING | FLAG_SIMULATION); // Sakura - load chunks on movement
  
-     public static TicketType register(String name, long timeout, boolean persist, TicketType.TicketUse use) {
-         return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, persist, use));
+     private static TicketType register(String name, long timeout, int flags) {
+         return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 96988c6993360cf90c8872a1371d91e897c56582..77c06f9304a895e70a695be5afbaea7b99eaec25 100644
+index 8d64020b4c4d5f86ab692db05f40e79b9c42ee68..245997396ebb84c69ee056d83b02fcbc06cea4d2 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -537,6 +537,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -539,6 +539,19 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      public boolean isPrimedTNT;
      public boolean isFallingBlock;
      // Sakura end - client visibility settings
@@ -85,7 +85,7 @@ index 96988c6993360cf90c8872a1371d91e897c56582..77c06f9304a895e70a695be5afbaea7b
  
      public Entity(EntityType<?> entityType, Level level) {
          this.type = entityType;
-@@ -1520,7 +1533,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1537,7 +1550,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
  
          ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder(
              this.level, (Entity)(Object)this, initialCollisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
@@ -94,7 +94,7 @@ index 96988c6993360cf90c8872a1371d91e897c56582..77c06f9304a895e70a695be5afbaea7b
          );
          potentialCollisionsBB.addAll(entityAABBs);
          final Vec3 collided = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currentBox, potentialCollisionsVoxel, potentialCollisionsBB);
-@@ -5183,13 +5196,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -5248,13 +5261,14 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      @Override
      public boolean shouldBeSaved() {
          return (this.removalReason == null || this.removalReason.shouldSave())
@@ -111,7 +111,7 @@ index 96988c6993360cf90c8872a1371d91e897c56582..77c06f9304a895e70a695be5afbaea7b
  
      public boolean mayInteract(ServerLevel level, BlockPos pos) {
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index fff6985d35ff9b37b2829b7d0639a13e150ad697..4b9a75c677b8f553a103438c3c7813f46d64d26a 100644
+index c7a930caa2264c9465baf61a0ed8a188119f28c8..44f04d0a6b1a47fa152f955a22cc8b8f1d2b3348 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -80,6 +80,7 @@ public class FallingBlockEntity extends Entity {
@@ -123,7 +123,7 @@ index fff6985d35ff9b37b2829b7d0639a13e150ad697..4b9a75c677b8f553a103438c3c7813f4
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index d9e2a6e02b51cd42f1226a9fb62d0b205e693eba..ea017a4162d54bd7e02b801216d83e51010ef618 100644
+index 4d0bc49ce0868d7a5a1870be4e19eb08f3f31482..2572c0fe5fc6bd2f389569cdaa907a8b5203f5b4 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -64,6 +64,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -135,10 +135,10 @@ index d9e2a6e02b51cd42f1226a9fb62d0b205e693eba..ea017a4162d54bd7e02b801216d83e51
  
      public PrimedTnt(Level level, double x, double y, double z, @Nullable LivingEntity owner) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 182c14b660f8860bed627eed4e01fd4002153e9a..164e080fbfc4ebff99479497030294e06b658bdc 100644
+index 9889485b15501c1adf1a73bb4603d3477860482d..833048754d7f60ad7f528f38c7d34804e1bf5ee1 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -139,6 +139,15 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
+@@ -137,6 +137,15 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
      private final int minSection;
      private final int maxSection;
      // Paper end - get block chunk optimisation

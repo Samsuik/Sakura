@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -109,7 +_,7 @@
+@@ -114,7 +_,7 @@
      public final List<TickingBlockEntity> blockEntityTickers = Lists.newArrayList();
-     public final NeighborUpdater neighborUpdater;
+     public final CollectingNeighborUpdater neighborUpdater;
      private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
 -    private boolean tickingBlockEntities;
 +    public boolean tickingBlockEntities;
      public final Thread thread;
      private final boolean isDebug;
      private int skyDarken;
-@@ -159,6 +_,18 @@
+@@ -164,6 +_,18 @@
          return this.paperConfig;
      }
      // Paper end - add paper world config
@@ -28,7 +28,7 @@
  
      public static @Nullable BlockPos lastPhysicsProblem; // Spigot
      private int tileTickPosition;
-@@ -827,6 +_,7 @@
+@@ -832,6 +_,7 @@
          org.bukkit.World.Environment environment, // Paper
          java.util.function.Function<org.spigotmc.SpigotWorldConfig, // Spigot - create per world config
          io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, // Paper - create paper world config
@@ -36,7 +36,7 @@
          java.util.concurrent.Executor executor // Paper - Anti-Xray
      ) {
          // Paper start - getblock optimisations - cache world height/sections
-@@ -840,6 +_,7 @@
+@@ -845,6 +_,7 @@
          // Paper end - getblock optimisations - cache world height/sections
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName()); // Spigot
          this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config

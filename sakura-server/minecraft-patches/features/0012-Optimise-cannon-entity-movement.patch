@@ -5,24 +5,24 @@ Subject: [PATCH] Optimise cannon entity movement
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index bf46bb5b61f4ec6f23aacec41426d0ffe5a265fb..eaa57560a20841a2b218ff2fd9059f82339a678c 100644
+index 4ce3d09d30996fb2c13afe799bb31d910ce666ba..0c20de0f6af0385a7849cb9b0be86049784d59ae 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1190,7 +1190,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1200,7 +1200,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              Vec3 vec3 = this.collide(movement);
              double d = vec3.lengthSqr();
              if (d > 1.0E-7 || movement.lengthSqr() - d < 1.0E-7) {
 -                if (this.fallDistance != 0.0 && d >= 1.0) {
 +                if (this.fallDistance != 0.0 && d >= 1.0 && !this.isFallingBlock) { // Sakura - optimise cannon entity movement
+                     double min = Math.min(vec3.length(), 8.0);
+                     Vec3 vec31 = this.position().add(vec3.normalize().scale(min));
                      BlockHitResult blockHitResult = this.level()
-                         .clip(
-                             new ClipContext(this.position(), this.position().add(vec3), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this)
-@@ -1538,6 +1538,132 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
-         return distance;
+@@ -1555,6 +1555,132 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+         return list.isEmpty() ? distance : -Shapes.collide(Direction.Axis.Y, boundingBox, list, -distance);
      }
  
 +    // Sakura start - optimise cannon entity movement
-+    protected final Vec3 sakura_collide(final Vec3 movement) {
++    protected final Vec3 sakura$collide(final Vec3 movement) {
 +        if (movement.x == 0.0 && movement.y == 0.0 && movement.z == 0.0) {
 +            return movement;
 +        }
@@ -151,7 +151,7 @@ index bf46bb5b61f4ec6f23aacec41426d0ffe5a265fb..eaa57560a20841a2b218ff2fd9059f82
      protected Vec3 collide(Vec3 movement) {
          final boolean xZero = movement.x == 0.0;
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 8ea534e6f49b787f5445093203f41410668e42bd..f7807b56bf935e1686ac893c0752e92e1115ffbe 100644
+index af7dd04ecbf9e8b35357da421fb156aee61261b5..0344ba2a6d063a4ee5d6f9a8985ae8ca8c5816ce 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -124,6 +124,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -161,14 +161,14 @@ index 8ea534e6f49b787f5445093203f41410668e42bd..f7807b56bf935e1686ac893c0752e92e
 +    // Sakura start - optimise cannon entity movement
 +    @Override
 +    protected final Vec3 collide(final Vec3 movement) {
-+        return this.sakura_collide(movement);
++        return this.sakura$collide(movement);
 +    }
 +    // Sakura end - optimise cannon entity movement
  
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> entityType, Level level) {
          super(entityType, level);
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 45a528169a57ecc287ae4f527d1d98b597a48f04..e476d500df5e197f87863d9fdb61065af68778dd 100644
+index b349149592b09512b573911e95fd13915ba698cd..05003798585d98406cd1affb89403b9f955bacdc 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -82,6 +82,12 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -178,7 +178,7 @@ index 45a528169a57ecc287ae4f527d1d98b597a48f04..e476d500df5e197f87863d9fdb61065a
 +    // Sakura start - optimise cannon entity movement
 +    @Override
 +    protected final net.minecraft.world.phys.Vec3 collide(final net.minecraft.world.phys.Vec3 movement) {
-+        return this.sakura_collide(movement);
++        return this.sakura$collide(movement);
 +    }
 +    // Sakura end - optimise cannon entity movement
  

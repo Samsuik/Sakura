@@ -5,10 +5,10 @@ Subject: [PATCH] Explosion Durable Blocks
 
 
 diff --git a/net/minecraft/world/item/BlockItem.java b/net/minecraft/world/item/BlockItem.java
-index 6db566adf2d0df1d26221eda04aa01738df6d3d2..23c135a6355e920535734e946e5bd4d06f7f33b7 100644
+index dceb2b683064bbf4286c3fe71e0fd0c5a644cb07..40b76310d311a8d4cbe028d575f9220f55e70da2 100644
 --- a/net/minecraft/world/item/BlockItem.java
 +++ b/net/minecraft/world/item/BlockItem.java
-@@ -38,8 +38,30 @@ public class BlockItem extends Item {
+@@ -37,8 +37,30 @@ public class BlockItem extends Item {
          this.block = block;
      }
  
@@ -40,10 +40,10 @@ index 6db566adf2d0df1d26221eda04aa01738df6d3d2..23c135a6355e920535734e946e5bd4d0
          return !interactionResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
              ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index a99273ac64a223cc0a728137abca9331e79a546b..f41caed876beff43778e6138ac444f6e2608883d 100644
+index af39222e08bc7957ac40ea9fd6aae517e7cee45a..1da42c11174bb7eae9a827a17a57d5e7f1d80f09 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -830,6 +830,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -835,6 +835,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      // Sakura end - track block changes and tick scheduler
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
@@ -52,10 +52,10 @@ index a99273ac64a223cc0a728137abca9331e79a546b..f41caed876beff43778e6138ac444f6e
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 88192b561c2a071f583d16d1de926917108a8f45..d12473581f5285aff5867e8bebfe34ccbdb1285f 100644
+index 0f95ffa2551289cb74d0210673b942ca90be74d3..976ebf4c62d1cc96f2e147c2240a5886d6b022ed 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -131,7 +131,7 @@ public class ServerExplosion implements Explosion {
+@@ -133,7 +133,7 @@ public class ServerExplosion implements Explosion {
              BlockState blockState = ((ca.spottedleaf.moonrise.patches.getblock.GetBlockChunk)chunk).moonrise$getBlock(x, y, z);
              FluidState fluidState = blockState.getFluidState();
  
@@ -64,8 +64,8 @@ index 88192b561c2a071f583d16d1de926917108a8f45..d12473581f5285aff5867e8bebfe34cc
  
              ret = new ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache(
                      key, pos, blockState, fluidState,
-@@ -357,6 +357,20 @@ public class ServerExplosion implements Explosion {
-         // Paper end - collision optimisations
+@@ -359,6 +359,20 @@ public class ServerExplosion implements Explosion {
+         }
      }
      // Sakura end - specialised explosions
 +    // Sakura start - explosion durable blocks
@@ -85,7 +85,7 @@ index 88192b561c2a071f583d16d1de926917108a8f45..d12473581f5285aff5867e8bebfe34cc
  
      public ServerExplosion(
          ServerLevel level,
-@@ -744,6 +758,14 @@ public class ServerExplosion implements Explosion {
+@@ -697,6 +711,14 @@ public class ServerExplosion implements Explosion {
                  }
              }
              // CraftBukkit end

@@ -1,7 +1,6 @@
 package me.samsuik.sakura.explosion;
 
 import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import me.samsuik.sakura.entity.EntityState;
 import me.samsuik.sakura.entity.merge.MergeLevel;
 import me.samsuik.sakura.entity.merge.MergeableEntity;
@@ -13,13 +12,11 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.level.ExplosionDamageCalculator;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 @NullMarked
 public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
@@ -27,8 +24,6 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     private static final int FOUND_ALL_BLOCKS = ALL_DIRECTIONS + 12;
 
     private final Vec3 originalPosition;
-    private final List<Vec3> explosions = new ObjectArrayList<>();
-    private AABB bounds;
     private int swinging = 0;
     private boolean moved = false;
 
@@ -40,19 +35,17 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
         final Vec3 center,
         final float power,
         final boolean createFire,
-        final BlockInteraction destructionType,
-        final Consumer<SpecialisedExplosion<PrimedTnt>> applyEffects
+        final BlockInteraction destructionType
     ) {
-        super(level, tnt, damageSource, behavior, center, power, createFire, destructionType, applyEffects);
+        super(level, tnt, damageSource, behavior, center, power, createFire, destructionType);
         this.originalPosition = center;
-        this.bounds = new AABB(center, center);
     }
 
     @Override
     protected double getExplosionOffset() {
         return this.mechanicsTarget.before(MechanicVersion.v1_10)
             ? (double) 0.49f
-            : super.getExplosionOffset();
+            : (double) this.cause.getBbHeight() * 0.0625D;
     }
 
     private void mergeEntitiesBeforeExploding() {
@@ -89,41 +82,28 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     }
 
     @Override
-    protected void beginExplosion() {
+    protected int handleExplosion() {
+        int blocksDestroyed = 0;
         for (int remaining = this.mergeAndGetExplosionPotential() - 1; remaining >= 0; --remaining) {
             final boolean lastCycle = remaining == 0;
-            final List<BlockPos> toBlow = this.midExplosion(lastCycle); // search for blocks and impact entities
-            final boolean destroyedBlocks = this.finalizeExplosionAndParticles(toBlow); // call events, break blocks and send particles
+            final List<BlockPos> blocksToBlow = this.collectBlocksAndImpactEntities(this.swinging < FOUND_ALL_BLOCKS, lastCycle);
+            blocksDestroyed = this.finalizeExplosionAndParticles(blocksToBlow, lastCycle);
 
             if (!lastCycle) {
+                // The source velocity has to be calculated before nextExplosion as it clears the blockCache
                 final EntityState entityState = this.nextSourceVelocity();
-                this.postExplosion(toBlow, destroyedBlocks);
+                final boolean destroyedBlocks = blocksDestroyed > 0;
+                this.nextExplosion(blocksToBlow, destroyedBlocks);
                 this.updateExplosionPosition(entityState, destroyedBlocks);
             }
         }
-    }
 
-    private List<BlockPos> midExplosion(final boolean lastCycle) {
-        final List<BlockPos> explodedPositions = this.swinging < FOUND_ALL_BLOCKS
-            ? this.calculateExplodedPositions()
-            : List.of();
-
-        final Vec3 center = this.center;
-        this.bounds = this.bounds.expand(center);
-        this.explosions.add(center);
-
-        if (lastCycle || this.requiresImpactEntities(explodedPositions, center)) {
-            this.locateAndImpactEntitiesInBounds(this.bounds, this.explosions);
-            this.bounds = new AABB(center, center);
-            this.explosions.clear();
-        }
-
-        return explodedPositions;
+        return blocksDestroyed;
     }
 
     @Override
-    protected void postExplosion(final List<BlockPos> foundBlocks, final boolean destroyedBlocks) {
-        super.postExplosion(foundBlocks, destroyedBlocks);
+    protected void nextExplosion(final List<BlockPos> foundBlocks, final boolean destroyedBlocks) {
+        super.nextExplosion(foundBlocks, destroyedBlocks);
         if (this.swinging >= ALL_DIRECTIONS) {
             // Increment "swinging" if no blocks have been found, and it has swung in every direction.
             // This is used to skip expensive exploded block calculations.

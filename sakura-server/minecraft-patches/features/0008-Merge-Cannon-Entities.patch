@@ -5,10 +5,10 @@ Subject: [PATCH] Merge Cannon Entities
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 2a7c057ccfeb5dbe6b14ff660c0bb342571d88e7..496e23c110cbb3b60a6565e1903545e09715f79e 100644
+index bc714079924b4a724a6f1aa7ccfa53884a9e4fa9..259faa131f4aec7db565c78c38aa058d20ef3d28 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -692,6 +692,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -709,6 +709,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
          this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
@@ -16,7 +16,7 @@ index 2a7c057ccfeb5dbe6b14ff660c0bb342571d88e7..496e23c110cbb3b60a6565e1903545e0
      }
  
      // Paper start
-@@ -806,6 +807,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -827,6 +828,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              }
  
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
@@ -24,7 +24,7 @@ index 2a7c057ccfeb5dbe6b14ff660c0bb342571d88e7..496e23c110cbb3b60a6565e1903545e0
              this.entityTickList
                  .forEach(
                      entity -> {
-@@ -824,6 +826,15 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -845,6 +847,15 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                                          entity.stopRiding();
                                      }
  
@@ -41,10 +41,10 @@ index 2a7c057ccfeb5dbe6b14ff660c0bb342571d88e7..496e23c110cbb3b60a6565e1903545e0
                                      this.guardEntityTick(this::tickNonPassenger, entity);
                                      profilerFiller.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 815f92176821bf4117952450e97bd5b044c78b58..bf46bb5b61f4ec6f23aacec41426d0ffe5a265fb 100644
+index 127479da921c2679e19f13e71cc04be8a310b459..4ce3d09d30996fb2c13afe799bb31d910ce666ba 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -565,6 +565,27 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -567,6 +567,27 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          return to.entityState() != null && to.entityState().comparePositionAndMotion(this);
      }
      // Sakura end - store entity data/state
@@ -72,7 +72,7 @@ index 815f92176821bf4117952450e97bd5b044c78b58..bf46bb5b61f4ec6f23aacec41426d0ff
  
      public Entity(EntityType<?> entityType, Level level) {
          this.type = entityType;
-@@ -5176,6 +5197,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -5241,6 +5262,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          if (this.removalReason != Entity.RemovalReason.UNLOADED_TO_CHUNK) { this.getPassengers().forEach(Entity::stopRiding); } // Paper - rewrite chunk system
          this.levelCallback.onRemove(removalReason);
          this.onRemoval(removalReason);
@@ -85,7 +85,7 @@ index 815f92176821bf4117952450e97bd5b044c78b58..bf46bb5b61f4ec6f23aacec41426d0ff
          if (!(this instanceof ServerPlayer) && removalReason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index d35183f10362952c0c38061ccdedc1a578c91c2d..8ea534e6f49b787f5445093203f41410668e42bd 100644
+index 59aa539b7d830de48ff582b0da6fa17796b8c4b8..af7dd04ecbf9e8b35357da421fb156aee61261b5 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -53,7 +53,7 @@ import net.minecraft.world.phys.HitResult;
@@ -167,9 +167,9 @@ index d35183f10362952c0c38061ccdedc1a578c91c2d..8ea534e6f49b787f5445093203f41410
                                  // CraftBukkit end
 +                                if (this.tryToRespawnEntity()) return; // Sakura - merge cannon entities
                                  if (this.level().setBlock(blockPos, this.blockState, 3)) {
-                                     ((ServerLevel)this.level())
-                                         .getChunkSource()
-@@ -346,6 +398,11 @@ public class FallingBlockEntity extends Entity {
+                                     serverLevel.getChunkSource()
+                                         .chunkMap
+@@ -345,6 +397,11 @@ public class FallingBlockEntity extends Entity {
  
          output.putBoolean("CancelDrop", this.cancelDrop);
          if (!this.autoExpire) output.putBoolean("Paper.AutoExpire", false); // Paper - Expand FallingBlock API
@@ -181,7 +181,7 @@ index d35183f10362952c0c38061ccdedc1a578c91c2d..8ea534e6f49b787f5445093203f41410
      }
  
      @Override
-@@ -360,6 +417,7 @@ public class FallingBlockEntity extends Entity {
+@@ -359,6 +416,7 @@ public class FallingBlockEntity extends Entity {
          this.blockData = input.read("TileEntityData", CompoundTag.CODEC).map(blockData -> this.level().paperConfig().entities.spawning.filterBadTileEntityNbtFromFallingBlocks && this.blockState.getBlock() instanceof net.minecraft.world.level.block.GameMasterBlock ? null : blockData).map(CompoundTag::copy).orElse(null); // Paper - Filter bad block entity nbt data from falling blocks
          this.cancelDrop = input.getBooleanOr("CancelDrop", false);
          this.autoExpire = input.getBooleanOr("Paper.AutoExpire", true); // Paper - Expand FallingBlock API
@@ -190,7 +190,7 @@ index d35183f10362952c0c38061ccdedc1a578c91c2d..8ea534e6f49b787f5445093203f41410
  
      public void setHurtsEntities(float fallDamagePerDistance, int fallDamageMax) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index b53baca84c9022a700fbc1150264fc805af6a61e..95d57f9aea21860ff886a27cc5641d7c96882f34 100644
+index 6797e16f973b11d168906dfce240c70db25bc6f0..8a36e0ce4792e7152905256dde7746fd09d42729 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -34,7 +34,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
@@ -256,7 +256,7 @@ index b53baca84c9022a700fbc1150264fc805af6a61e..95d57f9aea21860ff886a27cc5641d7c
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              //this.discard();
 +            this.tryToRespawnEntity(); // Sakura - merge cannon entities
-             if (!this.level().isClientSide) {
+             if (!this.level().isClientSide()) {
                  this.explode();
              }
 @@ -203,6 +241,11 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -280,10 +280,10 @@ index b53baca84c9022a700fbc1150264fc805af6a61e..95d57f9aea21860ff886a27cc5641d7c
  
      @Nullable
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 4ff7fdc9a75e7d31170385016bf8ea75c45719a1..7b9e61b2286d18f55a365eebda1fe2128023bec9 100644
+index 5f49990b13ac7fdd4366585d976d50bd3ae183cb..93ff0fdaee21ac493833640b5f620f9bec1a69c8 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -828,6 +828,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -833,6 +833,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.listener.LevelTickScheduler levelTickScheduler = new me.samsuik.sakura.listener.LevelTickScheduler(this);
      public final me.samsuik.sakura.listener.BlockChangeTracker blockChangeTracker = new me.samsuik.sakura.listener.BlockChangeTracker(this);
      // Sakura end - track block changes and tick scheduler
@@ -292,7 +292,7 @@ index 4ff7fdc9a75e7d31170385016bf8ea75c45719a1..7b9e61b2286d18f55a365eebda1fe212
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index 42ee3f32fe44c1f0680c994a69201f7bd7792673..79593698d532a41c3f75c00b3452b6f0aa092845 100644
+index fe9b5cf6fb8d8221b98836148e95aa857241181d..f9c1c5a7f0602c225d18005e7161384cc1d3c604 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
 @@ -92,7 +92,7 @@ public abstract class BasePressurePlateBlock extends Block {

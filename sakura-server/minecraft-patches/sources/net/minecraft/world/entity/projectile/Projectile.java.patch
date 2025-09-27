@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/entity/projectile/Projectile.java
++++ b/net/minecraft/world/entity/projectile/Projectile.java
+@@ -51,6 +_,12 @@
+         super(entityType, level);
+     }
+ 
++    // Sakura start - configure potion mechanics
++    protected boolean breakInsideOwner() {
++        return false;
++    }
++    // Sakura end - configure potion mechanics
++
+     protected void setOwner(@Nullable EntityReference<Entity> owner) {
+         this.owner = owner;
+         this.refreshProjectileSource(false); // Paper
+@@ -401,7 +_,7 @@
+                 }
+             }
+             // Paper end - Cancel hit for vanished entities
+-            return owner == null || this.leftOwner || !owner.isPassengerOfSameVehicle(target);
++            return owner == null || this.leftOwner || this.breakInsideOwner() || !owner.isPassengerOfSameVehicle(target); // Sakura - configure potion mechanics
+         }
+     }
+ 

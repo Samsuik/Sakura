@@ -5,10 +5,10 @@ Subject: [PATCH] Track block changes and level tick scheduler
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 4dabb2a689d4bceb054e819e2fd53420e95a283d..65bd8e94d7d7b815a2c8fe2a6fd1fa1ad9e60bc6 100644
+index a90e5cb4d989f38f7011a6ddd8c539a67e51494c..b2b8c9a651bab91491b4306dbb9d5a818e06869d 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1750,6 +1750,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1687,6 +1687,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              profilerFiller.pop();
              profilerFiller.pop();
              serverLevel.explosionDensityCache.clear(); // Paper - Optimize explosions
@@ -17,10 +17,10 @@ index 4dabb2a689d4bceb054e819e2fd53420e95a283d..65bd8e94d7d7b815a2c8fe2a6fd1fa1a
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index b0b5d32b374a3ff32dc9f6757361ee4ace962a46..44e4c907801b934c188cf67bf3c75023a52a948f 100644
+index 24f43dd7d3ffa060409c96882c0416f59dc571cc..4b2ea3c99bcd5452840b26c2ba607a4f034ba367 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -824,6 +824,10 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -829,6 +829,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return chunk != null ? chunk.getNoiseBiome(x, y, z) : this.getUncachedNoiseBiome(x, y, z);
      }
      // Paper end - optimise random ticking
@@ -32,10 +32,10 @@ index b0b5d32b374a3ff32dc9f6757361ee4ace962a46..44e4c907801b934c188cf67bf3c75023
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 75578e6ed7233a03d9b6cd3c6d3997f1c6148392..a39077ba4e1e40462ee9a96ce6f3871a5ecb85c7 100644
+index 4dcec2e8a3120a3dfa078e8cf6857ba99ca01a2d..4a274798077c4ee0a504a784449a1aef1d89d325 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -129,6 +129,21 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -136,6 +136,21 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
          return this.getBlockStateFinal(x, y, z);
      }
      // Paper end - get block chunk optimisation
@@ -57,7 +57,7 @@ index 75578e6ed7233a03d9b6cd3c6d3997f1c6148392..a39077ba4e1e40462ee9a96ce6f3871a
  
      public LevelChunk(Level level, ChunkPos pos) {
          this(level, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
-@@ -166,6 +181,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -173,6 +188,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
          this.debug = !empty && this.level.isDebug();
          this.defaultBlockState = empty ? VOID_AIR_BLOCKSTATE : AIR_BLOCKSTATE;
          // Paper end - get block chunk optimisation
@@ -65,7 +65,7 @@ index 75578e6ed7233a03d9b6cd3c6d3997f1c6148392..a39077ba4e1e40462ee9a96ce6f3871a
      }
  
      public LevelChunk(ServerLevel level, ProtoChunk chunk, @Nullable LevelChunk.PostLoadProcessor postLoad) {
-@@ -414,6 +430,11 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+@@ -421,6 +437,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
                  if (!section.getBlockState(i, i1, i2).is(block)) {
                      return null;
                  } else {
@@ -74,6 +74,7 @@ index 75578e6ed7233a03d9b6cd3c6d3997f1c6148392..a39077ba4e1e40462ee9a96ce6f3871a
 +                        this.blockChange(pos, state, blockState);
 +                    }
 +                    // Sakura end - track block changes and tick scheduler
-                     if (!this.level.isClientSide && (flags & 512) == 0 && (!this.level.captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
++
+                     if (!this.level.isClientSide() && (flags & 512) == 0 && (!this.level.captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
                          state.onPlace(this.level, pos, blockState, flag1);
                      }

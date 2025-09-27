@@ -5,10 +5,10 @@ Subject: [PATCH] Reduce entity tracker player updates
 
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index e164d7fbda422dbcffd753c3373b1c08fa3b5d68..98512bdd9cae7f4070587386382c0615074b122d 100644
+index f9dfbf11a39573e839153fd5d72bcf9019540359..747885dd0e8aaefecf600ebef33bb2e136f65290 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1015,7 +1015,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1023,7 +1023,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              if (tracker == null) {
                  continue;
              }
@@ -21,7 +21,7 @@ index e164d7fbda422dbcffd753c3373b1c08fa3b5d68..98512bdd9cae7f4070587386382c0615
              if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
                  || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
                  tracker.serverEntity.sendChanges();
-@@ -1259,12 +1263,30 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1296,12 +1300,30 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              return state != me.samsuik.sakura.player.visibility.VisibilityState.OFF;
          }
          // Sakura end - client visibility settings; entity visibility
@@ -41,7 +41,7 @@ index e164d7fbda422dbcffd753c3373b1c08fa3b5d68..98512bdd9cae7f4070587386382c0615
 +        // Sakura start - reduce entity tracker player updates
  
          public TrackedEntity(final Entity entity, final int range, final int updateInterval, final boolean trackDelta) {
-             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, updateInterval, trackDelta, this::broadcast, this::broadcastIgnorePlayers, this.seenBy); // Paper
+             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, updateInterval, trackDelta, this, this.seenBy); // Paper
              this.entity = entity;
              this.range = range;
              this.lastSectionPos = SectionPos.of(entity);

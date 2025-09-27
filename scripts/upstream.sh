@@ -15,7 +15,7 @@ fi
 
 echo "Updating paper: $oldHash -> $newHash"
 
-sed -i "s/$oldHash/$newHash/g" gradle.properties
+sed -i '' "s/$oldHash/$newHash/g" gradle.properties
 git add gradle.properties
 
 ./gradlew cleanCache

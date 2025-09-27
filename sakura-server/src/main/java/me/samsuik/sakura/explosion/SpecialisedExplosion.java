@@ -3,7 +3,7 @@ package me.samsuik.sakura.explosion;
 import ca.spottedleaf.moonrise.common.util.WorldUtil;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.*;
 import me.samsuik.sakura.mechanics.MechanicVersion;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -12,23 +12,25 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.ServerExplosion;
+import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NullMarked;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 
 @NullMarked
 public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplosion {
-    private static final double ENTITY_DISPATCH_DISTANCE = Math.pow(32.0, 2.0); 
+    private static final double ENTITY_DISPATCH_DISTANCE_SQR = 32.0 * 32.0;
 
     protected final T cause; // preferred over source
-    private Vec3 impactPosition;
-    protected final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
-    private final Consumer<SpecialisedExplosion<T>> applyEffects;
+    private Vec3 dispatchPosition;
+    private final List<Vec3> bufferedExplosions = new ObjectArrayList<>();
+    private AABB bounds;
+    private final Set<BlockPos> gameEvents = new ObjectOpenHashSet<>();
+    private final Deque<ExplosionToSend> explosionsToSend = new ArrayDeque<>();
 
     public SpecialisedExplosion(
         final ServerLevel level,
@@ -38,50 +40,80 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
         final Vec3 center,
         final float power,
         final boolean createFire,
-        final BlockInteraction destructionType,
-        final Consumer<SpecialisedExplosion<T>> applyEffects
+        final BlockInteraction destructionType
     ) {
         super(level, entity, damageSource, behavior, center, power, createFire, destructionType);
         this.cause = entity;
-        this.impactPosition = center;
-        this.applyEffects = applyEffects;
+        this.dispatchPosition = center;
+        this.bounds = new AABB(center, center);
+    }
+
+    public final Queue<ExplosionToSend> getExplosionsToSend() {
+        return this.explosionsToSend;
     }
 
     protected double getExplosionOffset() {
-        return (double) this.cause.getBbHeight() * 0.0625D;
+        return 0.0;
     }
 
-    protected abstract void beginExplosion();
+    protected abstract int handleExplosion();
 
     @Override
-    public final void explode() {
+    public final int explode() {
         this.createBlockCache();
-        this.beginExplosion(); // search for blocks, impact entities, finalise if necessary
+        final int blocksDestroyed = this.handleExplosion();
         this.clearBlockCache();
+        return blocksDestroyed;
     }
 
-    protected final boolean requiresImpactEntities(final List<BlockPos> blocks, final Vec3 center) {
-        if (this.impactPosition.distanceToSqr(center) > ENTITY_DISPATCH_DISTANCE) {
-            this.impactPosition = center;
+    protected final List<BlockPos> collectBlocksAndImpactEntities(final boolean interactWithBlocks, final boolean dispatch) {
+        if (interactWithBlocks && this.gameEvents.add(BlockPos.containing(this.center))) {
+            this.level().gameEvent(this.source, GameEvent.EXPLODE, this.center);
+        }
+
+        // Collect all the blocks to explode
+        final List<BlockPos> blocksToExplode = interactWithBlocks
+            ? this.calculateExplodedPositions()
+            : List.of();
+
+        // Buffer explosions to reduce the amount of calculations and improve locality
+        final Vec3 center = this.center;
+        this.bounds = this.bounds.expand(center);
+        this.bufferedExplosions.add(center);
+
+        // Dispatch the buffered explosions
+        if (dispatch || this.needToDispatchEntities(blocksToExplode, center)) {
+            this.locateAndImpactEntitiesInBounds(this.bounds, this.bufferedExplosions);
+            this.bounds = new AABB(center, center);
+            this.bufferedExplosions.clear();
+        }
+
+        return blocksToExplode;
+    }
+
+    protected final boolean needToDispatchEntities(final List<BlockPos> blocksToBlow, final Vec3 center) {
+        if (this.dispatchPosition.distanceToSqr(center) > ENTITY_DISPATCH_DISTANCE_SQR) {
+            this.dispatchPosition = center;
+            this.gameEvents.clear();
             return true;
         }
-        return !blocks.isEmpty();
+        return !blocksToBlow.isEmpty();
     }
 
-    protected final boolean finalizeExplosionAndParticles(final List<BlockPos> blocks) {
+    protected final int finalizeExplosionAndParticles(final List<BlockPos> blocksToBlow, final boolean lastCycle) {
         this.wasCanceled = false;
-        final List<BlockPos> explodedPositions = new ObjectArrayList<>(blocks);
+        final List<BlockPos> explodedPositions = new ObjectArrayList<>(blocksToBlow);
         this.interactWithBlocks(explodedPositions);
 
-        if (!this.wasCanceled) {
-            this.applyEffects.accept(this);
-            this.getHitPlayers().clear();
+        if (!this.wasCanceled && !lastCycle) {
+            // Packets are sent after the explosion
+            this.explosionsToSend.add(new ExplosionToSend(this.center, explodedPositions.size()));
         }
 
-        return !explodedPositions.isEmpty() && !this.wasCanceled;
+        return this.wasCanceled ? 0 : explodedPositions.size();
     }
 
-    protected void postExplosion(final List<BlockPos> foundBlocks, final boolean destroyedBlocks) {
+    protected void nextExplosion(final List<BlockPos> foundBlocks, final boolean destroyedBlocks) {
         // Reuse the block cache between explosions. This can help a lot when searching for blocks and raytracing.
         // This is disabled by default as it's incompatible with plugins that modify blocks in the explosion event.
         if (this.level().sakuraConfig().cannons.explosion.reuseBlockCacheAcrossExplosions && !foundBlocks.isEmpty() && !destroyedBlocks) {
@@ -188,7 +220,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
                 distance = (float) distance;
             }
 
-            if (distance != 0.0D) {
+            if (distance >= 1.0e-5 || distance != 0.0 && this.mechanicsTarget.before(MechanicVersion.v1_21_9)) {
                 x /= distance;
                 y /= distance;
                 z /= distance;

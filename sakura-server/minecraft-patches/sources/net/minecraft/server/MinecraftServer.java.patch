@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -300,6 +_,7 @@
+@@ -307,6 +_,7 @@
      public volatile boolean abnormalExit; // Paper - Improved watchdog support
      public volatile Thread shutdownThread; // Paper - Improved watchdog support
      public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
@@ -8,7 +8,7 @@
      public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
      private final Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
      public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
-@@ -319,6 +_,17 @@
+@@ -326,6 +_,17 @@
          thread.start();
          return minecraftServer;
      }
@@ -26,10 +26,10 @@
  
      // Paper start - rewrite chunk system
      private volatile Throwable chunkSystemCrash;
-@@ -471,6 +_,10 @@
+@@ -476,6 +_,10 @@
          Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
          // CraftBukkit end
-         this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
+         this.paperConfigurations = services.paper().configurations(); // Paper - add paper configuration files
 +        // Sakura start - sakura configuration files
 +        final java.nio.file.Path sakuraConfigDirPath = ((java.io.File) options.valueOf("sakura-settings-directory")).toPath();
 +        this.sakuraConfigurations = me.samsuik.sakura.configuration.SakuraConfigurations.setup(sakuraConfigDirPath);
@@ -37,7 +37,7 @@
      }
  
      private void readScoreboard(DimensionDataStorage dataStorage) {
-@@ -1223,6 +_,7 @@
+@@ -1155,6 +_,7 @@
                  if (++MinecraftServer.currentTick % MinecraftServer.SAMPLE_INTERVAL == 0) {
                      final long diff = currentTime - tickSection;
                      final java.math.BigDecimal currentTps = TPS_BASE.divide(new java.math.BigDecimal(diff), 30, java.math.RoundingMode.HALF_UP);
@@ -45,7 +45,7 @@
                      tps1.add(currentTps, diff);
                      tps5.add(currentTps, diff);
                      tps15.add(currentTps, diff);
-@@ -1260,6 +_,7 @@
+@@ -1192,6 +_,7 @@
                      // Paper end - rewrite chunk system
                      this.tickFrame.end();
                      profilerFiller.popPush("nextTickWait");

@@ -5,10 +5,10 @@ Subject: [PATCH] Store Entity Data/State
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a13f7613115f08461ed6852fd35bc19f4923063d..815f92176821bf4117952450e97bd5b044c78b58 100644
+index eb157e848ea97ea11bbf233d473e6a62a23bf32f..127479da921c2679e19f13e71cc04be8a310b459 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -550,6 +550,21 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -552,6 +552,21 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          return flags;
      }
      // Sakura end - load chunks on movement
@@ -31,14 +31,14 @@ index a13f7613115f08461ed6852fd35bc19f4923063d..815f92176821bf4117952450e97bd5b0
      public Entity(EntityType<?> entityType, Level level) {
          this.type = entityType;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 44e4c907801b934c188cf67bf3c75023a52a948f..4ff7fdc9a75e7d31170385016bf8ea75c45719a1 100644
+index 4b2ea3c99bcd5452840b26c2ba607a4f034ba367..5f49990b13ac7fdd4366585d976d50bd3ae183cb 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1498,6 +1498,7 @@ public abstract class Level implements LevelAccessor, UUIDLookup<Entity>, AutoCl
+@@ -1448,6 +1448,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
-     public <T extends Entity> void guardEntityTick(Consumer<T> consumerEntity, T entity) {
+     public <T extends Entity> void guardEntityTick(Consumer<T> action, T entity) {
          try {
 +            entity.storeEntityState(); // Sakura - store entity data/state
-             consumerEntity.accept(entity);
+             action.accept(entity);
          } catch (Throwable var6) {
              // Paper start - Prevent block entity and entity crashes

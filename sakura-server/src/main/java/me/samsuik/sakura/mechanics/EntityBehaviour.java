@@ -23,7 +23,7 @@ public final class EntityBehaviour {
         final Vec3 newEntityPosition;
         if (mechanicsTarget.is(MechanicVersion.v1_21_5)) {
             newEntityPosition = manglePosition(position, relativeMovement);
-            entity.addMovementThisTick(new Entity.Movement(position, newPosition, true));
+            entity.addMovementThisTick(new Entity.Movement(position, newPosition, relativeMovement));
         } else {
             newEntityPosition = newPosition;
         }
@@ -33,7 +33,7 @@ public final class EntityBehaviour {
 
     private static Vec3 manglePosition(final Vec3 position, final Vec3 relativeMovement) {
         Vec3 newPosition = position;
-        for (final Direction.Axis axis : Entity.axisStepOrder(relativeMovement)) {
+        for (final Direction.Axis axis : Direction.axisStepOrder(relativeMovement)) {
             final double movement = relativeMovement.get(axis);
             if (movement != 0.0) {
                 newPosition = newPosition.relative(axis.getPositive(), movement);

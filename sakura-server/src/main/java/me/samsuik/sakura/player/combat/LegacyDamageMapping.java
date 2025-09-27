@@ -36,6 +36,7 @@ public final class LegacyDamageMapping {
         LEGACY_ITEM_DAMAGE_MAP.put(Items.WOODEN_AXE, 3.0);
         LEGACY_ITEM_DAMAGE_MAP.put(Items.GOLDEN_AXE, 3.0);
         LEGACY_ITEM_DAMAGE_MAP.put(Items.STONE_AXE, 4.0);
+        LEGACY_ITEM_DAMAGE_MAP.put(Items.COPPER_AXE, 4.0);
         LEGACY_ITEM_DAMAGE_MAP.put(Items.IRON_AXE, 5.0);
         LEGACY_ITEM_DAMAGE_MAP.put(Items.DIAMOND_AXE, 6.0);
         LEGACY_ITEM_DAMAGE_MAP.put(Items.NETHERITE_AXE, 7.0);
