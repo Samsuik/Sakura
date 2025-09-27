@@ -67,6 +67,7 @@ public final class GlobalConfiguration extends ConfigurationPart {
 
         public IntOr.Default bucketStackSize = IntOr.Default.USE_DEFAULT;
         public boolean stackableMilkBuckets = false;
+        public boolean stackablePowderedSnowBuckets = false;
     }
 
     public Environment environment;
