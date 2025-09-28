@@ -230,6 +230,7 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean useOutlineForCollision = false;
             public boolean preventTeleportingInsideBlocks = false;
             public boolean slowedDownByWater = true;
+            public boolean randomSpreadWhenThrown = true;
         }
     }
 

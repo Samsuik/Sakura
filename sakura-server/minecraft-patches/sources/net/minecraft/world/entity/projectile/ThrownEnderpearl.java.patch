@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
 +++ b/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
-@@ -39,6 +_,21 @@
+@@ -39,6 +_,31 @@
          super(EntityType.ENDER_PEARL, owner, level, item);
      }
  
@@ -18,6 +18,16 @@
 +        return super.isInWater() && this.level().sakuraConfig().entity.enderPearl.slowedDownByWater;
 +    }
 +    // Sakura end - configure enderpearls being slowed down by water
++    // Sakura start - configure enderpearls random spread
++    @Override
++    public final Vec3 getMovementToShoot(final double x, final double y, final double z, final float velocity, final float inaccuracy) {
++        final float randomness = this.level().sakuraConfig().entity.enderPearl.randomSpreadWhenThrown
++            ? inaccuracy
++            : 0.0f;
++        return super.getMovementToShoot(x, y, z, velocity, randomness);
++    }
++    // Sakura end - configure enderpearls random spread
++
 +
      @Override
      public Item getDefaultItem() {
