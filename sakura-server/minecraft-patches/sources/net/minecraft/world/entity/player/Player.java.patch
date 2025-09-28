@@ -8,17 +8,24 @@
  
      // CraftBukkit start
      public boolean fauxSleeping;
-@@ -229,6 +_,18 @@
+@@ -229,6 +_,25 @@
          return (org.bukkit.craftbukkit.entity.CraftHumanEntity) super.getBukkitEntity();
      }
      // CraftBukkit end
 +    // Sakura start - prevent players glitching through blocks
 +    public final boolean isInsideAnyCollision() {
-+        return this.insideAnyCollisionAt(this.level(), this.position());
++        return this.insideAnyCollisionAt(this.level(), this.position(), Pose.STANDING);
 +    }
 +
 +    public final boolean insideAnyCollisionAt(final Level level, final Vec3 position) {
-+        final EntityDimensions entityDimensions = this.getDimensions(Pose.STANDING);
++        final Pose pose = this.getVehicle() != null || !this.level().sakuraConfig().players.posesShrinkCollisionBox
++            ? Pose.STANDING
++            : Pose.SWIMMING;
++        return this.insideAnyCollisionAt(level, position, pose);
++    }
++
++    public final boolean insideAnyCollisionAt(final Level level, final Vec3 position, final Pose pose) {
++        final EntityDimensions entityDimensions = this.getDimensions(pose);
 +        final AABB entityBB = entityDimensions.makeBoundingBox(position);
 +        return !level.noCollision(this, entityBB.deflate(1.0e-7))
 +            || !level.getWorldBorder().isWithinBounds(entityBB);
@@ -27,6 +34,15 @@
  
      public Player(Level level, GameProfile gameProfile) {
          super(EntityType.PLAYER, level);
+@@ -471,7 +_,7 @@
+         this.yCloak += d1 * 0.25;
+     }
+ 
+-    protected void updatePlayerPose() {
++    public void updatePlayerPose() {
+         if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
+             Pose desiredPose = this.getDesiredPose();
+             Pose pose;
 @@ -866,6 +_,10 @@
      public boolean isInvulnerableTo(ServerLevel level, DamageSource damageSource) {
          if (super.isInvulnerableTo(level, damageSource)) {
