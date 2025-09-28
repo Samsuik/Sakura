@@ -188,6 +188,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         public boolean posesShrinkCollisionBox = true;
         public boolean fishingHooksPullEntities = true;
         public boolean preventPlacingSpawnEggsInsideBlocks = false;
+        public boolean collideWithCobwebs = false;
     }
 
     public Entity entity;
