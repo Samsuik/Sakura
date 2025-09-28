@@ -1,4 +1,4 @@
-package me.samsuik.sakura.redstone;
+package me.samsuik.sakura.redstone.cache;
 
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.*;

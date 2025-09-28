@@ -45,14 +45,14 @@ index d9958a1358bd949b302c852bef096eb690acf702..2bc7ad463b21faed3ba25e6e127925e6
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 7aa5ffc32835fab4a91db464d9112785475a67e9..6804055e9344eb2ea0b2dd6318231963376791c2 100644
+index 7aa5ffc32835fab4a91db464d9112785475a67e9..a760757da12210b315baad6c3a3d6f52450e78b2 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -836,6 +836,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
-+    public final me.samsuik.sakura.redstone.RedstoneWireCache redstoneWireCache = new me.samsuik.sakura.redstone.RedstoneWireCache(this); // Sakura - cache vanilla and eigencraft wires
++    public final me.samsuik.sakura.redstone.cache.RedstoneWireCache redstoneWireCache = new me.samsuik.sakura.redstone.cache.RedstoneWireCache(this); // Sakura - cache vanilla and eigencraft wires
  
      protected Level(
          WritableLevelData levelData,
@@ -160,7 +160,7 @@ index 879be2d05ef0fcfb8fab0c9f4e5bf66d7fce730b..c995827a4adad2279e98ede5e977aa27
              this.addedThisLayer.clear();
              this.count = 0;
 diff --git a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
-index abcc144a086a45bf4cfa4d1a33e2ae10952e0da2..b76f54d9573b9f3ddd77915e9209ee8d9b497192 100644
+index abcc144a086a45bf4cfa4d1a33e2ae10952e0da2..5cd635ca6c215dde0fd979dd7dbaa9edea957a20 100644
 --- a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
 +++ b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
 @@ -27,7 +27,14 @@ public class DefaultRedstoneWireEvaluator extends RedstoneWireEvaluator {
@@ -168,7 +168,7 @@ index abcc144a086a45bf4cfa4d1a33e2ae10952e0da2..b76f54d9573b9f3ddd77915e9209ee8d
          if (oldPower != i) {
              // CraftBukkit end
 +            // Sakura start - cache vanilla and eigencraft wires
-+            final me.samsuik.sakura.redstone.RedstoneWireCache wireCache = level.redstoneWireCache;
++            final me.samsuik.sakura.redstone.cache.RedstoneWireCache wireCache = level.redstoneWireCache;
 +            if (wireCache.applyFromCache(pos, orientation, i, oldPower)) {
 +                return;
 +            }

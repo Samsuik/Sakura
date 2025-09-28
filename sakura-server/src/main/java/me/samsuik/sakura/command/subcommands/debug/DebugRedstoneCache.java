@@ -1,7 +1,7 @@
 package me.samsuik.sakura.command.subcommands.debug;
 
 import me.samsuik.sakura.command.PlayerOnlySubCommand;
-import me.samsuik.sakura.redstone.RedstoneNetwork;
+import me.samsuik.sakura.redstone.cache.RedstoneNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;

@@ -1,4 +1,4 @@
-package me.samsuik.sakura.redstone;
+package me.samsuik.sakura.redstone.cache;
 
 import io.papermc.paper.configuration.WorldConfiguration;
 import me.samsuik.sakura.configuration.local.CachedLocalConfiguration;

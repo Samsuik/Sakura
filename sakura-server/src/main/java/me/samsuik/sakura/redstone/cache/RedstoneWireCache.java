@@ -1,4 +1,4 @@
-package me.samsuik.sakura.redstone;
+package me.samsuik.sakura.redstone.cache;
 
 import it.unimi.dsi.fastutil.objects.*;
 import me.samsuik.sakura.configuration.local.CachedLocalConfiguration;

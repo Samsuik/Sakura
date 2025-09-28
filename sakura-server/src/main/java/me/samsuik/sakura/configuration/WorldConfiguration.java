@@ -57,10 +57,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         public class Restrictions extends ConfigurationPart {
             @Comment("The amount of blocks that can be travelled before changing direction is restricted")
             public IntOr.Disabled leftShootingThreshold = IntOr.Disabled.DISABLED;
-            @Comment(
-                "Maximum amount of blocks that a cannon can adjust\n" +
-                "It is recommended that this value kept sane and is more than 64 blocks"
-            )
+            @Comment("The maximum amount of blocks that a cannon can adjust")
             public IntOr.Disabled maxAdjustDistance = IntOr.Disabled.DISABLED;
         }
 

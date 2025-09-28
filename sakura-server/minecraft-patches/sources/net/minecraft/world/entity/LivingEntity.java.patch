@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -288,6 +_,43 @@
+@@ -288,6 +_,42 @@
      public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
      public int shieldBlockingDelay = this.level().paperConfig().misc.shieldBlockingDelay; // Paper - Make shield blocking delay configurable
      // CraftBukkit end
@@ -9,7 +9,7 @@
 +    private static final AttributeModifier LEGACY_ATTACK_SPEED_MODIFIER = new AttributeModifier(LEGACY_COMBAT_MODIFIER_ID, 100.0, AttributeModifier.Operation.ADD_VALUE);
 +
 +    private void updateAttackSpeedModifier() {
-+        AttributeInstance attackSpeed = this.getAttribute(Attributes.ATTACK_SPEED);
++        final AttributeInstance attackSpeed = this.getAttribute(Attributes.ATTACK_SPEED);
 +        if (attackSpeed != null) {
 +            attackSpeed.removeModifier(LEGACY_ATTACK_SPEED_MODIFIER);
 +
@@ -20,12 +20,11 @@
 +    }
 +
 +    protected final float getAttackDamageFromAttributes() {
-+        AttributeInstance attackDamage = this.getAttribute(Attributes.ATTACK_DAMAGE);
++        final AttributeInstance attackDamage = this.getAttribute(Attributes.ATTACK_DAMAGE);
 +        AttributeModifier legacyModifier = null;
-+
 +        if (this.level().sakuraConfig().players.combat.legacyCombatMechanics) {
-+            ItemStack heldItem = this.lastEquipmentItems.get(EquipmentSlot.MAINHAND);
-+            double attackDifference = me.samsuik.sakura.player.combat.CombatUtil.getLegacyAttackDifference(heldItem);
++            final ItemStack heldItem = this.lastEquipmentItems.get(EquipmentSlot.MAINHAND);
++            final double attackDifference = me.samsuik.sakura.player.combat.CombatUtil.getLegacyAttackDifference(heldItem);
 +            legacyModifier = new AttributeModifier(LEGACY_COMBAT_MODIFIER_ID, attackDifference, AttributeModifier.Operation.ADD_VALUE);
 +        }
 +
