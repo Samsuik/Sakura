@@ -5,10 +5,10 @@ Subject: [PATCH] Merge Cannon Entities
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index bc714079924b4a724a6f1aa7ccfa53884a9e4fa9..259faa131f4aec7db565c78c38aa058d20ef3d28 100644
+index 477c3436d6586a9fd9f0486bc8102808c15c5bae..4bf46b1a7ce64f39ca7d4e915001f54391a3e89c 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -709,6 +709,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -716,6 +716,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
          this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
@@ -16,7 +16,7 @@ index bc714079924b4a724a6f1aa7ccfa53884a9e4fa9..259faa131f4aec7db565c78c38aa058d
      }
  
      // Paper start
-@@ -827,6 +828,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -834,6 +835,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              }
  
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
@@ -24,7 +24,7 @@ index bc714079924b4a724a6f1aa7ccfa53884a9e4fa9..259faa131f4aec7db565c78c38aa058d
              this.entityTickList
                  .forEach(
                      entity -> {
-@@ -845,6 +847,15 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -852,6 +854,15 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                                          entity.stopRiding();
                                      }
  
@@ -41,7 +41,7 @@ index bc714079924b4a724a6f1aa7ccfa53884a9e4fa9..259faa131f4aec7db565c78c38aa058d
                                      this.guardEntityTick(this::tickNonPassenger, entity);
                                      profilerFiller.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 127479da921c2679e19f13e71cc04be8a310b459..4ce3d09d30996fb2c13afe799bb31d910ce666ba 100644
+index 5fd20439dd1686e5f2ee20d3f89dab78932d5a15..f7d0b0017ebcec507d88f90c9b894cbf51e3511a 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -567,6 +567,27 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -72,7 +72,7 @@ index 127479da921c2679e19f13e71cc04be8a310b459..4ce3d09d30996fb2c13afe799bb31d91
  
      public Entity(EntityType<?> entityType, Level level) {
          this.type = entityType;
-@@ -5241,6 +5262,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -5236,6 +5257,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          if (this.removalReason != Entity.RemovalReason.UNLOADED_TO_CHUNK) { this.getPassengers().forEach(Entity::stopRiding); } // Paper - rewrite chunk system
          this.levelCallback.onRemove(removalReason);
          this.onRemoval(removalReason);
@@ -292,7 +292,7 @@ index 5f49990b13ac7fdd4366585d976d50bd3ae183cb..93ff0fdaee21ac493833640b5f620f9b
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index fe9b5cf6fb8d8221b98836148e95aa857241181d..f9c1c5a7f0602c225d18005e7161384cc1d3c604 100644
+index 02289b88710f9305192e3fa7eed3e7c45eda1178..2ca8c39c4883ff7f398ed931d560e7cfcf474e1a 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
 @@ -92,7 +92,7 @@ public abstract class BasePressurePlateBlock extends Block {

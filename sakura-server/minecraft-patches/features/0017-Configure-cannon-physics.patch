@@ -83,7 +83,7 @@ index 703a75c7c6cd05a95afb630973250898dbc7223d..1531f0c275814e1346fef34dc06ea976
                      // CraftBukkit end
                      serverLevel.addFreshEntity(primedTnt);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 0c20de0f6af0385a7849cb9b0be86049784d59ae..87948a1f3ff9b9e5ac2de8e4eb033e31a6818a2e 100644
+index 128f62186d18186b7ba3a0c40a2723b8a933e8fb..c9f5accf384bae21b0a177526e77429f9795d975 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -588,6 +588,13 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -121,7 +121,7 @@ index 0c20de0f6af0385a7849cb9b0be86049784d59ae..87948a1f3ff9b9e5ac2de8e4eb033e31
                  // Paper start - EAR 2
                  this.activatedTick = Math.max(this.activatedTick, net.minecraft.server.MinecraftServer.currentTick + 20);
                  this.activatedImmunityTick = Math.max(this.activatedImmunityTick, net.minecraft.server.MinecraftServer.currentTick + 20);
-@@ -1199,10 +1209,17 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1202,10 +1212,17 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              movement = this.maybeBackOffFromEdge(movement, type);
              Vec3 vec3 = this.collide(movement);
              double d = vec3.lengthSqr();
@@ -143,7 +143,7 @@ index 0c20de0f6af0385a7849cb9b0be86049784d59ae..87948a1f3ff9b9e5ac2de8e4eb033e31
                      BlockHitResult blockHitResult = this.level()
                          .clip(new ClipContext(this.position(), vec31, ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
                      if (blockHitResult.getType() != HitResult.Type.MISS) {
-@@ -1211,9 +1228,15 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1214,9 +1231,15 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
                  }
  
                  Vec3 vec32 = this.position();
@@ -162,7 +162,7 @@ index 0c20de0f6af0385a7849cb9b0be86049784d59ae..87948a1f3ff9b9e5ac2de8e4eb033e31
              }
  
              profilerFiller.pop();
-@@ -1244,6 +1267,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1247,6 +1270,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              } else {
                  if (this.horizontalCollision) {
                      Vec3 deltaMovement = this.getDeltaMovement();
@@ -174,7 +174,7 @@ index 0c20de0f6af0385a7849cb9b0be86049784d59ae..87948a1f3ff9b9e5ac2de8e4eb033e31
                      this.setDeltaMovement(flag ? 0.0 : deltaMovement.x, deltaMovement.y, flag1 ? 0.0 : deltaMovement.z);
                  }
  
-@@ -1585,7 +1613,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1588,7 +1616,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          }
  
          this.collectCollisions(bb, voxelList, bbList, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
@@ -183,7 +183,7 @@ index 0c20de0f6af0385a7849cb9b0be86049784d59ae..87948a1f3ff9b9e5ac2de8e4eb033e31
      }
  
      private Vec3 collideAxisScan(final Vec3 movement, AABB currBoundingBox, final List<VoxelShape> voxelList, final List<AABB> bbList) {
-@@ -1593,7 +1621,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1596,7 +1624,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          double y = movement.y;
          double z = movement.z;
  
@@ -192,7 +192,7 @@ index 0c20de0f6af0385a7849cb9b0be86049784d59ae..87948a1f3ff9b9e5ac2de8e4eb033e31
  
          if (y != 0.0) {
              y = this.scanY(currBoundingBox, y, voxelList, bbList);
-@@ -1715,7 +1743,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1718,7 +1746,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER  | this.getExtraCollisionFlags(), null // Sakura - load chunks on movement
          );
          potentialCollisionsBB.addAll(entityAABBs);
@@ -201,7 +201,7 @@ index 0c20de0f6af0385a7849cb9b0be86049784d59ae..87948a1f3ff9b9e5ac2de8e4eb033e31
  
          final boolean collidedX = collided.x != movement.x;
          final boolean collidedY = collided.y != movement.y;
-@@ -1838,25 +1866,37 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1841,25 +1869,37 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      private void checkInsideBlocks(List<Entity.Movement> movements, InsideBlockEffectApplier.StepBasedCollector stepBasedCollector) {
          if (this.isAffectedByBlocks()) {
              LongSet set = this.visitedBlocks;
@@ -244,30 +244,34 @@ index 0c20de0f6af0385a7849cb9b0be86049784d59ae..87948a1f3ff9b9e5ac2de8e4eb033e31
                      this.checkInsideBlocks(movement.to(), movement.to(), stepBasedCollector, set, 1);
                  }
              }
-@@ -1866,7 +1906,17 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1869,8 +1909,20 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      }
  
      private int checkInsideBlocks(Vec3 from, Vec3 to, InsideBlockEffectApplier.StepBasedCollector stepBasedCollector, LongSet visited, int maxSteps) {
 -        AABB aabb = this.makeBoundingBox(to).deflate(1.0E-5F);
+-        boolean flag = from.distanceToSqr(to) > Mth.square(0.9999900000002526);
 +        // Sakura start - configure server mechanics
++        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
 +        final double margin;
-+        if (this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
++        if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
 +            margin = 1.0e-5f;
-+        } else if (this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_19_3)) {
++        } else if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_19_3)) {
 +            margin = 1.0e-7f;
 +        } else {
 +            margin = 0.001;
 +        }
-+        AABB aabb = this.makeBoundingBox(to).deflate(margin);
++        final AABB aabb = this.makeBoundingBox(to).deflate(margin);
++        boolean flag = mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_10)
++            || from.distanceToSqr(to) > Mth.square(0.9999900000002526);
 +        // Sakura end - configure server mechanics
-         boolean flag = this.level instanceof ServerLevel serverLevel
+         boolean flag1 = this.level instanceof ServerLevel serverLevel
              && serverLevel.getServer().debugSubscribers().hasAnySubscriberFor(DebugSubscriptions.ENTITY_BLOCK_INTERSECTIONS);
          AtomicInteger atomicInteger = new AtomicInteger();
-@@ -1874,6 +1924,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1878,6 +1930,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              from,
              to,
              aabb,
-+            this.mechanicsTarget, // Sakura - configure server mechanics
++            mechanicsTarget, // Sakura - configure server mechanics
              (pos, index) -> {
                  if (!this.isAlive()) {
                      return false;
@@ -693,11 +697,11 @@ index 0c6ae65fc58d63a0b80f3bc1ffa0c9a1bb33de83..f291dc3b3f3e3b8da221f42580ed26c4
                      level.playSound(
                          null,
 diff --git a/net/minecraft/world/level/block/HoneyBlock.java b/net/minecraft/world/level/block/HoneyBlock.java
-index c15cd4d68e3168d63dba10122a74abe9a884f80d..6da4f87a7ce49f3ad86ca456a9aba66e2a5d1439 100644
+index 009f6b118e227b8a037a7b39b7d4a319518e5765..0a9009dc26edb0c6904cdf484463c5c33e5099de 100644
 --- a/net/minecraft/world/level/block/HoneyBlock.java
 +++ b/net/minecraft/world/level/block/HoneyBlock.java
 @@ -71,11 +71,19 @@ public class HoneyBlock extends HalfTransparentBlock {
-         super.entityInside(state, level, pos, entity, effectApplier);
+         super.entityInside(state, level, pos, entity, effectApplier, flag);
      }
  
 -    private static double getOldDeltaY(double deltaY) {
@@ -822,7 +826,7 @@ index 4c6c68eedba2d5acdde6cf760e53b8e81f75f001..ce27dfb14974d452f50c191a3eeec65d
          } else {
              if (isCross(state) || isDot(state)) {
 diff --git a/net/minecraft/world/level/block/WaterlilyBlock.java b/net/minecraft/world/level/block/WaterlilyBlock.java
-index 3b3047aa1198754e64913634f76fdc015c1fe07d..4e88020dc0036145281f86b7f5eaf4620dd0dfef 100644
+index cbb81c8bf5f689f276e74548ce324a8c35357e3a..bdd0b1bcb97d9505d49994737f4c847e3423b1f9 100644
 --- a/net/minecraft/world/level/block/WaterlilyBlock.java
 +++ b/net/minecraft/world/level/block/WaterlilyBlock.java
 @@ -24,6 +24,15 @@ public class WaterlilyBlock extends VegetationBlock {
