@@ -91,7 +91,7 @@ public final class LocalConfigurationContainers {
         long totalSectionCount = 0;
         int totalAreas = 0;
         for (final ConfigurationArea area : this.containers.keySet()) {
-            final long sections = area.countSections(4);
+            final long sections = area.countSections(0);
             if (sections < MASSIVE_REGION_SIZE) {
                 totalSectionCount += sections;
                 totalAreas++;

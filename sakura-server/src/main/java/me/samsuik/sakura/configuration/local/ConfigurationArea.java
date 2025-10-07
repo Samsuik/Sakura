@@ -34,9 +34,9 @@ public record ConfigurationArea(int minX, int minY, int minZ, int maxX, int maxY
     }
 
     public long countSections(final int sectionExponent) {
-        final int sectionsX = (maxX - minX >> sectionExponent) + 1;
-        final int sectionsY = (maxY - minY >> sectionExponent) + 1;
-        final int sectionsZ = (maxZ - minZ >> sectionExponent) + 1;
+        final int sectionsX = ((this.maxX - this.minX) >> sectionExponent) + 1;
+        final int sectionsY = ((this.maxY - this.minY) >> sectionExponent) + 1;
+        final int sectionsZ = ((this.maxZ - this.minZ) >> sectionExponent) + 1;
         return (long) sectionsX * (long) sectionsY * (long) sectionsZ;
     }
 
