@@ -37,7 +37,7 @@ public final class GlobalConfiguration extends ConfigurationPart {
     public class Messages extends ConfigurationPart {
         public String durableBlockInteraction = "<dark_gray>(<light_purple>S</light_purple>) <white>This block has <gray><remaining></gray> of <gray><durability>";
         public String fpsSettingChange = "<dark_gray>(<light_purple>S</light_purple>) <gray><state> <yellow><name>";
-        public String mechanicInformation = "<dark_gray>(<light_purple>S</light_purple>) <white>For mechanic information: <yellow><information><hover here></information>";
+        public String mechanicInformation = "<dark_gray>(<light_purple>S</light_purple>) <white>To view mechanic information: <dark_gray><information><<yellow>hover here</yellow>></information>";
         public boolean tpsShowEntityAndChunkCount = true;
 
         public Component fpsSettingChangeComponent(final String name, final String state) {

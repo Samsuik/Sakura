@@ -28,7 +28,7 @@ public final class MechanicCommand extends PlayerOnlySubCommand {
                 Tnt Spread: <yellow><tnt_spread></yellow>
                 Tnt Flow: <yellow><tnt_flow></yellow>
                 Redstone Implementation: <yellow><redstone_implementation></yellow>
-                "optimize-explosions": <yellow><broken_explosion_behaviour></yellow>
+                Paper Optimize Explosions: <yellow><broken_explosion_behaviour></yellow>
                 Consistent Radius: <yellow><consistent_radius></yellow>
                 Lava Flow Speed: <yellow><lava_flow_speed></yellow>""";
 
