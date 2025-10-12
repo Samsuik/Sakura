@@ -1,6 +1,8 @@
 package me.samsuik.sakura.mechanics;
 
 import ca.spottedleaf.moonrise.patches.collisions.CollisionUtil;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
@@ -47,6 +49,14 @@ public final class EntityBehaviour {
         return relativeMovementSqr > 1.0E-7
             || mechanicsTarget.atLeast(MechanicVersion.v1_21_2) && movement.lengthSqr() - relativeMovementSqr < 1.0E-7
             || mechanicsTarget.before(MechanicVersion.v1_14);
+    }
+
+    public static boolean canCheckInsideBlock(final BlockPos pos, final boolean canCollide, final LongSet visited, final MinecraftMechanicsTarget mechanicsTarget) {
+        final boolean before1_21_9 = mechanicsTarget.before(MechanicVersion.v1_21_9);
+        if (before1_21_9 && !visited.add(pos.asLong())) {
+            return false;
+        }
+        return (mechanicsTarget.before(MechanicVersion.v1_21_2) || canCollide) && (before1_21_9 || visited.add(pos.asLong()));
     }
 
     public static boolean prioritiseXFirst(final double x, final double z, final @Nullable MinecraftMechanicsTarget mechanicsTarget) {

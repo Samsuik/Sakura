@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise check inside blocks and traverse blocks
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 679a377f068ce4f37b2a3e6f446cccc51fb29bf9..d2bd693934b27815e388387b9b9a707d75999cad 100644
+index 5aa283ac6eb9f3690f9df1938ac08da77d29142e..438013200908d3cdb0677b551c3890c7f87b5dc1 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -1938,6 +1938,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -81,19 +81,19 @@ index 679a377f068ce4f37b2a3e6f446cccc51fb29bf9..d2bd693934b27815e388387b9b9a707d
                          if (flag1) {
                              this.debugBlockIntersection((ServerLevel)this.level(), pos.immutable(), false, false);
 diff --git a/net/minecraft/world/level/BlockGetter.java b/net/minecraft/world/level/BlockGetter.java
-index ba2e7efe147b26bea5d73eac1f4b2fe6ee4bd5c2..b9ed6671edc98fe7a4bb30fdd25a6629e852da4f 100644
+index 3c2f5d40bccaf6582a41079d1c47eb228c72a6ff..01cb853c06a669511f26081f9447756f1f8ad549 100644
 --- a/net/minecraft/world/level/BlockGetter.java
 +++ b/net/minecraft/world/level/BlockGetter.java
 @@ -231,7 +231,7 @@ public interface BlockGetter extends LevelHeightAccessor {
              : 0.99999F;
-         if (vec3.lengthSqr() < Mth.square(margin) || mechanicsTarget != null && mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
+         if (vec3.lengthSqr() < Mth.square(movedThreshold) || mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
              // Sakura end - configure server mechanics
 -            for (BlockPos blockPos : BlockPos.betweenClosed(boundingBox)) {
 +            for (final BlockPos blockPos : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
                  if (!visitor.visit(blockPos, 0)) {
                      return false;
                  }
-@@ -239,9 +239,22 @@ public interface BlockGetter extends LevelHeightAccessor {
+@@ -239,11 +239,24 @@ public interface BlockGetter extends LevelHeightAccessor {
  
              return true;
          } else {
@@ -112,12 +112,14 @@ index ba2e7efe147b26bea5d73eac1f4b2fe6ee4bd5c2..b9ed6671edc98fe7a4bb30fdd25a6629
 +            // Sakura end - optimise check inside blocks
              LongSet set = new LongOpenHashSet();
  
--            for (BlockPos blockPos1 : BlockPos.betweenCornersInDirection(boundingBox.move(vec3.scale(-1.0)), vec3)) {
-+            for (final BlockPos blockPos1 : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox.move(vec3.scale(-1.0)))) { // Sakura - optimise check inside blocks
-                 if (!visitor.visit(blockPos1, 0)) {
-                     return false;
-                 }
-@@ -253,7 +266,7 @@ public interface BlockGetter extends LevelHeightAccessor {
+             // Sakura start - configure server mechanics
+             if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)) {
+-                for (BlockPos blockPos1 : BlockPos.betweenCornersInDirection(boundingBox.move(vec3.scale(-1.0)), vec3)) {
++                for (BlockPos blockPos1 : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox.move(vec3.scale(-1.0)))) { // Sakura - optimise check inside blocks
+                     if (!visitor.visit(blockPos1, 0)) {
+                         return false;
+                     }
+@@ -260,7 +273,7 @@ public interface BlockGetter extends LevelHeightAccessor {
              if (i < 0) {
                  return false;
              } else {
