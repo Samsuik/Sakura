@@ -81,7 +81,7 @@ index 5aa283ac6eb9f3690f9df1938ac08da77d29142e..438013200908d3cdb0677b551c3890c7
                          if (flag1) {
                              this.debugBlockIntersection((ServerLevel)this.level(), pos.immutable(), false, false);
 diff --git a/net/minecraft/world/level/BlockGetter.java b/net/minecraft/world/level/BlockGetter.java
-index 3c2f5d40bccaf6582a41079d1c47eb228c72a6ff..01cb853c06a669511f26081f9447756f1f8ad549 100644
+index 3c2f5d40bccaf6582a41079d1c47eb228c72a6ff..32663495d8ac10e76f0995850adf908b4a8258d3 100644
 --- a/net/minecraft/world/level/BlockGetter.java
 +++ b/net/minecraft/world/level/BlockGetter.java
 @@ -231,7 +231,7 @@ public interface BlockGetter extends LevelHeightAccessor {
@@ -89,7 +89,7 @@ index 3c2f5d40bccaf6582a41079d1c47eb228c72a6ff..01cb853c06a669511f26081f9447756f
          if (vec3.lengthSqr() < Mth.square(movedThreshold) || mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
              // Sakura end - configure server mechanics
 -            for (BlockPos blockPos : BlockPos.betweenClosed(boundingBox)) {
-+            for (final BlockPos blockPos : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
++            for (final BlockPos blockPos : me.samsuik.sakura.utils.SimpleBlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
                  if (!visitor.visit(blockPos, 0)) {
                      return false;
                  }
@@ -102,7 +102,7 @@ index 3c2f5d40bccaf6582a41079d1c47eb228c72a6ff..01cb853c06a669511f26081f9447756f
 +            final boolean yZero = vec3.y() == 0.0;
 +            final boolean zZero = vec3.z() == 0.0;
 +            if (xZero && yZero || yZero && zZero || xZero && zZero) {
-+                for (final BlockPos blockPos : me.samsuik.sakura.utils.BlockPosIterator.traverseArea(vec3, boundingBox)) {
++                for (final BlockPos blockPos : me.samsuik.sakura.utils.SimpleBlockPosIterator.traverseBoundsInDirection(vec3, boundingBox, 16.0)) {
 +                    if (!visitor.visit(blockPos, 0)) {
 +                        return false;
 +                    }
@@ -115,7 +115,7 @@ index 3c2f5d40bccaf6582a41079d1c47eb228c72a6ff..01cb853c06a669511f26081f9447756f
              // Sakura start - configure server mechanics
              if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)) {
 -                for (BlockPos blockPos1 : BlockPos.betweenCornersInDirection(boundingBox.move(vec3.scale(-1.0)), vec3)) {
-+                for (BlockPos blockPos1 : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox.move(vec3.scale(-1.0)))) { // Sakura - optimise check inside blocks
++                for (BlockPos blockPos1 : me.samsuik.sakura.utils.SimpleBlockPosIterator.iterable(boundingBox.move(vec3.scale(-1.0)))) { // Sakura - optimise check inside blocks
                      if (!visitor.visit(blockPos1, 0)) {
                          return false;
                      }
@@ -124,7 +124,7 @@ index 3c2f5d40bccaf6582a41079d1c47eb228c72a6ff..01cb853c06a669511f26081f9447756f
                  return false;
              } else {
 -                for (BlockPos blockPos2 : BlockPos.betweenCornersInDirection(boundingBox, vec3)) {
-+                for (final BlockPos blockPos2 : me.samsuik.sakura.utils.BlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
++                for (final BlockPos blockPos2 : me.samsuik.sakura.utils.SimpleBlockPosIterator.iterable(boundingBox)) { // Sakura - optimise check inside blocks
                      if (set.add(blockPos2.asLong()) && !visitor.visit(blockPos2, i + 1)) {
                          return false;
                      }

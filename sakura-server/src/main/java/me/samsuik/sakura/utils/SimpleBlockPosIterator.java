@@ -10,7 +10,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public final class BlockPosIterator extends AbstractIterator<BlockPos> {
+public final class SimpleBlockPosIterator extends AbstractIterator<BlockPos> {
     private final int startX;
     private final int startY;
     private final int startZ;
@@ -19,25 +19,24 @@ public final class BlockPosIterator extends AbstractIterator<BlockPos> {
     private final int endZ;
     private @Nullable MutableBlockPos pos = null;
 
-    public static Iterable<BlockPos> iterable(final AABB bb) {
-        return () -> new BlockPosIterator(bb);
+    public static Iterable<BlockPos> iterable(final AABB bounds) {
+        return () -> new SimpleBlockPosIterator(bounds);
     }
 
-    public static Iterable<BlockPos> traverseArea(final Vec3 vec, final AABB boundingBox) {
-        final double toTravel = Math.min(16.0 / vec.length(), 1.0);
-        final Vec3 movement = vec.scale(toTravel);
-        final AABB fromBB = boundingBox.move(-vec.x, -vec.y, -vec.z);
-        final AABB searchArea = fromBB.expandTowards(movement);
-        return BlockPosIterator.iterable(searchArea);
+    public static Iterable<BlockPos> traverseBoundsInDirection(final Vec3 direction, final AABB bounds, final double maxDistance) {
+        final double scaledDistance = Math.min(maxDistance / direction.length(), 1.0);
+        final AABB previousBounds = bounds.move(direction.scale(-1.0));
+        final AABB boundsToSearch = previousBounds.expandTowards(direction.scale(scaledDistance));
+        return SimpleBlockPosIterator.iterable(boundsToSearch);
     }
 
-    public BlockPosIterator(final AABB bb) {
-        this.startX = Mth.floor(bb.minX);
-        this.startY = Mth.floor(bb.minY);
-        this.startZ = Mth.floor(bb.minZ);
-        this.endX = Mth.floor(bb.maxX);
-        this.endY = Mth.floor(bb.maxY);
-        this.endZ = Mth.floor(bb.maxZ);
+    public SimpleBlockPosIterator(final AABB bounds) {
+        this.startX = Mth.floor(bounds.minX);
+        this.startY = Mth.floor(bounds.minY);
+        this.startZ = Mth.floor(bounds.minZ);
+        this.endX = Mth.floor(bounds.maxX);
+        this.endY = Mth.floor(bounds.maxY);
+        this.endZ = Mth.floor(bounds.maxZ);
     }
 
     @Override
