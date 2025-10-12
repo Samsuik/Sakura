@@ -32,49 +32,75 @@ index 24f43dd7d3ffa060409c96882c0416f59dc571cc..4b2ea3c99bcd5452840b26c2ba607a4f
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 4dcec2e8a3120a3dfa078e8cf6857ba99ca01a2d..4a274798077c4ee0a504a784449a1aef1d89d325 100644
+index 4dcec2e8a3120a3dfa078e8cf6857ba99ca01a2d..c7454fc77f7b269608edf6d6f3e39d9d96e037a0 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -136,6 +136,21 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -136,6 +136,16 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
          return this.getBlockStateFinal(x, y, z);
      }
      // Paper end - get block chunk optimisation
 +    // Sakura start - track block changes and tick scheduler
-+    private java.util.List<me.samsuik.sakura.listener.BlockChangeTracker.Listener> blockChangeListeners;
-+
-+    public final void updateBlockChangeListeners(final java.util.List<me.samsuik.sakura.listener.BlockChangeTracker.Listener> listeners) {
-+        this.blockChangeListeners = listeners;
-+    }
-+
-+    private void blockChange(final BlockPos pos, final BlockState newBlock, final BlockState oldBlock) {
-+        for (final me.samsuik.sakura.listener.BlockChangeTracker.Listener listener : this.blockChangeListeners) {
-+            if (listener.test(this.level, pos, newBlock, oldBlock)) {
-+                listener.call();
++    public final void updateBlockChangeListeners(final it.unimi.dsi.fastutil.ints.Int2ObjectMap<List<me.samsuik.sakura.listener.BlockChangeTracker.Listener>> chunkSectionListeners) {
++        chunkSectionListeners.forEach((pos, listeners) -> {
++            final int sectionIndex = this.getSectionIndexFromSectionY(pos);
++            if (sectionIndex >= 0 && sectionIndex < this.sections.length) {
++                this.sections[sectionIndex].setBlockChangeListeners(listeners);
 +            }
-+        }
++        });
 +    }
 +    // Sakura end - track block changes and tick scheduler
  
      public LevelChunk(Level level, ChunkPos pos) {
          this(level, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
-@@ -173,6 +188,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -173,6 +183,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
          this.debug = !empty && this.level.isDebug();
          this.defaultBlockState = empty ? VOID_AIR_BLOCKSTATE : AIR_BLOCKSTATE;
          // Paper end - get block chunk optimisation
-+        this.blockChangeListeners = level.blockChangeTracker.getListenersForChunk(pos); // Sakura - track block changes and tick scheduler
++        this.updateBlockChangeListeners(level.blockChangeTracker.getListenersForChunk(pos, this.minSection, this.maxSection)); // Sakura - track block changes and tick scheduler
      }
  
      public LevelChunk(ServerLevel level, ProtoChunk chunk, @Nullable LevelChunk.PostLoadProcessor postLoad) {
-@@ -421,6 +437,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -421,6 +432,12 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
                  if (!section.getBlockState(i, i1, i2).is(block)) {
                      return null;
                  } else {
 +                    // Sakura start - track block changes and tick scheduler
 +                    if (state.getBlock() != blockState.getBlock()) {
-+                        this.blockChange(pos, state, blockState);
++                        section.blockChange(this.level, pos, state, blockState);
 +                    }
 +                    // Sakura end - track block changes and tick scheduler
 +
                      if (!this.level.isClientSide() && (flags & 512) == 0 && (!this.level.captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
                          state.onPlace(this.level, pos, blockState, flag1);
                      }
+diff --git a/net/minecraft/world/level/chunk/LevelChunkSection.java b/net/minecraft/world/level/chunk/LevelChunkSection.java
+index 029d224557613b46f015785a5bbffe49a6f39ec6..512835828f65f496c730122091d9bd117ca5eb78 100644
+--- a/net/minecraft/world/level/chunk/LevelChunkSection.java
++++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
+@@ -43,6 +43,26 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+         return this.tickingBlocks;
+     }
+     // Paper end - block counting
++    // Sakura start - track block changes and tick scheduler
++    private java.util.List<me.samsuik.sakura.listener.BlockChangeTracker.Listener> blockChangeListeners = java.util.List.of();
++
++    public void setBlockChangeListeners(final java.util.List<me.samsuik.sakura.listener.BlockChangeTracker.Listener> listeners) {
++        this.blockChangeListeners = listeners;
++    }
++
++    public void blockChange(
++        final net.minecraft.world.level.Level level,
++        final net.minecraft.core.BlockPos pos,
++        final BlockState newBlock,
++        final BlockState oldBlock
++    ) {
++        for (final me.samsuik.sakura.listener.BlockChangeTracker.Listener listener : this.blockChangeListeners) {
++            if (listener.test(level, pos, newBlock, oldBlock)) {
++                listener.call();
++            }
++        }
++    }
++    // Sakura end - track block changes and tick scheduler
+ 
+     private LevelChunkSection(LevelChunkSection section) {
+         this.nonEmptyBlockCount = section.nonEmptyBlockCount;

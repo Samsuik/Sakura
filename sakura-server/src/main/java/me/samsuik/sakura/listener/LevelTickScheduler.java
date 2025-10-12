@@ -67,6 +67,7 @@ public final class LevelTickScheduler {
             if (tick > gameTime) {
                 continue;
             }
+
             final List<TickTask> tasks = this.scheduledTasks.remove(tick);
             this.runTasks(tasks, gameTime);
             this.removeLater.addAll(tasks);
