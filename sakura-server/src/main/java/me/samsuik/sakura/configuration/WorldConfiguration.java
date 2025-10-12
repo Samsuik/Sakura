@@ -152,6 +152,12 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean oldEnchantedGoldenApple = false;
             public boolean oldSoundsAndParticleEffects = false;
             public boolean fastHealthRegen = true;
+
+            @Comment(
+                "The maximum damage a player can take in a single hit.\n" +
+                "This can prevent arrows and maces instantly killing players."
+            )
+            public DoubleOr.Disabled maxDamage = DoubleOr.Disabled.DISABLED;
             public IntOr.Default maxArmourDamage = IntOr.Default.USE_DEFAULT;
         }
 

@@ -64,6 +64,19 @@
          } else if (damageSource.is(DamageTypeTags.IS_DROWNING)) {
              return !level.getGameRules().getBoolean(GameRules.RULE_DROWNING_DAMAGE);
          } else if (damageSource.is(DamageTypeTags.IS_FALL)) {
+@@ -755,6 +_,12 @@
+                     }
+                 }
+ 
++                // Sakura start - add max damage taken
++                final double maxDamage = level.sakuraConfig().players.combat.maxDamage.or(-1.0);
++                if (amount > 0.0 && maxDamage >= 0.0) {
++                    amount = Math.min(amount, (float) maxDamage);
++                }
++                // Sakura end - add max damage taken
+                 // return amount != 0.0F && super.hurtServer(level, damageSource, amount);
+                 // CraftBukkit start - Don't filter out 0 damage
+                 boolean damaged = super.hurtServer(level, damageSource, amount);
 @@ -1030,13 +_,19 @@
          if (playerAttackEntityEvent.callEvent() && willAttack) { // Logic moved to willAttack local variable.
              {
