@@ -7,6 +7,15 @@ There are branches from the latest version to 1.18.2. If you are looking for a 1
 ## There are compiled binaries on the releases page
 > https://github.com/Samsuik/Sakura/releases
 
+## In-game Commands
+* /sakura (permission: `org.bukkit.sakura`)
+* /tps (permission: `org.bukkit.tps`)
+* /fps (permission: `org.bukkit.fps`)
+* /tnttoggle (permission: `org.bukkit.tntvisibility`)
+* /sandtoggle (permission: `org.bukkit.sandvisibility`)
+* /config (permission: `org.bukkit.config`)
+* /mechanic (permission: `org.bukkit.mechanic`)
+
 ## Compiling
 ### Requirements
 * Git
