@@ -26,6 +26,7 @@ public final class SakuraCommands {
         COMMANDS.put("fps", new FPSCommand("fps"));
         COMMANDS.put("tntvisibility", new VisualCommand(VisibilityTypes.TNT, "tnttoggle"));
         COMMANDS.put("sandvisibility", new VisualCommand(VisibilityTypes.SAND, "sandtoggle"));
+        COMMANDS.put("mechanic", new MechanicCommand("mechanic"));
         SUB_COMMANDS.addAll(COMMANDS.values());
         SUB_COMMANDS.add(new DebugCommand("debug"));
         // "sakura" isn't a subcommand

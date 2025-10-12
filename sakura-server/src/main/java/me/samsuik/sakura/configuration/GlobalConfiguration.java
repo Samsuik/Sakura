@@ -5,8 +5,11 @@ import io.papermc.paper.configuration.Configuration;
 import io.papermc.paper.configuration.ConfigurationPart;
 import io.papermc.paper.configuration.type.number.IntOr;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Material;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.objectmapping.meta.Comment;
@@ -34,6 +37,7 @@ public final class GlobalConfiguration extends ConfigurationPart {
     public class Messages extends ConfigurationPart {
         public String durableBlockInteraction = "<dark_gray>(<light_purple>S</light_purple>) <white>This block has <gray><remaining></gray> of <gray><durability>";
         public String fpsSettingChange = "<dark_gray>(<light_purple>S</light_purple>) <gray><state> <yellow><name>";
+        public String mechanicInformation = "<dark_gray>(<light_purple>S</light_purple>) <white>For mechanic information: <yellow><information><hover here></information>";
         public boolean tpsShowEntityAndChunkCount = true;
 
         public Component fpsSettingChangeComponent(final String name, final String state) {
@@ -49,6 +53,13 @@ public final class GlobalConfiguration extends ConfigurationPart {
                 this.durableBlockInteraction,
                 Placeholder.unparsed("remaining", String.valueOf(remaining)),
                 Placeholder.unparsed("durability", String.valueOf(durability))
+            );
+        }
+
+        public Component mechanicInformationComponent(final Component hoverComponent) {
+            return MiniMessage.miniMessage().deserialize(
+                this.mechanicInformation,
+                TagResolver.resolver("information", Tag.styling(HoverEvent.showText(hoverComponent)))
             );
         }
     }
