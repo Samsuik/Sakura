@@ -5,7 +5,7 @@ Subject: [PATCH] Merge Cannon Entities
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 477c3436d6586a9fd9f0486bc8102808c15c5bae..4bf46b1a7ce64f39ca7d4e915001f54391a3e89c 100644
+index ca98972697fe2961402bea4cfb0cf86ea80a92f0..a42a0672d56e32baaa594c9c1b9db0e7487e7d59 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -716,6 +716,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -41,7 +41,7 @@ index 477c3436d6586a9fd9f0486bc8102808c15c5bae..4bf46b1a7ce64f39ca7d4e915001f543
                                      this.guardEntityTick(this::tickNonPassenger, entity);
                                      profilerFiller.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 5fd20439dd1686e5f2ee20d3f89dab78932d5a15..f7d0b0017ebcec507d88f90c9b894cbf51e3511a 100644
+index 4c327ed5103dcab2e97fb85d4c302dd26e57858d..24649fb3328a67d654795824ff7f68e93425c448 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -567,6 +567,27 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -70,9 +70,9 @@ index 5fd20439dd1686e5f2ee20d3f89dab78932d5a15..f7d0b0017ebcec507d88f90c9b894cbf
 +    }
 +    // Sakura end - merge cannon entities
  
-     public Entity(EntityType<?> entityType, Level level) {
-         this.type = entityType;
-@@ -5236,6 +5257,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+     public Entity(EntityType<?> type, Level level) {
+         this.type = type;
+@@ -5235,6 +5256,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          if (this.removalReason != Entity.RemovalReason.UNLOADED_TO_CHUNK) { this.getPassengers().forEach(Entity::stopRiding); } // Paper - rewrite chunk system
          this.levelCallback.onRemove(removalReason);
          this.onRemoval(removalReason);
@@ -85,7 +85,7 @@ index 5fd20439dd1686e5f2ee20d3f89dab78932d5a15..f7d0b0017ebcec507d88f90c9b894cbf
          if (!(this instanceof ServerPlayer) && removalReason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 59aa539b7d830de48ff582b0da6fa17796b8c4b8..af7dd04ecbf9e8b35357da421fb156aee61261b5 100644
+index a4fd6b0a6762ce4d9e488f305dd2abe1e43edbd8..cdce0160bc4eeacfd5e7751a0d6d4192d4832c53 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -53,7 +53,7 @@ import net.minecraft.world.phys.HitResult;
@@ -151,8 +151,8 @@ index 59aa539b7d830de48ff582b0da6fa17796b8c4b8..af7dd04ecbf9e8b35357da421fb156ae
 +    }
 +    // Sakura end - merge cannon entities
 +
-     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> entityType, Level level) {
-         super(entityType, level);
+     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
+         super(type, level);
          this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
          this.isFallingBlock = true; // Sakura - client visibility settings
@@ -190,7 +190,7 @@ index 59aa539b7d830de48ff582b0da6fa17796b8c4b8..af7dd04ecbf9e8b35357da421fb156ae
  
      public void setHurtsEntities(float fallDamagePerDistance, int fallDamageMax) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 6797e16f973b11d168906dfce240c70db25bc6f0..8a36e0ce4792e7152905256dde7746fd09d42729 100644
+index ef61333619d772a3acba6e2f6997655016b399f9..06e2f16032d615bf0083376ce3496941cbdf7ab0 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -34,7 +34,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
@@ -242,8 +242,8 @@ index 6797e16f973b11d168906dfce240c70db25bc6f0..8a36e0ce4792e7152905256dde7746fd
 +    }
 +    // Sakura end - merge cannon entities
 +
-     public PrimedTnt(EntityType<? extends PrimedTnt> entityType, Level level) {
-         super(entityType, level);
+     public PrimedTnt(EntityType<? extends PrimedTnt> type, Level level) {
+         super(type, level);
          this.blocksBuilding = true;
          this.isPrimedTNT = true; // Sakura - client visibility settings
          this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
@@ -280,7 +280,7 @@ index 6797e16f973b11d168906dfce240c70db25bc6f0..8a36e0ce4792e7152905256dde7746fd
  
      @Nullable
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 5f49990b13ac7fdd4366585d976d50bd3ae183cb..93ff0fdaee21ac493833640b5f620f9bec1a69c8 100644
+index 0900ae1072c9dfa70cad0e4f3dc7b916ed96319f..00a0b07aae109203dff96ac4f2aef67f5592c05e 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -833,6 +833,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -292,7 +292,7 @@ index 5f49990b13ac7fdd4366585d976d50bd3ae183cb..93ff0fdaee21ac493833640b5f620f9b
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index 02289b88710f9305192e3fa7eed3e7c45eda1178..2ca8c39c4883ff7f398ed931d560e7cfcf474e1a 100644
+index 0dc714bf96545bc86cc5cd32849c3be817580d33..2a6e924425b5cf81b28b34ea740f5481d590d829 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
 @@ -92,7 +92,7 @@ public abstract class BasePressurePlateBlock extends Block {

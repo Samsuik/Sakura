@@ -5,10 +5,10 @@ Subject: [PATCH] Track block changes and level tick scheduler
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 252fefa6e19b2109d1b228b62a900b038766fbdd..a854d5cbb4cb78795f40e4b2dd81aa773fd3978b 100644
+index cbba36914e41f230f7003539e9ddfba2d570641d..b4b177fd7732960a5cf528e110c8b7160165fad7 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1809,6 +1809,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1841,6 +1841,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              profilerFiller.pop();
              profilerFiller.pop();
              serverLevel.explosionDensityCache.clear(); // Paper - Optimize explosions
@@ -17,7 +17,7 @@ index 252fefa6e19b2109d1b228b62a900b038766fbdd..a854d5cbb4cb78795f40e4b2dd81aa77
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 24f43dd7d3ffa060409c96882c0416f59dc571cc..4b2ea3c99bcd5452840b26c2ba607a4f034ba367 100644
+index 33dfa05d391ed8e6281c733ca5050a58bb32febe..f8ea7e4536f6e0584c65ea9e20fe63f1cc343425 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -829,6 +829,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -32,7 +32,7 @@ index 24f43dd7d3ffa060409c96882c0416f59dc571cc..4b2ea3c99bcd5452840b26c2ba607a4f
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 4dcec2e8a3120a3dfa078e8cf6857ba99ca01a2d..c7454fc77f7b269608edf6d6f3e39d9d96e037a0 100644
+index 50a091ab493a7fbc5c457cabd2e26abece5f708a..7d62bc664ec6d26a41571c78ec3229604ac625f5 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -136,6 +136,16 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
@@ -74,7 +74,7 @@ index 4dcec2e8a3120a3dfa078e8cf6857ba99ca01a2d..c7454fc77f7b269608edf6d6f3e39d9d
                          state.onPlace(this.level, pos, blockState, flag1);
                      }
 diff --git a/net/minecraft/world/level/chunk/LevelChunkSection.java b/net/minecraft/world/level/chunk/LevelChunkSection.java
-index 029d224557613b46f015785a5bbffe49a6f39ec6..512835828f65f496c730122091d9bd117ca5eb78 100644
+index d354fad5e9c9e4a16a52dbd8c7eb1f177a75f681..955f97ea45c7b980f0f2c4321d27050bec1eabe5 100644
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
 @@ -43,6 +43,26 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_

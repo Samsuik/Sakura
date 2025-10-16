@@ -3,17 +3,17 @@
 @@ -153,12 +_,12 @@
      }
  
-     protected void spread(ServerLevel level, BlockPos pos, BlockState blockState, FluidState fluidState) {
+     protected void spread(ServerLevel level, BlockPos pos, BlockState state, FluidState fluidState) {
 -        if (!fluidState.isEmpty()) {
 +        if (!fluidState.isEmpty() && (!level.sakuraConfig().environment.disableFluidsFlowingThroughTheWorldBorder || level.getWorldBorder().isWithinBounds(pos))) { // Sakura - configure fluids flowing through the world border
              BlockPos blockPos = pos.below();
-             BlockState blockState1 = level.getBlockState(blockPos);
-             FluidState fluidState1 = blockState1.getFluidState();
-             if (this.canMaybePassThrough(level, pos, blockState, Direction.DOWN, blockPos, blockState1, fluidState1)) {
--                FluidState newLiquid = this.getNewLiquid(level, blockPos, blockState1);
-+                FluidState newLiquid = this.getLiquidFromSurroundings(level, blockPos, blockState1, Direction.DOWN); // Sakura - optimise new liquid level
+             BlockState blockState = level.getBlockState(blockPos);
+             FluidState fluidState1 = blockState.getFluidState();
+             if (this.canMaybePassThrough(level, pos, state, Direction.DOWN, blockPos, blockState, fluidState1)) {
+-                FluidState newLiquid = this.getNewLiquid(level, blockPos, blockState);
++                FluidState newLiquid = this.getLiquidFromSurroundings(level, blockPos, blockState, Direction.DOWN); // Sakura - optimise new liquid level
                  Fluid type = newLiquid.getType();
-                 if (fluidState1.canBeReplacedWith(level, blockPos, type, Direction.DOWN) && canHoldSpecificFluid(level, blockPos, blockState1, type)) {
+                 if (fluidState1.canBeReplacedWith(level, blockPos, type, Direction.DOWN) && canHoldSpecificFluid(level, blockPos, blockState, type)) {
                      // CraftBukkit start
 @@ -200,6 +_,11 @@
                  BlockPos blockPos = pos.relative(direction);
@@ -158,10 +158,10 @@
  
 @@ -478,7 +_,7 @@
      @Override
-     public void tick(ServerLevel level, BlockPos pos, BlockState blockState, FluidState fluidState) {
+     public void tick(ServerLevel level, BlockPos pos, BlockState state, FluidState fluidState) {
          if (!fluidState.isSource()) {
 -            FluidState newLiquid = this.getNewLiquid(level, pos, level.getBlockState(pos));
-+            FluidState newLiquid = this.getNewLiquid(level, pos, blockState); // Sakura - optimise new liquid level; liquid draining
++            FluidState newLiquid = this.getNewLiquid(level, pos, state); // Sakura - optimise new liquid level; liquid draining
              int spreadDelay = this.getSpreadDelay(level, pos, fluidState, newLiquid);
              if (newLiquid.isEmpty()) {
                  fluidState = newLiquid;

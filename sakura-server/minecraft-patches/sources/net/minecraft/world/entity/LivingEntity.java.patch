@@ -41,8 +41,8 @@
 +    }
 +    // Sakura end - legacy combat mechanics
  
-     protected LivingEntity(EntityType<? extends LivingEntity> entityType, Level level) {
-         super(entityType, level);
+     protected LivingEntity(EntityType<? extends LivingEntity> type, Level level) {
+         super(type, level);
 @@ -1520,7 +_,7 @@
                      }
                      // Paper end - Check distance in entity interactions
@@ -86,7 +86,7 @@
      }
  
      private boolean checkTotemDeathProtection(DamageSource damageSource) {
-@@ -1872,6 +_,12 @@
+@@ -1878,6 +_,12 @@
  
              // Paper start
              if (this.dead) { // Paper
@@ -99,7 +99,7 @@
                  this.level().broadcastEntityEvent(this, (byte)3);
  
              this.setPose(Pose.DYING);
-@@ -2069,7 +_,7 @@
+@@ -2075,7 +_,7 @@
      }
  
      public void knockback(double strength, double x, double z, @Nullable Entity attacker, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause eventCause) { // Paper - knockback events
@@ -108,7 +108,7 @@
          if (true || !(strength <= 0.0)) { // CraftBukkit - Call event even when force is 0
              // this.hasImpulse = true; // CraftBukkit - Move down
              Vec3 deltaMovement = this.getDeltaMovement();
-@@ -2080,10 +_,18 @@
+@@ -2086,10 +_,18 @@
              }
  
              Vec3 vec3 = new Vec3(x, 0.0, z).normalize().scale(strength);
@@ -128,7 +128,7 @@
                  deltaMovement.z / 2.0 - vec3.z
              );
              Vec3 diff = finalVelocity.subtract(deltaMovement);
-@@ -2228,8 +_,14 @@
+@@ -2234,8 +_,14 @@
          }
      }
  
@@ -144,7 +144,7 @@
              return 0;
          } else {
              double d = this.calculateFallPower(fallDistance);
-@@ -2287,9 +_,21 @@
+@@ -2293,9 +_,21 @@
      protected float getDamageAfterArmorAbsorb(DamageSource damageSource, float damageAmount) {
          if (!damageSource.is(DamageTypeTags.BYPASSES_ARMOR)) {
              // this.hurtArmor(damageSource, damageAmount); // CraftBukkit - actuallyHurt(DamageSource, float, EntityDamageEvent) for damage handling
@@ -166,7 +166,7 @@
          }
  
          return damageAmount;
-@@ -2469,6 +_,12 @@
+@@ -2475,6 +_,12 @@
                  armorDamage += (float) event.getDamage(DamageModifier.BLOCKING);
                  armorDamage += (float) event.getDamage(DamageModifier.FREEZING);
                  armorDamage += (float) event.getDamage(DamageModifier.HARD_HAT);
@@ -179,7 +179,7 @@
                  this.hurtArmor(damageSource, armorDamage);
              }
  
-@@ -3415,6 +_,11 @@
+@@ -3421,6 +_,11 @@
                      if (this.level() instanceof ServerLevel serverLevel) {
                          EnchantmentHelper.runLocationChangedEffects(serverLevel, itemBySlot, this, equipmentSlot1);
                      }
@@ -191,7 +191,7 @@
                  }
              }
  
-@@ -3615,7 +_,7 @@
+@@ -3621,7 +_,7 @@
              }
          }
          // Paper end - Add EntityMoveEvent
@@ -200,7 +200,7 @@
              this.hurtServer(serverLevel, this.damageSources().drown(), 1.0F);
          }
      }
-@@ -4199,6 +_,13 @@
+@@ -4205,6 +_,13 @@
          if (!this.isUsingItem()) {
              return null;
          } else {

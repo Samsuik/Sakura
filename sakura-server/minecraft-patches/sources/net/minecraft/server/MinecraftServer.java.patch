@@ -8,7 +8,7 @@
      public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
      private final Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
      public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
-@@ -362,6 +_,17 @@
+@@ -392,6 +_,17 @@
          thread.start();
          return minecraftServer;
      }
@@ -26,7 +26,7 @@
  
      // Paper start - rewrite chunk system
      private volatile Throwable chunkSystemCrash;
-@@ -528,6 +_,10 @@
+@@ -558,6 +_,10 @@
          Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
          // CraftBukkit end
          this.paperConfigurations = services.paper().configurations(); // Paper - add paper configuration files
@@ -37,19 +37,19 @@
      }
  
      private void readScoreboard(DimensionDataStorage dataStorage) {
-@@ -1293,6 +_,11 @@
+@@ -1325,6 +_,11 @@
  
                  this.currentTickStart = tickStart;
                  ++MinecraftServer.currentTick;
 +                // Sakura start - track tick information
 +                if (MinecraftServer.currentTick % 20 == 0) {
-+                    this.tickInformationCollector.levelData(this.levels.values(), getTPS(this.tickTimes1s, tickStart, l));
++                    this.tickInformationCollector.levelData(this.levels.values(), getTPS(this.tickTimes1s, this.tickRateManager.nanosecondsPerTick()));
 +                }
 +                // Sakura end - track tick information
                  // Paper end - improve tick loop
  
                  boolean flag = l == 0L;
-@@ -1319,6 +_,7 @@
+@@ -1351,6 +_,7 @@
                      this.tickFrame.end();
                      this.recordEndOfTick(); // Paper - improve tick loop
                      profilerFiller.popPush("nextTickWait");

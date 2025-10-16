@@ -33,7 +33,7 @@ index ff747a1ecdf3c888bca0d69de4f85dcd810b6139..d90f6aa4557b5863eba6a206226f763c
          }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index c94aa1d950a18a29692f9c4e668c8495985ca4c8..0ee3033ef6533dd3ca7ec4b2ba48cfb85a03f596 100644
+index d68056892cf9f41be819e76535e6cbe553958867..c00d922188a11a90902bb51cd73977855c3fb6ca 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -718,6 +718,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -45,7 +45,7 @@ index c94aa1d950a18a29692f9c4e668c8495985ca4c8..0ee3033ef6533dd3ca7ec4b2ba48cfb8
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 7aa5ffc32835fab4a91db464d9112785475a67e9..a760757da12210b315baad6c3a3d6f52450e78b2 100644
+index 89e89f79a56098c5bcf33dea874fcf0234a071e8..859986b30af1ed33ebebfa99bef168b3bccb60e9 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -836,6 +836,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -57,7 +57,7 @@ index 7aa5ffc32835fab4a91db464d9112785475a67e9..a760757da12210b315baad6c3a3d6f52
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
-index ce27dfb14974d452f50c191a3eeec65d3deff6a3..8a53126b192dca8ee86b47a50da8273df58f31f0 100644
+index 9720c55536d09377d1fbcbf1af4acb3caa9952f2..e69c17a02c88b5206b211ef6421f291657768a25 100644
 --- a/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
 @@ -306,6 +306,12 @@ public class RedStoneWireBlock extends Block {
@@ -95,20 +95,20 @@ index ce27dfb14974d452f50c191a3eeec65d3deff6a3..8a53126b192dca8ee86b47a50da8273d
                  return 0;
              } else {
 -                return side != Direction.UP
--                        && !this.getConnectionState(blockAccess, blockState, pos).getValue(PROPERTY_BY_DIRECTION.get(side.getOpposite())).isConnected()
+-                        && !this.getConnectionState(level, state, pos).getValue(PROPERTY_BY_DIRECTION.get(side.getOpposite())).isConnected()
 +                // Sakura start - cache vanilla and eigencraft wires
 +                if (side == Direction.UP) {
 +                    return powerValue;
 +                }
-+                final boolean updating = blockAccess instanceof Level level && level.redstoneWireCache.isUpdatingRedstoneWire(pos);
-+                final BlockState state = updating ? blockState : this.getConnectionState(blockAccess, blockState, pos);
-+                return !state.getValue(PROPERTY_BY_DIRECTION.get(side.getOpposite())).isConnected()
++                final boolean updating = level instanceof ServerLevel serverLevel && serverLevel.redstoneWireCache.isUpdatingRedstoneWire(pos);
++                final BlockState connectionState = updating ? state : this.getConnectionState(level, state, pos);
++                return !connectionState.getValue(PROPERTY_BY_DIRECTION.get(side.getOpposite())).isConnected()
 +                    // Sakura end - cache vanilla and eigencraft wires
                      ? 0
                      : powerValue;
              }
 diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 1867661f9790246ca5ced9ba9c8a3f3ed75ed361..6d4032ead7ee32c71f000261b1440fd3255f78e7 100644
+index f7cebfc66e65ae4e247d60eb7291309a3454184d..a0d7fefaea33a2eb599bc162b26dd89df053a7dd 100644
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -524,6 +524,13 @@ public abstract class BlockBehaviour implements FeatureElement {
@@ -134,7 +134,7 @@ index 1867661f9790246ca5ced9ba9c8a3f3ed75ed361..6d4032ead7ee32c71f000261b1440fd3
  
          public Block getBlock() {
 diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-index 879be2d05ef0fcfb8fab0c9f4e5bf66d7fce730b..c995827a4adad2279e98ede5e977aa2775349eec 100644
+index 5d17213a692016d2f005c7820bf2cf1f42ce411f..6e0a41bd6c171b37476cedb57d6dcbdbabd2532f 100644
 --- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 +++ b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 @@ -29,6 +29,13 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
@@ -187,7 +187,7 @@ index abcc144a086a45bf4cfa4d1a33e2ae10952e0da2..5cd635ca6c215dde0fd979dd7dbaa9ed
              }
          }
 diff --git a/net/minecraft/world/level/redstone/NeighborUpdater.java b/net/minecraft/world/level/redstone/NeighborUpdater.java
-index 332b33a004ab11150cca0cc2cefc26d0286648f5..3691a8b2306ad4fb555ea3b4cefb8e1ea0c14b6b 100644
+index 3f4b17a222fdbf97ca8979a43f1f231d9e9d8ddb..42705f342c3594d4a327eb2aa169ee59cd87f13d 100644
 --- a/net/minecraft/world/level/redstone/NeighborUpdater.java
 +++ b/net/minecraft/world/level/redstone/NeighborUpdater.java
 @@ -17,6 +17,12 @@ import net.minecraft.world.level.block.state.BlockState;
@@ -200,6 +200,6 @@ index 332b33a004ab11150cca0cc2cefc26d0286648f5..3691a8b2306ad4fb555ea3b4cefb8e1e
 +    }
 +    // Sakura end - cache vanilla and eigencraft wires
 +
-     void shapeUpdate(Direction direction, BlockState state, BlockPos pos, BlockPos neighborPos, int flags, int recursionLevel);
+     void shapeUpdate(Direction direction, BlockState state, BlockPos pos, BlockPos neighborPos, int flags, int recursionLeft);
  
      void neighborChanged(BlockPos pos, Block neighborBlock, @Nullable Orientation orientation);

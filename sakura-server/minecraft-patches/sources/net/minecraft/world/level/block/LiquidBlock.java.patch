@@ -1,24 +1,24 @@
 --- a/net/minecraft/world/level/block/LiquidBlock.java
 +++ b/net/minecraft/world/level/block/LiquidBlock.java
-@@ -144,7 +_,7 @@
-     }
+@@ -145,7 +_,7 @@
+ 
      // Paper start - Configurable speed for water flowing over lava
      public int getFlowSpeed(Level level, BlockPos pos) {
 -        if (net.minecraft.core.registries.BuiltInRegistries.FLUID.wrapAsHolder(this.fluid).is(FluidTags.WATER)) {
 +        if (this.fluid.getTickDelay(level) != level.paperConfig().environment.waterOverLavaFlowSpeed && net.minecraft.core.registries.BuiltInRegistries.FLUID.wrapAsHolder(this.fluid).is(FluidTags.WATER)) { // Sakura - avoid expensive lava search
              if (
-                 isLava(level, pos.north(1)) ||
-                 isLava(level, pos.south(1)) ||
-@@ -154,7 +_,7 @@
+                 isLava(level, pos.north()) ||
+                 isLava(level, pos.south()) ||
+@@ -155,7 +_,7 @@
                  return level.paperConfig().environment.waterOverLavaFlowSpeed;
              }
          }
 -        return this.fluid.getTickDelay(level);
 +        return this.fluid.getTickDelay(level, pos); // Sakura - lava flow speed api
      }
+ 
      private static boolean isLava(Level level, BlockPos pos) {
-         final FluidState fluidState = level.getFluidIfLoaded(pos);
-@@ -193,6 +_,11 @@
+@@ -195,6 +_,11 @@
  
              for (Direction direction : POSSIBLE_FLOW_DIRECTIONS) {
                  BlockPos blockPos = pos.relative(direction.getOpposite());

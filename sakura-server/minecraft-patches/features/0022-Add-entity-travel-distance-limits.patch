@@ -5,7 +5,7 @@ Subject: [PATCH] Add entity travel distance limits
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 0b9ac2b9e07102babf3c8975cae42841b63f1c63..c94aa1d950a18a29692f9c4e668c8495985ca4c8 100644
+index f6e3cc7659175b29b238f7a0ff12f96d035a7b6a..d68056892cf9f41be819e76535e6cbe553958867 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -1343,6 +1343,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -21,7 +21,7 @@ index 0b9ac2b9e07102babf3c8975cae42841b63f1c63..c94aa1d950a18a29692f9c4e668c8495
          } else {entity.inactiveTick();} // Paper - EAR 2
          profilerFiller.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a0e8c5d822c9312054c682d2727d05eb9d885cd5..c5d38a77e28574d54677cd23b690f9ea3994ee63 100644
+index 0ff02180233e72266f6997aa6edb7878881c0ba1..2d54ee2493f03af8fb5cb1a44a2e802742675042 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -603,6 +603,18 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -41,13 +41,13 @@ index a0e8c5d822c9312054c682d2727d05eb9d885cd5..c5d38a77e28574d54677cd23b690f9ea
 +    }
 +    // Sakura end - entity travel distance limits
  
-     public Entity(EntityType<?> entityType, Level level) {
-         this.type = entityType;
+     public Entity(EntityType<?> type, Level level) {
+         this.type = type;
 @@ -632,6 +644,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          this.setPos(0.0, 0.0, 0.0);
          this.eyeHeight = this.dimensions.eyeHeight();
          this.despawnTime = level == null || type == EntityType.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit
-+        this.travelDistanceLimit = level == null ? Integer.MAX_VALUE : Math.pow(level.sakuraConfig().entity.chunkTravelLimit.getOrDefault(entityType, Integer.MAX_VALUE) * 16.0, 2); // Sakura - entity travel distance limits
++        this.travelDistanceLimit = level == null ? Integer.MAX_VALUE : Math.pow(level.sakuraConfig().entity.chunkTravelLimit.getOrDefault(type, Integer.MAX_VALUE) * 16.0, 2); // Sakura - entity travel distance limits
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {

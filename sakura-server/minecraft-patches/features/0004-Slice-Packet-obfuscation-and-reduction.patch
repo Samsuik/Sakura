@@ -153,20 +153,20 @@ index 638432a2e6506d3db6a25c068a33eeafb13cf0d6..c386288e808e97c938f1909d81ebfa00
  
          if (this.entity instanceof LivingEntity) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 82f8f4bbadf569fd64d3babbb988ebcd7abe59b2..f66cc3104a4d3f61833ef6fdae79ef4a480aa2dd 100644
+index e8f262dd220e07a8b70e931274535f3c474d24a4..a7139549066914b3bc318bc409b392645344b3c4 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -3708,7 +3708,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
-             this.entityData.markDirty(Entity.DATA_AIR_SUPPLY_ID);
+@@ -3707,7 +3707,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+             this.entityData.markDirty(DATA_AIR_SUPPLY_ID);
              return;
          }
--        this.entityData.set(Entity.DATA_AIR_SUPPLY_ID, event.getAmount());
-+        this.entityData.set(Entity.DATA_AIR_SUPPLY_ID, event.getAmount(), getMaxAirSupply()); // Slice
+-        this.entityData.set(DATA_AIR_SUPPLY_ID, event.getAmount());
++        this.entityData.set(DATA_AIR_SUPPLY_ID, event.getAmount(), this.getMaxAirSupply()); // Slice - packet obfuscation and reduction
          // CraftBukkit end
      }
  
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 44f04d0a6b1a47fa152f955a22cc8b8f1d2b3348..59aa539b7d830de48ff582b0da6fa17796b8c4b8 100644
+index d1f806f950707091d02788117c1f8cffe5b2de04..a4fd6b0a6762ce4d9e488f305dd2abe1e43edbd8 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -144,7 +144,7 @@ public class FallingBlockEntity extends Entity {
@@ -179,7 +179,7 @@ index 44f04d0a6b1a47fa152f955a22cc8b8f1d2b3348..59aa539b7d830de48ff582b0da6fa177
  
      public BlockPos getStartPos() {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 2572c0fe5fc6bd2f389569cdaa907a8b5203f5b4..6797e16f973b11d168906dfce240c70db25bc6f0 100644
+index dd4e2419892a8879106eaaccbf406bec12bbd017..ef61333619d772a3acba6e2f6997655016b399f9 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -228,7 +228,11 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -196,7 +196,7 @@ index 2572c0fe5fc6bd2f389569cdaa907a8b5203f5b4..6797e16f973b11d168906dfce240c70d
  
      public int getFuse() {
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index e2d5426b6c88dd3fbc64864b8bbd9a39a3ffa4ee..4a8ec0354ccc81dea6dac795975b59895b00f07f 100644
+index 0d19e0c6d8a2a7a26dfb594a2cd8f1a533347690..5f214aaad020552d2db143a1f7a33e8c858731a0 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -580,7 +580,7 @@ public abstract class Player extends Avatar implements ContainerUser {
@@ -207,4 +207,4 @@ index e2d5426b6c88dd3fbc64864b8bbd9a39a3ffa4ee..4a8ec0354ccc81dea6dac795975b5989
 +        this.entityData.set(DATA_SCORE_ID, score1 + score, 0); // Slice - packet obfuscation and reduction
      }
  
-     public void startAutoSpinAttack(int ticks, float damage, ItemStack itemStack) {
+     public void startAutoSpinAttack(int ticks, float damageAmount, ItemStack stack) {

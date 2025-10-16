@@ -5,7 +5,7 @@ Subject: [PATCH] Client Visibility Settings
 
 
 diff --git a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
-index 6987eeace609fbfba967922e558e09268e0f6d44..e45e2d6094620d761b624bfaf5dfbbed4d559858 100644
+index 33ca4c2110673dee34b66c8d05ee83c4df828f2e..af31a3b9d0308e84c675e570ca7229a6171a0b7b 100644
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 +++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 @@ -31,7 +31,7 @@ public class ClientboundLevelChunkPacketData {
@@ -36,7 +36,7 @@ index 6987eeace609fbfba967922e558e09268e0f6d44..e45e2d6094620d761b624bfaf5dfbbed
          final CompoundTag tag;
  
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index c151134781e5a02892b79401595e897eb1733e86..3757c436b7a181831eb6a362549c89f361e96868 100644
+index 07f44bb61487671dd7df4524e7c65e101a1fc5b5..cf2b2794a2979d206ae9348498e4d8fadc16bc66 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -173,6 +173,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -109,7 +109,7 @@ index c151134781e5a02892b79401595e897eb1733e86..3757c436b7a181831eb6a362549c89f3
                  if (flag && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
                      flag = false;
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 88a296df6eeeb50c25f370ccab802a3277943d59..477c3436d6586a9fd9f0486bc8102808c15c5bae 100644
+index 0a470f95e6c5399b92bf06f3c37fe31d9667acea..ca98972697fe2961402bea4cfb0cf86ea80a92f0 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -591,6 +591,22 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -166,7 +166,7 @@ index 88a296df6eeeb50c25f370ccab802a3277943d59..477c3436d6586a9fd9f0486bc8102808
          }
  
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 25bb23d613d44986caa118ec6a624c9ce329afb1..adf7db8095404825c392bb6bd399f02345693e9e 100644
+index 23bbe6f4e6b0dcb0b72cfe5d05f7e104d77edfa5..fcf471510fc9ea2456f6368e3d821ee987235eb8 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -473,6 +473,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -256,7 +256,7 @@ index c6db2c96db96453daaf49779f588f75f7c3d3d60..fd08d04c13a4064c658e0aad436b4883
          if (packet.isTerminal()) {
              this.close();
 diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 7f6cc8f111f6f5df311397a7e31e25fa2c93c685..877a53bb8d0ef0693c6c77f70fe63bc63664187e 100644
+index 466735e2ca2092e0f5638792b2697ee04d3c299e..9c1f76bf678f54fe057a7d799cfb4ad7639fda52 100644
 --- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -3221,6 +3221,7 @@ public class ServerGamePacketListenerImpl
@@ -268,7 +268,7 @@ index 7f6cc8f111f6f5df311397a7e31e25fa2c93c685..877a53bb8d0ef0693c6c77f70fe63bc6
                          if (this.player.containerMenu != oldContainer) {
                              this.player.containerMenu.resumeRemoteUpdates();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 57f01bf4af29c6a5e0f80c272917cb6aa43855b9..9644382065aa9e3c611e62b3679f753ea5390e33 100644
+index 476a88f9f9e93b4b9cf64f9f5b331bea15e70018..e9c536a11e403e1c979e01d21bfd3d167e439903 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -535,6 +535,10 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -280,14 +280,14 @@ index 57f01bf4af29c6a5e0f80c272917cb6aa43855b9..9644382065aa9e3c611e62b3679f753e
 +    public boolean isFallingBlock;
 +    // Sakura end - client visibility settings
  
-     public Entity(EntityType<?> entityType, Level level) {
-         this.type = entityType;
+     public Entity(EntityType<?> type, Level level) {
+         this.type = type;
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 31e0739bc20096fa368f2b22bb45034a6fe1fe43..c7a930caa2264c9465baf61a0ed8a188119f28c8 100644
+index 7b67387d3bb66b1c8ab77e1805c9530a8f1ffa3c..8150b567c05d2c8e87f4b65d616d5c0c01bc2e19 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -79,6 +79,7 @@ public class FallingBlockEntity extends Entity {
-         super(entityType, level);
+         super(type, level);
          this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
 +        this.isFallingBlock = true; // Sakura - client visibility settings
@@ -295,12 +295,12 @@ index 31e0739bc20096fa368f2b22bb45034a6fe1fe43..c7a930caa2264c9465baf61a0ed8a188
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index df5b6c6c06fc594c3d51e59bab59a625ac1e4bae..4d0bc49ce0868d7a5a1870be4e19eb08f3f31482 100644
+index 18162042ee54e54bc4539a7a01a1fc88cc9b3f3a..71071899443fdb02beb0321f271430c732178e26 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -63,6 +63,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
-     public PrimedTnt(EntityType<? extends PrimedTnt> entityType, Level level) {
-         super(entityType, level);
+     public PrimedTnt(EntityType<? extends PrimedTnt> type, Level level) {
+         super(type, level);
          this.blocksBuilding = true;
 +        this.isPrimedTNT = true; // Sakura - client visibility settings
      }

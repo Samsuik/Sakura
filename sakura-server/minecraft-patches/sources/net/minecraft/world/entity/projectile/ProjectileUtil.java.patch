@@ -5,15 +5,15 @@
          }
  
 -        HitResult entityHitResult = getEntityHitResult(
--            level, projectile, pos, vec3, projectile.getBoundingBox().expandTowards(deltaMovement).inflate(1.0), filter, margin
+-            level, source, pos, vec3, source.getBoundingBox().expandTowards(deltaMovement).inflate(1.0), filter, margin
 -        );
 +        // Sakura start - configure potion mechanics
-+        final AABB movementAABB = projectile.getBoundingBox().expandTowards(deltaMovement).inflate(1.0);
++        final AABB movementAABB = source.getBoundingBox().expandTowards(deltaMovement).inflate(1.0);
 +        final HitResult entityHitResult;
-+        if (level.sakuraConfig().entity.thrownPotion.allowBreakingInsideEntities && projectile instanceof AbstractThrownPotion) {
-+            entityHitResult = getEntityHitResult(projectile, pos, vec3, movementAABB, filter, margin);
++        if (level.sakuraConfig().entity.thrownPotion.allowBreakingInsideEntities && source instanceof AbstractThrownPotion) {
++            entityHitResult = getEntityHitResult(source, pos, vec3, movementAABB, filter, margin);
 +        } else {
-+            entityHitResult = getEntityHitResult(level, projectile, pos, vec3, movementAABB, filter, margin);
++            entityHitResult = getEntityHitResult(level, source, pos, vec3, movementAABB, filter, margin);
 +        }
 +        // Sakura end - configure potion mechanics
          if (entityHitResult != null) {

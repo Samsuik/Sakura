@@ -62,7 +62,7 @@ index 25ea504fa93f78b43237e1c79f8b5685a2aa6d7c..5395b3e0491f197ffea3910d3f172dcd
      private static TicketType register(String name, long timeout, int flags) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 9644382065aa9e3c611e62b3679f753ea5390e33..82f8f4bbadf569fd64d3babbb988ebcd7abe59b2 100644
+index e9c536a11e403e1c979e01d21bfd3d167e439903..e8f262dd220e07a8b70e931274535f3c474d24a4 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -539,6 +539,19 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -83,8 +83,8 @@ index 9644382065aa9e3c611e62b3679f753ea5390e33..82f8f4bbadf569fd64d3babbb988ebcd
 +    }
 +    // Sakura end - load chunks on movement
  
-     public Entity(EntityType<?> entityType, Level level) {
-         this.type = entityType;
+     public Entity(EntityType<?> type, Level level) {
+         this.type = type;
 @@ -1540,7 +1553,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
  
          ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder(
@@ -94,7 +94,7 @@ index 9644382065aa9e3c611e62b3679f753ea5390e33..82f8f4bbadf569fd64d3babbb988ebcd
          );
          potentialCollisionsBB.addAll(entityAABBs);
          final Vec3 collided = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currentBox, potentialCollisionsVoxel, potentialCollisionsBB);
-@@ -5243,13 +5256,14 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -5242,13 +5255,14 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      @Override
      public boolean shouldBeSaved() {
          return (this.removalReason == null || this.removalReason.shouldSave())
@@ -111,7 +111,7 @@ index 9644382065aa9e3c611e62b3679f753ea5390e33..82f8f4bbadf569fd64d3babbb988ebcd
  
      public boolean mayInteract(ServerLevel level, BlockPos pos) {
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index c7a930caa2264c9465baf61a0ed8a188119f28c8..44f04d0a6b1a47fa152f955a22cc8b8f1d2b3348 100644
+index 8150b567c05d2c8e87f4b65d616d5c0c01bc2e19..d1f806f950707091d02788117c1f8cffe5b2de04 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -80,6 +80,7 @@ public class FallingBlockEntity extends Entity {
@@ -123,11 +123,11 @@ index c7a930caa2264c9465baf61a0ed8a188119f28c8..44f04d0a6b1a47fa152f955a22cc8b8f
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 4d0bc49ce0868d7a5a1870be4e19eb08f3f31482..2572c0fe5fc6bd2f389569cdaa907a8b5203f5b4 100644
+index 71071899443fdb02beb0321f271430c732178e26..dd4e2419892a8879106eaaccbf406bec12bbd017 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -64,6 +64,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
-         super(entityType, level);
+         super(type, level);
          this.blocksBuilding = true;
          this.isPrimedTNT = true; // Sakura - client visibility settings
 +        this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
@@ -135,7 +135,7 @@ index 4d0bc49ce0868d7a5a1870be4e19eb08f3f31482..2572c0fe5fc6bd2f389569cdaa907a8b
  
      public PrimedTnt(Level level, double x, double y, double z, @Nullable LivingEntity owner) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 9889485b15501c1adf1a73bb4603d3477860482d..833048754d7f60ad7f528f38c7d34804e1bf5ee1 100644
+index 98b7e1e3b8592824c69a9647a82621755526c71a..6c997cb573a489f9ca0b7ffe278de5f66e667aa8 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
 @@ -137,6 +137,15 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
