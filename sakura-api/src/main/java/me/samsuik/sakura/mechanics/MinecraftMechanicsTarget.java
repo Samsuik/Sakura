@@ -76,6 +76,7 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
         final byte serverType = switch (serverPart.toLowerCase(Locale.ENGLISH)) {
             case "vanilla" -> ServerType.VANILLA;
             case "spigot"  -> ServerType.SPIGOT;
+            case "sake"    -> ServerType.SAKE;
             default        -> ServerType.PAPER;
         };
 

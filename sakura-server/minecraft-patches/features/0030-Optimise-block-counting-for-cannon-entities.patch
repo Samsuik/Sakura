@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise block counting for cannon entities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 3231c86488806376b086bc26ceba77a509105b81..7bb7eba143f294955eb6b4033b518ea99e428466 100644
+index 5d95d8747c4816d27bab6455b3bdfb7b50ae265f..079e887cac1a903af23c1a9ace47b9e388324909 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-@@ -1941,6 +1941,7 @@ public final class CollisionUtil {
+@@ -1942,6 +1942,7 @@ public final class CollisionUtil {
          final CollisionContext collisionShape = new LazyEntityCollisionContext(entity);
          final boolean useEntityCollisionShape = LazyEntityCollisionContext.useEntityCollisionShape(world, entity);
          final long gameTime = world.getGameTime(); // Sakura - load chunks on movement
@@ -16,9 +16,9 @@ index 3231c86488806376b086bc26ceba77a509105b81..7bb7eba143f294955eb6b4033b518ea9
  
          // special cases:
          if (minBlockY > maxBlockY) {
-@@ -2004,15 +2005,19 @@ public final class CollisionUtil {
+@@ -2006,15 +2007,19 @@ public final class CollisionUtil {
  
-                     final boolean hasSpecial = !fullBlocks && section.moonrise$hasSpecialCollidingBlocks(); // Sakura - collide with non-solid blocks
+                     final boolean hasSpecial = !fullBlocks && !skipEdges && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - configure server mechanics
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
 +                    // Sakura start - optimise block counting for cannon entities
 +                    final boolean hasMovingBlocks = section.hasMovingPistonBlocks();
@@ -42,7 +42,7 @@ index 3231c86488806376b086bc26ceba77a509105b81..7bb7eba143f294955eb6b4033b518ea9
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index a760757da12210b315baad6c3a3d6f52450e78b2..07352f9ca3e801de5cad99bb31317bc508a011cd 100644
+index 378a88bbb605e22c74e5f2eea30dd9a3431c2c12..ac83b2d1b0a7973fc128cf8b54421d5c8393405b 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -621,6 +621,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -79,7 +79,7 @@ index a760757da12210b315baad6c3a3d6f52450e78b2..07352f9ca3e801de5cad99bb31317bc5
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/chunk/LevelChunkSection.java b/net/minecraft/world/level/chunk/LevelChunkSection.java
-index 512835828f65f496c730122091d9bd117ca5eb78..6699f03354449f01291b1acaf334bfb24729f38a 100644
+index 955f97ea45c7b980f0f2c4321d27050bec1eabe5..db0b34e0e6b132715dd81a185a3401d80ec40708 100644
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
 @@ -63,6 +63,13 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_

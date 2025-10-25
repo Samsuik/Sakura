@@ -33,25 +33,25 @@ index ff747a1ecdf3c888bca0d69de4f85dcd810b6139..d90f6aa4557b5863eba6a206226f763c
          }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index d68056892cf9f41be819e76535e6cbe553958867..c00d922188a11a90902bb51cd73977855c3fb6ca 100644
+index e7e5932235a4af05106e87a48f3df261fc33d96b..92d315bcb54a0b72dc0befc6550cc46174ad290b 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -718,6 +718,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-         this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
+@@ -719,6 +719,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
          this.levelTickScheduler.repeatingTask(this.densityCache::expire, 0); // Sakura - explosion density cache
+         this.levelTickScheduler.repeatingTask(this.dispenseRelocationHandler::clear, 0); // Sakura - configure server mechanics
 +        this.levelTickScheduler.repeatingTask(this.redstoneWireCache::expire, 300); // Sakura - cache vanilla and eigencraft wires
      }
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 89e89f79a56098c5bcf33dea874fcf0234a071e8..859986b30af1ed33ebebfa99bef168b3bccb60e9 100644
+index 037afee0806646ae813bc4f067f4d7600d624b18..378a88bbb605e22c74e5f2eea30dd9a3431c2c12 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -836,6 +836,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
+@@ -837,6 +837,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
+     public final me.samsuik.sakura.entity.dispensing.DispenseRelocationHandler dispenseRelocationHandler = new me.samsuik.sakura.entity.dispensing.DispenseRelocationHandler(this); // Sakura - configure server mechanics
 +    public final me.samsuik.sakura.redstone.cache.RedstoneWireCache redstoneWireCache = new me.samsuik.sakura.redstone.cache.RedstoneWireCache(this); // Sakura - cache vanilla and eigencraft wires
  
      protected Level(

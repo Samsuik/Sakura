@@ -5,35 +5,35 @@ Subject: [PATCH] Collide with non-solid blocks
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 0f0f1cb55bc167071e84ec998469001374995e8f..54d561e1b4069df7115457accb0763fa7586dddc 100644
+index 4c18fcd50c79e767bfea908ca6660b667f9d359b..5d95d8747c4816d27bab6455b3bdfb7b50ae265f 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-@@ -1905,6 +1905,7 @@ public final class CollisionUtil {
-     public static final int COLLISION_FLAG_CHECK_BORDER = 1 << 2;
+@@ -1906,6 +1906,7 @@ public final class CollisionUtil {
      public static final int COLLISION_FLAG_CHECK_ONLY = 1 << 3;
      public static final int COLLISION_FLAG_ADD_TICKET = 1 << 4; // Sakura - load chunks on movement
-+    public static final int COLLISION_FLAG_FULL_BLOCKS = 1 << 5; // Sakura - collide with non-solid blocks
+     public static final int COLLISION_FLAG_SKIP_EDGES = 1 << 5; // Sakura - configure server mechanics
++    public static final int COLLISION_FLAG_FULL_BLOCKS = 1 << 6; // Sakura - collide with non-solid blocks
  
      public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
                                                                final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
-@@ -1958,6 +1959,7 @@ public final class CollisionUtil {
- 
+@@ -1960,6 +1961,7 @@ public final class CollisionUtil {
          final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
          final boolean addTicket  = (collisionFlags & COLLISION_FLAG_ADD_TICKET) != 0; // Sakura - load chunks on movement
+         final boolean skipEdges  = (collisionFlags & COLLISION_FLAG_SKIP_EDGES) != 0; // Sakura - configure server mechanics
 +        final boolean fullBlocks = (collisionFlags & COLLISION_FLAG_FULL_BLOCKS) != 0; // Sakura - collide with non-solid blocks
          final ChunkSource chunkSource = world.getChunkSource();
  
          for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
-@@ -2000,7 +2002,7 @@ public final class CollisionUtil {
+@@ -2002,7 +2004,7 @@ public final class CollisionUtil {
                          continue;
                      }
  
--                    final boolean hasSpecial = ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks();
-+                    final boolean hasSpecial = !fullBlocks && section.moonrise$hasSpecialCollidingBlocks(); // Sakura - collide with non-solid blocks
+-                    final boolean hasSpecial = !skipEdges && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - configure server mechanics
++                    final boolean hasSpecial = !fullBlocks && !skipEdges && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - configure server mechanics
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
  
                      final PalettedContainer<BlockState> blocks = section.states;
-@@ -2039,6 +2041,11 @@ public final class CollisionUtil {
+@@ -2041,6 +2043,11 @@ public final class CollisionUtil {
                                      mutablePos.set(blockX, blockY, blockZ);
                                      if (useEntityCollisionShape) {
                                          blockCollision = collisionShape.getCollisionShape(blockData, world, mutablePos);
@@ -46,7 +46,7 @@ index 0f0f1cb55bc167071e84ec998469001374995e8f..54d561e1b4069df7115457accb0763fa
                                          blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
                                      }
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 87948a1f3ff9b9e5ac2de8e4eb033e31a6818a2e..6d1edbfd851737d19ce0a3ffa4914c6beecaa440 100644
+index 57e2f0ffa70808e646c3a54c6d11eff10c0a94cd..f0e6cd81d358fa90d99d2123b77a56bc6936a34e 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -549,6 +549,14 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
