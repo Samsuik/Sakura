@@ -17,7 +17,7 @@ public final class ServerType {
             case 0 -> "vanilla";
             case 1 -> "spigot";
             case 2 -> "paper";
-            case 33 -> "sake";
+            case 32 -> "sake";
             default -> "unknown";
         };
     }
