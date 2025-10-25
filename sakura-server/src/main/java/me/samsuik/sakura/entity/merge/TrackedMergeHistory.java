@@ -55,9 +55,13 @@ public final class TrackedMergeHistory {
     @Contract("_, false -> _; _, true -> !null")
     private @Nullable PositionHistory getHistory(final Entity entity, final boolean create) {
         final long position = entity.getPackedOriginPosition();
-        return this.historyMap.computeIfAbsent(position, p -> {
-            return create ? new PositionHistory(entity.level().getGameTime()) : null;
-        });
+        PositionHistory history = this.historyMap.get(position);
+        //noinspection ConstantValue
+        if (create && history == null) {
+            history = new PositionHistory(entity.level().getGameTime());
+            this.historyMap.put(position, history);
+        }
+        return history;
     }
 
     private static final class PositionHistory {
