@@ -96,12 +96,14 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
                 default -> 0;
             };
         } else {
-            // 21.1 -> 1.21.1
+            // 21.1 -> 1.21.1, 1.18 -> 1.18.0, 2.3 -> 1.2.3
             final int first  = Integer.parseInt(version[0]);
             final int second = Integer.parseInt(version[1]);
             if (version.length == 3) {
                 final int third = Integer.parseInt(version[2]);
                 mechanicVersion = MinecraftVersionEncoding.encode(first, second, third);
+            } else if (first == 1) {
+                mechanicVersion = MinecraftVersionEncoding.v1xy(second, 0);
             } else {
                 mechanicVersion = MinecraftVersionEncoding.v1xy(first, second);
             }
