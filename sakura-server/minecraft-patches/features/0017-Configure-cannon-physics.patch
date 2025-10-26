@@ -690,10 +690,10 @@ index 807d88528e22117b7fb4090c859c48e38c8be385..5a8826584fd02886a9ffc624c61ad260
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index b13aae809e974b42bc1b17f4f4455999adca6f5f..0a279388e965a8d059189a8dfdbec3ff951af876 100644
+index b13aae809e974b42bc1b17f4f4455999adca6f5f..1070ad18c1d9441f7fa38a06541e54ccb2ddd63f 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -378,6 +378,17 @@ public class ServerExplosion implements Explosion {
+@@ -378,6 +378,37 @@ public class ServerExplosion implements Explosion {
          return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);
      }
      // Sakura end - explosion durable blocks
@@ -701,17 +701,37 @@ index b13aae809e974b42bc1b17f4f4455999adca6f5f..0a279388e965a8d059189a8dfdbec3ff
 +    protected final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget;
 +
 +    private float sakura$getSeenPercent(final Vec3 explosionPos, final Entity entity) {
-+        if (this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)) {
++        if (this.mechanicsTarget.isServerType(me.samsuik.sakura.mechanics.ServerType.SAKE)) {
++            return this.getSeenPercentSingleRaycast(explosionPos, entity);
++        } else if (this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)) {
 +            return this.getSeenFraction(explosionPos, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
 +        } else {
 +            return getSeenPercent(explosionPos, entity);
 +        }
 +    }
++
++    private float getSeenPercentSingleRaycast(final Vec3 explosionPos, final Entity entity) {
++        final AABB bounds = entity.getBoundingBox();
++        final double middle = 1.0 / (bounds.getYsize() * 2.0 + 1.0);
++        final Vec3 point = new Vec3(entity.getX(), entity.getY() + middle, entity.getZ());
++
++        final HitResult.Type hitResult;
++        if (this.mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_14)) {
++            hitResult = me.samsuik.sakura.mechanics.LegacyExplosionBlockClipping.clip(entity.level(), point, explosionPos);
++        } else {
++            final ClipContext.Block blockContext = entity.mechanicsTarget().atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)
++                ? ClipContext.Block.COLLIDER
++                : ClipContext.Block.OUTLINE;
++            hitResult = entity.level().clip(new ClipContext(point, explosionPos, blockContext, ClipContext.Fluid.NONE, entity)).getType();
++        }
++
++        return hitResult == HitResult.Type.MISS ? 1.0f : 0.0f;
++    }
 +    // Sakura end - configure server mechanics
  
      public ServerExplosion(
          ServerLevel level,
-@@ -402,6 +413,7 @@ public class ServerExplosion implements Explosion {
+@@ -402,6 +433,7 @@ public class ServerExplosion implements Explosion {
          this.yield = Double.isFinite(this.yield) ? this.yield : 0; // Paper - Don't allow infinite default yields
          // Paper end - add yield
          this.consistentExplosionRadius = level.localConfig().at(this.center).consistentExplosionRadius; // Sakura - consistent explosion radius
@@ -719,7 +739,7 @@ index b13aae809e974b42bc1b17f4f4455999adca6f5f..0a279388e965a8d059189a8dfdbec3ff
      }
  
      private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
-@@ -431,8 +443,15 @@ public class ServerExplosion implements Explosion {
+@@ -431,8 +463,15 @@ public class ServerExplosion implements Explosion {
                          final float density = entity.level().densityCache.getKnownDensity(vec3);
                          if (density != me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
                              hitResult = density != 0.0f ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
@@ -736,7 +756,7 @@ index b13aae809e974b42bc1b17f4f4455999adca6f5f..0a279388e965a8d059189a8dfdbec3ff
                          }
                          if (hitResult == HitResult.Type.MISS) {
                              // Sakura end - replace density cache
-@@ -530,6 +549,15 @@ public class ServerExplosion implements Explosion {
+@@ -530,6 +569,15 @@ public class ServerExplosion implements Explosion {
                  }
  
                  if (cachedBlock.outOfWorld) {
@@ -752,7 +772,7 @@ index b13aae809e974b42bc1b17f4f4455999adca6f5f..0a279388e965a8d059189a8dfdbec3ff
                      break;
                  }
                  final BlockState iblockdata = cachedBlock.blockState;
-@@ -594,7 +622,27 @@ public class ServerExplosion implements Explosion {
+@@ -594,7 +642,27 @@ public class ServerExplosion implements Explosion {
                  double d = Math.sqrt(entity.distanceToSqr(this.center)) / f;
                  if (!(d > 1.0)) {
                      Vec3 vec3 = entity instanceof PrimedTnt ? entity.position() : entity.getEyePosition();
@@ -781,7 +801,7 @@ index b13aae809e974b42bc1b17f4f4455999adca6f5f..0a279388e965a8d059189a8dfdbec3ff
                      boolean shouldDamageEntity = this.damageCalculator.shouldDamageEntity(this, entity);
                      float knockbackMultiplier = this.damageCalculator.getKnockbackMultiplier(entity);
                      float f1 = !shouldDamageEntity && knockbackMultiplier == 0.0F ? 0.0F : this.getBlockDensity(this.center, entity); // Paper - Optimize explosions
-@@ -868,7 +916,7 @@ public class ServerExplosion implements Explosion {
+@@ -868,7 +936,7 @@ public class ServerExplosion implements Explosion {
          // Sakura start - replace density cache
          float blockDensity = this.level.densityCache.getBlockDensity(vec3d, entity);
          if (blockDensity == me.samsuik.sakura.explosion.density.BlockDensityCache.UNKNOWN_DENSITY) {
