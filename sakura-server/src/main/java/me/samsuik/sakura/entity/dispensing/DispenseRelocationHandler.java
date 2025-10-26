@@ -50,8 +50,8 @@ public final class DispenseRelocationHandler {
         final Set<BlockPos> dispensers = new HashSet<>(List.of(pos));
         final Direction facing = state.getValue(DispenserBlock.FACING);
 
-        // if the source doesn't meet the conditions then don't search
-        if (!this.doesDispenserMeetConditions(pos, state, facing, true)) {
+        // check if the source meets the conditions and is facing horizontally
+        if (facing.getAxis().isVertical() || !this.doesDispenserMeetConditions(pos, state, facing, true)) {
             return dispensers;
         }
 
