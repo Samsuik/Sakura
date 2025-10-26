@@ -29,7 +29,7 @@ public final class DispenseRelocationHandler {
         if (group == null) {
             final Set<BlockPos> connected = this.getConnectedDispensers(sourcePos, sourceState);
             final DispenserGroup newGroup = new DispenserGroup();
-            connected.forEach(dispenserPos -> groups.put(dispenserPos, newGroup));
+            connected.forEach(dispenserPos -> groups.putIfAbsent(dispenserPos, newGroup));
             group = newGroup;
         }
 
