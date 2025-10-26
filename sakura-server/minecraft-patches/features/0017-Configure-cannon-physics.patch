@@ -379,7 +379,7 @@ index f2b9d350f81870c6b9ce0c123573ad2b2762bf8b..0446539327d5c1d1e58b19863dbe08b5
          Vec3 vec3 = to.subtract(from);
          return aabb.collidedAlongVector(vec3, boxes);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 00d0cabd7d190e6258b595c372440b0fd06311a4..46d7f001d299ed6bb7987fe3c06c9cd1651bda80 100644
+index 00d0cabd7d190e6258b595c372440b0fd06311a4..ce4b253c886aa2afe265d5c38b2799ddda8100bf 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -130,6 +130,25 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -408,7 +408,7 @@ index 00d0cabd7d190e6258b595c372440b0fd06311a4..46d7f001d299ed6bb7987fe3c06c9cd1
  
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
          super(type, level);
-@@ -150,6 +169,10 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -150,12 +169,16 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          this.yo = y;
          this.zo = z;
          this.setStartPos(this.blockPosition());
@@ -419,6 +419,13 @@ index 00d0cabd7d190e6258b595c372440b0fd06311a4..46d7f001d299ed6bb7987fe3c06c9cd1
      }
  
      // Sakura start - falling block height parity api
+     @Override
+     public final double getEyeY() {
+-        return this.heightParity ? this.getY() : super.getEyeY();
++        return this.heightParity && !this.mechanicsTarget.isLegacy() ? this.getY() : super.getEyeY(); // Sakura - configure server mechanics
+     }
+     // Sakura end - falling block height parity api
+     // Sakura start - falling block stacking restrictions
 @@ -181,7 +204,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
          );
