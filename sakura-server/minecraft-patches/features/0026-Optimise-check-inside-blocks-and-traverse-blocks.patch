@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise check inside blocks and traverse blocks
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index f2d4e2e8b5b53fea5966999dc75b15833205f139..d0d75402c8e0647abccfa1597a94faeb6f89e9f6 100644
+index 406b50d9930b787432d3fd9f9b704401e06a3948..1785811bdeee2f49e0508f21d6c93b2cb2869901 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1943,6 +1943,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1942,6 +1942,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          if (this.isAffectedByBlocks()) {
              LongSet set = this.visitedBlocks;
              final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget; // Sakura - configure server mechanics
@@ -16,7 +16,7 @@ index f2d4e2e8b5b53fea5966999dc75b15833205f139..d0d75402c8e0647abccfa1597a94faeb
  
              for (Entity.Movement movement : movements) {
                  Vec3 vec3 = movement.from;
-@@ -1960,7 +1961,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1959,7 +1960,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
                          double d = vec31.get(axis);
                          if (d != 0.0) {
                              Vec3 vec32 = vec3.relative(axis.getPositive(), d);
@@ -25,7 +25,7 @@ index f2d4e2e8b5b53fea5966999dc75b15833205f139..d0d75402c8e0647abccfa1597a94faeb
                              if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)) {
                                  i -= stepsTaken;
                              }
-@@ -1968,12 +1969,12 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1967,12 +1968,12 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
                          }
                      }
                  } else if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
@@ -40,7 +40,7 @@ index f2d4e2e8b5b53fea5966999dc75b15833205f139..d0d75402c8e0647abccfa1597a94faeb
                  }
              }
  
-@@ -1981,7 +1982,16 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1980,7 +1981,16 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          }
      }
  
@@ -58,7 +58,7 @@ index f2d4e2e8b5b53fea5966999dc75b15833205f139..d0d75402c8e0647abccfa1597a94faeb
          // Sakura start - configure server mechanics
          final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
          final double margin;
-@@ -2011,7 +2021,20 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -2010,7 +2020,20 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
                      return false;
                  } else {
                      atomicInteger.set(index);

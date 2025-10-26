@@ -128,10 +128,10 @@ index f6e3cc7659175b29b238f7a0ff12f96d035a7b6a..b199cc18e72bfa011f6dc3a7a9e84625
  
      // Paper start
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff10c0a94cd 100644
+index f2b9d350f81870c6b9ce0c123573ad2b2762bf8b..0446539327d5c1d1e58b19863dbe08b593e5727c 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -588,6 +588,13 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -587,6 +587,13 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          }
      }
      // Sakura end - merge cannon entities
@@ -145,7 +145,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
  
      public Entity(EntityType<?> type, Level level) {
          this.type = type;
-@@ -1116,7 +1123,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1115,7 +1122,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      }
  
      protected void checkSupportingBlock(boolean onGround, @Nullable Vec3 movement) {
@@ -154,7 +154,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
              AABB boundingBox = this.getBoundingBox();
              AABB aabb = new AABB(boundingBox.minX, boundingBox.minY - 1.0E-6, boundingBox.minZ, boundingBox.maxX, boundingBox.minY, boundingBox.maxZ);
              Optional<BlockPos> optional = this.level.findSupportingBlock(this, aabb);
-@@ -1170,7 +1177,10 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1169,7 +1176,10 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              this.verticalCollisionBelow = false;
              this.minorHorizontalCollision = false;
          } else {
@@ -166,7 +166,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
                  // Paper start - EAR 2
                  this.activatedTick = Math.max(this.activatedTick, net.minecraft.server.MinecraftServer.currentTick + 20);
                  this.activatedImmunityTick = Math.max(this.activatedImmunityTick, net.minecraft.server.MinecraftServer.currentTick + 20);
-@@ -1184,7 +1194,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1183,7 +1193,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              ProfilerFiller profilerFiller = Profiler.get();
              profilerFiller.push("move");
              if (this.stuckSpeedMultiplier.lengthSqr() > 1.0E-7) {
@@ -175,7 +175,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
                      movement = movement.multiply(this.stuckSpeedMultiplier);
                  }
  
-@@ -1202,10 +1212,17 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1201,10 +1211,17 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              movement = this.maybeBackOffFromEdge(movement, type);
              Vec3 vec3 = this.collide(movement);
              double d = vec3.lengthSqr();
@@ -197,7 +197,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
                      BlockHitResult blockHitResult = this.level()
                          .clip(new ClipContext(this.position(), vec31, ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
                      if (blockHitResult.getType() != HitResult.Type.MISS) {
-@@ -1214,9 +1231,15 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1213,9 +1230,15 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
                  }
  
                  Vec3 vec32 = this.position();
@@ -216,7 +216,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
              }
  
              profilerFiller.pop();
-@@ -1247,6 +1270,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1246,6 +1269,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              } else {
                  if (this.horizontalCollision) {
                      Vec3 deltaMovement = this.getDeltaMovement();
@@ -228,7 +228,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
                      this.setDeltaMovement(flag ? 0.0 : deltaMovement.x, deltaMovement.y, flag1 ? 0.0 : deltaMovement.z);
                  }
  
-@@ -1336,7 +1364,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1335,7 +1363,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          this.finalMovementsThisTick.clear();
          this.finalMovementsThisTick.addAll(this.movementThisTick);
          this.movementThisTick.clear();
@@ -237,7 +237,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
              this.finalMovementsThisTick.add(new Entity.Movement(this.oldPosition(), this.position()));
          } else if (this.finalMovementsThisTick.getLast().to.distanceToSqr(this.position()) > 9.9999994E-11F) {
              this.finalMovementsThisTick.add(new Entity.Movement(this.finalMovementsThisTick.getLast().to, this.position()));
-@@ -1568,7 +1596,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1567,7 +1595,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          final List<AABB> potentialCollisionsBB = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(4);
          final AABB currBoundingBox = this.getBoundingBox();
  
@@ -246,7 +246,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
              return this.collideAxisScan(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
          } else {
              return this.collideCube(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
-@@ -1588,7 +1616,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1587,7 +1615,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          }
  
          this.collectCollisions(bb, voxelList, bbList, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
@@ -255,7 +255,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
      }
  
      private Vec3 collideAxisScan(final Vec3 movement, AABB currBoundingBox, final List<VoxelShape> voxelList, final List<AABB> bbList) {
-@@ -1596,7 +1624,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1595,7 +1623,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          double y = movement.y;
          double z = movement.z;
  
@@ -264,7 +264,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
  
          if (y != 0.0) {
              y = this.scanY(currBoundingBox, y, voxelList, bbList);
-@@ -1647,7 +1675,12 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1646,7 +1674,12 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
  
      private double scanY(final AABB currBoundingBox, double y, final List<VoxelShape> voxelList, final List<AABB> bbList) {
          final AABB scanBox = cutBoundingBoxY(currBoundingBox, y);
@@ -278,7 +278,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
          y = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsY(currBoundingBox, y, bbList);
          return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsY(currBoundingBox, y, voxelList);
      }
-@@ -1718,7 +1751,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1717,7 +1750,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER  | this.getExtraCollisionFlags(), null // Sakura - load chunks on movement
          );
          potentialCollisionsBB.addAll(entityAABBs);
@@ -287,7 +287,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
  
          final boolean collidedX = collided.x != movement.x;
          final boolean collidedY = collided.y != movement.y;
-@@ -1841,25 +1874,37 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1840,25 +1873,37 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      private void checkInsideBlocks(List<Entity.Movement> movements, InsideBlockEffectApplier.StepBasedCollector stepBasedCollector) {
          if (this.isAffectedByBlocks()) {
              LongSet set = this.visitedBlocks;
@@ -330,7 +330,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
                      this.checkInsideBlocks(movement.to(), movement.to(), stepBasedCollector, set, 1);
                  }
              }
-@@ -1869,8 +1914,20 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1868,8 +1913,20 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      }
  
      private int checkInsideBlocks(Vec3 from, Vec3 to, InsideBlockEffectApplier.StepBasedCollector stepBasedCollector, LongSet visited, int maxSteps) {
@@ -353,7 +353,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
          boolean flag1 = this.level instanceof ServerLevel serverLevel
              && serverLevel.getServer().debugSubscribers().hasAnySubscriberFor(DebugSubscriptions.ENTITY_BLOCK_INTERSECTIONS);
          AtomicInteger atomicInteger = new AtomicInteger();
-@@ -1878,6 +1935,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1877,6 +1934,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              from,
              to,
              aabb,
@@ -361,7 +361,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
              (pos, index) -> {
                  if (!this.isAlive()) {
                      return false;
-@@ -1897,7 +1955,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1896,7 +1954,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
                          boolean flag2 = entityInsideCollisionShape == Shapes.block()
                              || this.collidedWithShapeMovingFrom(from, to, entityInsideCollisionShape.move(new Vec3(pos)).toAabbs());
                          boolean flag3 = this.collidedWithFluid(blockState.getFluidState(), pos, from, to);
@@ -370,7 +370,7 @@ index 31fa5bb8a9d0076ea8072177f298f55ae3e2ee59..57e2f0ffa70808e646c3a54c6d11eff1
                              if (flag2) {
                                  try {
                                      boolean flag4 = flag || aabb.intersects(pos);
-@@ -1953,6 +2011,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1952,6 +2010,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      }
  
      public boolean collidedWithShapeMovingFrom(Vec3 from, Vec3 to, List<AABB> boxes) {
