@@ -41,7 +41,7 @@ index ca98972697fe2961402bea4cfb0cf86ea80a92f0..a42a0672d56e32baaa594c9c1b9db0e7
                                      this.guardEntityTick(this::tickNonPassenger, entity);
                                      profilerFiller.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a5349e8d2c34c08084635b2f0d3e86315496fc88..a916ef8123fcacf45334b270d4c3e6c98e7aa057 100644
+index b6d65c9ce0fc3c5a27e6de40c3ce26f75bf77426..4a8a7447170731927e82e32f3deca5cb1552b3c2 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -566,6 +566,27 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -85,7 +85,7 @@ index a5349e8d2c34c08084635b2f0d3e86315496fc88..a916ef8123fcacf45334b270d4c3e6c9
          if (!(this instanceof ServerPlayer) && removalReason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index a4fd6b0a6762ce4d9e488f305dd2abe1e43edbd8..cdce0160bc4eeacfd5e7751a0d6d4192d4832c53 100644
+index 0826565ff322bd1b0cf69c7bac4c9206cf4b9d96..208992dcb195ccb495cedfc90cdd5bb2f3e2875b 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -53,7 +53,7 @@ import net.minecraft.world.phys.HitResult;
@@ -165,8 +165,8 @@ index a4fd6b0a6762ce4d9e488f305dd2abe1e43edbd8..cdce0160bc4eeacfd5e7751a0d6d4192
                                      return;
                                  }
                                  // CraftBukkit end
-+                                if (this.tryToRespawnEntity()) return; // Sakura - merge cannon entities
-                                 if (this.level().setBlock(blockPos, this.blockState, 3)) {
++                                if (this.tryToRespawnEntity()) return; // Sakura - merge cannon entities HEAD
+                                 if (this.level().setBlock(blockPos, this.blockState, Block.UPDATE_ALL)) {
                                      serverLevel.getChunkSource()
                                          .chunkMap
 @@ -345,6 +397,11 @@ public class FallingBlockEntity extends Entity {
@@ -280,10 +280,10 @@ index ef61333619d772a3acba6e2f6997655016b399f9..06e2f16032d615bf0083376ce3496941
  
      @Nullable
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 0900ae1072c9dfa70cad0e4f3dc7b916ed96319f..00a0b07aae109203dff96ac4f2aef67f5592c05e 100644
+index c51231f40c31b153ac463e31656584e6c70d5a78..e7ca94521052d45bf42f614b9600f607dd9941fb 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -833,6 +833,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -834,6 +834,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.listener.LevelTickScheduler levelTickScheduler = new me.samsuik.sakura.listener.LevelTickScheduler(this);
      public final me.samsuik.sakura.listener.BlockChangeTracker blockChangeTracker = new me.samsuik.sakura.listener.BlockChangeTracker(this);
      // Sakura end - track block changes and tick scheduler
@@ -292,7 +292,7 @@ index 0900ae1072c9dfa70cad0e4f3dc7b916ed96319f..00a0b07aae109203dff96ac4f2aef67f
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index 0dc714bf96545bc86cc5cd32849c3be817580d33..2a6e924425b5cf81b28b34ea740f5481d590d829 100644
+index a9c511e7debb8d47125d31291a0867791d9ab41b..6e6d5deea89be952f9ab2743340a165ed114827a 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
 @@ -92,7 +92,7 @@ public abstract class BasePressurePlateBlock extends Block {

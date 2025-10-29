@@ -5,7 +5,7 @@ Subject: [PATCH] Allow explosions to destroy lava
 
 
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index a24e728476a64e49f2e5139fc103e19d5650d6e1..8317c1d8ede33a1de115c5597a439f30284c8b86 100644
+index 1070ad18c1d9441f7fa38a06541e54ccb2ddd63f..c9845e8d486b30c275ebe7585aefb9b1064f33d2 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -373,6 +373,11 @@ public class ServerExplosion implements Explosion {
@@ -21,15 +21,15 @@ index a24e728476a64e49f2e5139fc103e19d5650d6e1..8317c1d8ede33a1de115c5597a439f30
  
          return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);
 diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
-index dff1c4fa389d5168bd9ec1aff4c7e4bc63c4110e..7ee94845b69139f7c419b9d6ee24ba1db0e69975 100644
+index d31da50baeb7f47f0e1d81ee3c05023370df8cd3..151ceb365d9ae8f27f3e182ab8150f4e3c9e9110 100644
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -200,7 +200,7 @@ public abstract class BlockBehaviour implements FeatureElement {
                  state.getDrops(builder).forEach(stack -> dropConsumer.accept(stack, pos));
              }
  
--            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-+            level.setBlock(pos, Blocks.AIR.defaultBlockState(), level.sakuraConfig().cannons.explosion.explodeLava && state.is(Blocks.LAVA) ? 2 : 3); // Sakura - allow explosions to destroy lava; don't cause block updates when blowing up lava
+-            level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
++            level.setBlock(pos, Blocks.AIR.defaultBlockState(), level.sakuraConfig().cannons.explosion.explodeLava && state.is(Blocks.LAVA) ? Block.UPDATE_CLIENTS : Block.UPDATE_ALL); // Sakura - allow explosions to destroy lava; don't cause block updates when blowing up lava
              block.wasExploded(level, pos, explosion);
          }
      }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -180,6 +_,7 @@
+@@ -181,6 +_,7 @@
      private int currentImpulseContextResetGraceTime = 0;
      public boolean affectsSpawning = true; // Paper - Affects Spawning API
      public net.kyori.adventure.util.TriState flyingFallDamage = net.kyori.adventure.util.TriState.NOT_SET; // Paper - flying fall damage
@@ -8,7 +8,7 @@
  
      // CraftBukkit start
      public boolean fauxSleeping;
-@@ -190,6 +_,35 @@
+@@ -191,6 +_,35 @@
          return (org.bukkit.craftbukkit.entity.CraftHumanEntity) super.getBukkitEntity();
      }
      // CraftBukkit end
@@ -44,7 +44,7 @@
  
      public Player(Level level, GameProfile gameProfile) {
          super(EntityType.PLAYER, level);
-@@ -364,7 +_,7 @@
+@@ -365,7 +_,7 @@
          return new ItemCooldowns();
      }
  
@@ -53,7 +53,7 @@
          if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
              Pose desiredPose = this.getDesiredPose();
              Pose pose;
-@@ -718,6 +_,10 @@
+@@ -719,6 +_,10 @@
      public boolean isInvulnerableTo(ServerLevel level, DamageSource damageSource) {
          if (super.isInvulnerableTo(level, damageSource)) {
              return true;
@@ -64,7 +64,7 @@
          } else if (damageSource.is(DamageTypeTags.IS_DROWNING)) {
              return !level.getGameRules().getBoolean(GameRules.RULE_DROWNING_DAMAGE);
          } else if (damageSource.is(DamageTypeTags.IS_FALL)) {
-@@ -755,6 +_,12 @@
+@@ -756,6 +_,12 @@
                      }
                  }
  
@@ -77,7 +77,7 @@
                  // return amount != 0.0F && super.hurtServer(level, damageSource, amount);
                  // CraftBukkit start - Don't filter out 0 damage
                  boolean damaged = super.hurtServer(level, damageSource, amount);
-@@ -1030,13 +_,19 @@
+@@ -1031,13 +_,19 @@
          if (playerAttackEntityEvent.callEvent() && willAttack) { // Logic moved to willAttack local variable.
              {
          // Paper end - PlayerAttackEntityEvent
@@ -98,7 +98,7 @@
                  // this.resetAttackStrengthTicker(); // CraftBukkit - Moved to EntityLiving to reset the cooldown after the damage is dealt
                  if (target.getType().is(EntityTypeTags.REDIRECTABLE_PROJECTILE)
                      && target instanceof Projectile projectile) {
-@@ -1054,7 +_,7 @@
+@@ -1055,7 +_,7 @@
                      if (f > 0.0F || f1 > 0.0F) {
                          boolean flag = attackStrengthScale > 0.9F;
                          boolean flag1;
@@ -107,7 +107,7 @@
                              sendSoundEffect(this, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_KNOCKBACK, this.getSoundSource(), 1.0F, 1.0F); // Paper - send while respecting visibility
                              flag1 = true;
                          } else {
-@@ -1070,7 +_,7 @@
+@@ -1071,7 +_,7 @@
                              && !this.isMobilityRestricted()
                              && !this.isPassenger()
                              && target instanceof LivingEntity
@@ -116,7 +116,7 @@
                          flag2 = flag2 && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
                          if (flag2) {
                              damageSource = damageSource.critical(); // Paper - critical damage API
-@@ -1097,7 +_,21 @@
+@@ -1098,7 +_,21 @@
                          if (flag4) {
                              float f4 = this.getKnockback(target, damageSource) + (flag1 ? 1.0F : 0.0F);
                              if (f4 > 0.0F) {
@@ -139,7 +139,7 @@
                                      livingEntity1.knockback(
                                          f4 * 0.5F, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0))
                                          , this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK // Paper - knockback events
-@@ -1119,7 +_,7 @@
+@@ -1120,7 +_,7 @@
                                  // Paper end - Configurable sprint interruption on attack
                              }
  
@@ -148,7 +148,7 @@
                                  float f5 = 1.0F + (float)this.getAttributeValue(Attributes.SWEEPING_DAMAGE_RATIO) * f;
  
                                  for (LivingEntity livingEntity2 : this.level()
-@@ -1135,7 +_,7 @@
+@@ -1136,7 +_,7 @@
                                          if (this.level() instanceof ServerLevel serverLevel && livingEntity2.hurtServer(serverLevel, damageSource.knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK), f6) && !livingEntity2.lastDamageCancelled) {
                                          // Paper end - Only apply knockback if the event is not cancelled
                                              livingEntity2.knockback(
@@ -157,7 +157,7 @@
                                                      , this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SWEEP_ATTACK // Paper - knockback events
                                              );
                                              EnchantmentHelper.doPostAttackEffects(serverLevel, livingEntity2, damageSource);
-@@ -1223,7 +_,7 @@
+@@ -1224,7 +_,7 @@
                              if (target instanceof LivingEntity) {
                                  float f7 = f3 - ((LivingEntity)target).getHealth();
                                  this.awardStat(Stats.DAMAGE_DEALT, Math.round(f7 * 10.0F));
@@ -166,7 +166,7 @@
                                      int i = (int)(f7 * 0.5);
                                      ((ServerLevel)this.level())
                                          .sendParticles(ParticleTypes.DAMAGE_INDICATOR, target.getX(), target.getY(0.5), target.getZ(), i, 0.1, 0.0, 0.1, 0.2);
-@@ -1616,6 +_,11 @@
+@@ -1617,6 +_,11 @@
  
      // Paper start - send while respecting visibility
      private static void sendSoundEffect(Player fromEntity, double x, double y, double z, SoundEvent soundEffect, SoundSource soundCategory, float volume, float pitch) {

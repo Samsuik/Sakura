@@ -5,7 +5,7 @@ Subject: [PATCH] Replace explosion density cache
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 4bf46b1a7ce64f39ca7d4e915001f54391a3e89c..f698366f23e9064db89b1b9840f198e9963826c5 100644
+index a42a0672d56e32baaa594c9c1b9db0e7487e7d59..60fc3ff0b7ed04a2f71d14658783d150dd92a680 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -717,6 +717,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -17,10 +17,10 @@ index 4bf46b1a7ce64f39ca7d4e915001f54391a3e89c..f698366f23e9064db89b1b9840f198e9
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 93ff0fdaee21ac493833640b5f620f9bec1a69c8..e807aafed0295d8db7ba0782bb1e462561e9e1ec 100644
+index e7ca94521052d45bf42f614b9600f607dd9941fb..3abf59c6f672e71509bc41e9b30964cf9c2c7e6c 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -834,6 +834,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -835,6 +835,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.listener.BlockChangeTracker blockChangeTracker = new me.samsuik.sakura.listener.BlockChangeTracker(this);
      // Sakura end - track block changes and tick scheduler
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
@@ -98,7 +98,7 @@ index d93a6ed05a09655704e70a7d7ea75ac44e5942e1..950ac55b64ae86a22cfdad6746460283
  
          return blockDensity;
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index 2ca8c39c4883ff7f398ed931d560e7cfcf474e1a..6949e2486651280777e785868310ac2c93139f4f 100644
+index 6e6d5deea89be952f9ab2743340a165ed114827a..2af0ea3bda6688ac51124129f0e463c38c667376 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
 @@ -107,6 +107,11 @@ public abstract class BasePressurePlateBlock extends Block {
@@ -110,11 +110,11 @@ index 2ca8c39c4883ff7f398ed931d560e7cfcf474e1a..6949e2486651280777e785868310ac2c
 +                level.densityCache.invalidate();
 +            }
 +            // Sakura end - explosion density cache
-             level.setBlock(pos, blockState, 2);
+             level.setBlock(pos, blockState, Block.UPDATE_CLIENTS);
              this.updateNeighbours(level, pos);
              level.setBlocksDirty(pos, state, blockState);
 diff --git a/net/minecraft/world/level/block/TripWireHookBlock.java b/net/minecraft/world/level/block/TripWireHookBlock.java
-index 8a3a8b0fdf9545a41501dc992c6982d9c8ce7b66..5e2576a8b90de8a829c6136cc384f3fe5a49603c 100644
+index 9d53b18c530f19c333dbf3e3ef8beeb8c5c49418..b4ee0485467301cf5e1659cd27efe50362375d59 100644
 --- a/net/minecraft/world/level/block/TripWireHookBlock.java
 +++ b/net/minecraft/world/level/block/TripWireHookBlock.java
 @@ -168,6 +168,11 @@ public class TripWireHookBlock extends Block {
@@ -126,11 +126,11 @@ index 8a3a8b0fdf9545a41501dc992c6982d9c8ce7b66..5e2576a8b90de8a829c6136cc384f3fe
 +                    level.densityCache.invalidate();
 +                }
 +                // Sakura end - explosion density cache
-                 level.setBlock(blockPosx, blockState1.setValue(FACING, opposite), 3);
+                 level.setBlock(blockPosx, blockState1.setValue(FACING, opposite), Block.UPDATE_ALL);
                  notifyNeighbors(block, level, blockPosx, opposite);
                  emitState(level, blockPosx, flag2, flag3, flag, flag1);
 diff --git a/net/minecraft/world/phys/AABB.java b/net/minecraft/world/phys/AABB.java
-index f87d0bd3d65155fbc206a0dae8de67a9184436f3..da90795ce9d4589ee9a4b5ab10f3af59c772547b 100644
+index cffb3b7d480f72cdb9ed535f362fa60f30597523..c2aa62ad0485f02ba0e65a9cf882e2cdf7be460b 100644
 --- a/net/minecraft/world/phys/AABB.java
 +++ b/net/minecraft/world/phys/AABB.java
 @@ -19,6 +19,30 @@ public class AABB {

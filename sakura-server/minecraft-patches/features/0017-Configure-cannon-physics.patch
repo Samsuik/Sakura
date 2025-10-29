@@ -89,10 +89,10 @@ index 82dac4fbaf3572391dad61356ba5351b725194ff..4c18fcd50c79e767bfea908ca6660b66
  
                      final PalettedContainer<BlockState> blocks = section.states;
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index 703a75c7c6cd05a95afb630973250898dbc7223d..b6ad2d3475ae28103d2bd0fb869da962ba6148ce 100644
+index ef72c5d1b6196582cadb87944f3416881f56c8df..4024bce11a9e6ccc08f6e477ea1c28e6cd704026 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-@@ -471,6 +471,22 @@ public interface DispenseItemBehavior {
+@@ -473,6 +473,22 @@ public interface DispenseItemBehavior {
                          }
                      }
  
@@ -128,7 +128,7 @@ index f6e3cc7659175b29b238f7a0ff12f96d035a7b6a..b199cc18e72bfa011f6dc3a7a9e84625
  
      // Paper start
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index f2b9d350f81870c6b9ce0c123573ad2b2762bf8b..0446539327d5c1d1e58b19863dbe08b593e5727c 100644
+index f7253b0a52f7f8eca6741e2ec64dbab3fae109e3..cc249e029be0bba5b3eaa6abc4d423f399a332e4 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -587,6 +587,13 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -379,7 +379,7 @@ index f2b9d350f81870c6b9ce0c123573ad2b2762bf8b..0446539327d5c1d1e58b19863dbe08b5
          Vec3 vec3 = to.subtract(from);
          return aabb.collidedAlongVector(vec3, boxes);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 00d0cabd7d190e6258b595c372440b0fd06311a4..ce4b253c886aa2afe265d5c38b2799ddda8100bf 100644
+index 0732f1b0e9329165be54c4096a7537cfd28a726a..bd19fe30448147ffa287dcea7a1571082bc2bb76 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -130,6 +130,25 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -430,10 +430,10 @@ index 00d0cabd7d190e6258b595c372440b0fd06311a4..ce4b253c886aa2afe265d5c38b2799dd
              state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
          );
          if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(fallingBlockEntity, pos, state.getFluidState().createLegacyBlock())) return fallingBlockEntity; // CraftBukkit
--        level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
+-        level.setBlock(pos, state.getFluidState().createLegacyBlock(), Block.UPDATE_ALL);
 +        // Sakura start - configure server mechanics
 +        if (fallingBlockEntity.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
-+            level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
++            level.setBlock(pos, state.getFluidState().createLegacyBlock(), Block.UPDATE_ALL);
 +        }
 +        // Sakura end - configure server mechanics
          level.addFreshEntity(fallingBlockEntity);
@@ -685,10 +685,10 @@ index 867846ce62ffc5440d07084c79b2dd752bbe82c9..bf232ac4a4933c125535f8ea959d07fb
                  return false;
              } else {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 807d88528e22117b7fb4090c859c48e38c8be385..5a8826584fd02886a9ffc624c61ad26086f07a80 100644
+index 9fe6a8ae7218fa9bdc271353f76ef6a7757d61d5..d86e523ba9a3f99337dcb11a56f0eaa04da95e0a 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -836,6 +836,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -837,6 +837,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
@@ -845,7 +845,7 @@ index 24b9ce38bc144febeefc2304242e96243533a01c..ecd93719347d21b9d1dbe6515e1be873
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (isFree(level.getBlockState(pos.below())) && pos.getY() >= level.getMinY()) {
 diff --git a/net/minecraft/world/level/block/FenceGateBlock.java b/net/minecraft/world/level/block/FenceGateBlock.java
-index 0c6ae65fc58d63a0b80f3bc1ffa0c9a1bb33de83..f291dc3b3f3e3b8da221f42580ed26c4b8f569a7 100644
+index 6845b2ec65f50bc29c53632a3105ced6761e5f8f..06b320217b7d6c332125bf1b449889851ed3fb1a 100644
 --- a/net/minecraft/world/level/block/FenceGateBlock.java
 +++ b/net/minecraft/world/level/block/FenceGateBlock.java
 @@ -210,8 +210,15 @@ public class FenceGateBlock extends HorizontalDirectionalBlock {
@@ -853,7 +853,7 @@ index 0c6ae65fc58d63a0b80f3bc1ffa0c9a1bb33de83..f291dc3b3f3e3b8da221f42580ed26c4
              }
              // CraftBukkit end
 -            if (state.getValue(POWERED) != hasNeighborSignal) {
--                level.setBlock(pos, state.setValue(POWERED, hasNeighborSignal).setValue(OPEN, hasNeighborSignal), 2);
+-                level.setBlock(pos, state.setValue(POWERED, hasNeighborSignal).setValue(OPEN, hasNeighborSignal), Block.UPDATE_CLIENTS);
 +            // Sakura start - configure server mechanics
 +            final boolean pre1_10_0 = level.localConfig().at(pos).mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_10);
 +            final boolean powered = state.getValue(POWERED);
@@ -861,16 +861,16 @@ index 0c6ae65fc58d63a0b80f3bc1ffa0c9a1bb33de83..f291dc3b3f3e3b8da221f42580ed26c4
 +                final boolean openGate = pre1_10_0 && (hasNeighborSignal == powered || state.getValue(OPEN) != powered)
 +                    ? state.getValue(OPEN)
 +                    : hasNeighborSignal;
-+                level.setBlock(pos, state.setValue(POWERED, hasNeighborSignal).setValue(OPEN, openGate), 2);
++                level.setBlock(pos, state.setValue(POWERED, hasNeighborSignal).setValue(OPEN, openGate), Block.UPDATE_CLIENTS);
 +                // Sakura end - configure server mechanics
                  if (state.getValue(OPEN) != hasNeighborSignal) {
                      level.playSound(
                          null,
 diff --git a/net/minecraft/world/level/block/HoneyBlock.java b/net/minecraft/world/level/block/HoneyBlock.java
-index 25dd5b720d868f89d1e68acc391aff74f3accbe1..e744681f645ef7045ecab264c15f6be0f189831d 100644
+index 138708e61c1f75d01d8982f391edda04b54cf16d..e492ee4277e230dbb723042a3e12977d76c5ac81 100644
 --- a/net/minecraft/world/level/block/HoneyBlock.java
 +++ b/net/minecraft/world/level/block/HoneyBlock.java
-@@ -71,11 +71,19 @@ public class HoneyBlock extends HalfTransparentBlock {
+@@ -72,11 +72,19 @@ public class HoneyBlock extends HalfTransparentBlock {
          super.entityInside(state, level, pos, entity, effectApplier, pastEdges);
      }
  
@@ -892,7 +892,7 @@ index 25dd5b720d868f89d1e68acc391aff74f3accbe1..e744681f645ef7045ecab264c15f6be0
          return (deltaY - 0.08) * 0.98F;
      }
  
-@@ -84,7 +92,7 @@ public class HoneyBlock extends HalfTransparentBlock {
+@@ -85,7 +93,7 @@ public class HoneyBlock extends HalfTransparentBlock {
              return false;
          } else if (entity.getY() > pos.getY() + 0.9375 - 1.0E-7) {
              return false;
@@ -901,7 +901,7 @@ index 25dd5b720d868f89d1e68acc391aff74f3accbe1..e744681f645ef7045ecab264c15f6be0
              return false;
          } else {
              double abs = Math.abs(pos.getX() + 0.5 - entity.getX());
-@@ -102,11 +110,13 @@ public class HoneyBlock extends HalfTransparentBlock {
+@@ -103,11 +111,13 @@ public class HoneyBlock extends HalfTransparentBlock {
  
      private void doSlideMovement(Entity entity) {
          Vec3 deltaMovement = entity.getDeltaMovement();
@@ -952,7 +952,7 @@ index b895dbe24fb567d1161107b944a24a325967c061..c761d15236c0f78eeca26d0a828866fd
      }
  
 diff --git a/net/minecraft/world/level/block/LiquidBlock.java b/net/minecraft/world/level/block/LiquidBlock.java
-index 3a432dc812579c19e1982126b5cfd003814e0dcf..4449addb934033776558e5c549c66da9551201fc 100644
+index cba3ce458fb08064237c979959c237c26c80a04c..802128ea74a6a5250762dd8501352dda7f18543d 100644
 --- a/net/minecraft/world/level/block/LiquidBlock.java
 +++ b/net/minecraft/world/level/block/LiquidBlock.java
 @@ -201,7 +201,14 @@ public class LiquidBlock extends Block implements BucketPickup {
@@ -972,7 +972,7 @@ index 3a432dc812579c19e1982126b5cfd003814e0dcf..4449addb934033776558e5c549c66da9
                      if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, block.defaultBlockState(), 3)) {
                          this.fizz(level, pos);
 diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
-index fc75ecd9f56526b213b348d1243834eb21abfc34..9720c55536d09377d1fbcbf1af4acb3caa9952f2 100644
+index 1329557b36d9b1eb70930dff6b01352dbb89f9c1..96e3e0e92c7179bdf1e576cd90f4e4370fb26de7 100644
 --- a/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
 @@ -322,6 +322,10 @@ public class RedStoneWireBlock extends Block {
@@ -1049,10 +1049,10 @@ index 9f013b6a87a18f83188d6efec9f84d8895876f24..a091246071719aeaad3ec4f6beb4cfd1
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-index 4bf4c3a8dcdcb9c6b8d722d05f7cb7fbfb78ddef..7012f90689592600bab03060c2c45bd45cc079ff 100644
+index 9db036f2aeaa2c46551e5d2e4385fa4c79b035ea..61294a04dbb09751cf25835b25c3f411f16ba050 100644
 --- a/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-@@ -122,6 +122,11 @@ public class PistonBaseBlock extends DirectionalBlock {
+@@ -123,6 +123,11 @@ public class PistonBaseBlock extends DirectionalBlock {
                  i = 2;
              }
  
@@ -1101,7 +1101,7 @@ index 8c35c7e54373f8be187a84bd4b4a9ce9d6341dff..bd7c33204a430a862e8abd2683afd92c
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index a50f572ef71a133fa29a5d967a26477218431762..61f48991232be5b32472c97073c8990cce8706a9 100644
+index 9383e91846e1119dc11259235f586e9e25c7e51a..6973d307a250d8ef1632fa630a0f8a12e08bf926 100644
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 @@ -64,6 +64,165 @@ public class PistonMovingBlockEntity extends BlockEntity {
@@ -1343,10 +1343,10 @@ index a50f572ef71a133fa29a5d967a26477218431762..61f48991232be5b32472c97073c8990c
      }
  
 diff --git a/net/minecraft/world/level/material/LavaFluid.java b/net/minecraft/world/level/material/LavaFluid.java
-index 7449be23b48c2b08415e2de97348ec24b99395cc..f383c6b8f1aefb66fc4a0c54c895a700e7c62f62 100644
+index 1d76aa65ae85d517eec54fea8c1234bed1807514..d413d4999f265f88a50133811735237902843e55 100644
 --- a/net/minecraft/world/level/material/LavaFluid.java
 +++ b/net/minecraft/world/level/material/LavaFluid.java
-@@ -185,6 +185,11 @@ public abstract class LavaFluid extends FlowingFluid {
+@@ -187,6 +187,11 @@ public abstract class LavaFluid extends FlowingFluid {
  
      @Override
      public boolean canBeReplacedWith(FluidState fluidState, BlockGetter level, BlockPos pos, Fluid fluid, Direction direction) {
