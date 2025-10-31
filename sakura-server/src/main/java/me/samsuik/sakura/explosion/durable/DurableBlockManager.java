@@ -19,7 +19,13 @@ public final class DurableBlockManager {
         if (block == null) {
             this.durableBlocks.put(blockPos, block = new DurableBlock(material.durability()));
         }
-        return block.damage();
+
+        final boolean destroyedBlock = block.damage();
+        if (destroyedBlock) {
+            this.durableBlocks.invalidate(blockPos);
+        }
+
+        return destroyedBlock;
     }
 
     public int durability(final BlockPos pos, final DurableMaterial material) {
