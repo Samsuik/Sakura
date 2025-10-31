@@ -88,6 +88,11 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
         }
 
         java.util.Arrays.fill(this.directMappedBlockCache, null);
+
+        // Invalidate block density cache
+        if (destroyedBlocks && !this.level().paperConfig().environment.optimizeExplosions) {
+            this.level().densityCache.invalidate();
+        }
     }
 
     protected final void recalculateExplosionPosition() {
