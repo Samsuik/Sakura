@@ -31,8 +31,8 @@ public final class CachedBlockDensity {
         return this.isExplosionPosition(explosionPos) && this.entity.containsInclusive(entityBoundingBox);
     }
 
-    public boolean isKnownPosition(final Vec3 point) {
-        return this.entity.containsInclusive(point);
+    public boolean isKnownPosition(final Vec3 pos) {
+        return this.entity.containsInclusive(pos);
     }
 
     public boolean isExplosionPosition(final Vec3 explosionPos) {

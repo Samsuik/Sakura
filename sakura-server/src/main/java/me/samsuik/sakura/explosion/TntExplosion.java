@@ -49,8 +49,9 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     }
 
     private void mergeEntitiesBeforeExploding() {
+        final PrimedTnt cause = this.cause;
         final IteratorSafeOrderedReferenceSet<Entity> entities = this.level().entityTickList.entities;
-        int index = entities.indexOf(this.cause);
+        int index = entities.indexOf(cause);
 
         entities.createRawIterator();
         // iterate over the entityTickList to find entities that are exploding in the same position.
@@ -63,12 +64,12 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
             }
 
             // Check if the found entity is the same type and has the same state as the explosion source.
-            if (!foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, true)) {
+            if (!foundEntity.compareState(cause) || !mergeEntity.isSafeToMergeInto(cause, true)) {
                 break;
             }
 
             // Merge the found entity into the explosion source
-            this.level().mergeHandler.mergeEntity(mergeEntity, this.cause);
+            this.level().mergeHandler.mergeEntity(mergeEntity, cause);
         }
         entities.finishRawIterator();
     }
@@ -138,12 +139,14 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     }
 
     private void updateExplosionPosition(final EntityState entityState, final boolean destroyedBlocks) {
-        // Before setting entity state, otherwise we might cause issues.
-        final Vec3 entityMomentum = this.cause.entityState().momentum();
+        final PrimedTnt cause = this.cause;
+        final Vec3 entityMomentum = cause.entityState().momentum();
         final boolean hasMoved;
+
+        // Check if we have moved before applying the entity state
         if (this.moved) {
             hasMoved = true;
-        } else if (this.center.equals(this.cause.position())) {
+        } else if (this.center.equals(cause.position())) {
             hasMoved = false;
         } else {
             final double newMomentumSqr = entityState.momentum().lengthSqr();
@@ -153,13 +156,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
         }
 
         // Keep track of entity state
-        entityState.apply(this.cause);
-        this.cause.storeEntityState();
+        entityState.apply(cause);
+        cause.storeEntityState();
 
         // Ticking is always required after destroying a block.
         if (destroyedBlocks || hasMoved) {
-            this.cause.setFuse(100);
-            this.cause.tick();
+            cause.setFuse(100);
+            cause.tick();
             this.recalculateExplosionPosition();
             this.moved |= !this.center.equals(this.originalPosition);
         }

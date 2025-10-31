@@ -70,13 +70,13 @@ public final class BlockDensityCache {
     }
 
     public void expire(final long tick) {
-        this.invalidate();
-
         if (tick % 600 == 0) {
             // Trim everything down every 600 ticks
             this.paperExactPosDensityCache.trim(0);
             this.lenientDensityCache.trim(0);
         }
+
+        this.invalidate();
     }
 
     public void invalidate() {

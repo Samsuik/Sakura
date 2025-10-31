@@ -67,8 +67,9 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
     }
 
     protected final List<BlockPos> collectBlocksAndImpactEntities(final boolean interactWithBlocks, final boolean dispatch) {
-        if (interactWithBlocks && this.gameEvents.add(BlockPos.containing(this.center))) {
-            this.level().gameEvent(this.source, GameEvent.EXPLODE, this.center);
+        final Vec3 center = this.center;
+        if (interactWithBlocks && this.gameEvents.add(BlockPos.containing(center))) {
+            this.level().gameEvent(this.cause, GameEvent.EXPLODE, center);
         }
 
         // Collect all the blocks to explode
@@ -77,7 +78,6 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
             : List.of();
 
         // Buffer explosions to reduce the amount of calculations and improve locality
-        final Vec3 center = this.center;
         this.bounds = this.bounds.expand(center);
         this.bufferedExplosions.add(center);
 
@@ -86,6 +86,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
             this.locateAndImpactEntitiesInBounds(this.bounds, this.bufferedExplosions);
             this.bounds = new AABB(center, center);
             this.bufferedExplosions.clear();
+            this.gameEvents.clear();
         }
 
         return blocksToExplode;
@@ -94,9 +95,9 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
     protected final boolean needToDispatchEntities(final List<BlockPos> blocksToBlow, final Vec3 center) {
         if (this.dispatchPosition.distanceToSqr(center) > ENTITY_DISPATCH_DISTANCE_SQR) {
             this.dispatchPosition = center;
-            this.gameEvents.clear();
             return true;
         }
+
         return !blocksToBlow.isEmpty();
     }
 
