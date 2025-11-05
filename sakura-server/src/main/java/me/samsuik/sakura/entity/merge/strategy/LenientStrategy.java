@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 @NullMarked
 final class LenientStrategy implements MergeStrategy {
     static final LenientStrategy INSTANCE = new LenientStrategy();
-    private final BlockPosToEntityTable entityTable = new BlockPosToEntityTable(512);
+    private final BlockPosToEntityTable entityTable = new BlockPosToEntityTable(128);
 
     @Override
     public boolean trackHistory() {
