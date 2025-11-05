@@ -70,6 +70,13 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
 
             // Merge the found entity into the explosion source
             this.level().mergeHandler.mergeEntity(mergeEntity, cause);
+
+            // To keep track of this for merged entities we'd need to sort the connected entity list.
+            // Which I don't think is worth the cost. If you're running a cannon server and want people
+            // to have access to accurate entity data consider turning off merging or make it accessible.
+
+            // Add the found entity to the source entities
+            this.sourceEntities.add(foundEntity);
         }
         entities.finishRawIterator();
     }

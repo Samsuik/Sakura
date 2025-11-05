@@ -4,6 +4,7 @@ import ca.spottedleaf.moonrise.common.util.WorldUtil;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup;
 import it.unimi.dsi.fastutil.objects.*;
+import me.samsuik.sakura.entity.EntityState;
 import me.samsuik.sakura.mechanics.MechanicVersion;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -26,11 +27,13 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
     private static final double ENTITY_DISPATCH_DISTANCE_SQR = 32.0 * 32.0;
 
     protected final T cause; // preferred over source
+    protected final Deque<Entity> sourceEntities = new ArrayDeque<>();
     private Vec3 dispatchPosition;
     private final List<Vec3> bufferedExplosions = new ObjectArrayList<>();
     private AABB bounds;
     private final Set<BlockPos> gameEvents = new ObjectOpenHashSet<>();
     private final Deque<ExplosionToSend> explosionsToSend = new ArrayDeque<>();
+    private final Map<Entity, EntityState> entityStates = new Reference2ObjectOpenHashMap<>();
 
     public SpecialisedExplosion(
         final ServerLevel level,
@@ -46,6 +49,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
         this.cause = entity;
         this.dispatchPosition = center;
         this.bounds = new AABB(center, center);
+        this.sourceEntities.add(entity);
     }
 
     public final Queue<ExplosionToSend> getExplosionsToSend() {
@@ -61,7 +65,16 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
     @Override
     public final int explode() {
         this.createBlockCache();
+
+        // Handle batching, entities, blocks and events
         final int blocksDestroyed = this.handleExplosion();
+
+        // Apply entity states (this is so plugins have up to date entity information)
+        this.entityStates.forEach((entity, state) -> {
+            state.apply(entity);
+            entity.updateBukkitHandle(entity); // restore entity handle
+        });
+
         this.clearBlockCache();
         return blocksDestroyed;
     }
@@ -76,6 +89,12 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
         final List<BlockPos> blocksToExplode = interactWithBlocks
             ? this.calculateExplodedPositions()
             : List.of();
+
+        // Poll the sourceEntities queue and keep track of the entity state
+        final Entity head = this.sourceEntities.poll();
+        if (head != null) {
+            this.entityStates.put(head, EntityState.of(this.cause));
+        }
 
         // Buffer explosions to reduce the amount of calculations and improve locality
         this.bounds = this.bounds.expand(center);
