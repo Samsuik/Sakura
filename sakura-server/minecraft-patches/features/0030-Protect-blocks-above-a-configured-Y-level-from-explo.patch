@@ -5,18 +5,18 @@ Subject: [PATCH] Protect blocks above a configured Y-level from explosions
 
 
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 71401708e65c9b06f30d124757fecf5f61eff957..d6ef61484019095399bb2ba3fcbd7aac30cff435 100644
+index 71401708e65c9b06f30d124757fecf5f61eff957..1eb0ab17d999fcc62ff3d73ecbec9750284c0024 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -417,6 +417,11 @@ public class ServerExplosion implements Explosion {
-                 return Optional.of(Blocks.BARRIER.getExplosionResistance());
-             }
-             // Sakura end - protect scaffolding from creepers
+@@ -399,6 +399,11 @@ public class ServerExplosion implements Explosion {
+             final Block block = blockState.getBlock();
+             final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().config(pos).durableMaterials.get(block);
+ 
 +            // Sakura start - protect blocks above a configured Y-level from explosions
 +            if (this.level.sakuraConfig().cannons.explosion.protectBlocksAboveY.test(val -> pos.getY() >= val)) {
 +                return Optional.of(net.minecraft.world.level.block.Blocks.BARRIER.getExplosionResistance());
 +            }
 +            // Sakura end - protect blocks above a configured Y-level from explosions
-         }
- 
-         return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);
+             if (material != null && material.resistance() >= 0.0f && pos.getY() > this.level.getMinY() && (this.level.sakuraConfig().cannons.explosion.allowNonTntBreakingDurableBlocks || this.source instanceof net.minecraft.world.entity.item.PrimedTnt)) {
+                 return Optional.of(material.resistance());
+             }
