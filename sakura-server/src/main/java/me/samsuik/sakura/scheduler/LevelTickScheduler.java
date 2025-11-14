@@ -1,4 +1,4 @@
-package me.samsuik.sakura.listener;
+package me.samsuik.sakura.scheduler;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;

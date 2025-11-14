@@ -2,7 +2,8 @@ package me.samsuik.sakura.redstone.cache;
 
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.*;
-import me.samsuik.sakura.listener.BlockChangeTracker;
+import me.samsuik.sakura.block_change.BlockFilter;
+import me.samsuik.sakura.block_change.BlockStateChangeTracker;
 import me.samsuik.sakura.utils.TickExpiry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -57,9 +58,9 @@ public final class RedstoneNetwork {
         return this.originalWirePower.containsKey(pos);
     }
 
-    public void invalidate(final Level level) {
+    public void invalidate(final BlockStateChangeTracker tracker) {
         for (final long identifier : this.listeners) {
-            level.blockChangeTracker.stopListening(identifier);
+            tracker.stopListening(identifier);
         }
         this.listeners.clear();
     }
@@ -134,17 +135,22 @@ public final class RedstoneNetwork {
     }
 
     private void addBlockListeners(final Level level) {
-        ObjectOpenHashSet<BlockPos> positions = new ObjectOpenHashSet<>(this.neighborUpdates);
+        final ObjectOpenHashSet<BlockPos> positions = new ObjectOpenHashSet<>(this.neighborUpdates);
         positions.addAll(this.originalWirePower.keySet());
         positions.remove(null);
 
         // Register block change listeners
-        this.listeners.add(level.blockChangeTracker.listenForChangesOnce(
-            BlockChangeTracker.BlockChangeFilter.REDSTONE_COMPONENT, positions, () -> this.invalidate(level)
+        final BlockStateChangeTracker tracker = level.blockStateChangeTracker;
+        this.listeners.add(tracker.firstChange(
+            positions,
+            BlockFilter.REDSTONE_COMPONENT,
+            () -> this.invalidate(tracker)
         ));
 
-        this.listeners.add(level.blockChangeTracker.listenForChangesOnce(
-            BlockChangeTracker.BlockChangeFilter.ANY, positions, this::allowRedundantNeighborUpdates
+        this.listeners.add(tracker.firstChange(
+            positions,
+            BlockFilter.BLOCK_TYPE,
+            this::allowRedundantNeighborUpdates
         ));
     }
 
@@ -152,7 +158,7 @@ public final class RedstoneNetwork {
         for (final Object2ObjectMap.Entry<BlockPos, RedstoneOriginalPower> wireEntry : this.originalWirePower.object2ObjectEntrySet()) {
             final BlockState state = level.getBlockState(wireEntry.getKey());
             if (!state.is(Blocks.REDSTONE_WIRE)) {
-                this.invalidate(level);
+                this.invalidate(level.blockStateChangeTracker);
                 return false;
             }
 

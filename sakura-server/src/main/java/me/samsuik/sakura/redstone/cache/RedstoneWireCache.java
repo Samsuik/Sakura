@@ -118,7 +118,7 @@ public final class RedstoneWireCache {
     public void expire(final long tick) {
         this.networkCache.values().removeIf(network -> {
             if (network.getExpiry().isExpired(tick)) {
-                network.invalidate(this.level);
+                network.invalidate(this.level.blockStateChangeTracker);
                 return true;
             }
 

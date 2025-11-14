@@ -42,7 +42,7 @@ index 5d95d8747c4816d27bab6455b3bdfb7b50ae265f..079e887cac1a903af23c1a9ace47b9e3
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 45a50997c34562facb20c311d2d88a5fa4f4f670..025502d3b5e8d61fb048fe2859eeb613faa8b68b 100644
+index 5de63d612b1c2b292e2cf3579ecea71a18fa8b96..b4612fb1d884b8bf43c9a64e36cb58e7c6dc60f3 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -622,6 +622,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -79,13 +79,13 @@ index 45a50997c34562facb20c311d2d88a5fa4f4f670..025502d3b5e8d61fb048fe2859eeb613
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/chunk/LevelChunkSection.java b/net/minecraft/world/level/chunk/LevelChunkSection.java
-index 955f97ea45c7b980f0f2c4321d27050bec1eabe5..db0b34e0e6b132715dd81a185a3401d80ec40708 100644
+index d354fad5e9c9e4a16a52dbd8c7eb1f177a75f681..0f6c7e63b9bd507f9e0f99986a0f9dd879b1baee 100644
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -63,6 +63,13 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
-         }
+@@ -43,6 +43,13 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+         return this.tickingBlocks;
      }
-     // Sakura end - track block changes and tick scheduler
+     // Paper end - block counting
 +    // Sakura start - optimise block counting for cannon entities
 +    private short movingPistonBlocks;
 +
@@ -96,7 +96,7 @@ index 955f97ea45c7b980f0f2c4321d27050bec1eabe5..db0b34e0e6b132715dd81a185a3401d8
  
      private LevelChunkSection(LevelChunkSection section) {
          this.nonEmptyBlockCount = section.nonEmptyBlockCount;
-@@ -133,6 +140,18 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+@@ -113,6 +120,18 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
              }
          }
  
@@ -115,7 +115,7 @@ index 955f97ea45c7b980f0f2c4321d27050bec1eabe5..db0b34e0e6b132715dd81a185a3401d8
          final boolean oldTicking = oldState.isRandomlyTicking();
          final boolean newTicking = newState.isRandomlyTicking();
          if (oldTicking != newTicking) {
-@@ -208,6 +227,7 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+@@ -188,6 +207,7 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
          this.tickingBlockCount = (short)0;
          this.tickingFluidCount = (short)0;
          this.specialCollidingBlocks = (short)0;
@@ -123,7 +123,7 @@ index 955f97ea45c7b980f0f2c4321d27050bec1eabe5..db0b34e0e6b132715dd81a185a3401d8
          this.tickingBlocks.clear();
  
          if (this.maybeHas((final BlockState state) -> !state.isAir())) {
-@@ -236,6 +256,12 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+@@ -216,6 +236,12 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
                      continue;
                  }
  
