@@ -1,8 +1,8 @@
 package me.samsuik.sakura.tps;
 
-import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.jspecify.annotations.NullMarked;
@@ -53,7 +53,7 @@ public final class TickInformationCollector {
         this.tickSamples.add(timeTaken);
     }
 
-    public ImmutableList<ServerTickInformation> collect(final long from, final long to) {
+    public ObjectImmutableList<ServerTickInformation> collect(final long from, final long to) {
         final List<ServerTickInformation> collected = new ObjectArrayList<>();
         for (final ServerTickInformation tickInformation : this.collectedInformation.reversed()) {
             if (tickInformation.identifier() >= from && tickInformation.identifier() < to) {
@@ -68,6 +68,6 @@ public final class TickInformationCollector {
             collected.add(index, ServerTickInformation.UNKNOWN);
         }
 
-        return ImmutableList.copyOf(collected);
+        return new ObjectImmutableList<>(collected);
     }
 }

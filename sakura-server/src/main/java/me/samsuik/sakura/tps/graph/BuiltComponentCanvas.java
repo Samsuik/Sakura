@@ -1,6 +1,6 @@
 package me.samsuik.sakura.tps.graph;
 
-import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import net.kyori.adventure.text.Component;
 import org.jspecify.annotations.NullMarked;
 
@@ -30,7 +30,7 @@ public final class BuiltComponentCanvas {
         this.components.add(component);
     }
 
-    public ImmutableList<Component> components() {
-        return ImmutableList.copyOf(this.components);
+    public ObjectImmutableList<Component> components() {
+        return new ObjectImmutableList<>(this.components);
     }
 }

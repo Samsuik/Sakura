@@ -2,10 +2,10 @@ package me.samsuik.sakura.player.gui;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import me.samsuik.sakura.player.gui.components.GuiComponent;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -38,12 +38,12 @@ public final class FeatureGuiInventory implements InventoryHolder {
         return this.gui;
     }
 
-    public ImmutableList<GuiComponent> getComponents() {
-        return ImmutableList.copyOf(this.componentKeys.keySet());
+    public ObjectImmutableList<GuiComponent> getComponents() {
+        return new ObjectImmutableList<>(this.componentKeys.keySet());
     }
 
-    public ImmutableList<GuiComponent> findComponents(final NamespacedKey key) {
-        return ImmutableList.copyOf(this.componentsUnderKey.get(key));
+    public ObjectImmutableList<GuiComponent> findComponents(final NamespacedKey key) {
+        return new ObjectImmutableList<>(this.componentsUnderKey.get(key));
     }
 
     public Optional<GuiComponent> findFirst(final NamespacedKey key) {

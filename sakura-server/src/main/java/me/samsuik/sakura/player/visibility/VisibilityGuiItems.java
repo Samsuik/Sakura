@@ -1,6 +1,6 @@
 package me.samsuik.sakura.player.visibility;
 
-import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import me.samsuik.sakura.player.gui.ItemStackUtil;
@@ -15,7 +15,7 @@ import java.util.Locale;
 
 @NullMarked
 public final class VisibilityGuiItems {
-    static final Reference2ObjectMap<VisibilityType, ImmutableList<ItemStack>> GUI_ITEMS = new Reference2ObjectOpenHashMap<>();
+    static final Reference2ObjectMap<VisibilityType, ObjectImmutableList<ItemStack>> GUI_ITEMS = new Reference2ObjectOpenHashMap<>();
     static final Reference2ObjectMap<VisibilityState, ItemStack> TOGGLE_BUTTON_ITEMS = new Reference2ObjectOpenHashMap<>();
 
     static {
@@ -28,9 +28,9 @@ public final class VisibilityGuiItems {
 
         for (final VisibilityType type : VisibilityTypes.types()) {
             final ItemStack item = items.get(type);
-            final ImmutableList<ItemStack> stateItems = type.states().stream()
+            final ObjectImmutableList<ItemStack> stateItems = type.states().stream()
                 .map(state -> createItemForState(item, state))
-                .collect(ImmutableList.toImmutableList());
+                .collect(ObjectImmutableList.toList());
             GUI_ITEMS.put(type, stateItems);
         }
 

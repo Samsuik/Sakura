@@ -1,7 +1,7 @@
 package me.samsuik.sakura.command.subcommands;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import me.samsuik.sakura.command.BaseSubCommand;
 import me.samsuik.sakura.tps.ServerTickInformation;
 import me.samsuik.sakura.tps.graph.BuiltComponentCanvas;
@@ -38,7 +38,7 @@ public final class TPSCommand extends BaseSubCommand {
             scale = this.dynamicScale(identifier);
         }
 
-        final ImmutableList<ServerTickInformation> tickHistory = MinecraftServer.getServer().tickHistory(identifier - GRAPH_WIDTH, identifier);
+        final ObjectImmutableList<ServerTickInformation> tickHistory = MinecraftServer.getServer().tickHistory(identifier - GRAPH_WIDTH, identifier);
         final DetailedTPSGraph graph = new DetailedTPSGraph(GRAPH_WIDTH, GRAPH_HEIGHT, scale, tickHistory);
         final BuiltComponentCanvas canvas = graph.plot();
 
@@ -56,7 +56,7 @@ public final class TPSCommand extends BaseSubCommand {
     }
 
     private double dynamicScale(final long identifier) {
-        final ImmutableList<ServerTickInformation> tickHistory = MinecraftServer.getServer().tickHistory(identifier - 5, identifier);
+        final ObjectImmutableList<ServerTickInformation> tickHistory = MinecraftServer.getServer().tickHistory(identifier - 5, identifier);
         final double averageTps = tickHistory.stream()
             .mapToDouble(ServerTickInformation::tps)
             .average()
