@@ -35,6 +35,17 @@ public final class MechanicVersion {
         }
 
         final int significant = MinecraftVersionEncoding.significant(version);
+        if (MinecraftVersionEncoding.isSnapshot(version)) {
+            if (MinecraftVersionEncoding.isModernSnapshot(version)) {
+                final int gameDrop = MinecraftVersionEncoding.gameDrop(version);
+                final int patch = MinecraftVersionEncoding.patch(version);
+                return String.format("%d.%d-snapshot-%d", significant, gameDrop, patch);
+            } else {
+                final int revision = MinecraftVersionEncoding.revision(version);
+                return String.format("%dw%d", significant, revision);
+            }
+        }
+
         final int major = MinecraftVersionEncoding.major(version);
         final int minor = MinecraftVersionEncoding.minor(version);
         return String.format("%d.%d.%d", significant, major, minor);

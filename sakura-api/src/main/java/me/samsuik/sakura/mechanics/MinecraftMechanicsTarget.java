@@ -1,7 +1,7 @@
 package me.samsuik.sakura.mechanics;
 
+import org.apache.commons.lang3.math.NumberUtils;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
 
@@ -49,6 +49,10 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
         return this.mechanicVersion == MechanicVersion.LEGACY;
     }
 
+    public boolean isSnapshot() {
+        return MinecraftVersionEncoding.isSnapshot(this.mechanicVersion);
+    }
+
     public static MinecraftMechanicsTarget latest() {
         return LATEST;
     }
@@ -69,9 +73,21 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
         return new MinecraftMechanicsTarget(mechanicVersion, ServerType.PAPER);
     }
 
-    public static @Nullable MinecraftMechanicsTarget fromString(final String target) throws NumberFormatException {
-        // 1.21.8+paper 1.8.8+vanilla 12.2
+    public static MinecraftMechanicsTarget fromString(final String target) throws NumberFormatException {
         final String[] parts = target.split("\\+");
+        if (parts.length == 0) {
+            throw new IllegalArgumentException("Could not create a mechanics target from (" + target + ")");
+        }
+
+        final String version = parts[0];
+        final short mechanicVersion = switch (version) {
+            case "latest" -> MechanicVersion.LATEST;
+            case "legacy" -> MechanicVersion.LEGACY;
+            default -> isMinecraftSnapshot(version)
+                ? versionFromMCSnapshot(version)
+                : versionFromMCVersion(version);
+        };
+
         final String serverPart = parts.length == 2 ? parts[1] : "";
         final byte serverType = switch (serverPart.toLowerCase(Locale.ENGLISH)) {
             case "vanilla" -> ServerType.VANILLA;
@@ -80,37 +96,70 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
             default        -> ServerType.PAPER;
         };
 
-        if (parts.length == 0) {
-            return null;
-        }
-
-        final String[] version = parts[0].split("\\.");
-        if (version.length < 1) {
-            return null;
-        }
-
-        final short mechanicVersion;
-        if (version.length == 1) {
-            mechanicVersion = switch (version[0]) {
-                case "latest" -> MechanicVersion.LATEST;
-                case "legacy" -> MechanicVersion.LEGACY;
-                default -> 0;
-            };
-        } else {
-            // 21.1 -> 1.21.1, 1.18 -> 1.18.0, 2.3 -> 1.2.3
-            final int first  = Integer.parseInt(version[0]);
-            final int second = Integer.parseInt(version[1]);
-            if (version.length == 3) {
-                final int third = Integer.parseInt(version[2]);
-                mechanicVersion = MinecraftVersionEncoding.encode(first, second, third);
-            } else if (first == 1) {
-                mechanicVersion = MinecraftVersionEncoding.v1xy(second, 0);
-            } else {
-                mechanicVersion = MinecraftVersionEncoding.v1xy(first, second);
-            }
-        }
-
         return new MinecraftMechanicsTarget(mechanicVersion, serverType);
+    }
+
+    private static short versionFromMCVersion(final String version) throws NumberFormatException {
+        // 1.21.8 1.8.8 26.3.1
+        final String[] versionParts = version.split("\\.");
+        if (versionParts.length < 2) {
+            return 0;
+        }
+
+        final int first  = Integer.parseInt(versionParts[0]);
+        final int second = Integer.parseInt(versionParts[1]);
+        if (versionParts.length == 3) {
+            final int third = Integer.parseInt(versionParts[2]);
+            return MinecraftVersionEncoding.encode(first, second, third);
+        } else if (first == 1) {
+            return MinecraftVersionEncoding.v1xy(second, 0);
+        } else if (first < 26) {
+            return MinecraftVersionEncoding.v1xy(first, second);
+        } else {
+            return MinecraftVersionEncoding.encode(first, second, 0);
+        }
+    }
+
+    private static short versionFromMCSnapshot(final String version) throws NumberFormatException {
+        // legacy snapshot ex: 19w43a, 22w14
+        if (version.contains("w")) {
+            final String[] parts = version.split("w");
+            if (parts.length != 2) {
+                return 0;
+            }
+
+            // clean up the revision
+            final String revisionPart = parts[1];
+            final int lastIndex = revisionPart.length() - 1;
+            final char ending = revisionPart.charAt(lastIndex);
+            final String cleanRevision = NumberUtils.isDigits(String.valueOf(ending))
+                ? revisionPart
+                : revisionPart.substring(0, lastIndex);
+
+            final int release = Integer.parseInt(parts[0]);
+            final int revision = Integer.parseInt(cleanRevision);
+            return MinecraftVersionEncoding.smr(release, revision);
+        }
+
+        // modern snapshot ex: 28.1-snapshot-14
+        if (version.contains("-snapshot-")) {
+            final String[] parts = version.split("-snapshot-");
+            final String[] yearDrop = parts[0].split("\\.");
+            if (yearDrop.length != 2) {
+                return 0;
+            }
+
+            final int year = Integer.parseInt(yearDrop[0]);
+            final int drop = Integer.parseInt(yearDrop[1]);
+            final int patch = Integer.parseInt(parts[1]);
+            return MinecraftVersionEncoding.snapshot(year, drop, patch);
+        }
+
+        return 0;
+    }
+
+    private static boolean isMinecraftSnapshot(final String version) {
+        return version.contains("w") || version.contains("-snapshot-");
     }
 
     @Override
