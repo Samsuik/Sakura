@@ -73,6 +73,10 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
         return new MinecraftMechanicsTarget(mechanicVersion, ServerType.PAPER);
     }
 
+    public static MinecraftMechanicsTarget sake(final short mechanicVersion) {
+        return new MinecraftMechanicsTarget(mechanicVersion, ServerType.SAKE);
+    }
+
     public static MinecraftMechanicsTarget fromString(final String target) throws NumberFormatException {
         final String[] parts = target.split("\\+");
         if (parts.length == 0) {
