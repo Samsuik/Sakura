@@ -19,7 +19,7 @@ import me.samsuik.sakura.configuration.transformation.ConfigurationTransformatio
 import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
@@ -204,10 +204,10 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
     }
 
     private static ContextMap createWorldContextMap(ServerLevel level) {
-        return createWorldContextMap(level.levelStorageAccess.levelDirectory.path(), level.serverLevelData.getLevelName(), level.dimension().location(), level.registryAccess());
+        return createWorldContextMap(level.levelStorageAccess.levelDirectory.path(), level.serverLevelData.getLevelName(), level.dimension().identifier(), level.registryAccess());
     }
 
-    public static ContextMap createWorldContextMap(Path dir, String levelName, ResourceLocation worldKey, RegistryAccess registryAccess) {
+    public static ContextMap createWorldContextMap(Path dir, String levelName, Identifier worldKey, RegistryAccess registryAccess) {
         return ContextMap.builder()
             .put(WORLD_DIRECTORY, dir)
             .put(WORLD_NAME, levelName)

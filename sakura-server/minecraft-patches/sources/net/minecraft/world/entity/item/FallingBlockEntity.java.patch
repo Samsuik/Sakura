@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -73,9 +_,12 @@
+@@ -72,9 +_,12 @@
      public boolean forceTickAfterTeleportToDuplicate;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
@@ -13,7 +13,7 @@
      }
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
-@@ -90,6 +_,26 @@
+@@ -89,6 +_,26 @@
          this.setStartPos(this.blockPosition());
      }
  
@@ -40,7 +40,7 @@
      public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state) {
          FallingBlockEntity fallingBlockEntity = new FallingBlockEntity(
              level,
-@@ -168,7 +_,7 @@
+@@ -167,7 +_,7 @@
              this.handlePortal();
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
                  BlockPos blockPos = this.blockPosition();
@@ -49,16 +49,16 @@
                  boolean flag1 = flag && this.level().getFluidState(blockPos).is(FluidTags.WATER);
                  double d = this.getDeltaMovement().lengthSqr();
                  if (flag && d > 1.0) {
-@@ -184,7 +_,7 @@
+@@ -183,7 +_,7 @@
                      }
                  }
  
 -                if (!this.onGround() && !flag1) {
 +                if (!this.onGround() && !flag1 || this.level().sakuraConfig().cannons.sand.despawnInsideMovingPistons && this.autoExpire && this.time > 600) { // Sakura - allow falling blocks to despawn inside moving pistons
                      if ((this.time > 100 && autoExpire) && (blockPos.getY() <= this.level().getMinY() || blockPos.getY() > this.level().getMaxY()) || (this.time > 600 && autoExpire)) { // Paper - Expand FallingBlock API
-                         if (this.dropItem && serverLevel.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
+                         if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
                              this.spawnAtLocation(serverLevel, block);
-@@ -202,7 +_,7 @@
+@@ -201,7 +_,7 @@
                              );
                              boolean flag2 = FallingBlock.isFree(this.level().getBlockState(blockPos.below())) && (!flag || !flag1);
                              boolean flag3 = this.blockState.canSurvive(this.level(), blockPos) && !flag2;
@@ -67,7 +67,7 @@
                                  if (this.blockState.hasProperty(BlockStateProperties.WATERLOGGED)
                                      && this.level().getFluidState(blockPos).getType() == Fluids.WATER) {
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
-@@ -246,6 +_,10 @@
+@@ -245,6 +_,10 @@
                                      this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
                                      this.callOnBrokenAfterFall(block, blockPos);
                                      this.spawnAtLocation(serverLevel, block);

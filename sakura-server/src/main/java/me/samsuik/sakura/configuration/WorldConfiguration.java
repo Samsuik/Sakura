@@ -11,8 +11,8 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import me.samsuik.sakura.entity.merge.MergeLevel;
 import me.samsuik.sakura.explosion.durable.DurableMaterial;
 import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
-import net.minecraft.Util;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Util;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -30,8 +30,8 @@ public final class WorldConfiguration extends ConfigurationPart {
     private static final Logger LOGGER = LogUtils.getClassLogger();
     static final int CURRENT_VERSION = 12; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
 
-    private transient final ResourceLocation worldKey;
-    WorldConfiguration(ResourceLocation worldKey) {
+    private transient final Identifier worldKey;
+    WorldConfiguration(Identifier worldKey) {
         this.worldKey = worldKey;
     }
 

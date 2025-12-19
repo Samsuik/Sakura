@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise cannon entity movement
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a916ef8123fcacf45334b270d4c3e6c98e7aa057..f2b9d350f81870c6b9ce0c123573ad2b2762bf8b 100644
+index 564588076a33e905f0b2452048fb2a31367ee0f7..9b6db1cc0b4c70a83c2272705b8753239bd3f29d 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1202,7 +1202,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1217,7 +1217,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
              Vec3 vec3 = this.collide(movement);
              double d = vec3.lengthSqr();
              if (d > 1.0E-7 || movement.lengthSqr() - d < 1.0E-7) {
@@ -17,7 +17,7 @@ index a916ef8123fcacf45334b270d4c3e6c98e7aa057..f2b9d350f81870c6b9ce0c123573ad2b
                      double min = Math.min(vec3.length(), 8.0);
                      Vec3 vec31 = this.position().add(vec3.normalize().scale(min));
                      BlockHitResult blockHitResult = this.level()
-@@ -1557,6 +1557,132 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1576,6 +1576,132 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
          return list.isEmpty() ? distance : -Shapes.collide(Direction.Axis.Y, boundingBox, list, -distance);
      }
  
@@ -151,10 +151,10 @@ index a916ef8123fcacf45334b270d4c3e6c98e7aa057..f2b9d350f81870c6b9ce0c123573ad2b
      protected Vec3 collide(Vec3 movement) {
          final boolean xZero = movement.x == 0.0;
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index cdce0160bc4eeacfd5e7751a0d6d4192d4832c53..00d0cabd7d190e6258b595c372440b0fd06311a4 100644
+index afd6e062422943e053af594613beb09b40c8a00b..3a29066910bd3b068beb56d807abf1b82a3ffa8a 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -124,6 +124,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -123,6 +123,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          return itemEntity;
      }
      // Sakura end - merge cannon entities
@@ -168,10 +168,10 @@ index cdce0160bc4eeacfd5e7751a0d6d4192d4832c53..00d0cabd7d190e6258b595c372440b0f
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
          super(type, level);
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 8554e1e95d921eac7b0a6aa7afaa2b3b6e09f423..dee0b2f7ace916d9d3206b2dac166d14d62c8fde 100644
+index 05ff705a14aafcb95a6ce62da5e852ad914d2f93..63c289a15b95e89d7066d0fdd61e6eed246f0311 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -82,6 +82,12 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -81,6 +81,12 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
          this.mergeData.count = count; // Sakura - specialised explosions
      }
      // Sakura end - merge cannon entities

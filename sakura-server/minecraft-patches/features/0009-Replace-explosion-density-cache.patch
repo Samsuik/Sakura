@@ -5,10 +5,10 @@ Subject: [PATCH] Replace explosion density cache
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index a42a0672d56e32baaa594c9c1b9db0e7487e7d59..60fc3ff0b7ed04a2f71d14658783d150dd92a680 100644
+index ad61cba4160d634b5b3648525a63919dcd49e3d4..60860f98d896feba8e68acc1842a9709a51403c8 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -717,6 +717,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -727,6 +727,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
          this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
          this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
@@ -17,7 +17,7 @@ index a42a0672d56e32baaa594c9c1b9db0e7487e7d59..60fc3ff0b7ed04a2f71d14658783d150
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 294f9148a54c5e0bd00e2ebe3943f216f582ff00..d501e9cca821c20f6ce2366538d95b794c81ef00 100644
+index cada2b6c89a5c78d29c5ce8b9a34cadfefb2c34a..923be8b26e07238dd51f2047f4dd17671ae9cf81 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -835,6 +835,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -29,7 +29,7 @@ index 294f9148a54c5e0bd00e2ebe3943f216f582ff00..d501e9cca821c20f6ce2366538d95b79
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index d93a6ed05a09655704e70a7d7ea75ac44e5942e1..950ac55b64ae86a22cfdad6746460283cd6d35aa 100644
+index b3838c018f69d8c9955680a23dc03f01000722f9..d257743e449eb96c2da69df7942e619107290be8 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -296,7 +296,12 @@ public class ServerExplosion implements Explosion {
@@ -65,7 +65,7 @@ index d93a6ed05a09655704e70a7d7ea75ac44e5942e1..950ac55b64ae86a22cfdad6746460283
                              i++;
                          }
  
-@@ -597,6 +610,11 @@ public class ServerExplosion implements Explosion {
+@@ -601,6 +614,11 @@ public class ServerExplosion implements Explosion {
              return;
          }
          // CraftBukkit end
@@ -77,7 +77,7 @@ index d93a6ed05a09655704e70a7d7ea75ac44e5942e1..950ac55b64ae86a22cfdad6746460283
  
          for (BlockPos blockPos : blocks) {
              // CraftBukkit start - TNTPrimeEvent
-@@ -765,14 +783,12 @@ public class ServerExplosion implements Explosion {
+@@ -763,14 +781,12 @@ public class ServerExplosion implements Explosion {
  
      // Paper start - Optimize explosions
      protected float getBlockDensity(Vec3 vec3d, Entity entity) {
@@ -98,7 +98,7 @@ index d93a6ed05a09655704e70a7d7ea75ac44e5942e1..950ac55b64ae86a22cfdad6746460283
  
          return blockDensity;
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index 6e6d5deea89be952f9ab2743340a165ed114827a..2af0ea3bda6688ac51124129f0e463c38c667376 100644
+index 77f30569214d97d5de1ded3cf20491d70a5be405..7c5714c7418f0b783f478f48f6d76884041a416c 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
 @@ -107,6 +107,11 @@ public abstract class BasePressurePlateBlock extends Block {
@@ -114,10 +114,10 @@ index 6e6d5deea89be952f9ab2743340a165ed114827a..2af0ea3bda6688ac51124129f0e463c3
              this.updateNeighbours(level, pos);
              level.setBlocksDirty(pos, state, blockState);
 diff --git a/net/minecraft/world/level/block/TripWireHookBlock.java b/net/minecraft/world/level/block/TripWireHookBlock.java
-index 9d53b18c530f19c333dbf3e3ef8beeb8c5c49418..b4ee0485467301cf5e1659cd27efe50362375d59 100644
+index be5878ef2fcf4e1920d7330864592e546dd559c8..71ffa224e072d9ec3867fb9f17373019fae0f8c7 100644
 --- a/net/minecraft/world/level/block/TripWireHookBlock.java
 +++ b/net/minecraft/world/level/block/TripWireHookBlock.java
-@@ -168,6 +168,11 @@ public class TripWireHookBlock extends Block {
+@@ -167,6 +167,11 @@ public class TripWireHookBlock extends Block {
                  if (!cancelledReceiverHook) { // always trigger two events even when the first hook current change is cancelled
                  // Paper end - Call BlockRedstoneEvent
                  Direction opposite = direction.getOpposite();
@@ -130,7 +130,7 @@ index 9d53b18c530f19c333dbf3e3ef8beeb8c5c49418..b4ee0485467301cf5e1659cd27efe503
                  notifyNeighbors(block, level, blockPosx, opposite);
                  emitState(level, blockPosx, flag2, flag3, flag, flag1);
 diff --git a/net/minecraft/world/phys/AABB.java b/net/minecraft/world/phys/AABB.java
-index cffb3b7d480f72cdb9ed535f362fa60f30597523..c2aa62ad0485f02ba0e65a9cf882e2cdf7be460b 100644
+index 7f0ff1bf4ddf7bfe1d3cad472416dd032806066b..15f340da7c72f711cc28cc9231b5e7a12dd57562 100644
 --- a/net/minecraft/world/phys/AABB.java
 +++ b/net/minecraft/world/phys/AABB.java
 @@ -19,6 +19,30 @@ public class AABB {

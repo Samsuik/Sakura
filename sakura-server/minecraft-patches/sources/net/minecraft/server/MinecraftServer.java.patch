@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -299,6 +_,7 @@
+@@ -303,6 +_,7 @@
      public volatile boolean abnormalExit; // Paper - Improved watchdog support
      public volatile Thread shutdownThread; // Paper - Improved watchdog support
      public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
@@ -8,7 +8,7 @@
      public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
      private final Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
      public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
-@@ -393,6 +_,17 @@
+@@ -397,6 +_,17 @@
          thread.start();
          return minecraftServer;
      }
@@ -26,7 +26,7 @@
  
      // Paper start - rewrite chunk system
      private volatile Throwable chunkSystemCrash;
-@@ -559,6 +_,10 @@
+@@ -564,6 +_,10 @@
          Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
          // CraftBukkit end
          this.paperConfigurations = services.paper().configurations(); // Paper - add paper configuration files
@@ -36,8 +36,8 @@
 +        // Sakura end - sakura configuration files
      }
  
-     private void readScoreboard(DimensionDataStorage dataStorage) {
-@@ -1320,6 +_,11 @@
+     protected abstract boolean initServer() throws IOException;
+@@ -1323,6 +_,11 @@
  
                  this.currentTickStart = tickStart;
                  ++MinecraftServer.currentTick;
@@ -49,10 +49,10 @@
                  // Paper end - improve tick loop
  
                  boolean flag = l == 0L;
-@@ -1346,6 +_,7 @@
-                     this.tickFrame.end();
-                     this.recordEndOfTick(); // Paper - improve tick loop
-                     profilerFiller.popPush("nextTickWait");
+@@ -1337,6 +_,7 @@
+                     this.processPacketsAndTick(flag);
+                     ProfilerFiller profilerFiller = Profiler.get();
+                     profilerFiller.push("nextTickWait");
 +                    this.tickInformationCollector.tickDuration((System.nanoTime() - tickStart) / 1_000_000L); // Sakura - track tick information
                      this.mayHaveDelayedTasks = true;
                      this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + l, this.nextTickTimeNanos);

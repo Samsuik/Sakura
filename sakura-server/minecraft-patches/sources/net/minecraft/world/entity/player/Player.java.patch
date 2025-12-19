@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -181,6 +_,7 @@
+@@ -179,6 +_,7 @@
      private int currentImpulseContextResetGraceTime = 0;
      public boolean affectsSpawning = true; // Paper - Affects Spawning API
      public net.kyori.adventure.util.TriState flyingFallDamage = net.kyori.adventure.util.TriState.NOT_SET; // Paper - flying fall damage
@@ -8,7 +8,7 @@
  
      // CraftBukkit start
      public boolean fauxSleeping;
-@@ -191,6 +_,35 @@
+@@ -189,6 +_,35 @@
          return (org.bukkit.craftbukkit.entity.CraftHumanEntity) super.getBukkitEntity();
      }
      // CraftBukkit end
@@ -53,7 +53,7 @@
          if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
              Pose desiredPose = this.getDesiredPose();
              Pose pose;
-@@ -719,6 +_,10 @@
+@@ -714,6 +_,10 @@
      public boolean isInvulnerableTo(ServerLevel level, DamageSource damageSource) {
          if (super.isInvulnerableTo(level, damageSource)) {
              return true;
@@ -62,9 +62,9 @@
 +            return true;
 +            // Sakura end - allow disabling explosions hurting players
          } else if (damageSource.is(DamageTypeTags.IS_DROWNING)) {
-             return !level.getGameRules().getBoolean(GameRules.RULE_DROWNING_DAMAGE);
+             return !level.getGameRules().get(GameRules.DROWNING_DAMAGE);
          } else if (damageSource.is(DamageTypeTags.IS_FALL)) {
-@@ -756,6 +_,12 @@
+@@ -751,6 +_,12 @@
                      }
                  }
  
@@ -77,96 +77,121 @@
                  // return amount != 0.0F && super.hurtServer(level, damageSource, amount);
                  // CraftBukkit start - Don't filter out 0 damage
                  boolean damaged = super.hurtServer(level, damageSource, amount);
-@@ -1031,13 +_,19 @@
+@@ -1028,19 +_,28 @@
+ 
          if (playerAttackEntityEvent.callEvent() && willAttack) { // Logic moved to willAttack local variable.
-             {
          // Paper end - PlayerAttackEntityEvent
--                float f = this.isAutoSpinAttack() ? this.autoSpinAttackDmg : (float)this.getAttributeValue(Attributes.ATTACK_DAMAGE);
-+                float f = this.isAutoSpinAttack() ? this.autoSpinAttackDmg : this.getAttackDamageFromAttributes(); // Sakura - legacy combat mechanics
-                 ItemStack weaponItem = this.getWeaponItem();
-                 DamageSource damageSource = Optional.ofNullable(weaponItem.getItem().getDamageSource(this)).orElse(this.damageSources().playerAttack(this));
-                 float f1 = this.getEnchantedDamage(target, f, damageSource) - f;
-                 float attackStrengthScale = this.getAttackStrengthScale(0.5F);
-+                // Sakura start - legacy combat mechanics
-+                if (!this.level().sakuraConfig().players.combat.legacyCombatMechanics) {
-                 f *= 0.2F + attackStrengthScale * attackStrengthScale * 0.8F;
-                 f1 *= attackStrengthScale;
-+                } else if (f1 != 0.0) {
-+                    f1 += me.samsuik.sakura.player.combat.CombatUtil.calculateLegacySharpnessDamage(this, weaponItem, damageSource);
+-            float f = this.isAutoSpinAttack() ? this.autoSpinAttackDmg : (float)this.getAttributeValue(Attributes.ATTACK_DAMAGE);
++            float f = this.isAutoSpinAttack() ? this.autoSpinAttackDmg : this.getAttackDamageFromAttributes(); // Sakura - legacy combat mechanics
+             ItemStack weaponItem = this.getWeaponItem();
+             DamageSource damageSource = this.createAttackSource(weaponItem); final DamageSource dmgSourceFinal = damageSource; // Paper - damage events
+             float attackStrengthScale = this.getAttackStrengthScale(0.5F);
++            // Sakura start - legacy combat mechanics
++            if (this.level().sakuraConfig().players.combat.legacyCombatMechanics) {
++                attackStrengthScale = 1.0f;
++            }
+             float f1 = attackStrengthScale * (this.getEnchantedDamage(target, f, damageSource) - f);
+-            f *= this.baseDamageScaleFactor();
++            if (!this.level().sakuraConfig().players.combat.legacyCombatMechanics) {
++                f *= this.baseDamageScaleFactor();
++            } else if (f1 != 0.0) {
++                f1 += me.samsuik.sakura.player.combat.CombatUtil.calculateLegacySharpnessDamage(this, weaponItem, damageSource);
++            }
++            // Sakura end - legacy combat mechanics
+             this.onAttack();
+             final float dmgFinal = f1; // Paper - damage events
+             if (!this.deflectProjectile(target, () -> !org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(target, dmgSourceFinal, dmgFinal, false))) {
+                 if (f > 0.0F || f1 > 0.0F) {
+                     boolean flag = attackStrengthScale > 0.9F;
+                     boolean flag1;
+-                    if (this.isSprinting() && flag) {
++                    if (this.isSprinting() && (!this.level().sakuraConfig().players.knockback.sprinting.requireFullAttack || flag)) { // Sakura - configure entity knockback
+                         this.playServerSideSound(SoundEvents.PLAYER_ATTACK_KNOCKBACK);
+                         flag1 = true;
+                     } else {
+@@ -1065,8 +_,11 @@
+                     Vec3 deltaMovement = target.getDeltaMovement();
+                     boolean flag3 = target.hurtOrSimulate(damageSource, f2);
+                     if (flag3) {
+-                        this.causeExtraKnockback(target, this.getKnockback(target, damageSource) + (flag1 ? 0.5F : 0.0F), deltaMovement);
+-                        if (isSweepAttack) {
++                        // Sakura start - configure entity knockback; extra sprinting knockback & allow disabling sweep attacks
++                        final float extraKnockbackToApply = this.level().sakuraConfig().players.combat.legacyCombatMechanics ? 1.0f : 0.5f;
++                        this.causeExtraKnockback(target, this.getKnockback(target, damageSource) + (flag1 ? extraKnockbackToApply : 0.0F), deltaMovement, !flag1);
++                        if (isSweepAttack && this.level().sakuraConfig().players.combat.allowSweepAttacks) {
++                            // Sakura end - configure entity knockback; extra sprinting knockback & allow disabling sweep attacks
+                             this.doSweepAttack(target, f, damageSource, attackStrengthScale);
+                         }
+ 
+@@ -1117,7 +_,7 @@
+             && !this.isMobilityRestricted()
+             && !this.isPassenger()
+             && target instanceof LivingEntity
+-            && !this.isSprinting();
++            && (this.level().sakuraConfig().players.combat.legacyCombatMechanics || !this.isSprinting()); // Sakura - legacy combat mechanics
+     }
+ 
+     private boolean isSweepAttack(boolean isStrong, boolean isCritical, boolean extraKnockback) {
+@@ -1151,7 +_,7 @@
+         if (target instanceof LivingEntity) {
+             float f = previousHealth - ((LivingEntity)target).getHealth();
+             this.awardStat(Stats.DAMAGE_DEALT, Math.round(f * 10.0F));
+-            if (this.level() instanceof ServerLevel && f > 2.0F) {
++            if (this.level() instanceof ServerLevel && f > 2.0F && !this.level().sakuraConfig().players.combat.oldSoundsAndParticleEffects) { // Sakura - old combat sounds and particles
+                 int i = (int)(f * 0.5);
+                 ((ServerLevel)this.level())
+                     .sendParticles(ParticleTypes.DAMAGE_INDICATOR, target.getX(), target.getY(0.5), target.getZ(), i, 0.1, 0.0, 0.1, 0.2);
+@@ -1193,8 +_,31 @@
+ 
+     @Override
+     public void causeExtraKnockback(Entity target, float strength, Vec3 currentMovement) {
++        // Sakura start - configure entity knockback; extra sprinting knockback
++        this.causeExtraKnockback(target, strength, currentMovement, true);
++    }
++
++    private void causeExtraKnockback(
++        final Entity target,
++        float strength,
++        final Vec3 currentMovement,
++        final boolean bypassKnockbackDelay
++    ) {
+         if (strength > 0.0F) {
+-            if (target instanceof LivingEntity livingEntity) {
++            final long millis = System.currentTimeMillis();
++            final long sinceLastKnockback = millis - this.lastSprintKnockback;
++            if (!bypassKnockbackDelay) {
++                double knockbackToApply = 0.0;
++                if (sinceLastKnockback >= this.level().sakuraConfig().players.knockback.sprinting.knockbackDelay.value().orElse(0)) {
++                    knockbackToApply = this.level().sakuraConfig().players.knockback.sprinting.extraKnockback;
++                    this.lastSprintKnockback = millis;
 +                }
-+                // Sakura end - legacy combat mechanics
-                 // this.resetAttackStrengthTicker(); // CraftBukkit - Moved to EntityLiving to reset the cooldown after the damage is dealt
-                 if (target.getType().is(EntityTypeTags.REDIRECTABLE_PROJECTILE)
-                     && target instanceof Projectile projectile) {
-@@ -1055,7 +_,7 @@
-                     if (f > 0.0F || f1 > 0.0F) {
-                         boolean flag = attackStrengthScale > 0.9F;
-                         boolean flag1;
--                        if (this.isSprinting() && flag) {
-+                        if (this.isSprinting() && (!this.level().sakuraConfig().players.knockback.sprinting.requireFullAttack || flag)) { // Sakura - configure entity knockback
-                             sendSoundEffect(this, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_KNOCKBACK, this.getSoundSource(), 1.0F, 1.0F); // Paper - send while respecting visibility
-                             flag1 = true;
-                         } else {
-@@ -1071,7 +_,7 @@
-                             && !this.isMobilityRestricted()
-                             && !this.isPassenger()
-                             && target instanceof LivingEntity
--                            && !this.isSprinting();
-+                            && (this.level().sakuraConfig().players.combat.legacyCombatMechanics || !this.isSprinting()); // Sakura - legacy combat mechanics
-                         flag2 = flag2 && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
-                         if (flag2) {
-                             damageSource = damageSource.critical(); // Paper - critical damage API
-@@ -1098,7 +_,21 @@
-                         if (flag4) {
-                             float f4 = this.getKnockback(target, damageSource) + (flag1 ? 1.0F : 0.0F);
-                             if (f4 > 0.0F) {
--                                if (target instanceof LivingEntity livingEntity1) {
-+                                // Sakura start - configure entity knockback; extra sprinting knockback
-+                                final long millis = System.currentTimeMillis();
-+                                final long sinceLastKnockback = millis - this.lastSprintKnockback;
-+                                if (flag1) { // attackHasExtraKnockback
-+                                    double knockbackToApply = 0.0;
-+                                    if (sinceLastKnockback >= this.level().sakuraConfig().players.knockback.sprinting.knockbackDelay.value().orElse(0)) {
-+                                        knockbackToApply = this.level().sakuraConfig().players.knockback.sprinting.extraKnockback;
-+                                        this.lastSprintKnockback = millis;
-+                                    }
-+                                    f4 = (f4 - 1.0f) + ((float) knockbackToApply * 2.0f);
-+                                }
-+                                if (f4 == 0.0f) {
-+                                    // required
-+                                } else if (target instanceof LivingEntity livingEntity1) {
-+                                    // Sakura end - configure entity knockback; extra sprinting knockback
-                                     livingEntity1.knockback(
-                                         f4 * 0.5F, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0))
-                                         , this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK // Paper - knockback events
-@@ -1120,7 +_,7 @@
-                                 // Paper end - Configurable sprint interruption on attack
-                             }
++                strength = (strength - 1.0f) + ((float) knockbackToApply * 2.0f);
++            }
++            if (strength == 0.0f) {
++                // required
++            } else if (target instanceof LivingEntity livingEntity) {
++                // Sakura end - configure entity knockback; extra sprinting knockback
+                 livingEntity.knockback(strength, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)), this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK); // Paper - knockback events
+             } else {
+                 target.push(
+@@ -1256,7 +_,7 @@
+                     livingEntity.lastDamageCancelled = false;
+                     if (livingEntity.hurtServer(serverLevel, damageSource.knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK), f1) && !livingEntity.lastDamageCancelled) {
+                         // Paper end - Only apply knockback if the event is not canceled
+-                        livingEntity.knockback(0.4F, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)), this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SWEEP_ATTACK); // Paper - knockback events
++                        livingEntity.knockback((float) this.level().sakuraConfig().players.knockback.sweepingEdgeKnockback, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)), this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SWEEP_ATTACK); // Sakura - configure entity knockback // Paper - knockback events
+                         EnchantmentHelper.doPostAttackEffects(serverLevel, livingEntity, damageSource);
+                     }
+                 }
+@@ -1285,6 +_,7 @@
+         return 0.2F + attackStrengthScale * attackStrengthScale * 0.8F;
+     }
  
--                            if (flag3) {
-+                            if (flag3 && this.level().sakuraConfig().players.combat.allowSweepAttacks) { // Sakura - allow disabling sweep attacks
-                                 float f5 = 1.0F + (float)this.getAttributeValue(Attributes.SWEEPING_DAMAGE_RATIO) * f;
- 
-                                 for (LivingEntity livingEntity2 : this.level()
-@@ -1136,7 +_,7 @@
-                                         if (this.level() instanceof ServerLevel serverLevel && livingEntity2.hurtServer(serverLevel, damageSource.knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK), f6) && !livingEntity2.lastDamageCancelled) {
-                                         // Paper end - Only apply knockback if the event is not cancelled
-                                             livingEntity2.knockback(
--                                                0.4F, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0))
-+                                                (float) this.level().sakuraConfig().players.knockback.sweepingEdgeKnockback, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)) // Sakura - configure entity knockback
-                                                     , this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SWEEP_ATTACK // Paper - knockback events
-                                             );
-                                             EnchantmentHelper.doPostAttackEffects(serverLevel, livingEntity2, damageSource);
-@@ -1224,7 +_,7 @@
-                             if (target instanceof LivingEntity) {
-                                 float f7 = f3 - ((LivingEntity)target).getHealth();
-                                 this.awardStat(Stats.DAMAGE_DEALT, Math.round(f7 * 10.0F));
--                                if (this.level() instanceof ServerLevel && f7 > 2.0F) {
-+                                if (this.level() instanceof ServerLevel && f7 > 2.0F && !this.level().sakuraConfig().players.combat.oldSoundsAndParticleEffects) { // Sakura - old combat sounds and particles
-                                     int i = (int)(f7 * 0.5);
-                                     ((ServerLevel)this.level())
-                                         .sendParticles(ParticleTypes.DAMAGE_INDICATOR, target.getX(), target.getY(0.5), target.getZ(), i, 0.1, 0.0, 0.1, 0.2);
-@@ -1617,6 +_,11 @@
++    /// 
+     @Override
+     public boolean stabAttack(EquipmentSlot slot, Entity target, float damageAmount, boolean damage, boolean knockback, boolean dismount) {
+         // Paper start - PlayerAttackEntityEvent
+@@ -1695,6 +_,11 @@
  
      // Paper start - send while respecting visibility
      private static void sendSoundEffect(Player fromEntity, double x, double y, double z, SoundEvent soundEffect, SoundSource soundCategory, float volume, float pitch) {

@@ -33,10 +33,10 @@ index ff747a1ecdf3c888bca0d69de4f85dcd810b6139..d90f6aa4557b5863eba6a206226f763c
          }
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index e7e5932235a4af05106e87a48f3df261fc33d96b..92d315bcb54a0b72dc0befc6550cc46174ad290b 100644
+index 0df060ab2e9c9034d84a07205b320c371444a49a..32fa6624e67ff609cf3e25f4fc28d9366ce14f9a 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -719,6 +719,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -729,6 +729,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
          this.levelTickScheduler.repeatingTask(this.densityCache::expire, 0); // Sakura - explosion density cache
          this.levelTickScheduler.repeatingTask(this.dispenseRelocationHandler::clear, 0); // Sakura - configure server mechanics
@@ -45,7 +45,7 @@ index e7e5932235a4af05106e87a48f3df261fc33d96b..92d315bcb54a0b72dc0befc6550cc461
  
      // Paper start
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index e6d6f98627884bd4ecb1266320bc745b34dea344..45a50997c34562facb20c311d2d88a5fa4f4f670 100644
+index b2a2db985de9a02063bad2549f50ee76539f6cc6..a9fee8562922744a9a87341cb4df8aa2103e2b0e 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -838,6 +838,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -57,10 +57,10 @@ index e6d6f98627884bd4ecb1266320bc745b34dea344..45a50997c34562facb20c311d2d88a5f
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
-index 96e3e0e92c7179bdf1e576cd90f4e4370fb26de7..58e5df3bef82cbae868fa680277aeb12b3f45975 100644
+index 8c88c8bd57ded43ed5268f4ec3ec156da601ee7a..d4f3d1b296c20f34a697a7bd7022b74ecd4a8671 100644
 --- a/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
-@@ -306,6 +306,12 @@ public class RedStoneWireBlock extends Block {
+@@ -305,6 +305,12 @@ public class RedStoneWireBlock extends Block {
  
              newPower = event.getNewCurrent();
  
@@ -73,7 +73,7 @@ index 96e3e0e92c7179bdf1e576cd90f4e4370fb26de7..58e5df3bef82cbae868fa680277aeb12
              if (level.getBlockState(pos) == state) {
                  state = state.setValue(POWER, newPower);
                  // [Space Walker] suppress shape updates and emit those manually to
-@@ -313,6 +319,7 @@ public class RedStoneWireBlock extends Block {
+@@ -312,6 +318,7 @@ public class RedStoneWireBlock extends Block {
                  if (level.setBlock(pos, state, Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS)) {
                      turbo.updateNeighborShapes(level, pos, state);
                  }
@@ -81,7 +81,7 @@ index 96e3e0e92c7179bdf1e576cd90f4e4370fb26de7..58e5df3bef82cbae868fa680277aeb12
              }
          }
          return state;
-@@ -402,7 +409,7 @@ public class RedStoneWireBlock extends Block {
+@@ -401,7 +408,7 @@ public class RedStoneWireBlock extends Block {
  
      @Override
      protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, @Nullable Orientation orientation, boolean movedByPiston) {
@@ -90,7 +90,7 @@ index 96e3e0e92c7179bdf1e576cd90f4e4370fb26de7..58e5df3bef82cbae868fa680277aeb12
              // Paper start - optimize redstone (Alternate Current)
              // Alternate Current handles breaking of redstone wires in the WireHandler.
              if (level.localConfig().at(pos).paperRedstoneImplementation() == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) { // Sakura - redstone implementation api
-@@ -436,8 +443,14 @@ public class RedStoneWireBlock extends Block {
+@@ -435,8 +442,14 @@ public class RedStoneWireBlock extends Block {
              if (powerValue == 0) {
                  return 0;
              } else {
@@ -108,10 +108,10 @@ index 96e3e0e92c7179bdf1e576cd90f4e4370fb26de7..58e5df3bef82cbae868fa680277aeb12
                      : powerValue;
              }
 diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 151ceb365d9ae8f27f3e182ab8150f4e3c9e9110..d4381935c85392cf09b968eb6b6195ad736352f3 100644
+index e83698baf232ee01eecdeeadfecd2524786d2e29..ca606971942e06e6dad9c7805471d614d5f24f76 100644
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
-@@ -524,6 +524,13 @@ public abstract class BlockBehaviour implements FeatureElement {
+@@ -521,6 +521,13 @@ public abstract class BlockBehaviour implements FeatureElement {
              return this.constantCollisionShape;
          }
          // Paper end - optimise collisions
@@ -125,7 +125,7 @@ index 151ceb365d9ae8f27f3e182ab8150f4e3c9e9110..d4381935c85392cf09b968eb6b6195ad
  
          protected BlockStateBase(Block owner, Reference2ObjectArrayMap<Property<?>, Comparable<?>> values, MapCodec<BlockState> propertiesCodec) {
              super(owner, values, propertiesCodec);
-@@ -638,6 +645,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+@@ -634,6 +641,7 @@ public abstract class BlockBehaviour implements FeatureElement {
                  }
              }
              // Paper end - optimise collisions
@@ -134,10 +134,10 @@ index 151ceb365d9ae8f27f3e182ab8150f4e3c9e9110..d4381935c85392cf09b968eb6b6195ad
  
          public Block getBlock() {
 diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-index 5d17213a692016d2f005c7820bf2cf1f42ce411f..6e0a41bd6c171b37476cedb57d6dcbdbabd2532f 100644
+index 0a60ff97dc77108997568c75c94327cb6858018f..20a282c683bbc92eb78f466bc98e7e8389c0857a 100644
 --- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 +++ b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-@@ -29,6 +29,13 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+@@ -28,6 +28,13 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
          this.maxChainedNeighborUpdates = maxChainedNeighborUpdates;
      }
  
@@ -151,7 +151,7 @@ index 5d17213a692016d2f005c7820bf2cf1f42ce411f..6e0a41bd6c171b37476cedb57d6dcbdb
      public void setDebugListener(@Nullable Consumer<BlockPos> debugListener) {
          this.debugListener = debugListener;
      }
-@@ -93,6 +100,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+@@ -92,6 +99,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
                  }
              }
          } finally {
@@ -160,7 +160,7 @@ index 5d17213a692016d2f005c7820bf2cf1f42ce411f..6e0a41bd6c171b37476cedb57d6dcbdb
              this.addedThisLayer.clear();
              this.count = 0;
 diff --git a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
-index 4edf6e96cd47ab75aedd4baefcf49cd3fae00d7a..25041865bc4dbb17ed9655834af567dfc4ca94ee 100644
+index 53b8df8e6dd379126af3e1feb2220e222430ce94..9db155a82d26d65743d04146efa99405dce058ab 100644
 --- a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
 +++ b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
 @@ -28,7 +28,14 @@ public class DefaultRedstoneWireEvaluator extends RedstoneWireEvaluator {
@@ -187,10 +187,10 @@ index 4edf6e96cd47ab75aedd4baefcf49cd3fae00d7a..25041865bc4dbb17ed9655834af567df
              }
          }
 diff --git a/net/minecraft/world/level/redstone/NeighborUpdater.java b/net/minecraft/world/level/redstone/NeighborUpdater.java
-index f45cf0136e77ed5a903d033a7b0611e5edc23db9..e4057d364894bcab766a0ef444a9d54ed20e8822 100644
+index 87512434ccd8d46d8db718228c790465c64b2c20..83abe95b974d998d1aef13309fc63b5234ecc864 100644
 --- a/net/minecraft/world/level/redstone/NeighborUpdater.java
 +++ b/net/minecraft/world/level/redstone/NeighborUpdater.java
-@@ -17,6 +17,12 @@ import net.minecraft.world.level.block.state.BlockState;
+@@ -17,6 +17,12 @@ import org.jspecify.annotations.Nullable;
  public interface NeighborUpdater {
      Direction[] UPDATE_ORDER = new Direction[]{Direction.WEST, Direction.EAST, Direction.DOWN, Direction.UP, Direction.NORTH, Direction.SOUTH};
  
@@ -200,6 +200,6 @@ index f45cf0136e77ed5a903d033a7b0611e5edc23db9..e4057d364894bcab766a0ef444a9d54e
 +    }
 +    // Sakura end - cache vanilla and eigencraft wires
 +
-     void shapeUpdate(Direction direction, BlockState state, BlockPos pos, BlockPos neighborPos, int flags, int recursionLeft);
+     void shapeUpdate(Direction direction, BlockState state, BlockPos pos, BlockPos neighborPos, @Block.UpdateFlags int flags, int recursionLeft);
  
      void neighborChanged(BlockPos pos, Block neighborBlock, @Nullable Orientation orientation);

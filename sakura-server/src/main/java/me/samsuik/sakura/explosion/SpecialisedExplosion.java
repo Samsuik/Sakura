@@ -278,7 +278,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
         }
 
         entity.setDeltaMovement(moveX, moveY, moveZ);
-        entity.hasImpulse = true;
+        entity.needsSync = true;
     }
 
     protected final void forEachEntitySliceInBounds(final AABB bb, final Consumer<Entity[]> sliceConsumer) {
