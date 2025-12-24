@@ -11,6 +11,7 @@ import java.util.Optional;
 
 @NullMarked
 public record EntityState(
+    Vec3 oldPosition,
     Vec3 position,
     Vec3 momentum,
     AABB bb,
@@ -21,6 +22,7 @@ public record EntityState(
 ) {
     public static EntityState of(final Entity entity) {
         return new EntityState(
+            entity.oldPosition(),
             entity.position(),
             entity.getDeltaMovement(),
             entity.getBoundingBox(),
@@ -32,6 +34,7 @@ public record EntityState(
     }
 
     public void apply(final Entity entity) {
+        entity.setOldPosAndRot(this.oldPosition, 0.0f, 0.0f);
         entity.setPos(this.position);
         entity.setDeltaMovement(this.momentum);
         entity.setBoundingBox(this.bb);
