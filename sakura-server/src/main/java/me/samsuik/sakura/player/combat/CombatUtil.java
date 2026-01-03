@@ -20,6 +20,7 @@ import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.level.Level;
 import org.apache.commons.lang3.mutable.MutableFloat;
 import org.jspecify.annotations.NullMarked;
 
@@ -33,7 +34,26 @@ public final class CombatUtil {
                 && entity.level().sakuraConfig().players.combat.shieldDamageReduction;
     }
 
-    public static double getLegacyAttackDifference(final ItemStack itemstack) {
+    public static double getModifiedAttackDamage(final Level level, final ItemStack stack) {
+        final double baseAttack = getItemAttackDamage(stack);
+        double modifiedDamage = 0.0;
+
+        if (baseAttack != 0.0 && level.sakuraConfig().players.combat.legacyCombatMechanics) {
+            final OptionalDouble legacyAttack = LegacyDamageMapping.itemAttackDamage(stack.getItem());
+            if (legacyAttack.isPresent()) {
+                modifiedDamage = legacyAttack.getAsDouble() - baseAttack;
+            }
+        }
+
+        final Double attackOverride = level.sakuraConfig().players.combat.itemAttackDamageOverride.get(stack.getItem());
+        if (attackOverride != null) {
+            modifiedDamage = attackOverride - baseAttack - 1;
+        }
+
+        return modifiedDamage;
+    }
+
+    public static double getItemAttackDamage(final ItemStack itemstack) {
         final ItemAttributeModifiers defaultModifiers = itemstack.getItem().components().get(DataComponents.ATTRIBUTE_MODIFIERS);
         if (defaultModifiers != null && !defaultModifiers.modifiers().isEmpty()) { // exists
             double baseAttack = 0.0;
@@ -44,11 +64,7 @@ public final class CombatUtil {
                     return 0;
                 baseAttack += entry.modifier().amount();
             }
-
-            final OptionalDouble legacyAttack = LegacyDamageMapping.itemAttackDamage(itemstack.getItem());
-            if (baseAttack != 0.0 && legacyAttack.isPresent()) {
-                return legacyAttack.getAsDouble() - baseAttack;
-            }
+            return baseAttack;
         }
 
         return 0.0;

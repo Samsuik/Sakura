@@ -1,12 +1,12 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -291,6 +_,42 @@
+@@ -291,6 +_,43 @@
      public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
      public int invulnerableDuration = LivingEntity.INVULNERABLE_DURATION; // Paper - configurable invulnerable duration
      // CraftBukkit end
-+    // Sakura start - legacy combat mechanics
-+    private static final Identifier LEGACY_COMBAT_MODIFIER_ID = Identifier.fromNamespaceAndPath("sakura", "legacy_combat");
-+    private static final AttributeModifier LEGACY_ATTACK_SPEED_MODIFIER = new AttributeModifier(LEGACY_COMBAT_MODIFIER_ID, 100.0, AttributeModifier.Operation.ADD_VALUE);
++    // Sakura start - legacy combat mechanics & attack damage override
++    private static final Identifier ATTACK_OVERRIDE_MODIFIER_ID = Identifier.fromNamespaceAndPath("sakura", "attack_override");
++    private static final AttributeModifier LEGACY_ATTACK_SPEED_MODIFIER = new AttributeModifier(ATTACK_OVERRIDE_MODIFIER_ID, 100.0, AttributeModifier.Operation.ADD_VALUE);
 +
 +    private void updateAttackSpeedModifier() {
 +        final AttributeInstance attackSpeed = this.getAttribute(Attributes.ATTACK_SPEED);
@@ -21,25 +21,26 @@
 +
 +    public final float getAttackDamageFromAttributes() {
 +        final AttributeInstance attackDamage = this.getAttribute(Attributes.ATTACK_DAMAGE);
-+        AttributeModifier legacyModifier = null;
-+        if (this.level().sakuraConfig().players.combat.legacyCombatMechanics) {
-+            final ItemStack heldItem = this.lastEquipmentItems.get(EquipmentSlot.MAINHAND);
-+            final double attackDifference = me.samsuik.sakura.player.combat.CombatUtil.getLegacyAttackDifference(heldItem);
-+            legacyModifier = new AttributeModifier(LEGACY_COMBAT_MODIFIER_ID, attackDifference, AttributeModifier.Operation.ADD_VALUE);
++        AttributeModifier attackOverrideModifier = null;
++
++        final ItemStack heldItem = this.lastEquipmentItems.get(EquipmentSlot.MAINHAND);
++        final double modifiedDamage = me.samsuik.sakura.player.combat.CombatUtil.getModifiedAttackDamage(this.level(), heldItem);
++        if (modifiedDamage != 0.0) {
++            attackOverrideModifier = new AttributeModifier(ATTACK_OVERRIDE_MODIFIER_ID, modifiedDamage, AttributeModifier.Operation.ADD_VALUE);
 +        }
 +
 +        final double damage;
-+        if (attackDamage == null || legacyModifier == null) {
++        if (attackDamage == null || attackOverrideModifier == null) {
 +            damage = this.getAttributeValue(Attributes.ATTACK_DAMAGE);
 +        } else {
-+            attackDamage.addTransientModifier(legacyModifier);
++            attackDamage.addTransientModifier(attackOverrideModifier);
 +            damage = this.getAttributeValue(Attributes.ATTACK_DAMAGE);
-+            attackDamage.removeModifier(legacyModifier);
++            attackDamage.removeModifier(attackOverrideModifier);
 +        }
 +
-+        return (float) damage;
++        return (float) damage * 0.001f;
 +    }
-+    // Sakura end - legacy combat mechanics
++    // Sakura end - legacy combat mechanics & attack damage override
  
      protected LivingEntity(EntityType<? extends LivingEntity> type, Level level) {
          super(type, level);

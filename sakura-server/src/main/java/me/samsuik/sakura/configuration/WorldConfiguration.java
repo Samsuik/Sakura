@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.spongepowered.configurate.objectmapping.meta.Comment;
 import org.spongepowered.configurate.objectmapping.meta.Setting;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -159,6 +160,7 @@ public final class WorldConfiguration extends ConfigurationPart {
             )
             public DoubleOr.Disabled maxDamage = DoubleOr.Disabled.DISABLED;
             public IntOr.Default maxArmourDamage = IntOr.Default.USE_DEFAULT;
+            public Map<Item, Double> itemAttackDamageOverride = new HashMap<>();
         }
 
         public Knockback knockback = new Knockback();
