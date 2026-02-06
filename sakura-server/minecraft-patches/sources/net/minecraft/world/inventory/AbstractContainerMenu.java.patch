@@ -27,12 +27,30 @@
          }
      }
      // CraftBukkit end
-@@ -340,7 +_,7 @@
+@@ -313,7 +_,7 @@
+     public void synchronizeSlotToRemote(int slotIndex, ItemStack stack, Supplier<ItemStack> supplier) {
+         if (!this.suppressRemoteUpdates) {
+             RemoteSlot remoteSlot = this.remoteSlots.get(slotIndex);
+-            if (!remoteSlot.matches(stack)) {
++            if (!remoteSlot.matches(stack) && !remoteSlot.matches(stack.copyForPacket())) { // Sakura - modify components sent to the client
+                 remoteSlot.force(stack);
+                 if (this.synchronizer != null) {
+                     this.synchronizer.sendSlotChange(this, slotIndex, supplier.get());
+@@ -338,9 +_,16 @@
+         if (!this.suppressRemoteUpdates) {
+             ItemStack carried = this.getCarried();
              if (!this.remoteCarried.matches(carried)) {
++                // Sakura start - modify components sent to the client
++                final ItemStack modifiedItem = carried.copyForPacket();
++                if (this.remoteCarried.matches(modifiedItem)) {
++                    return;
++                }
++                // Sakura end - modify components sent to the client
++
                  this.remoteCarried.force(carried);
                  if (this.synchronizer != null) {
 -                    this.synchronizer.sendCarriedChange(this, carried.copy());
-+                    this.synchronizer.sendCarriedChange(this, carried.copyForPacket()); // Sakura - modify components sent to the client
++                    this.synchronizer.sendCarriedChange(this, modifiedItem); // Sakura - modify components sent to the client
                  }
              }
          }

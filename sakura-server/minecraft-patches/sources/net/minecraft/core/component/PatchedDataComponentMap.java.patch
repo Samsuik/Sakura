@@ -1,0 +1,16 @@
+--- a/net/minecraft/core/component/PatchedDataComponentMap.java
++++ b/net/minecraft/core/component/PatchedDataComponentMap.java
+@@ -29,6 +_,13 @@
+         this.copyOnWrite = copyOnWrite;
+     }
+ 
++    // Sakura start - modify components sent to the client
++    public <T> void sakura$patchComponent(final DataComponentType<T> component, final @Nullable T newValue) {
++        this.ensureMapOwnership();
++        this.patch.put(component, Optional.ofNullable(newValue));
++    }
++    // Sakura end - modify components sent to the client
++
+     public static PatchedDataComponentMap fromPatch(DataComponentMap prototype, DataComponentPatch patch) {
+         if (isPatchSanitized(prototype, patch.map)) {
+             return new PatchedDataComponentMap(prototype, patch.map, true);
