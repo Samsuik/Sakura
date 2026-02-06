@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 6 Feb 2026 21:19:10 +0000
+Subject: [PATCH] fix end portal item dupe
+
+
+diff --git a/net/minecraft/world/item/EnderEyeItem.java b/net/minecraft/world/item/EnderEyeItem.java
+index 1d540f76accce9478304dc63461b830f189bd777..404aef2ae6cdb99d7198c6c1ae690522dde49b0b 100644
+--- a/net/minecraft/world/item/EnderEyeItem.java
++++ b/net/minecraft/world/item/EnderEyeItem.java
+@@ -58,6 +58,19 @@ public class EnderEyeItem extends Item {
+             if (blockPatternMatch != null) {
+                 BlockPos blockPos = blockPatternMatch.getFrontTopLeft().offset(-3, 0, -3);
+ 
++                // Sakura start - fix end portal item dupe
++                for (int portalX = 0; portalX < 3; portalX++) {
++                    for (int portalZ = 0; portalZ < 3; portalZ++) {
++                        final BlockPos portalPos = blockPos.offset(portalX, 0, portalZ);
++                        if (!level.getBlockState(portalPos).isAir()) {
++                            // Revert the portal frame
++                            level.setBlock(clickedPos, blockState, Block.UPDATE_CLIENTS);
++                            return InteractionResult.PASS;
++                        }
++                    }
++                }
++                // Sakura end - fix end portal item dupe
++
+                 for (int i = 0; i < 3; i++) {
+                     for (int i1 = 0; i1 < 3; i1++) {
+                         BlockPos blockPos1 = blockPos.offset(i, 0, i1);
