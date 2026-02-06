@@ -50,7 +50,7 @@ index 817e4ffd597938697f0c4dca16068f8d20c088b3..535cee71d3b286387e1e7c2cad5faeb3
  
                  // bound y
 diff --git a/net/minecraft/server/level/TicketType.java b/net/minecraft/server/level/TicketType.java
-index b2914cbe1ba89ef23f3ca41a98d0c8679198ce4c..4b7fa7bda51d5f9689afdd55d53c45af6c465036 100644
+index 6d5bfc6e26932ba1d22b339b4bcadd2cce00c989..d65268ee0d87ab3ea4b50dd1c8c45708879e57e5 100644
 --- a/net/minecraft/server/level/TicketType.java
 +++ b/net/minecraft/server/level/TicketType.java
 @@ -68,6 +68,7 @@ public final class TicketType<T> implements ca.spottedleaf.moonrise.patches.chun
@@ -62,7 +62,7 @@ index b2914cbe1ba89ef23f3ca41a98d0c8679198ce4c..4b7fa7bda51d5f9689afdd55d53c45af
      private static TicketType register(String name, long timeout, @TicketType.Flags int flags) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index c3cd8a1d5a3327b9736d9d60d11ddd628709ecb5..c7bba6a3c1a2d26957d3d028f881fdc42dfb5b92 100644
+index 86daf34ea0184c704df671cb52866a00f392077e..0a629ac3ccf549a81aea1af5350008ebe26ef9e1 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -539,6 +539,19 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -135,10 +135,10 @@ index 3000a1dad619f9e03abad8af6cc93b1219421deb..67249afe6c73708c537fe73570bdebc3
  
      public PrimedTnt(Level level, double x, double y, double z, @Nullable LivingEntity owner) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 54ddcf92e72b9cbd0eb442e5d0faa83c0cf3b33b..e2188f794d0c543600d34b8ed24100b39c91fab9 100644
+index 54ddcf92e72b9cbd0eb442e5d0faa83c0cf3b33b..f21bbd40e62623e9a15fa50fc4b008181866a8c0 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -134,6 +134,15 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
+@@ -134,6 +134,17 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
      private final int minSection;
      private final int maxSection;
      // Paper end - get block chunk optimisation
@@ -147,7 +147,9 @@ index 54ddcf92e72b9cbd0eb442e5d0faa83c0cf3b33b..e2188f794d0c543600d34b8ed24100b3
 +
 +    public final boolean refreshMovementTicket(final long gameTime) {
 +        final boolean refresh = gameTime - this.lastMovementLoadTicket >= 100;
-+        this.lastMovementLoadTicket = gameTime;
++        if (refresh) {
++            this.lastMovementLoadTicket = gameTime;
++        }
 +        return refresh;
 +    }
 +    // Sakura end - load chunks on movement
