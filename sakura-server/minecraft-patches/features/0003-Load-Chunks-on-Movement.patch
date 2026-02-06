@@ -50,7 +50,7 @@ index 2082b7506a403ed6815076cbd0d3b7eecd7225a0..82dac4fbaf3572391dad61356ba5351b
  
                  // bound y
 diff --git a/net/minecraft/server/level/TicketType.java b/net/minecraft/server/level/TicketType.java
-index 25ea504fa93f78b43237e1c79f8b5685a2aa6d7c..5395b3e0491f197ffea3910d3f172dcdef881758 100644
+index 82adb0a0831478b999274fdabab8f94db06b28a9..afc90ea9a4f8e65c3286d5db7494501746bb4934 100644
 --- a/net/minecraft/server/level/TicketType.java
 +++ b/net/minecraft/server/level/TicketType.java
 @@ -62,6 +62,7 @@ public final class TicketType<T> implements ca.spottedleaf.moonrise.patches.chun
@@ -62,7 +62,7 @@ index 25ea504fa93f78b43237e1c79f8b5685a2aa6d7c..5395b3e0491f197ffea3910d3f172dcd
      private static TicketType register(String name, long timeout, int flags) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 617ee42a38d027eaf662e5a348087351953a22fd..f5f3eec1ae9348953aee9e44cfb02fc275e30ee6 100644
+index 5f105b12ab407e6360e23a9aab2b502ced01c996..28f7af99f290f38c7d0fa0c54dd641a1c9473a45 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -538,6 +538,19 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -111,7 +111,7 @@ index 617ee42a38d027eaf662e5a348087351953a22fd..f5f3eec1ae9348953aee9e44cfb02fc2
  
      public boolean mayInteract(ServerLevel level, BlockPos pos) {
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 8150b567c05d2c8e87f4b65d616d5c0c01bc2e19..d1f806f950707091d02788117c1f8cffe5b2de04 100644
+index 85bebec21261e71b82a0b9c02e1c5edd8bd4cde6..468e08c6ada0554b3af694acad4130ed7ec7b46f 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -80,6 +80,7 @@ public class FallingBlockEntity extends Entity {
@@ -135,10 +135,10 @@ index 71071899443fdb02beb0321f271430c732178e26..dd4e2419892a8879106eaaccbf406bec
  
      public PrimedTnt(Level level, double x, double y, double z, @Nullable LivingEntity owner) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 98b7e1e3b8592824c69a9647a82621755526c71a..6c997cb573a489f9ca0b7ffe278de5f66e667aa8 100644
+index 22bc09e99b6755db403fad2e1136175737abed7c..a44abc5da4e172b9b3a46a65c3e4a46815130664 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -137,6 +137,15 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
+@@ -137,6 +137,17 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
      private final int minSection;
      private final int maxSection;
      // Paper end - get block chunk optimisation
@@ -147,7 +147,9 @@ index 98b7e1e3b8592824c69a9647a82621755526c71a..6c997cb573a489f9ca0b7ffe278de5f6
 +
 +    public final boolean refreshMovementTicket(final long gameTime) {
 +        final boolean refresh = gameTime - this.lastMovementLoadTicket >= 100;
-+        this.lastMovementLoadTicket = gameTime;
++        if (refresh) {
++            this.lastMovementLoadTicket = gameTime;
++        }
 +        return refresh;
 +    }
 +    // Sakura end - load chunks on movement
