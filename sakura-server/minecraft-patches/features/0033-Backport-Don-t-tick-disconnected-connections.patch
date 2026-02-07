@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Owen <23108066+Owen1212055@users.noreply.github.com>
+Date: Sat, 7 Feb 2026 17:58:34 -0500
+Subject: [PATCH] Backport - Don't tick disconnected connections
+
+Commit: https://github.com/PaperMC/Paper/commit/302c47c0dda6251fd5eb6bf7130345e9dcb988fc
+
+diff --git a/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 2c1539826e14698d65a519e2474cbb3a41ed24fa..df2588c20bb2ddcd663b81c2ddc792d836585476 100644
+--- a/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -343,6 +343,7 @@ public class ServerGamePacketListenerImpl
+ 
+     @Override
+     public void tick() {
++        if (this.isDisconnected()) return; // Paper
+         if (this.ackBlockChangesUpTo > -1) {
+             this.send(new ClientboundBlockChangedAckPacket(this.ackBlockChangesUpTo));
+             this.ackBlockChangesUpTo = -1;
