@@ -73,7 +73,7 @@ public final class BlockChangeTracker {
     private void updateListeners(ChunkPos chunkPos, List<Listener> listeners) {
         LevelChunk chunk = ((ServerLevel) this.level).chunkSource.getChunkAtIfLoadedImmediately(chunkPos.x, chunkPos.z);
         if (chunk != null) {
-            chunk.updateBlockChangeListeners(List.copyOf(listeners));
+            // chunk.updateBlockChangeListeners(List.copyOf(listeners));
         }
     }
 

@@ -65,7 +65,8 @@ public interface MergeStrategy {
 
         @Override
         public Entity mergeEntity(@NotNull Entity entity, @NotNull Entity previous, @NotNull TrackedMergeHistory mergeHistory) {
-            return entity.compareState(previous) ? previous : null;
+            // return entity.compareState(previous) ? previous : null;
+            return null;
         }
     }
 
@@ -82,16 +83,17 @@ public interface MergeStrategy {
 
         @Override
         public Entity mergeEntity(@NotNull Entity entity, @NotNull Entity previous, @NotNull TrackedMergeHistory mergeHistory) {
-            if (entity.compareState(previous)) {
-                return previous;
-            }
+            // if (entity.compareState(previous)) {
+            //     return previous;
+            // }
 
             Entity nextEntity = this.entityTable.getAndWrite(entity);
             if (nextEntity == null || entity == nextEntity || !nextEntity.level().equals(entity.level())) {
                 return null;
             }
 
-            return mergeHistory.hasPreviousMerged(entity, nextEntity) && entity.compareState(nextEntity) ? nextEntity : null;
+            // return mergeHistory.hasPreviousMerged(entity, nextEntity) && entity.compareState(nextEntity) ? nextEntity : null;
+            return mergeHistory.hasPreviousMerged(entity, nextEntity) ? nextEntity : null;
         }
     }
 
@@ -110,7 +112,8 @@ public interface MergeStrategy {
             if (entity.tickCount == 1 && mergeHistory.hasPreviousMerged(entity, previous) && mergeHistory.hasMetCondition(previous, CONDITION)) {
                 mergeInto = previous;
             } else {
-                mergeInto = entity.compareState(previous) ? previous : null;
+                // mergeInto = entity.compareState(previous) ? previous : null;
+                mergeInto = null;
             }
             return mergeInto;
         }

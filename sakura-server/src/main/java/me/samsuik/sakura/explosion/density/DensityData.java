@@ -28,20 +28,20 @@ public final class DensityData {
     }
 
     public boolean hasPosition(Vec3 explosion, AABB entity) {
-        return this.isExplosionPosition(explosion) && this.entity.isAABBInBounds(entity);
+        return this.isExplosionPosition(explosion) && this.entity.intersects(entity);
     }
 
     public boolean isKnownPosition(Vec3 point) {
-        return this.entity.isVec3InBounds(point);
+        return this.entity.contains(point);
     }
 
     public boolean isExplosionPosition(Vec3 explosion) {
-        return this.source.isVec3InBounds(explosion);
+        return this.source.contains(explosion);
     }
 
     public void expand(Vec3 explosion, Entity entity) {
-        this.source = this.source.expand(explosion);
-        this.known  = this.known.expand(entity.position());
+        this.source = this.source.expandTowards(explosion);
+        this.known  = this.known.expandTowards(entity.getBoundingBox().getCenter());
         this.entity = this.entity.minmax(entity.getBoundingBox());
     }
 }

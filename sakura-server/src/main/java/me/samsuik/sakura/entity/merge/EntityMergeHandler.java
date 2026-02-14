@@ -68,7 +68,7 @@ public final class EntityMergeHandler {
         // discard the entity and update the bukkit handle
         Entity nmsEntity = (Entity) mergeEntity;
         nmsEntity.discard();
-        nmsEntity.updateBukkitHandle((Entity) into);
+        // nmsEntity.updateBukkitHandle((Entity) into);
         return true;
     }
 }

@@ -19,7 +19,7 @@ public final class MergeEntityData {
 
     private void updateEntityHandles(Entity entity) {
         for (MergeEntityData entityData : this.connected) {
-            entityData.entity.updateBukkitHandle(entity);
+            // entityData.entity.updateBukkitHandle(entity);
         }
     }
 
@@ -33,7 +33,7 @@ public final class MergeEntityData {
 
     public LongOpenHashSet getOriginPositions() {
         LongOpenHashSet positions = new LongOpenHashSet();
-        this.connected.forEach(entityData -> positions.add(entityData.entity.getPackedOriginPosition()));
+        this.connected.forEach(entityData -> positions.add(entityData.entity.blockPosition().asLong()));
         return positions;
     }
 

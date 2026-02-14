@@ -46,10 +46,11 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
 
     @Override
     protected int getExplosionCount() {
-        if (this.cause.getMergeEntityData().getMergeLevel() == MergeLevel.NONE) {
-            this.mergeEntitiesBeforeExploding();
-        }
-        return this.cause.getMergeEntityData().getCount();
+        // if (this.cause.getMergeEntityData().getMergeLevel() == MergeLevel.NONE) {
+        //     this.mergeEntitiesBeforeExploding();
+        // }
+        // return this.cause.getMergeEntityData().getCount();
+        return 1;
     }
 
     @Override
@@ -76,7 +77,8 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
         }
 
         Vec3 center = this.center;
-        this.bounds = this.bounds.expand(center);
+        // this.bounds = this.bounds.expand(center);
+        this.bounds = new AABB(center, center);
         this.explosions.add(center);
 
         if (lastCycle || this.requiresImpactEntities(explodedPositions, center)) {
@@ -120,14 +122,15 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     private EntityState nextSourceVelocity() {
         Vector origin = this.getCauseOrigin(); // valid position to use while creating a temporary entity
         PrimedTnt tnt = new PrimedTnt(this.level(), origin.getX(), origin.getY(), origin.getZ(), null);
-        this.cause.entityState().apply(tnt);
+        // this.cause.entityState().apply(tnt);
         this.impactCannonEntity(tnt, this.center, 1, this.radius() * 2.0f);
         return EntityState.of(tnt);
     }
 
     private void updateExplosionPosition(EntityState entityState, boolean destroyedBlocks) {
         // Before setting entity state, otherwise we might cause issues.
-        Vec3 entityMomentum = this.cause.entityState().momentum();
+        // Vec3 entityMomentum = this.cause.entityState().momentum();
+        Vec3 entityMomentum = Vec3.ZERO;
         final boolean hasMoved;
         if (this.moved) {
             hasMoved = true;
@@ -141,7 +144,7 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
 
         // Keep track of entity state
         entityState.apply(this.cause);
-        this.cause.storeEntityState();
+        // this.cause.storeEntityState();
 
         // Ticking is always required after destroying a block.
         if (destroyedBlocks || hasMoved) {
@@ -160,18 +163,18 @@ public final class TntExplosion extends SpecialisedExplosion<PrimedTnt> {
     }
 
     private void mergeEntitiesBeforeExploding() {
-        IteratorSafeOrderedReferenceSet<Entity> entities = this.level().entityTickList.entities;
-        int index = entities.indexOf(this.cause);
+        // IteratorSafeOrderedReferenceSet<Entity> entities = this.level().entityTickList.entities;
+        // int index = entities.indexOf(this.cause);
 
-        entities.createRawIterator();
-        // iterate over the entityTickList to find entities that are exploding in the same position.
-        while ((index = entities.advanceRawIterator(index)) != -1) {
-            Entity foundEntity = entities.rawGet(index);
-            if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, true))
-                break;
-            this.level().mergeHandler.mergeEntity(mergeEntity, this.cause);
-        }
-        entities.finishRawIterator();
+        // entities.createRawIterator();
+        // // iterate over the entityTickList to find entities that are exploding in the same position.
+        // while ((index = entities.advanceRawIterator(index)) != -1) {
+        //     Entity foundEntity = entities.rawGet(index);
+        //     if (!(foundEntity instanceof MergeableEntity mergeEntity) || foundEntity.isRemoved() || !foundEntity.compareState(this.cause) || !mergeEntity.isSafeToMergeInto(this.cause, true))
+        //         break;
+        //     this.level().mergeHandler.mergeEntity(mergeEntity, this.cause);
+        // }
+        // entities.finishRawIterator();
     }
 
     private void locateAndImpactEntitiesInBounds() {

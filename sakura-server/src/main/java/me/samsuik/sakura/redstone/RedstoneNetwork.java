@@ -54,9 +54,9 @@ public final class RedstoneNetwork {
     }
 
     public void invalidate(Level level) {
-        for (long identifier : this.listeners) {
-            level.blockChangeTracker.stopListening(identifier);
-        }
+        // for (long identifier : this.listeners) {
+        //     level.blockChangeTracker.stopListening(identifier);
+        // }
         this.listeners.clear();
     }
 
@@ -101,7 +101,7 @@ public final class RedstoneNetwork {
             }
 
             // Filter out redundant neighbor updates
-            if (state.isAir() || state.liquid() || !state.isSpecialBlock()) {
+            if (state.isAir() || state.liquid() /* || !state.isSpecialBlock() */) {
                 this.redundantUpdates.set(updateIndex);
             }
 
@@ -134,13 +134,13 @@ public final class RedstoneNetwork {
         positions.remove(null);
 
         // Register block change listeners
-        this.listeners.add(level.blockChangeTracker.listenForChangesOnce(
-            BlockChangeTracker.BlockChangeFilter.REDSTONE_COMPONENT, positions, () -> this.invalidate(level)
-        ));
+        // this.listeners.add(level.blockChangeTracker.listenForChangesOnce(
+        //     BlockChangeTracker.BlockChangeFilter.REDSTONE_COMPONENT, positions, () -> this.invalidate(level)
+        // ));
 
-        this.listeners.add(level.blockChangeTracker.listenForChangesOnce(
-            BlockChangeTracker.BlockChangeFilter.ANY, positions, this::allowNeighborUpdates
-        ));
+        // this.listeners.add(level.blockChangeTracker.listenForChangesOnce(
+        //     BlockChangeTracker.BlockChangeFilter.ANY, positions, this::allowNeighborUpdates
+        // ));
     }
 
     private boolean verifyWiresInNetwork(Level level) {

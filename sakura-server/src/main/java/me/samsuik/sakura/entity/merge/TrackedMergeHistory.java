@@ -44,7 +44,7 @@ public final class TrackedMergeHistory {
     }
 
     private PositionHistory getHistory(Entity entity, boolean create) {
-        long originPosition = entity.getPackedOriginPosition();
+        long originPosition = entity.blockPosition().asLong();
         PositionHistory history = this.historyMap.get(originPosition);
         if (create && history == null) {
             history = new PositionHistory(entity.level().getGameTime());
@@ -70,7 +70,7 @@ public final class TrackedMergeHistory {
 
         public boolean hasPosition(Entity entity) {
             this.expiry.refresh(entity.level().getGameTime());
-            return this.positions.contains(entity.getPackedOriginPosition());
+            return this.positions.contains(entity.blockPosition().asLong());
         }
 
         public void trackPositions(LongOpenHashSet positions, boolean retain) {

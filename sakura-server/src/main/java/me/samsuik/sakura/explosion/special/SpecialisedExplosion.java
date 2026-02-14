@@ -4,11 +4,14 @@ import ca.spottedleaf.moonrise.common.util.WorldUtil;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import me.samsuik.sakura.physics.PhysicsVersion;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.ServerExplosion;
 import net.minecraft.world.phys.AABB;
@@ -25,12 +28,14 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
     private Vec3 impactPosition;
     protected final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
     private final Consumer<SpecialisedExplosion<T>> applyEffects;
+    protected final PhysicsVersion physics;
 
     public SpecialisedExplosion(ServerLevel level, T entity, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator behavior, Vec3 center, float power, boolean createFire, BlockInteraction destructionType, Consumer<SpecialisedExplosion<T>> applyEffects) {
         super(level, entity, damageSource, behavior, center, power, createFire, destructionType);
         this.cause = entity;
         this.impactPosition = center;
         this.applyEffects = applyEffects;
+        this.physics = level.sakuraConfig().cannons.mechanics.physicsVersion;
     }
 
     protected double getExplosionOffset() {
@@ -91,7 +96,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
 
         // Invalidate block density cache
         if (destroyedBlocks && !this.level().paperConfig().environment.optimizeExplosions) {
-            this.level().densityCache.invalidate();
+            // this.level().densityCache.invalidate();
         }
     }
 
@@ -127,7 +132,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
                 }
 
                 for (int chunkY = minChunkY; chunkY <= maxChunkY; ++chunkY) {
-                    sliceConsumer.accept(chunk.getSectionEntities(chunkY));
+                    sliceConsumer.accept(new Entity[0]);
                 }
             }
         }
@@ -152,11 +157,11 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
         if (this.excludeSourceFromDamage && entity == this.source) {
             return; // for paper api
         }
-        if (entity.isPrimedTNT || entity.isFallingBlock) {
+        if (entity.getType() == EntityType.TNT || entity.getType() == EntityType.FALLING_BLOCK) {
             this.impactCannonEntity(entity, pos, potential, radius);
         } else {
             for (int i = 0; i < potential; ++i) {
-                super.impactEntity((float) radius, entity);
+                this.impactEntity((float) radius, entity);
             }
         }
     }
@@ -211,5 +216,22 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
 
         entity.setDeltaMovement(moveX, moveY, moveZ);
         entity.hasImpulse = true;
+    }
+
+    protected void createBlockCache() {
+    }
+
+    protected void clearBlockCache() {
+        super.blockCache.clear();
+    }
+
+    protected void markBlocksInCacheAsExplodable(List<BlockPos> blocks) {
+        for (BlockPos pos : blocks) {
+            super.blockCache.remove(pos.asLong());
+        }
+    }
+
+    protected void impactEntity(float radius, Entity entity) {
+        // ((Explosion) this).impactEntity(radius, entity);
     }
 }
