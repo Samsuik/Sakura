@@ -22,7 +22,7 @@ public final class StackableBucketItem extends BucketItem {
     public void modifyComponentsSentToClient(final PatchedDataComponentMap components) {
         final int maxStackSize = DataComponentHelper.bucketMaxStackSize();
         if (maxStackSize > 1 && maxStackSize <= 99) {
-            components.set(DataComponents.MAX_STACK_SIZE, maxStackSize);
+            components.sakura$patchComponent(DataComponents.MAX_STACK_SIZE, maxStackSize);
         }
     }
 }

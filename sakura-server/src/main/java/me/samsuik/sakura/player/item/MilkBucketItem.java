@@ -24,7 +24,7 @@ public final class MilkBucketItem extends Item {
     @Override
     public void modifyComponentsSentToClient(final PatchedDataComponentMap components) {
         if (stackableMilkBuckets()) {
-            components.set(DataComponents.MAX_STACK_SIZE, DataComponentHelper.bucketMaxStackSize());
+            components.sakura$patchComponent(DataComponents.MAX_STACK_SIZE, DataComponentHelper.bucketMaxStackSize());
         }
     }
 

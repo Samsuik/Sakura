@@ -26,7 +26,7 @@ public final class PowderedSnowBucketItem extends SolidBucketItem {
     @Override
     public void modifyComponentsSentToClient(final PatchedDataComponentMap components) {
         if (stackablePowderedSnowBuckets()) {
-            components.set(DataComponents.MAX_STACK_SIZE, DataComponentHelper.bucketMaxStackSize());
+            components.sakura$patchComponent(DataComponents.MAX_STACK_SIZE, DataComponentHelper.bucketMaxStackSize());
         }
     }
 
