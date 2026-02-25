@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise block counting for cannon entities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 5d95d8747c4816d27bab6455b3bdfb7b50ae265f..079e887cac1a903af23c1a9ace47b9e388324909 100644
+index ecf78708f9b2c6a1d41fa337fd2c8f933aeda078..48403f97ed9ca5d9336489ea2174d1e1d5275806 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1942,6 +1942,7 @@ public final class CollisionUtil {
@@ -42,10 +42,10 @@ index 5d95d8747c4816d27bab6455b3bdfb7b50ae265f..079e887cac1a903af23c1a9ace47b9e3
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 5de63d612b1c2b292e2cf3579ecea71a18fa8b96..b4612fb1d884b8bf43c9a64e36cb58e7c6dc60f3 100644
+index 235324a59c2f4a9d223cef0aa8f368a3fee73927..716f87d36d1b310ea19bfae9dbe7c195993934f4 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -622,6 +622,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -621,6 +621,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          BlockPos selected = null;
          double selectedDistance = Double.MAX_VALUE;
          final Vec3 entityPos = entity.position();
@@ -53,7 +53,7 @@ index 5de63d612b1c2b292e2cf3579ecea71a18fa8b96..b4612fb1d884b8bf43c9a64e36cb58e7
  
          // special cases:
          if (minBlockY > maxBlockY) {
-@@ -664,15 +665,19 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -663,15 +664,19 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
                      final boolean hasSpecial = ((ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks();
                      final int sectionAdjust = !hasSpecial ? 1 : 0;

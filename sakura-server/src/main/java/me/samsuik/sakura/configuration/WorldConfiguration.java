@@ -150,6 +150,7 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean legacyCombatMechanics = false;
             public boolean allowSweepAttacks = true;
             public boolean shieldDamageReduction = false;
+            public boolean oldPotionEffects = false;
             public boolean oldEnchantedGoldenApple = false;
             public boolean oldSoundsAndParticleEffects = false;
             public boolean fastHealthRegen = true;

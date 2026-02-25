@@ -11,6 +11,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -34,7 +36,16 @@ public final class CombatUtil {
                 && entity.level().sakuraConfig().players.combat.shieldDamageReduction;
     }
 
-    public static double getModifiedAttackDamage(final Level level, final ItemStack stack) {
+    public static double getEffectAttackDamage(final MobEffectInstance effect) {
+        final MobEffect type = effect.getEffect().value();
+        final MobEffect.AttributeTemplate template = type.attributeModifiers.get(Attributes.ATTACK_DAMAGE);
+
+        return template != null && template.operation() == AttributeModifier.Operation.ADD_VALUE
+            ? template.create(effect.getAmplifier()).amount()
+            : 0.0;
+    }
+
+    public static double getModifiedItemAttackDamage(final Level level, final ItemStack stack) {
         final double baseAttack = getItemAttackDamage(stack);
         double modifiedDamage = 0.0;
 

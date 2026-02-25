@@ -1,12 +1,13 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -291,6 +_,44 @@
+@@ -291,6 +_,66 @@
      public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
      public int invulnerableDuration = LivingEntity.INVULNERABLE_DURATION; // Paper - configurable invulnerable duration
      // CraftBukkit end
 +    // Sakura start - legacy combat mechanics & attack damage override
 +    private static final Identifier ATTACK_OVERRIDE_MODIFIER_ID = Identifier.fromNamespaceAndPath("sakura", "attack_override");
 +    private static final Identifier LEGACY_ATTACK_COMBAT_MODIFIER_ID = Identifier.fromNamespaceAndPath("sakura", "legacy_combat");
++    private static final Identifier LEGACY_STRENGTH_MODIFIER_ID = Identifier.fromNamespaceAndPath("sakura", "legacy_strength");
 +    private static final AttributeModifier LEGACY_ATTACK_SPEED_MODIFIER = new AttributeModifier(LEGACY_ATTACK_COMBAT_MODIFIER_ID, 100.0, AttributeModifier.Operation.ADD_VALUE);
 +
 +    private void updateAttackSpeedModifier() {
@@ -22,21 +23,42 @@
 +
 +    public final float getAttackDamageFromAttributes() {
 +        final AttributeInstance attackDamage = this.getAttribute(Attributes.ATTACK_DAMAGE);
-+        AttributeModifier attackOverrideModifier = null;
++        final List<AttributeModifier> attackModifiers = new java.util.ArrayList<>();
 +
 +        final ItemStack heldItem = this.lastEquipmentItems.get(EquipmentSlot.MAINHAND);
-+        final double modifiedDamage = me.samsuik.sakura.player.combat.CombatUtil.getModifiedAttackDamage(this.level(), heldItem);
++        double modifiedDamage = me.samsuik.sakura.player.combat.CombatUtil.getModifiedItemAttackDamage(this.level(), heldItem);
++        if (this.level().sakuraConfig().players.combat.oldPotionEffects) {
++            final MobEffectInstance strength = this.getEffect(MobEffects.STRENGTH);
++            if (strength != null) {
++                modifiedDamage -= me.samsuik.sakura.player.combat.CombatUtil.getEffectAttackDamage(strength);
++                attackModifiers.add(new AttributeModifier(
++                    LEGACY_STRENGTH_MODIFIER_ID,
++                    1.3 * (strength.getAmplifier() + 1),
++                    AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL)
++                );
++            }
++
++            final MobEffectInstance weakness = this.getEffect(MobEffects.WEAKNESS);
++            if (weakness != null) {
++                modifiedDamage -= me.samsuik.sakura.player.combat.CombatUtil.getEffectAttackDamage(weakness) + 0.5 * (weakness.getAmplifier() + 1);
++            }
++        }
++
 +        if (modifiedDamage != 0.0) {
-+            attackOverrideModifier = new AttributeModifier(ATTACK_OVERRIDE_MODIFIER_ID, modifiedDamage, AttributeModifier.Operation.ADD_VALUE);
++            attackModifiers.add(new AttributeModifier(
++                ATTACK_OVERRIDE_MODIFIER_ID,
++                modifiedDamage,
++                AttributeModifier.Operation.ADD_VALUE)
++            );
 +        }
 +
 +        final double damage;
-+        if (attackDamage == null || attackOverrideModifier == null) {
++        if (attackDamage == null || attackModifiers.isEmpty()) {
 +            damage = this.getAttributeValue(Attributes.ATTACK_DAMAGE);
 +        } else {
-+            attackDamage.addTransientModifier(attackOverrideModifier);
++            attackModifiers.forEach(attackDamage::addTransientModifier);
 +            damage = this.getAttributeValue(Attributes.ATTACK_DAMAGE);
-+            attackDamage.removeModifier(attackOverrideModifier);
++            attackModifiers.forEach(attackDamage::removeModifier);
 +        }
 +
 +        return (float) damage;
