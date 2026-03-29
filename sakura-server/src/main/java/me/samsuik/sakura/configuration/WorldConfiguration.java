@@ -60,6 +60,8 @@ public final class WorldConfiguration extends ConfigurationPart {
             public IntOr.Disabled leftShootingThreshold = IntOr.Disabled.DISABLED;
             @Comment("The maximum amount of blocks that a cannon can adjust")
             public IntOr.Disabled maxAdjustDistance = IntOr.Disabled.DISABLED;
+            @Comment("The maximum amount of falling blocks that can fall instantly")
+            public IntOr.Disabled instantBlockFallLimit = IntOr.Disabled.DISABLED;
         }
 
         public Tnt tnt = new Tnt();
