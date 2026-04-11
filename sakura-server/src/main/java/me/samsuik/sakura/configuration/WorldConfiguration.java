@@ -257,6 +257,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         public Crops crops = new Crops();
         public class Crops extends ConfigurationPart {
             public boolean useRandomChanceToGrow = false;
+            public IntOr.Default minCactusFlowerGrowthHeight = IntOr.Default.USE_DEFAULT;
         }
 
         public MobSpawner mobSpawner = new MobSpawner();
