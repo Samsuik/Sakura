@@ -219,6 +219,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         public boolean instantDeathAnimation = false;
         public boolean ironGolemsTakeFalldamage = false;
         public boolean insertItemsIntoHoppersOnDeath = false;
+        public boolean nerfedMobsCanPushEntities = false;
 
         public Items items = new Items();
         public class Items extends ConfigurationPart {
