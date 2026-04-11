@@ -1,5 +1,17 @@
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
+@@ -164,6 +_,11 @@
+         if (level instanceof ServerLevel) {
+             this.registerGoals();
+         }
++        // Sakura start - add disable mob ai
++        if (this.level().sakuraConfig().entity.disableMobAi) {
++            this.aware = false;
++        }
++        // Sakura end - end disable mob ai
+     }
+ 
+     // CraftBukkit start
 @@ -221,6 +_,7 @@
      @Override
      public void inactiveTick() {
@@ -8,12 +20,3 @@
          if (this.goalSelector.inactiveTick()) {
              this.goalSelector.tick();
          }
-@@ -795,7 +_,7 @@
-     protected final void serverAiStep() {
-         this.noActionTime++;
-         // Paper start - Allow nerfed mobs to jump and float
--        if (!this.aware) {
-+        if (!this.aware || this.level().sakuraConfig().entity.disableMobAi) { // Sakura - add option to disable entity ai
-             if (this.goalFloat != null) {
-                 if (this.goalFloat.canUse()) this.goalFloat.tick();
-                 this.getJumpControl().tick();
