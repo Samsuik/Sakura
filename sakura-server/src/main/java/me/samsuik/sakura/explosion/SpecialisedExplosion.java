@@ -145,7 +145,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
         Arrays.fill(this.directMappedBlockCache, null);
 
         // Invalidate block density cache
-        if (destroyedBlocks && !this.level().paperConfig().environment.optimizeExplosions) {
+        if (destroyedBlocks && !this.level().sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(this.level())) {
             this.level().densityCache.invalidate();
         }
     }

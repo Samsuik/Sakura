@@ -6,6 +6,7 @@ import me.samsuik.sakura.configuration.local.CachedLocalConfiguration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.util.CraftLocation;
@@ -43,6 +44,7 @@ public final class MechanicCommand extends PlayerOnlySubCommand {
         final Location location = player.getLocation();
         final BlockPos blockPos = CraftLocation.toBlockPosition(location);
         final CraftWorld craftWorld = ((CraftWorld) location.getWorld());
+        final ServerLevel serverLevel = craftWorld.getHandle();
         final CachedLocalConfiguration config = craftWorld.getHandle().localConfig().at(blockPos);
 
         player.sendMessage(GlobalConfiguration.get().messages.mechanicInformationComponent(
@@ -53,7 +55,7 @@ public final class MechanicCommand extends PlayerOnlySubCommand {
                 Placeholder.unparsed("tnt_spread", this.getTntSpread(location)),
                 Placeholder.unparsed("tnt_flow", String.valueOf(this.hasTntFlow(location))),
                 Placeholder.unparsed("redstone_implementation", config.redstoneBehaviour.implementation().getFriendlyName()),
-                Placeholder.unparsed("broken_explosion_behaviour", String.valueOf(craftWorld.getHandle().paperConfig().environment.optimizeExplosions)),
+                Placeholder.unparsed("broken_explosion_behaviour", String.valueOf(serverLevel.sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(serverLevel))),
                 Placeholder.unparsed("consistent_radius", String.valueOf(config.consistentExplosionRadius)),
                 Placeholder.unparsed("lava_flow_speed", String.valueOf(config.lavaFlowSpeed))
             )

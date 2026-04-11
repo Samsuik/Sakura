@@ -35,7 +35,7 @@ public final class BlockDensityCache {
         }
 
         // Replicate the broken behaviour of optimize-explosions
-        if (this.level.paperConfig().environment.optimizeExplosions) {
+        if (this.level.sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(this.level)) {
             final BlockDensityCacheKey cacheKey = new BlockDensityCacheKey(explosionPos, entity);
             final float blockDensity = this.paperExactPosDensityCache.getFloat(cacheKey);
             if (blockDensity != UNKNOWN_DENSITY) {
@@ -64,7 +64,7 @@ public final class BlockDensityCache {
             cache.expand(explosionPos, entity);
         }
 
-        if (this.level.paperConfig().environment.optimizeExplosions && this.densityCacheKey != null) {
+        if (this.level.sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(this.level) && this.densityCacheKey != null) {
             this.paperExactPosDensityCache.put(this.densityCacheKey, blockDensity);
         }
     }

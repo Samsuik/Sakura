@@ -15,6 +15,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import org.slf4j.Logger;
@@ -116,6 +117,17 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean tntFlowsInWater = true;
             public boolean fallingBlockParity = false;
             public MinecraftMechanicsTarget mechanicsTarget = MinecraftMechanicsTarget.latest();
+
+            @Comment(
+                "Replaces the optimize-explosions option in the paper config." +
+                "In Sakura it's a misleading option that hurts performance and breaks cannons."
+            )
+            public boolean brokenPaperExplosionBehaviour = false;
+
+            public final boolean useBrokenPaperExplosionBehaviour(final Level level) {
+                return level.paperConfig().environment.optimizeExplosions && this.mechanicsTarget.isLegacy()
+                    || this.brokenPaperExplosionBehaviour;
+            }
 
             public enum TNTSpread {
                 ALL, Y, NONE;

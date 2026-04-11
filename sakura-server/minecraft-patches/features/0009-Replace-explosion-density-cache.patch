@@ -29,7 +29,7 @@ index a051c8a8be4b390050c1723cb2e2cce7f207662c..bb39f94b20e9cf0f8f9d3a3681833488
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index e835d349f2cdb0bd7ce1a5ae2da95d8fd4d5cdc2..6f627f239056b3642e169c869b3764d9dcf02f4b 100644
+index e835d349f2cdb0bd7ce1a5ae2da95d8fd4d5cdc2..623329d0267b4ae5cee6581e8aa4b19278a570a3 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -296,7 +296,12 @@ public class ServerExplosion implements Explosion {
@@ -70,7 +70,7 @@ index e835d349f2cdb0bd7ce1a5ae2da95d8fd4d5cdc2..6f627f239056b3642e169c869b3764d9
          }
          // CraftBukkit end
 +        // Sakura start - explosion density cache
-+        if (!blocks.isEmpty() && !this.level.paperConfig().environment.optimizeExplosions) {
++        if (!blocks.isEmpty() && !this.level.sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(this.level)) {
 +            this.level.densityCache.invalidate();
 +        }
 +        // Sakura end - explosion density cache
@@ -98,7 +98,7 @@ index e835d349f2cdb0bd7ce1a5ae2da95d8fd4d5cdc2..6f627f239056b3642e169c869b3764d9
  
          return blockDensity;
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index 77f30569214d97d5de1ded3cf20491d70a5be405..7c5714c7418f0b783f478f48f6d76884041a416c 100644
+index 77f30569214d97d5de1ded3cf20491d70a5be405..d7530742950902dc642be748eeb9e5418396e496 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
 @@ -107,6 +107,11 @@ public abstract class BasePressurePlateBlock extends Block {
@@ -106,7 +106,7 @@ index 77f30569214d97d5de1ded3cf20491d70a5be405..7c5714c7418f0b783f478f48f6d76884
          if (currentSignal != signalStrength) {
              BlockState blockState = this.setSignalForState(state, signalStrength);
 +            // Sakura start - explosion density cache
-+            if (!level.paperConfig().environment.optimizeExplosions) {
++            if (!level.sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(level)) {
 +                level.densityCache.invalidate();
 +            }
 +            // Sakura end - explosion density cache
@@ -114,7 +114,7 @@ index 77f30569214d97d5de1ded3cf20491d70a5be405..7c5714c7418f0b783f478f48f6d76884
              this.updateNeighbours(level, pos);
              level.setBlocksDirty(pos, state, blockState);
 diff --git a/net/minecraft/world/level/block/TripWireHookBlock.java b/net/minecraft/world/level/block/TripWireHookBlock.java
-index 292fe41967db74884e5937cb125f1e022ccfb6bd..28869577e480318b5ef469a0b4180b25ddfb627f 100644
+index 292fe41967db74884e5937cb125f1e022ccfb6bd..894f5893e60a1a77c7311d9a3cb88515357bfffd 100644
 --- a/net/minecraft/world/level/block/TripWireHookBlock.java
 +++ b/net/minecraft/world/level/block/TripWireHookBlock.java
 @@ -167,6 +167,11 @@ public class TripWireHookBlock extends Block {
@@ -122,7 +122,7 @@ index 292fe41967db74884e5937cb125f1e022ccfb6bd..28869577e480318b5ef469a0b4180b25
                  // Paper end - Call BlockRedstoneEvent
                  Direction opposite = direction.getOpposite();
 +                // Sakura start - explosion density cache
-+                if (!level.paperConfig().environment.optimizeExplosions) {
++                if (!level.sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(level)) {
 +                    level.densityCache.invalidate();
 +                }
 +                // Sakura end - explosion density cache
