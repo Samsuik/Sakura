@@ -1,17 +1,21 @@
 --- a/net/minecraft/world/level/block/CactusBlock.java
 +++ b/net/minecraft/world/level/block/CactusBlock.java
-@@ -52,6 +_,19 @@
+@@ -52,6 +_,23 @@
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
 +        // Sakura start - use random chance for crop growth
 +        if (level.sakuraConfig().environment.crops.useRandomChanceToGrow) {
 +            final int modifier = level.spigotConfig.cactusModifier;
-+            if (random.nextFloat() >= modifier / (100.0f * 16)) {
++            if (random.nextFloat() >= modifier / (100.0f * 8)) {
 +                return;
 +            }
-+            // set crop age to max so it grows right away
-+            state = state.setValue(CactusBlock.AGE, AGE.max);
++            // We always need to give cactus flowers a chance to grow
++            // Advance the age of the crop
++            final int nextAge = state.getValue(AGE) >= ATTEMPT_GROW_CACTUS_FLOWER_AGE
++                ? MAX_AGE
++                : ATTEMPT_GROW_CACTUS_FLOWER_AGE;
++            state = state.setValue(CactusBlock.AGE, nextAge);
 +        }
 +        this.ageAndGrow(state, level, pos, random);
 +    }
