@@ -39,7 +39,7 @@
          this.handlePortal();
          this.applyGravity();
          this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -131,6 +_,14 @@
+@@ -131,8 +_,16 @@
                  this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
              }
          }
@@ -52,8 +52,11 @@
 +    private void forcePositionUpdateInWater() {
 +        // Sakura end - configure force position updates
          // Paper start - Option to prevent TNT from moving in water
-         if (!this.isRemoved() && this.wasTouchingWater && this.level().paperConfig().fixes.preventTntFromMovingInWater) {
+-        if (!this.isRemoved() && this.wasTouchingWater && this.level().paperConfig().fixes.preventTntFromMovingInWater) {
++        if (!this.isRemoved() && this.wasTouchingWater && !this.isPushedByFluid()) { // Sakura - correctly check if this entity is pushed by water
              this.hurtMarked = true;
+             this.needsSync = true;
+         }
 @@ -232,7 +_,7 @@
      // Paper start - Option to prevent TNT from moving in water
      @Override
