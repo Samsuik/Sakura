@@ -1,0 +1,16 @@
+--- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
++++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
+@@ -993,6 +_,13 @@
+         victim.expToDrop = event.getDroppedExp();
+         lootCheck.run(); // Paper - advancement triggers before destroying items
+ 
++        // Sakura start - mobs insert items into hoppers on death
++        final ServerLevel serverLevel = world.getHandle();
++        if (serverLevel.sakuraConfig().entity.insertItemsIntoHoppersOnDeath) {
++            me.samsuik.sakura.container.InsertItemsIntoHoppers.onMobDeath(serverLevel, entity.getHandle(), drops);
++        }
++        // Sakura end - mobs insert items into hoppers on death
++
+         // Paper start - Restore vanilla drops behavior
+         for (Entity.DefaultDrop drop : drops) {
+             if (drop == null) continue;

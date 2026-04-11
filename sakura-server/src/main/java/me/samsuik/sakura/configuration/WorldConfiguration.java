@@ -218,6 +218,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         public boolean waterSensitivity = true;
         public boolean instantDeathAnimation = false;
         public boolean ironGolemsTakeFalldamage = false;
+        public boolean insertItemsIntoHoppersOnDeath = false;
 
         public Items items = new Items();
         public class Items extends ConfigurationPart {
