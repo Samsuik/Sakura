@@ -51,7 +51,7 @@ public final class DebugRedstoneCache extends PlayerOnlySubCommand {
 
         player.sendRichMessage("<red>Displaying %dx cached redstone wires".formatted(redstoneWires.size()));
 
-        level.levelTickScheduler.runTaskLater(() -> {
+        level.levelTickScheduler.runLater((t, l) -> {
             for (final Location loc : redstoneWires) {
                 player.sendBlockChange(loc, loc.getBlock().getBlockData());
             }

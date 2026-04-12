@@ -4,19 +4,22 @@ Date: Sat, 9 Sep 2023 18:39:15 +0100
 Subject: [PATCH] Merge Cannon Entities
 
 
+diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+index f7e8320006171fadde78afaa4c89373292ab13de..d42b73fa20025d7a05171e301a115424dc1bbb9f 100644
+--- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
++++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+@@ -9,5 +9,6 @@ import org.jspecify.annotations.NullMarked;
+ public final class ScheduleSakuraTasks {
+     public static void schedule(final LevelTickScheduler scheduler) {
+         scheduler.endless((tick, level, cb) -> level.explosionPositions.clear(), 0); // Sakura - client visibility settings
++        scheduler.endless((tick, level, cb) -> level.mergeHandler.expire(tick), 200); // Sakura - merge cannon entities
+     }
+ }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index e393d19fa36f0b024d2cfe5faf9af318597a139f..4ffd46eab95099e3ec5b1a74913a2a256eedd346 100644
+index 3160c6420cc1aa8cc9a95e0dd0edab33d5db41f0..5d64a3e7443b3ac1f70dbb605a6dabdab1a1e106 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -726,6 +726,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-         // Paper end - rewrite chunk system
-         this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
-         this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
-+        this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
-     }
- 
-     // Paper start
-@@ -849,6 +850,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -849,6 +849,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              }
  
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
@@ -24,7 +27,7 @@ index e393d19fa36f0b024d2cfe5faf9af318597a139f..4ffd46eab95099e3ec5b1a74913a2a25
              this.entityTickList
                  .forEach(
                      entity -> {
-@@ -867,6 +869,15 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -867,6 +868,15 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
                                          entity.stopRiding();
                                      }
  
@@ -190,7 +193,7 @@ index a14e431948264c4b99be49669322f530119c3d87..afd6e062422943e053af594613beb09b
  
      public void setHurtsEntities(float fallDamagePerDistance, int fallDamageMax) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index f7b29e5343182ad26c0b9c15a023f5947ef08cdc..35e378db13ecc5c108961b1535866d00e03bc4a6 100644
+index a1d449d2417d7ad6bce2744c89aa1ddd84c2a6aa..cbb22c311f217176667f067a2576dfd5fe3ef781 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -34,7 +34,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
@@ -280,13 +283,13 @@ index f7b29e5343182ad26c0b9c15a023f5947ef08cdc..35e378db13ecc5c108961b1535866d00
  
      @Override
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 3f0ab609583d7d816981e3d937e5b83d9a6eb2b3..a051c8a8be4b390050c1723cb2e2cce7f207662c 100644
+index 9197fe1b93bd5f8c518aae195d46f25ed90a23e7..f6acd4ac77c7447a090b2c4fec2648c0ff8204d3 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -833,6 +833,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     public final me.samsuik.sakura.scheduler.LevelTickScheduler levelTickScheduler = new me.samsuik.sakura.scheduler.LevelTickScheduler(this);
-     public final me.samsuik.sakura.block_change.BlockStateChangeTracker blockStateChangeTracker = new me.samsuik.sakura.block_change.BlockStateChangeTracker(this);
-     // Sakura end - track block changes and tick scheduler
+@@ -838,6 +838,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         return this.blockStateRevisionCounter.get();
+     }
+     // Sakura end - implement state watchers and tick scheduler
 +    public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
  
      protected Level(

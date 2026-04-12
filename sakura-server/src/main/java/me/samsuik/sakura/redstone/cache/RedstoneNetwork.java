@@ -2,8 +2,8 @@ package me.samsuik.sakura.redstone.cache;
 
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.*;
-import me.samsuik.sakura.block_change.BlockFilter;
-import me.samsuik.sakura.block_change.BlockStateChangeTracker;
+import me.samsuik.sakura.tracking.block_change.BlockFilter;
+import me.samsuik.sakura.tracking.block_change.BlockStateChangeTracker;
 import me.samsuik.sakura.utils.TickExpiry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

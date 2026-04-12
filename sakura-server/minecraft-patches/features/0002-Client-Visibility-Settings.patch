@@ -4,6 +4,18 @@ Date: Tue, 21 Sep 2021 23:54:25 +0100
 Subject: [PATCH] Client Visibility Settings
 
 
+diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+index 617a4bf9479364f2e234c7c73ba77806f8b8c679..f7e8320006171fadde78afaa4c89373292ab13de 100644
+--- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
++++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+@@ -8,6 +8,6 @@ import org.jspecify.annotations.NullMarked;
+ @NullMarked
+ public final class ScheduleSakuraTasks {
+     public static void schedule(final LevelTickScheduler scheduler) {
+-
++        scheduler.endless((tick, level, cb) -> level.explosionPositions.clear(), 0); // Sakura - client visibility settings
+     }
+ }
 diff --git a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 index 19547e22620f16d01f05bbd13a4dcb9c0df636df..a0990cd49bd05421cbf1baa2d96fc674cc02700f 100644
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
@@ -109,7 +121,7 @@ index 3a2461b2221243e8db9b1bc6c74c498c552a766a..353d8980f7b2c54806932347a3aa8f89
                  if (flag && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
                      flag = false;
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index cc5f12bb41ac2624ff15aaa74d46bc2e8c5aa7db..e393d19fa36f0b024d2cfe5faf9af318597a139f 100644
+index dac5c5c6e835d20f8db47970f27f663792e7632c..3160c6420cc1aa8cc9a95e0dd0edab33d5db41f0 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -597,6 +597,22 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -135,15 +147,7 @@ index cc5f12bb41ac2624ff15aaa74d46bc2e8c5aa7db..e393d19fa36f0b024d2cfe5faf9af318
  
      public ServerLevel(
          MinecraftServer server,
-@@ -709,6 +725,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-         this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
-         // Paper end - rewrite chunk system
-         this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
-+        this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
-     }
- 
-     // Paper start
-@@ -1975,7 +1992,20 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1976,7 +1992,20 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          for (ServerPlayer serverPlayer : this.players) {
              if (serverPlayer.distanceToSqr(vec3) < 4096.0) {
                  Optional<Vec3> optional = Optional.ofNullable(serverExplosion.getHitPlayers().get(serverPlayer));
@@ -295,7 +299,7 @@ index a696df7e358a8547520ee55fa7a754dfc23c4b2e..9caf04e20bed7a21ed61d12c94af7047
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 3ac6db7c21b408b8918efb6ccd190f35a90da0b4..3000a1dad619f9e03abad8af6cc93b1219421deb 100644
+index 85af8747d44a22580d5e74c7ed9f36316daff98b..15b6d265218b854c6da61b0c3a56be4104f545f4 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -62,6 +62,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {

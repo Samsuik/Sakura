@@ -5,7 +5,7 @@ Subject: [PATCH] Configure cannon physics
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 535cee71d3b286387e1e7c2cad5faeb32d27b68b..d591a09ba202c22e79268d3ef40a2c93ec193130 100644
+index c093f2295d6a0e1880897fe66bdcd64649aa667e..ce13de98e45782a7042e6f232431605a64adb668 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1774,6 +1774,13 @@ public final class CollisionUtil {
@@ -88,6 +88,17 @@ index 535cee71d3b286387e1e7c2cad5faeb32d27b68b..d591a09ba202c22e79268d3ef40a2c93
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
  
                      final PalettedContainer<BlockState> blocks = section.states;
+diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+index 4c456c2d1b42ecfcecb22ba2bf3819cab68206b8..7d2df500c90e0451ec2cf117f44413b3593fdd62 100644
+--- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
++++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+@@ -11,5 +11,6 @@ public final class ScheduleSakuraTasks {
+         scheduler.endless((tick, level, cb) -> level.explosionPositions.clear(), 0); // Sakura - client visibility settings
+         scheduler.endless((tick, level, cb) -> level.mergeHandler.expire(tick), 200); // Sakura - merge cannon entities
+         scheduler.endless((tick, level, cb) -> level.densityCache.expire(tick), 0); // Sakura - explosion density cache
++        scheduler.endless((tick, level, cb) -> level.dispenseRelocationHandler.clear(), 0); // Sakura - configure server mechanics
+     }
+ }
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
 index bfefb5031544caa59230f0073e8880c2b39ebf4d..4b4255eec2b57593e6ee2f0d9c70c2572f0e35df 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
@@ -115,18 +126,6 @@ index bfefb5031544caa59230f0073e8880c2b39ebf4d..4b4255eec2b57593e6ee2f0d9c70c257
                      PrimedTnt primedTnt = new PrimedTnt(serverLevel, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), null);
                      // CraftBukkit end
                      serverLevel.addFreshEntity(primedTnt);
-diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index a41cfcee9b1884708fc7b5f606e80f04b22f70af..50b208a705e27cc5cc3a0adc251bfd31d37b22fd 100644
---- a/net/minecraft/server/level/ServerLevel.java
-+++ b/net/minecraft/server/level/ServerLevel.java
-@@ -728,6 +728,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-         this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
-         this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
-         this.levelTickScheduler.repeatingTask(this.densityCache::expire, 0); // Sakura - explosion density cache
-+        this.levelTickScheduler.repeatingTask(this.dispenseRelocationHandler::clear, 0); // Sakura - configure server mechanics
-     }
- 
-     // Paper start
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
 index 30c8991f1c37b891e2b38856e2902f60e6526835..7a0949926b6514099626c4b9a91e45e9bcbcda19 100644
 --- a/net/minecraft/world/entity/Entity.java
@@ -523,7 +522,7 @@ index 3a29066910bd3b068beb56d807abf1b82a3ffa8a..f530dc91e0e4468e01b490c150ed257f
      }
  
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 63c289a15b95e89d7066d0fdd61e6eed246f0311..1a28b537f13eca936a6d25095c8f7602903d6af6 100644
+index 0770d039654001e0d155e605859f9620aa84edc0..ffd3e1eb34b4d5f0c473bcc58e0a1520eac2b9b8 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -87,6 +87,23 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -688,10 +687,10 @@ index 8a21910fe7ed61c903c4f36fced63b179ace4577..2e873467b219e7d8e6daf055cc87e624
                  return false;
              } else {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 49a481c9d1af76e1eafa7239267cce6e3f3b828b..65978af848ab2f9678e892ee11ca02a8e53f20a0 100644
+index f70b439d9c0b9b696c77c1197ed11516cca5f53e..f6379de90f2eb8b9405543c7d337958fa8d9526d 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -836,6 +836,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -841,6 +841,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
@@ -700,7 +699,7 @@ index 49a481c9d1af76e1eafa7239267cce6e3f3b828b..65978af848ab2f9678e892ee11ca02a8
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index bef20728913c7fd1fda3241f26ac9177c9f941d4..65f66b0e7a349be2cdec41da9f63c8c5f64bf634 100644
+index 8ea5493059c3156d86c0a89f691cf8a326bb72c7..bcbbffb7f52523ccd320dd9bd958dbefe2b88992 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -378,6 +378,37 @@ public class ServerExplosion implements Explosion {

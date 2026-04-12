@@ -40,11 +40,11 @@ index 73ce7c82c0bd28c2e43ca40ba35c4603b21375ad..5a860716bb5c8e39d7adcb1ccb143398
          return !interactionResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
              ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index f9ad7398d2fc16dc96a7c24c693c1bb4764dda64..49a481c9d1af76e1eafa7239267cce6e3f3b828b 100644
+index e46408c300c41cca82940a5c789938d27dce2512..f70b439d9c0b9b696c77c1197ed11516cca5f53e 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -835,6 +835,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     // Sakura end - track block changes and tick scheduler
+@@ -840,6 +840,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     // Sakura end - implement state watchers and tick scheduler
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
 +    public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
@@ -52,7 +52,7 @@ index f9ad7398d2fc16dc96a7c24c693c1bb4764dda64..49a481c9d1af76e1eafa7239267cce6e
      protected Level(
          WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 7277d2d3911b0ba2960c28613659961b8ad124c8..f2430fac98d4b18e61e8b91b7e3b411da1428792 100644
+index 60372994352bd47ba611fcb24ad928e21b500119..a5181ed850903ac23dc86eb9a60716939d3fdc48 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -133,7 +133,7 @@ public class ServerExplosion implements Explosion {

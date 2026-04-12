@@ -32,23 +32,22 @@ index ff747a1ecdf3c888bca0d69de4f85dcd810b6139..d90f6aa4557b5863eba6a206226f763c
              }
          }
  
-diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index e461761f3611115c963b8520c149d167b26b8049..61ca9eb6ca945947e8b84b992c91ec54a5bec054 100644
---- a/net/minecraft/server/level/ServerLevel.java
-+++ b/net/minecraft/server/level/ServerLevel.java
-@@ -729,6 +729,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-         this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
-         this.levelTickScheduler.repeatingTask(this.densityCache::expire, 0); // Sakura - explosion density cache
-         this.levelTickScheduler.repeatingTask(this.dispenseRelocationHandler::clear, 0); // Sakura - configure server mechanics
-+        this.levelTickScheduler.repeatingTask(this.redstoneWireCache::expire, 300); // Sakura - cache vanilla and eigencraft wires
+diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+index 7d2df500c90e0451ec2cf117f44413b3593fdd62..b536afa177e1fda249bf21a6602e86870b2e9f62 100644
+--- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
++++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+@@ -12,5 +12,6 @@ public final class ScheduleSakuraTasks {
+         scheduler.endless((tick, level, cb) -> level.mergeHandler.expire(tick), 200); // Sakura - merge cannon entities
+         scheduler.endless((tick, level, cb) -> level.densityCache.expire(tick), 0); // Sakura - explosion density cache
+         scheduler.endless((tick, level, cb) -> level.dispenseRelocationHandler.clear(), 0); // Sakura - configure server mechanics
++        scheduler.endless((tick, level, cb) -> level.redstoneWireCache.expire(tick), 300); // Sakura - cache vanilla and eigencraft wires
      }
- 
-     // Paper start
+ }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 2b9012c90618d908d4df1873cd94b7099470a616..235324a59c2f4a9d223cef0aa8f368a3fee73927 100644
+index 537abc76a06b07e57edcf2eaa55b0147647999fe..1992a2270d032a8d0b3aaf8ececbde10d90dfd52 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -837,6 +837,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -842,6 +842,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
      public final me.samsuik.sakura.entity.dispensing.DispenseRelocationHandler dispenseRelocationHandler = new me.samsuik.sakura.entity.dispensing.DispenseRelocationHandler(this); // Sakura - configure server mechanics

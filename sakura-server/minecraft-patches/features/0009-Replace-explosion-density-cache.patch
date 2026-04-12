@@ -4,25 +4,24 @@ Date: Mon, 22 Apr 2024 23:01:26 +0100
 Subject: [PATCH] Replace explosion density cache
 
 
-diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 4ffd46eab95099e3ec5b1a74913a2a256eedd346..a2427fb8f3d6cb39d3f798c3e23c98ca303a6a9b 100644
---- a/net/minecraft/server/level/ServerLevel.java
-+++ b/net/minecraft/server/level/ServerLevel.java
-@@ -727,6 +727,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-         this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
-         this.levelTickScheduler.repeatingTask(this.explosionPositions::clear, 0); // Sakura - client visibility settings
-         this.levelTickScheduler.repeatingTask(this.mergeHandler::expire, 200); // Sakura - merge cannon entities
-+        this.levelTickScheduler.repeatingTask(this.densityCache::expire, 0); // Sakura - explosion density cache
+diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+index d42b73fa20025d7a05171e301a115424dc1bbb9f..4c456c2d1b42ecfcecb22ba2bf3819cab68206b8 100644
+--- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
++++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+@@ -10,5 +10,6 @@ public final class ScheduleSakuraTasks {
+     public static void schedule(final LevelTickScheduler scheduler) {
+         scheduler.endless((tick, level, cb) -> level.explosionPositions.clear(), 0); // Sakura - client visibility settings
+         scheduler.endless((tick, level, cb) -> level.mergeHandler.expire(tick), 200); // Sakura - merge cannon entities
++        scheduler.endless((tick, level, cb) -> level.densityCache.expire(tick), 0); // Sakura - explosion density cache
      }
- 
-     // Paper start
+ }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index a051c8a8be4b390050c1723cb2e2cce7f207662c..bb39f94b20e9cf0f8f9d3a3681833488b30618ee 100644
+index f6acd4ac77c7447a090b2c4fec2648c0ff8204d3..f06ec2784b091cd053925c89c114e4cb4e8effff 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -834,6 +834,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     public final me.samsuik.sakura.block_change.BlockStateChangeTracker blockStateChangeTracker = new me.samsuik.sakura.block_change.BlockStateChangeTracker(this);
-     // Sakura end - track block changes and tick scheduler
+@@ -839,6 +839,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     }
+     // Sakura end - implement state watchers and tick scheduler
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
 +    public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
  
