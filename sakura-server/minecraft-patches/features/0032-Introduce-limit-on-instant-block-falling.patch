@@ -5,13 +5,13 @@ Subject: [PATCH] Introduce limit on instant block falling
 
 
 diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
-index b536afa177e1fda249bf21a6602e86870b2e9f62..dada6f2d3af73ffb4ae5a7aabdd7c3bfae1badeb 100644
+index 7d2df500c90e0451ec2cf117f44413b3593fdd62..fef94d0a0cce8c0ca0a0a73e7328e26f206e50e7 100644
 --- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
 +++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
-@@ -13,5 +13,6 @@ public final class ScheduleSakuraTasks {
+@@ -12,5 +12,6 @@ public final class ScheduleSakuraTasks {
+         scheduler.endless((tick, level, cb) -> level.mergeHandler.expire(tick), 200); // Sakura - merge cannon entities
          scheduler.endless((tick, level, cb) -> level.densityCache.expire(tick), 0); // Sakura - explosion density cache
          scheduler.endless((tick, level, cb) -> level.dispenseRelocationHandler.clear(), 0); // Sakura - configure server mechanics
-         scheduler.endless((tick, level, cb) -> level.redstoneWireCache.expire(tick), 300); // Sakura - cache vanilla and eigencraft wires
 +        scheduler.endless((tick, level, cb) -> level.fallingBlockColumnLimits.clear(), 0); // Sakura - limit instant block falling
      }
  }
@@ -34,13 +34,13 @@ index 1bfcfafbed583cffc85462615da85ac0c58b250f..1ab605d936cd81ed647ea15d1106c797
          if (fallingBlockEntity.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
              level.setBlock(pos, state.getFluidState().createLegacyBlock(), Block.UPDATE_ALL);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index b9dfb84c3b44dde8fa071357ca2889a0acc8d43b..ff021c6d15348893f1d9c44cfd7bce8d0a1401b1 100644
+index ac3a6d9de3bcfb8f5c6b6e45885ecc9a95bec96c..51c4ea09e9c04d74386b8d8af9236d86f6130336 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -848,6 +848,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
      public final me.samsuik.sakura.entity.dispensing.DispenseRelocationHandler dispenseRelocationHandler = new me.samsuik.sakura.entity.dispensing.DispenseRelocationHandler(this); // Sakura - configure server mechanics
-     public final me.samsuik.sakura.redstone.cache.RedstoneWireCache redstoneWireCache = new me.samsuik.sakura.redstone.cache.RedstoneWireCache(this); // Sakura - cache vanilla and eigencraft wires
+     public final me.samsuik.sakura.redstone.RedstoneWireCache redstoneWireCache = new me.samsuik.sakura.redstone.RedstoneWireCache(); // Sakura - cache vanilla and eigencraft wires
 +    public final me.samsuik.sakura.entity.FallingBlockColumnLimits fallingBlockColumnLimits = new me.samsuik.sakura.entity.FallingBlockColumnLimits(); // Sakura - limit instant block falling
  
      protected Level(

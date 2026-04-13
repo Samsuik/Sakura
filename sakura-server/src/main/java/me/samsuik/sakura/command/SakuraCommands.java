@@ -3,7 +3,6 @@ package me.samsuik.sakura.command;
 import me.samsuik.sakura.command.subcommands.*;
 import me.samsuik.sakura.command.subcommands.debug.DebugCommand;
 import me.samsuik.sakura.command.subcommands.debug.DebugLocalConfiguration;
-import me.samsuik.sakura.command.subcommands.debug.DebugRedstoneCache;
 import me.samsuik.sakura.player.visibility.VisibilityTypes;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.command.Command;
@@ -31,7 +30,6 @@ public final class SakuraCommands {
         SUB_COMMANDS.add(new DebugCommand("debug"));
         // "sakura" isn't a subcommand
         COMMANDS.put("sakura", new SakuraCommand("sakura"));
-        DEBUG_COMMANDS.add(new DebugRedstoneCache("redstone-cache"));
         DEBUG_COMMANDS.add(new DebugLocalConfiguration("local-regions"));
     }
 
