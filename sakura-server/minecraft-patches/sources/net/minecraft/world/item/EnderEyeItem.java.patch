@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/item/EnderEyeItem.java
++++ b/net/minecraft/world/item/EnderEyeItem.java
+@@ -57,6 +_,18 @@
+             BlockPattern.BlockPatternMatch blockPatternMatch = EndPortalFrameBlock.getOrCreatePortalShape().find(level, clickedPos);
+             if (blockPatternMatch != null) {
+                 BlockPos blockPos = blockPatternMatch.getFrontTopLeft().offset(-3, 0, -3);
++                // Sakura start - fix end portal item dupe
++                for (int portalX = 0; portalX < 3; portalX++) {
++                    for (int portalZ = 0; portalZ < 3; portalZ++) {
++                        final BlockPos portalPos = blockPos.offset(portalX, 0, portalZ);
++                        if (!level.getBlockState(portalPos).isAir()) {
++                            // Revert the portal frame
++                            level.setBlock(clickedPos, blockState, Block.UPDATE_CLIENTS);
++                            return InteractionResult.PASS;
++                        }
++                    }
++                }
++                // Sakura end - fix end portal item dupe
+ 
+                 for (int i = 0; i < 3; i++) {
+                     for (int i1 = 0; i1 < 3; i1++) {
