@@ -1,5 +1,31 @@
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
+@@ -151,6 +_,25 @@
+     public boolean aware = true; // CraftBukkit
+     public net.kyori.adventure.util.TriState despawnInPeacefulOverride = net.kyori.adventure.util.TriState.NOT_SET; // Paper - allow changing despawnInPeaceful
+ 
++    // Sakura start - simplify nerfed mob logic
++    private boolean isAwareOnGroundOrSwimming() {
++        return this.aware
++            || this.verticalCollision
++            || this.isInWater()
++            || this.getDeltaMovement().y > 0.0;
++    }
++
++    @Override
++    protected boolean updateInWaterStateAndDoFluidPushing() {
++        return this.isAwareOnGroundOrSwimming() && super.updateInWaterStateAndDoFluidPushing();
++    }
++
++    @Override
++    public boolean isInWall() {
++        return this.isAwareOnGroundOrSwimming() && super.isInWall();
++    }
++    // Sakura end - simplify nerfed mob logic
++
+     protected Mob(EntityType<? extends Mob> type, Level level) {
+         super(type, level);
+         this.goalSelector = new GoalSelector();
 @@ -164,6 +_,11 @@
          if (level instanceof ServerLevel) {
              this.registerGoals();
