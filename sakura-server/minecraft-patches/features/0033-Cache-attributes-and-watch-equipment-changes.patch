@@ -1,0 +1,112 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 13 Apr 2026 12:59:59 +0100
+Subject: [PATCH] Cache attributes and watch equipment changes
+
+
+diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
+index 924408367d999ee6bda34699fce7bd5b100f253b..9bb6ec350fca2a73c6882976f00acae58f2fc9a7 100644
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -351,6 +351,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         return (float) damage;
+     }
+     // Sakura end - legacy combat mechanics & attack damage override
++    // Sakura start - cache attribute and equipment changes
++    private final me.samsuik.sakura.tracking.watchers.AttributeValueWatcher wayPointTransmitRangeWatcher;
++    private final me.samsuik.sakura.tracking.watchers.AttributeValueWatcher gravityWatcher;
++    private final me.samsuik.sakura.tracking.watchers.AttributeValueWatcher movementEfficiencyWatcher;
++    private final me.samsuik.sakura.tracking.watchers.AnyChangeWatcher<EntityEquipment> equipmentWatcher;
++    public boolean equipmentEmpty;
++    // Sakura end - cache attribute and equipment changes
+ 
+     protected LivingEntity(EntityType<? extends LivingEntity> type, Level level) {
+         super(type, level);
+@@ -364,6 +371,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         this.setYRot(this.random.nextFloat() * (float) (Math.PI * 2));
+         this.yHeadRot = this.getYRot();
+         this.brain = this.makeBrain(EMPTY_BRAIN);
++        // Sakura start - cache attribute and equipment changes
++        this.wayPointTransmitRangeWatcher = new me.samsuik.sakura.tracking.watchers.AttributeValueWatcher(this.attributes, Attributes.WAYPOINT_TRANSMIT_RANGE);
++        this.gravityWatcher = new me.samsuik.sakura.tracking.watchers.AttributeValueWatcher(this.attributes, Attributes.GRAVITY);
++        this.movementEfficiencyWatcher = new me.samsuik.sakura.tracking.watchers.AttributeValueWatcher(this.attributes, Attributes.MOVEMENT_EFFICIENCY);
++        this.equipmentWatcher = new me.samsuik.sakura.tracking.watchers.AnyChangeWatcher<>(this.equipment);
++        // Sakura end - cache attribute and equipment changes
+     }
+ 
+     @Override
+@@ -587,7 +600,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+ 
+     @Override
+     protected float getBlockSpeedFactor() {
+-        return Mth.lerp((float)this.getAttributeValue(Attributes.MOVEMENT_EFFICIENCY), super.getBlockSpeedFactor(), 1.0F);
++        return Mth.lerp((float)this.movementEfficiencyWatcher.getValue(), super.getBlockSpeedFactor(), 1.0F); // Sakura - cache attribute and equipment changes
+     }
+ 
+     public float getLuck() {
+@@ -3127,7 +3140,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+ 
+     @Override
+     protected double getDefaultGravity() {
+-        return this.getAttributeValue(Attributes.GRAVITY);
++        return this.gravityWatcher.getValue(); // Sakura - cache attribute and equipment changes
+     }
+ 
+     protected double getEffectiveGravity() {
+@@ -3209,7 +3222,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     protected void travelInWater(Vec3 travelVector, double gravity, boolean isFalling, double previousY) {
+         float f = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
+         float f1 = 0.02F;
+-        float f2 = (float)this.getAttributeValue(Attributes.WATER_MOVEMENT_EFFICIENCY);
++        float f2 = (float)this.movementEfficiencyWatcher.getValue(); // Sakura - cache attribute and equipment changes
+         if (!this.onGround()) {
+             f2 *= 0.5F;
+         }
+@@ -3477,7 +3490,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+                 }
+             }
+ 
+-            this.detectEquipmentUpdates();
++            // Sakura start - cache attribute and equipment changes
++            if (this.equipmentWatcher.hasChanged()) {
++                this.detectEquipmentUpdates();
++                this.equipmentEmpty = this.equipment.isEmpty();
++            }
++            // Sakura end - cache attribute and equipment changes
+             if (this.tickCount % 20 == 0) {
+                 this.getCombatTracker().recheckStatus();
+             }
+@@ -3736,7 +3754,11 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+             this.lerpHeadSteps--;
+         }
+ 
+-        this.equipment.tick(this);
++        // Sakura start - cache attribute and equipment changes
++        if (!this.equipmentEmpty) {
++            this.equipment.tick(this);
++        }
++        // Sakura end - cache attribute and equipment changes
+         Vec3 deltaMovement = this.getDeltaMovement();
+         double d = deltaMovement.x;
+         double d1 = deltaMovement.y;
+@@ -4942,7 +4964,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+ 
+     @Override
+     public boolean isTransmittingWaypoint() {
+-        return this.getAttributeValue(Attributes.WAYPOINT_TRANSMIT_RANGE) > 0.0;
++        return this.wayPointTransmitRangeWatcher.getValue() > 0.0; // Sakura - cache attribute and equipment changes
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/item/enchantment/EnchantmentHelper.java b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
+index b61e0e179e78f37f670ad86476b5a533e7835948..cddb7912bd1a41ca70f477748b10a3708ca84eec 100644
+--- a/net/minecraft/world/item/enchantment/EnchantmentHelper.java
++++ b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
+@@ -153,6 +153,7 @@ public class EnchantmentHelper {
+     }
+ 
+     private static void runIterationOnEquipment(LivingEntity entity, EnchantmentHelper.EnchantmentInSlotVisitor visitor) {
++        if (entity.equipmentEmpty) return; // Sakura - cache attribute and equipment changes
+         for (EquipmentSlot equipmentSlot : EquipmentSlot.VALUES) {
+             runIterationOnItem(entity.getItemBySlot(equipmentSlot), equipmentSlot, entity, visitor);
+         }

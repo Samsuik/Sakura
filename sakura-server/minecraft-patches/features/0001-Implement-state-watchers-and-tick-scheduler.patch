@@ -935,6 +935,18 @@ index 92b7f4cbd276dad49cba78514db3552af8cdd80c..3a17fd29a741ebe47fde2f5b7f6b0c41
      public AttributeMap(AttributeSupplier supplier) {
          this.supplier = supplier;
      }
+diff --git a/net/minecraft/world/entity/player/Inventory.java b/net/minecraft/world/entity/player/Inventory.java
+index 41e59f3739945ca7f6ab710c993b5c0f15fcd529..17fcf6a70ed64b579352cbd2b662778d2d4e7823 100644
+--- a/net/minecraft/world/entity/player/Inventory.java
++++ b/net/minecraft/world/entity/player/Inventory.java
+@@ -145,6 +145,7 @@ public class Inventory implements Container, Nameable {
+         if (!isHotbarSlot(slot)) {
+             throw new IllegalArgumentException("Invalid selected slot");
+         } else {
++            this.equipment.watchers().changed(this.equipment); // Sakura - implement state watchers and tick scheduler
+             this.selected = slot;
+         }
+     }
 diff --git a/net/minecraft/world/entity/player/PlayerEquipment.java b/net/minecraft/world/entity/player/PlayerEquipment.java
 index 58ebbf73a85661735709d0559af3e19be23a782e..103bf76f6b48e0b8fb3c0dfbbc6c361cf4b7ed14 100644
 --- a/net/minecraft/world/entity/player/PlayerEquipment.java
