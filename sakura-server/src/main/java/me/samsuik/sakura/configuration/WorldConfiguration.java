@@ -117,6 +117,7 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean tntFlowsInWater = true;
             public boolean fallingBlockParity = false;
             public MinecraftMechanicsTarget mechanicsTarget = MinecraftMechanicsTarget.latest();
+            public boolean fallingBlockFloatingPointFix = false;
 
             @Comment(
                 "Replaces the optimize-explosions option in the paper config." +

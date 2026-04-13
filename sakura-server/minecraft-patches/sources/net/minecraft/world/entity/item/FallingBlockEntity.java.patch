@@ -13,7 +13,7 @@
      }
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
-@@ -89,6 +_,26 @@
+@@ -89,6 +_,34 @@
          this.setStartPos(this.blockPosition());
      }
  
@@ -36,15 +36,29 @@
 +            || level.getWorldBorder().isWithinBounds(center.x(), center.z(), -1.0);
 +    }
 +    // Sakura end - falling block stacking restrictions
++    // Sakura start - fix falling block floating point errors
++    private BlockPos patchedBlockPosition() {
++        // Mitigates MC-261789 - falling blocks breaking when landing on a block below y 0
++        // This fix allows some tech that uses "indirect clipping" to still function.
++        // L stackers and midairs may still encounter issues if they shoot too high.
++        return BlockPos.containing(this.getX(), this.getY() + 1.0e-12, this.getZ());
++    }
++    // Sakura end - fix falling block floating point errors
 +
      public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state) {
          FallingBlockEntity fallingBlockEntity = new FallingBlockEntity(
              level,
-@@ -167,7 +_,7 @@
+@@ -166,8 +_,12 @@
+             // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
-                 BlockPos blockPos = this.blockPosition();
+-                BlockPos blockPos = this.blockPosition();
 -                boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
++                // Sakura start - fix falling block floating point errors
++                BlockPos blockPos = serverLevel.sakuraConfig().cannons.mechanics.fallingBlockFloatingPointFix
++                    ? this.patchedBlockPosition()
++                    : this.blockPosition();
++                // Sakura end - fix falling block floating point errors
 +                boolean flag = this.level().sakuraConfig().cannons.sand.concreteSolidifyInWater && this.blockState.getBlock() instanceof ConcretePowderBlock; // Sakura - configure concrete solidifying in water
                  boolean flag1 = flag && this.level().getFluidState(blockPos).is(FluidTags.WATER);
                  double d = this.getDeltaMovement().lengthSqr();
