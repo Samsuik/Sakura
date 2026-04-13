@@ -237,18 +237,16 @@ index 0000000000000000000000000000000000000000..898aefe231d873df6828d52d9c13d935
 +}
 diff --git a/me/samsuik/sakura/tracking/ChangeListener.java b/me/samsuik/sakura/tracking/ChangeListener.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f4ad6d01ed78180b77d3e5dc895922ed91e49c7c
+index 0000000000000000000000000000000000000000..672c1f402b20fa3d6b5c3244708a3ccc76e19df3
 --- /dev/null
 +++ b/me/samsuik/sakura/tracking/ChangeListener.java
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,10 @@
 +package me.samsuik.sakura.tracking;
 +
 +import org.jspecify.annotations.NullMarked;
 +
 +@NullMarked
 +public interface ChangeListener<T extends Watchable<?>> {
-+    void remove();
-+
 +    void changed(final T watchable);
 +
 +    default void removed(final T watchable) {}
@@ -290,25 +288,19 @@ index 0000000000000000000000000000000000000000..4ffccadb15fe1d3629b086e89b07947d
 +}
 diff --git a/me/samsuik/sakura/tracking/Watchable.java b/me/samsuik/sakura/tracking/Watchable.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3e48e516a856d95fc792ae972bf233594b9e681e
+index 0000000000000000000000000000000000000000..59133e8538c0de588b349b1b680d522399dd3a3b
 --- /dev/null
 +++ b/me/samsuik/sakura/tracking/Watchable.java
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,10 @@
 +package me.samsuik.sakura.tracking;
 +
 +import org.jspecify.annotations.NullMarked;
 +
 +@NullMarked
 +public interface Watchable<T extends Watchable<T>> {
-+    ChangeWatchers<T> watchers();
++    void watch(final ChangeListener<T> listener);
 +
-+    default void watch(final ChangeListener<T> listener) {
-+        this.watchers().add(listener);
-+    }
-+
-+    default void unwatch(final ChangeListener<T> listener) {
-+        this.watchers().remove(listener);
-+    }
++    void unwatch(final ChangeListener<T> listener);
 +}
 diff --git a/me/samsuik/sakura/tracking/block_change/BlockFilter.java b/me/samsuik/sakura/tracking/block_change/BlockFilter.java
 new file mode 100644
@@ -657,10 +649,10 @@ index 0000000000000000000000000000000000000000..4a5505733d7e1da90f6267286009d8cd
 +}
 diff --git a/me/samsuik/sakura/tracking/watchers/AnyChangeWatcher.java b/me/samsuik/sakura/tracking/watchers/AnyChangeWatcher.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8285f6f773db1520d2180ad20a7b6b4411ae7ae5
+index 0000000000000000000000000000000000000000..bc4e0de39d3df4bd6ef0dbc21252973a0500b7cd
 --- /dev/null
 +++ b/me/samsuik/sakura/tracking/watchers/AnyChangeWatcher.java
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,27 @@
 +package me.samsuik.sakura.tracking.watchers;
 +
 +import me.samsuik.sakura.tracking.ChangeListener;
@@ -678,11 +670,6 @@ index 0000000000000000000000000000000000000000..8285f6f773db1520d2180ad20a7b6b44
 +    }
 +
 +    @Override
-+    public void remove() {
-+        this.watchable.unwatch(this);
-+    }
-+
-+    @Override
 +    public void changed(final T watchable) {
 +        this.changed = true;
 +    }
@@ -695,10 +682,10 @@ index 0000000000000000000000000000000000000000..8285f6f773db1520d2180ad20a7b6b44
 +}
 diff --git a/me/samsuik/sakura/tracking/watchers/AttributeValueWatcher.java b/me/samsuik/sakura/tracking/watchers/AttributeValueWatcher.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..83b4f3ee80f4cd2e6f5fdff40d0039647ed24660
+index 0000000000000000000000000000000000000000..a5fa2dd230319dca30ba0e23b725d8ece4e979ae
 --- /dev/null
 +++ b/me/samsuik/sakura/tracking/watchers/AttributeValueWatcher.java
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,47 @@
 +package me.samsuik.sakura.tracking.watchers;
 +
 +import me.samsuik.sakura.tracking.ChangeListener;
@@ -720,13 +707,6 @@ index 0000000000000000000000000000000000000000..83b4f3ee80f4cd2e6f5fdff40d003964
 +    public AttributeValueWatcher(final AttributeMap attributes, final Holder<Attribute> holder) {
 +        this.attributes = attributes;
 +        this.holder = holder;
-+    }
-+
-+    @Override
-+    public void remove() {
-+        if (this.instance != null) {
-+            this.instance.unwatch(this);
-+        }
 +    }
 +
 +    @Override
@@ -753,57 +733,6 @@ index 0000000000000000000000000000000000000000..83b4f3ee80f4cd2e6f5fdff40d003964
 +        return this.value;
 +    }
 +}
-diff --git a/me/samsuik/sakura/tracking/watchers/BlockContainerChangeWatcher.java b/me/samsuik/sakura/tracking/watchers/BlockContainerChangeWatcher.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..ae25ed0e6b5923c9198665814209683403a96e8d
---- /dev/null
-+++ b/me/samsuik/sakura/tracking/watchers/BlockContainerChangeWatcher.java
-@@ -0,0 +1,45 @@
-+package me.samsuik.sakura.tracking.watchers;
-+
-+import it.unimi.dsi.fastutil.objects.ReferenceArraySet;
-+import me.samsuik.sakura.tracking.ChangeListener;
-+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
-+import org.jspecify.annotations.NullMarked;
-+
-+@NullMarked
-+public class BlockContainerChangeWatcher implements ChangeListener<BaseContainerBlockEntity> {
-+    private final BaseContainerBlockEntity container;
-+    private boolean removed;
-+    private boolean changed = true;
-+
-+    public BlockContainerChangeWatcher(final BaseContainerBlockEntity container) {
-+        this.container = container;
-+        container.watch(this);
-+    }
-+
-+    @Override
-+    public void remove() {
-+        this.container.unwatch(this);
-+        this.removed = true;
-+    }
-+
-+    @Override
-+    public void changed(final BaseContainerBlockEntity watchable) {
-+
-+    }
-+
-+    @Override
-+    public void removed(final BaseContainerBlockEntity watchable) {
-+        this.removed = true;
-+        watchable.unwatch(this);
-+    }
-+
-+    public boolean isRemoved() {
-+        return this.removed;
-+    }
-+
-+    public boolean hasChanged() {
-+        final boolean hasChanges = this.changed;
-+        this.changed = false;
-+        return hasChanges;
-+    }
-+}
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
 index 566f97edee2e229e5072c699a188f9ee71994003..4706915bfd87a6c55729711369002c2ab93b34d2 100644
 --- a/net/minecraft/server/MinecraftServer.java
@@ -828,8 +757,63 @@ index cc5f12bb41ac2624ff15aaa74d46bc2e8c5aa7db..dac5c5c6e835d20f8db47970f27f6637
      }
  
      // Paper start
+diff --git a/net/minecraft/world/CompoundContainer.java b/net/minecraft/world/CompoundContainer.java
+index 8eb989a811924fb6d2bc5150d7279d9d59bc3400..e3098cda3ea224a1f408174d45c8a62abba2fc36 100644
+--- a/net/minecraft/world/CompoundContainer.java
++++ b/net/minecraft/world/CompoundContainer.java
+@@ -54,6 +54,24 @@ public class CompoundContainer implements Container {
+         return this.container1.getLocation(); // TODO: right?
+     }
+     // CraftBukkit end
++    // Sakura start - implement state watchers and tick scheduler
++    @Override
++    public final void watch(final me.samsuik.sakura.tracking.ChangeListener<Container> listener) {
++        this.container1.watch(listener);
++        this.container2.watch(listener);
++    }
++
++    @Override
++    public final void unwatch(final me.samsuik.sakura.tracking.ChangeListener<Container> listener) {
++        this.container1.unwatch(listener);
++        this.container2.unwatch(listener);
++    }
++
++    @Override
++    public final boolean sakura$isRemoved() {
++        return this.container1.sakura$isRemoved() && this.container2.sakura$isRemoved();
++    }
++    // Sakura end - implement state watchers and tick scheduler
+ 
+     public CompoundContainer(Container container1, Container container2) {
+         this.container1 = container1;
+diff --git a/net/minecraft/world/Container.java b/net/minecraft/world/Container.java
+index 6489b47810b0431c350098d574469bbe0adcd726..8f93246e99300f591e7174375aa634c8b5228058 100644
+--- a/net/minecraft/world/Container.java
++++ b/net/minecraft/world/Container.java
+@@ -16,7 +16,20 @@ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import org.jspecify.annotations.Nullable;
+ 
+-public interface Container extends Clearable, SlotProvider, Iterable<ItemStack> {
++public interface Container extends Clearable, SlotProvider, Iterable<ItemStack>, me.samsuik.sakura.tracking.Watchable<Container> { // Sakura - implement state watchers and tick scheduler
++
++    // Sakura start - implement state watchers and tick scheduler
++    @Override
++    default void watch(final me.samsuik.sakura.tracking.ChangeListener<Container> listener) {}
++
++    @Override
++    default void unwatch(final me.samsuik.sakura.tracking.ChangeListener<Container> listener) {}
++
++    default boolean sakura$isRemoved() {
++        return false;
++    }
++    // Sakura end - implement state watchers and tick scheduler
++
+     float DEFAULT_DISTANCE_BUFFER = 4.0F;
+ 
+     int getContainerSize();
 diff --git a/net/minecraft/world/entity/EntityEquipment.java b/net/minecraft/world/entity/EntityEquipment.java
-index 1e00a7bd89d885cabb4b9ca3c86fbd8cd93cebf5..c25eb490cede8ca95025c612781fefcee0d9de60 100644
+index 1e00a7bd89d885cabb4b9ca3c86fbd8cd93cebf5..3860f8eb7505fda076433add7e1576f798e66963 100644
 --- a/net/minecraft/world/entity/EntityEquipment.java
 +++ b/net/minecraft/world/entity/EntityEquipment.java
 @@ -7,7 +7,7 @@ import java.util.Objects;
@@ -841,7 +825,7 @@ index 1e00a7bd89d885cabb4b9ca3c86fbd8cd93cebf5..c25eb490cede8ca95025c612781fefce
      public static final Codec<EntityEquipment> CODEC = Codec.unboundedMap(EquipmentSlot.CODEC, ItemStack.CODEC).xmap(map -> {
          EnumMap<EquipmentSlot, ItemStack> map1 = new EnumMap<>(EquipmentSlot.class);
          map1.putAll((Map<? extends EquipmentSlot, ? extends ItemStack>)map);
-@@ -19,6 +19,15 @@ public class EntityEquipment {
+@@ -19,6 +19,24 @@ public class EntityEquipment {
      });
      private final EnumMap<EquipmentSlot, ItemStack> items;
  
@@ -849,40 +833,49 @@ index 1e00a7bd89d885cabb4b9ca3c86fbd8cd93cebf5..c25eb490cede8ca95025c612781fefce
 +    private final me.samsuik.sakura.tracking.ChangeWatchers<EntityEquipment> watchers = new me.samsuik.sakura.tracking.ChangeWatchers<>();
 +
 +    @Override
-+    public final me.samsuik.sakura.tracking.ChangeWatchers<EntityEquipment> watchers() {
-+        return this.watchers;
++    public final void watch(final me.samsuik.sakura.tracking.ChangeListener<EntityEquipment> listener) {
++        this.watchers.add(listener);
++    }
++
++    @Override
++    public final void unwatch(final me.samsuik.sakura.tracking.ChangeListener<EntityEquipment> listener) {
++        this.watchers.remove(listener);
++    }
++
++    public final void changed() {
++        this.watchers.changed(this);
 +    }
 +    // Sakura end - implement state watchers and tick scheduler
 +
      private EntityEquipment(EnumMap<EquipmentSlot, ItemStack> items) {
          this.items = items;
      }
-@@ -28,6 +37,7 @@ public class EntityEquipment {
+@@ -28,6 +46,7 @@ public class EntityEquipment {
      }
  
      public ItemStack set(EquipmentSlot slot, ItemStack stack) {
-+        this.watchers().changed(this); // Sakura - implement state watchers and tick scheduler
++        this.watchers.changed(this); // Sakura - implement state watchers and tick scheduler
          return Objects.requireNonNullElse(this.items.put(slot, stack), ItemStack.EMPTY);
      }
  
-@@ -55,6 +65,7 @@ public class EntityEquipment {
+@@ -55,6 +74,7 @@ public class EntityEquipment {
      }
  
      public void setAll(EntityEquipment equipment) {
-+        this.watchers().changed(this); // Sakura - implement state watchers and tick scheduler
++        this.watchers.changed(this); // Sakura - implement state watchers and tick scheduler
          this.items.clear();
          this.items.putAll(equipment.items);
      }
-@@ -68,6 +79,7 @@ public class EntityEquipment {
+@@ -68,6 +88,7 @@ public class EntityEquipment {
      }
  
      public void clear() {
-+        this.watchers().changed(this); // Sakura - implement state watchers and tick scheduler
++        this.watchers.changed(this); // Sakura - implement state watchers and tick scheduler
          this.items.replaceAll((equipmentSlot, itemStack) -> ItemStack.EMPTY);
      }
  
 diff --git a/net/minecraft/world/entity/ai/attributes/AttributeInstance.java b/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
-index e42e6d01a8bb1bca5dea440d3f002ead68590e11..9828ba846ff40643396a3d2a55b67ef3b262ae39 100644
+index e42e6d01a8bb1bca5dea440d3f002ead68590e11..dfd45399f16b2a848f46fe3668023cf71ee4f031 100644
 --- a/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
 +++ b/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
 @@ -17,7 +17,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
@@ -894,7 +887,7 @@ index e42e6d01a8bb1bca5dea440d3f002ead68590e11..9828ba846ff40643396a3d2a55b67ef3
      private final Holder<Attribute> attribute;
      private final Map<AttributeModifier.Operation, Map<Identifier, AttributeModifier>> modifiersByOperation = Maps.newEnumMap(AttributeModifier.Operation.class);
      private final Map<Identifier, AttributeModifier> modifierById = new Object2ObjectArrayMap<>();
-@@ -27,6 +27,15 @@ public class AttributeInstance {
+@@ -27,6 +27,20 @@ public class AttributeInstance {
      private double cachedValue;
      private final Consumer<AttributeInstance> onDirty;
  
@@ -902,15 +895,20 @@ index e42e6d01a8bb1bca5dea440d3f002ead68590e11..9828ba846ff40643396a3d2a55b67ef3
 +    private final me.samsuik.sakura.tracking.ChangeWatchers<AttributeInstance> watchers = new me.samsuik.sakura.tracking.ChangeWatchers<>();
 +
 +    @Override
-+    public final me.samsuik.sakura.tracking.ChangeWatchers<AttributeInstance> watchers() {
-+        return this.watchers;
++    public final void watch(final me.samsuik.sakura.tracking.ChangeListener<AttributeInstance> listener) {
++        this.watchers.add(listener);
++    }
++
++    @Override
++    public final void unwatch(final me.samsuik.sakura.tracking.ChangeListener<AttributeInstance> listener) {
++        this.watchers.remove(listener);
 +    }
 +    // Sakura end - implement state watchers and tick scheduler
 +
      public AttributeInstance(Holder<Attribute> attribute, Consumer<AttributeInstance> onDirty) {
          this.attribute = attribute;
          this.onDirty = onDirty;
-@@ -111,6 +120,7 @@ public class AttributeInstance {
+@@ -111,6 +125,7 @@ public class AttributeInstance {
      protected void setDirty() {
          this.dirty = true;
          this.onDirty.accept(this);
@@ -936,29 +934,102 @@ index 92b7f4cbd276dad49cba78514db3552af8cdd80c..3a17fd29a741ebe47fde2f5b7f6b0c41
          this.supplier = supplier;
      }
 diff --git a/net/minecraft/world/entity/player/Inventory.java b/net/minecraft/world/entity/player/Inventory.java
-index 41e59f3739945ca7f6ab710c993b5c0f15fcd529..17fcf6a70ed64b579352cbd2b662778d2d4e7823 100644
+index 41e59f3739945ca7f6ab710c993b5c0f15fcd529..3070e7835d50a69283a79d0652569f8b89ea14f2 100644
 --- a/net/minecraft/world/entity/player/Inventory.java
 +++ b/net/minecraft/world/entity/player/Inventory.java
 @@ -145,6 +145,7 @@ public class Inventory implements Container, Nameable {
          if (!isHotbarSlot(slot)) {
              throw new IllegalArgumentException("Invalid selected slot");
          } else {
-+            this.equipment.watchers().changed(this.equipment); // Sakura - implement state watchers and tick scheduler
++            this.equipment.changed(); // Sakura - implement state watchers and tick scheduler
              this.selected = slot;
          }
      }
 diff --git a/net/minecraft/world/entity/player/PlayerEquipment.java b/net/minecraft/world/entity/player/PlayerEquipment.java
-index 58ebbf73a85661735709d0559af3e19be23a782e..103bf76f6b48e0b8fb3c0dfbbc6c361cf4b7ed14 100644
+index 58ebbf73a85661735709d0559af3e19be23a782e..36ae938a1e7b767b3e27c60fc88a67158257accb 100644
 --- a/net/minecraft/world/entity/player/PlayerEquipment.java
 +++ b/net/minecraft/world/entity/player/PlayerEquipment.java
 @@ -13,6 +13,7 @@ public class PlayerEquipment extends EntityEquipment {
  
      @Override
      public ItemStack set(EquipmentSlot slot, ItemStack stack) {
-+        this.watchers().changed(this); // Sakura - implement state watchers and tick scheduler
++        this.changed(); // Sakura - implement state watchers and tick scheduler
          return slot == EquipmentSlot.MAINHAND ? this.player.getInventory().setSelectedItem(stack) : super.set(slot, stack);
      }
  
+diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
+index 0df930cf0080eee2ce165de63a14872c8329ba43..5f932df0c01c389486366a947a7d6dbae027858c 100644
+--- a/net/minecraft/world/item/ItemStack.java
++++ b/net/minecraft/world/item/ItemStack.java
+@@ -102,7 +102,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+-public final class ItemStack implements DataComponentHolder {
++public final class ItemStack implements DataComponentHolder, me.samsuik.sakura.tracking.Watchable<ItemStack> { // Sakura - implement state watchers and tick scheduler
+     private static final List<Component> OP_NBT_WARNING = List.of(
+         Component.translatable("item.op_warning.line1").withStyle(ChatFormatting.RED, ChatFormatting.BOLD),
+         Component.translatable("item.op_warning.line2").withStyle(ChatFormatting.RED),
+@@ -266,6 +266,20 @@ public final class ItemStack implements DataComponentHolder {
+         return !this.isEmpty() && this.components.hasNonDefault(component);
+     }
+ 
++    // Sakura start - implement state watchers and tick scheduler
++    private final me.samsuik.sakura.tracking.ChangeWatchers<ItemStack> watchers = new me.samsuik.sakura.tracking.ChangeWatchers<>();
++
++    @Override
++    public void watch(final me.samsuik.sakura.tracking.ChangeListener<ItemStack> listener) {
++        this.watchers.add(listener);
++    }
++
++    @Override
++    public void unwatch(final me.samsuik.sakura.tracking.ChangeListener<ItemStack> listener) {
++        this.watchers.remove(listener);
++    }
++    // Sakura end - implement state watchers and tick scheduler
++
+     public ItemStack(ItemLike item) {
+         this(item, 1);
+     }
+@@ -995,11 +1009,16 @@ public final class ItemStack implements DataComponentHolder {
+     // CraftBukkit start
+     public void restorePatch(DataComponentPatch datacomponentpatch) {
+         this.components.restorePatch(datacomponentpatch);
++        this.watchers.changed(this); // Sakura - implement state watchers and tick scheduler
+     }
+     // CraftBukkit end
+ 
+     public <T> @Nullable T set(DataComponentType<T> component, @Nullable T value) {
+-        return this.components.set(component, value);
++        // Sakura start - implement state watchers and tick scheduler
++        final T type = this.components.set(component, value);
++        this.watchers.changed(this);
++        return type;
++        // Sakura end - implement state watchers and tick scheduler
+     }
+ 
+     public <T> @Nullable T set(TypedDataComponent<T> component) {
+@@ -1020,7 +1039,11 @@ public final class ItemStack implements DataComponentHolder {
+     }
+ 
+     public <T> @Nullable T remove(DataComponentType<? extends T> component) {
+-        return this.components.remove(component);
++        // Sakura start - implement state watchers and tick scheduler
++        final T type = this.components.remove(component);
++        this.watchers.changed(this);
++        return type;
++        // Sakura end - implement state watchers and tick scheduler
+     }
+ 
+     public void applyComponentsAndValidate(DataComponentPatch components) {
+@@ -1348,6 +1371,7 @@ public final class ItemStack implements DataComponentHolder {
+ 
+     public void setCount(int count) {
+         this.count = count;
++        this.watchers.changed(this); // Sakura - implement state watchers and tick scheduler
+     }
+ 
+     public void limitSize(int maxSize) {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
 index 915672bdcd90c559f183e586e8cd9302f2044de2..ff327e4808d37899362701632042dac143a7af1b 100644
 --- a/net/minecraft/world/level/Level.java
@@ -987,25 +1058,66 @@ index 915672bdcd90c559f183e586e8cd9302f2044de2..ff327e4808d37899362701632042dac1
              LevelChunk chunkAt = this.getChunkAt(pos);
              Block block = state.getBlock();
              // CraftBukkit start - capture blockstates
+diff --git a/net/minecraft/world/level/block/ChestBlock.java b/net/minecraft/world/level/block/ChestBlock.java
+index fa2dce759419f62825000718361f47c6f208cdb2..7dbacf58dcbc1be8e01f648af57b8165cf9fa742 100644
+--- a/net/minecraft/world/level/block/ChestBlock.java
++++ b/net/minecraft/world/level/block/ChestBlock.java
+@@ -167,6 +167,15 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+         return CODEC;
+     }
+ 
++    // Sakura start - implement state watchers and tick scheduler
++    private void changedBlockState(final LevelReader level, final BlockPos pos) {
++        final BlockEntity blockEntity = level.getBlockEntity(pos);
++        if (blockEntity instanceof final ChestBlockEntity chestBlockEntity) {
++            chestBlockEntity.sakura$removed();
++        }
++    }
++    // Sakura end - implement state watchers and tick scheduler
++
+     protected ChestBlock(
+         Supplier<BlockEntityType<? extends ChestBlockEntity>> blockEntityType,
+         SoundEvent openSound,
+@@ -209,9 +218,11 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+                 && chestType != ChestType.SINGLE
+                 && state.getValue(FACING) == neighborState.getValue(FACING)
+                 && getConnectedDirection(neighborState) == direction.getOpposite()) {
++                this.changedBlockState(level, pos); // Sakura - implement state watchers and tick scheduler
+                 return state.setValue(TYPE, chestType.getOpposite());
+             }
+         } else if (getConnectedDirection(state) == direction) {
++            this.changedBlockState(level, pos); // Sakura - implement state watchers and tick scheduler
+             return state.setValue(TYPE, ChestType.SINGLE);
+         }
+ 
 diff --git a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
-index edf3bc4adc9b1700b73f06ea940f17cd55b16860..59f717d9c4cbbe21426758e5d4b14bc843a06ec1 100644
+index edf3bc4adc9b1700b73f06ea940f17cd55b16860..b9c8ae453100414b93fc858a08faed5d69b76492 100644
 --- a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
-@@ -26,10 +26,32 @@ import net.minecraft.world.level.storage.ValueOutput;
- import net.minecraft.world.phys.Vec3;
- import org.jspecify.annotations.Nullable;
- 
--public abstract class BaseContainerBlockEntity extends BlockEntity implements Container, MenuProvider, Nameable {
-+public abstract class BaseContainerBlockEntity extends BlockEntity implements Container, MenuProvider, Nameable, me.samsuik.sakura.tracking.Watchable<BaseContainerBlockEntity> { // Sakura - implement state watchers and tick scheduler
+@@ -30,6 +30,42 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
      public LockCode lockKey = LockCode.NO_LOCK;
      public @Nullable Component name;
  
 +    // Sakura start - implement state watchers and tick scheduler
-+    private final me.samsuik.sakura.tracking.ChangeWatchers<BaseContainerBlockEntity> watchers = new me.samsuik.sakura.tracking.ChangeWatchers<>();
++    private final me.samsuik.sakura.tracking.ChangeWatchers<Container> watchers = new me.samsuik.sakura.tracking.ChangeWatchers<>();
 +
 +    @Override
-+    public final me.samsuik.sakura.tracking.ChangeWatchers<BaseContainerBlockEntity> watchers() {
-+        return this.watchers;
++    public final void watch(final me.samsuik.sakura.tracking.ChangeListener<Container> listener) {
++        this.watchers.add(listener);
++    }
++
++    @Override
++    public final void unwatch(final me.samsuik.sakura.tracking.ChangeListener<Container> listener) {
++        this.watchers.remove(listener);
++    }
++
++    public final void sakura$removed() {
++        this.watchers.removed(this);
++    }
++
++    @Override
++    public final boolean sakura$isRemoved() {
++        return this.isRemoved();
 +    }
 +
 +    @Override

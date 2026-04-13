@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 817e4ffd597938697f0c4dca16068f8d20c088b3..535cee71d3b286387e1e7c2cad5faeb32d27b68b 100644
+index de764da80793d272ff597b4a0742ce785838799a..c093f2295d6a0e1880897fe66bdcd64649aa667e 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1885,6 +1885,7 @@ public final class CollisionUtil {
@@ -62,7 +62,7 @@ index 6d5bfc6e26932ba1d22b339b4bcadd2cce00c989..d65268ee0d87ab3ea4b50dd1c8c45708
      private static TicketType register(String name, long timeout, @TicketType.Flags int flags) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 34dd8934ddbaf16ab119ad5e9fb00512a96d0628..3afca9bfb43dc135dacb78c359acac064a4205ca 100644
+index b64d29d72a353d5c8dde9ceaffad7f8f0f4587c0..7d2f03893d31b0886fa939fb239c9be426b07643 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -539,6 +539,19 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
@@ -85,7 +85,7 @@ index 34dd8934ddbaf16ab119ad5e9fb00512a96d0628..3afca9bfb43dc135dacb78c359acac06
  
      public Entity(EntityType<?> type, Level level) {
          this.type = type;
-@@ -1558,7 +1571,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1562,7 +1575,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
  
          ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder(
              this.level, (Entity)(Object)this, initialCollisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
@@ -94,7 +94,7 @@ index 34dd8934ddbaf16ab119ad5e9fb00512a96d0628..3afca9bfb43dc135dacb78c359acac06
          );
          potentialCollisionsBB.addAll(entityAABBs);
          final Vec3 collided = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currentBox, potentialCollisionsVoxel, potentialCollisionsBB);
-@@ -5235,13 +5248,14 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -5239,13 +5252,14 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
      @Override
      public boolean shouldBeSaved() {
          return (this.removalReason == null || this.removalReason.shouldSave())
@@ -123,7 +123,7 @@ index 9caf04e20bed7a21ed61d12c94af7047fdf73673..14537ff56b471adab08eddd96dc85587
  
      public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 3000a1dad619f9e03abad8af6cc93b1219421deb..67249afe6c73708c537fe73570bdebc3c9d43a8b 100644
+index 15b6d265218b854c6da61b0c3a56be4104f545f4..b95ffd4f41ace1426370fd1af96880005416b272 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -63,6 +63,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {

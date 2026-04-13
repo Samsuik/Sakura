@@ -4,43 +4,146 @@ Date: Mon, 12 Aug 2024 15:35:57 +0100
 Subject: [PATCH] Optimise hopper ticking
 
 
-diff --git a/net/minecraft/world/CompoundContainer.java b/net/minecraft/world/CompoundContainer.java
-index 8eb989a811924fb6d2bc5150d7279d9d59bc3400..759ba8cc85101e8f22e8cb58cf74fe91d4226e54 100644
---- a/net/minecraft/world/CompoundContainer.java
-+++ b/net/minecraft/world/CompoundContainer.java
-@@ -54,6 +54,15 @@ public class CompoundContainer implements Container {
-         return this.container1.getLocation(); // TODO: right?
-     }
-     // CraftBukkit end
-+    // Sakura start - optimise hopper ticking
-+    @Override
-+    public final boolean addListener(final net.minecraft.world.level.block.entity.BlockEntity.BlockEntityChangeListener listener) {
-+        boolean result = false;
-+        result |= this.container1.addListener(listener);
-+        result |= this.container2.addListener(listener);
-+        return result;
-+    }
-+    // Sakura end - optimise hopper ticking
- 
-     public CompoundContainer(Container container1, Container container2) {
-         this.container1 = container1;
-diff --git a/net/minecraft/world/Container.java b/net/minecraft/world/Container.java
-index 6489b47810b0431c350098d574469bbe0adcd726..b6ddccf1215e0010f074b1e0e17f8aae1a180b13 100644
---- a/net/minecraft/world/Container.java
-+++ b/net/minecraft/world/Container.java
-@@ -19,6 +19,12 @@ import org.jspecify.annotations.Nullable;
- public interface Container extends Clearable, SlotProvider, Iterable<ItemStack> {
-     float DEFAULT_DISTANCE_BUFFER = 4.0F;
- 
-+    // Sakura start - optimise hopper ticking
-+    default boolean addListener(final BlockEntity.BlockEntityChangeListener listener) {
-+        return false;
-+    }
-+    // Sakura end - optimise hopper ticking
+diff --git a/me/samsuik/sakura/container/SlotCountingItemList.java b/me/samsuik/sakura/container/SlotCountingItemList.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..822e29472b94c77ca93963110a69fab6872f4032
+--- /dev/null
++++ b/me/samsuik/sakura/container/SlotCountingItemList.java
+@@ -0,0 +1,134 @@
++package me.samsuik.sakura.container;
 +
-     int getContainerSize();
- 
-     boolean isEmpty();
++import me.samsuik.sakura.tracking.ChangeListener;
++import net.minecraft.core.NonNullList;
++import net.minecraft.world.item.ItemStack;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++import java.util.Arrays;
++import java.util.List;
++
++/**
++ * Item list that keeps track of empty and full slots.
++ */
++@NullMarked
++public final class SlotCountingItemList extends NonNullList<ItemStack> {
++    public static SlotCountingItemList withSize(final int size, final ItemStack defaultItem) {
++        final ItemStack[] items = new ItemStack[size];
++        Arrays.fill(items, defaultItem);
++        return new SlotCountingItemList(Arrays.asList(items), defaultItem);
++    }
++
++    public static SlotCountingItemList copy(final NonNullList<ItemStack> items) {
++        final SlotCountingItemList itemList = withSize(items.size(), items.defaultValue);
++        for (int index = 0; index < items.size(); ++index) {
++            itemList.set(index, items.get(index));
++        }
++
++        return itemList;
++    }
++
++    private final @Nullable ItemWatcher[] watchers;
++    private int emptySlots;
++    private int fullSlots;
++
++    SlotCountingItemList(final List<ItemStack> items, final @Nullable ItemStack defaultItem) {
++        super(items, defaultItem);
++        this.watchers = new ItemWatcher[items.size()];
++        this.recalculate();
++    }
++
++    private void recalculate() {
++        this.emptySlots = this.size();
++        this.fullSlots = 0;
++
++        for (int slot = 0; slot < this.size(); ++slot) {
++            this.updateItem(slot, ItemStack.EMPTY, this.get(slot));
++        }
++    }
++
++    private void updateItem(final int index, final ItemStack oldItemStack, final ItemStack newItemStack) {
++        final ItemWatcher watcher = this.watchers[index];
++        if (watcher != null) {
++            oldItemStack.unwatch(watcher);
++        }
++
++        if (!newItemStack.isEmpty()) {
++            this.watchers[index] = new ItemWatcher(newItemStack);
++        }
++
++        final boolean oldEmpty = oldItemStack.isEmpty();
++        final boolean oldFull  = oldItemStack.getCount() == oldItemStack.getMaxStackSize();
++        this.updateCounts(oldEmpty, oldFull, newItemStack);
++    }
++
++    private void updateCounts(final boolean oldItemEmpty, final boolean oldItemFull, final ItemStack itemStack) {
++        if (oldItemEmpty != itemStack.isEmpty()) {
++            this.emptySlots += oldItemEmpty ? -1 : 1;
++        }
++
++        if (oldItemFull != (itemStack.getCount() == itemStack.getMaxStackSize())) {
++            this.fullSlots += oldItemFull ? -1 : 1;
++        }
++    }
++
++    public boolean isEmpty() {
++        return this.emptySlots == this.size();
++    }
++
++    public boolean isFull() {
++        return this.fullSlots == this.size();
++    }
++
++    public boolean hasSpaceAvailable() {
++        return this.fullSlots != this.size();
++    }
++
++    @Override
++    public ItemStack set(final int index, final ItemStack newItemStack) {
++        final ItemStack oldItemStack = super.set(index, newItemStack);
++        this.updateItem(index, oldItemStack, newItemStack);
++
++        return oldItemStack;
++    }
++
++    @Override
++    public void clear() {
++        super.clear();
++        this.recalculate();
++    }
++
++    @Override
++    public boolean add(final ItemStack itemStack) {
++        throw new UnsupportedOperationException();
++    }
++
++    @Override
++    public ItemStack remove(final int index) {
++        throw new UnsupportedOperationException();
++    }
++
++    private class ItemWatcher implements ChangeListener<ItemStack> {
++        private final ItemStack itemStack;
++        private boolean empty;
++        private boolean full;
++
++        private ItemWatcher(final ItemStack itemStack) {
++            this.itemStack = itemStack;
++            this.update(itemStack);
++            itemStack.watch(this);
++        }
++
++        private void update(final ItemStack itemStack) {
++            this.empty = itemStack.isEmpty();
++            this.full = itemStack.getCount() == this.itemStack.getMaxStackSize();
++        }
++
++        @Override
++        public void changed(final ItemStack itemStack) {
++            SlotCountingItemList.this.updateCounts(this.empty, this.full, this.itemStack);
++            this.update(itemStack);
++        }
++    }
++}
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
 index f6379de90f2eb8b9405543c7d337958fa8d9526d..537abc76a06b07e57edcf2eaa55b0147647999fe 100644
 --- a/net/minecraft/world/level/Level.java
@@ -72,116 +175,62 @@ index 6789dd6c6f9c1683bcf0abb20319ccd6775e613c..9d9e2e377278865b27e424cbf23120dd
          }
      }
 diff --git a/net/minecraft/world/level/block/entity/BlockEntity.java b/net/minecraft/world/level/block/entity/BlockEntity.java
-index fb22ebe9758014ebf2aebcda21155f1c4c83fafe..7b7ca4f20c118853f7817cd1378cda1e8abe1cd5 100644
+index fb22ebe9758014ebf2aebcda21155f1c4c83fafe..9d6dd08d87b7e6a76da3e5546c480ea32805f8f1 100644
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -51,6 +51,60 @@ public abstract class BlockEntity implements DebugValueSource {
+@@ -51,6 +51,31 @@ public abstract class BlockEntity implements DebugValueSource {
      private BlockState blockState;
      private DataComponentMap components = DataComponentMap.EMPTY;
  
 +    // Sakura start - optimise hopper ticking
-+    private final Set<BlockEntityChangeListener> listeners = new it.unimi.dsi.fastutil.objects.ReferenceArraySet<>(0);
-+    private final java.util.List<BlockEntity> listeningBlocks = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(0);
 +    private boolean blockEntityTicking = true;
-+    private int tickCount = 0;
-+
-+    public final int getIdleTickCount() {
-+        return this.tickCount;
-+    }
++    private int idleTickCount = 0;
 +
 +    public final boolean isBlockEntityActive() {
-+        // For some reason the update method is not always called.
-+        // Activate the block entity every minute in case there's any issues.
-+        if (!this.blockEntityTicking && this.tickCount > 1200) {
++        if (!this.blockEntityTicking && this.idleTickCount >= 1200) {
 +            this.setBlockEntityTicking(true);
 +        }
-+        this.tickCount++;
++
++        this.idleTickCount++;
 +        return this.blockEntityTicking;
 +    }
 +
 +    public final void setBlockEntityTicking(final boolean blockEntityTicking) {
-+        this.tickCount = 0;
++        if (blockEntityTicking) {
++            this.catchupTicks(this.idleTickCount);
++        }
++
++        this.idleTickCount = 0;
 +        this.blockEntityTicking = blockEntityTicking;
 +    }
 +
-+    public final boolean addListener(final BlockEntityChangeListener listener) {
-+        if (this.listeners.add(listener)) {
-+            ((BlockEntity) listener).listeningBlocks.add(this);
-+        }
-+        return true;
-+    }
-+
-+    public final void updateListeners(final boolean onRemove) {
-+        for (final BlockEntityChangeListener listener : this.listeners) {
-+            if (onRemove) {
-+                listener.neighborRemoved();
-+            } else {
-+                listener.neighborChange();
-+            }
-+        }
-+        if (onRemove) {
-+            this.listeningBlocks.forEach(blockEntity -> blockEntity.listeners.clear());
-+            this.listeningBlocks.clear();
-+            this.listeners.clear();
-+        }
-+    }
-+
-+    public interface BlockEntityChangeListener {
-+        void neighborChange();
-+
-+        void neighborRemoved();
-+    }
++    protected void catchupTicks(final int ticks) {}
 +    // Sakura end - optimise hopper ticking
 +
      public BlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState blockState) {
          this.type = type;
          this.worldPosition = pos.immutable();
-@@ -228,11 +282,22 @@ public abstract class BlockEntity implements DebugValueSource {
-     public void setChanged() {
-         if (this.level != null) {
-             if (ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers
--            setChanged(this.level, this.worldPosition, this.blockState);
-+            setChanged(this.level, this.worldPosition, this.blockState, this); // Sakura - optimise hopper ticking
-         }
-     }
- 
-     protected static void setChanged(Level level, BlockPos pos, BlockState state) {
-+        // Sakura start - optimise hopper ticking
-+        net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkIfLoaded(pos);
-+        BlockEntity blockEntity = chunk != null ? chunk.getBlockEntity(pos) : null;
-+        setChanged(level, pos, state, blockEntity);
-+    }
-+
-+    protected static void setChanged(Level level, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity) {
-+        if (blockEntity != null) {
-+            blockEntity.updateListeners(false);
-+        }
-+        // Sakura end - optimise hopper ticking
-         level.blockEntityChanged(pos);
-         if (!state.isAir()) {
-             level.updateNeighbourForOutputSignal(pos, state.getBlock());
-@@ -261,6 +326,7 @@ public abstract class BlockEntity implements DebugValueSource {
- 
-     public void setRemoved() {
-         this.remove = true;
-+        this.updateListeners(true); // Sakura - optimise hopper ticking
-     }
- 
-     public void clearRemoved() {
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..62073cfdfd78944720a08a1e0039bade3fd8e004 100644
+index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f446a7558 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-@@ -28,7 +28,7 @@ import net.minecraft.world.level.storage.ValueOutput;
+@@ -28,13 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  import org.jspecify.annotations.Nullable;
  
 -public class HopperBlockEntity extends RandomizableContainerBlockEntity implements Hopper {
-+public class HopperBlockEntity extends RandomizableContainerBlockEntity implements Hopper, BlockEntity.BlockEntityChangeListener { // Sakura - optimise hopper ticking
++public class HopperBlockEntity extends RandomizableContainerBlockEntity implements Hopper, me.samsuik.sakura.tracking.ChangeListener<Container> {
      public static final int MOVE_ITEM_SPEED = 8;
      public static final int HOPPER_CONTAINER_SIZE = 5;
      private static final int[][] CACHED_SLOTS = new int[54][];
-@@ -72,6 +72,82 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     private static final int NO_COOLDOWN_TIME = -1;
+     private static final Component DEFAULT_NAME = Component.translatable("container.hopper");
+-    private NonNullList<ItemStack> items = NonNullList.withSize(5, ItemStack.EMPTY);
++    private me.samsuik.sakura.container.SlotCountingItemList items = me.samsuik.sakura.container.SlotCountingItemList.withSize(5, ItemStack.EMPTY); // Sakura - optimise hopper ticking
+     public int cooldownTime = -1;
+     private long tickedGameTime;
+     private Direction facing;
+@@ -72,6 +72,103 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          this.maxStack = size;
      }
      // CraftBukkit end
@@ -192,25 +241,30 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..62073cfdfd78944720a08a1e0039bade
 +    private final @Nullable Container[] containers = new Container[2];
 +
 +    @Override
-+    public final void neighborChange() {
-+        this.startTicking();
++    public final void changed(final Container container) {
++        this.setBlockEntityTicking(true);
 +    }
 +
 +    @Override
-+    public final void neighborRemoved() {
++    public final void removed(final Container container) {
 +        this.knownContainers = 0;
-+        this.startTicking();
++        this.setBlockEntityTicking(true);
 +    }
 +
-+    private void startTicking() {
-+        this.cooldownTime -= this.getIdleTickCount();
++    @Override
++    public void setChanged() {
++        super.setChanged();
 +        this.setBlockEntityTicking(true);
++    }
++
++    @Override
++    protected final void catchupTicks(int ticks) {
++        this.cooldownTime -= ticks;
 +    }
 +
 +    private void waitForChange(final int fullState) {
 +        if ((fullState == HOPPER_IS_FULL || (this.knownContainers & SOURCE_CONTAINER) != 0)
 +            && (fullState == HOPPER_EMPTY || (this.knownContainers & ATTACHED_CONTAINER) != 0)) {
-+            this.addListener(this);
 +            this.setBlockEntityTicking(false);
 +        }
 +    }
@@ -225,9 +279,17 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..62073cfdfd78944720a08a1e0039bade
 +            return sourceContainer;
 +        }
 +
++        if (sourceContainer != null) {
++            sourceContainer.unwatch(hbe);
++        }
++
 +        sourceContainer = getSourceContainer(level, hopper, pos, state);
 +        hbe.listenForContainerChanges(sourceContainer, SOURCE_CONTAINER);
 +        hbe.containers[0] = sourceContainer;
++
++        if (sourceContainer != null) {
++            sourceContainer.watch(hbe);
++        }
 +
 +        return sourceContainer;
 +    }
@@ -237,20 +299,28 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..62073cfdfd78944720a08a1e0039bade
 +            return getAttachedContainer(level, pos, hbe);
 +        }
 +
-+        Container container = hbe.containers[1];
-+        if ((hbe.knownContainers & ATTACHED_CONTAINER) != 0 && isValidContainer(container)) {
-+            return container;
++        Container attachedContainer = hbe.containers[1];
++        if ((hbe.knownContainers & ATTACHED_CONTAINER) != 0 && isValidContainer(attachedContainer)) {
++            return attachedContainer;
 +        }
 +
-+        container = getAttachedContainer(level, pos, hbe);
-+        hbe.listenForContainerChanges(container, ATTACHED_CONTAINER);
-+        hbe.containers[1] = container;
++        if (attachedContainer != null) {
++            attachedContainer.unwatch(hbe);
++        }
 +
-+        return container;
++        attachedContainer = getAttachedContainer(level, pos, hbe);
++        hbe.listenForContainerChanges(attachedContainer, ATTACHED_CONTAINER);
++        hbe.containers[1] = attachedContainer;
++
++        if (attachedContainer != null) {
++            attachedContainer.watch(hbe);
++        }
++
++        return attachedContainer;
 +    }
 +
 +    private void listenForContainerChanges(final @Nullable Container container, final int type) {
-+        if (container != null && container.addListener(this)) {
++        if (isValidContainer(container)) {
 +            this.knownContainers |= type; // set
 +        } else if ((this.knownContainers & type) != 0) {
 +            this.knownContainers ^= type; // unset
@@ -258,13 +328,63 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..62073cfdfd78944720a08a1e0039bade
 +    }
 +
 +    private static boolean isValidContainer(@Nullable final Container container) {
-+        return container instanceof BaseContainerBlockEntity blockEntity && blockEntity.isRemoved();
++        return container != null && !container.sakura$isRemoved();
 +    }
 +    // Sakura end - optimise hopper ticking
  
      public HopperBlockEntity(BlockPos pos, BlockState blockState) {
          super(BlockEntityType.HOPPER, pos, blockState);
-@@ -201,6 +277,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -81,7 +178,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     @Override
+     protected void loadAdditional(ValueInput input) {
+         super.loadAdditional(input);
+-        this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
++        this.items = me.samsuik.sakura.container.SlotCountingItemList.withSize(this.getContainerSize(), ItemStack.EMPTY); // Sakura - optimise hopper ticking
+         if (!this.tryLoadLootTable(input)) {
+             ContainerHelper.loadAllItems(input, this.items);
+         }
+@@ -152,32 +249,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     private static int getFullState(final HopperBlockEntity hopper) {
+         hopper.unpackLootTable(null);
+ 
+-        final List<ItemStack> hopperItems = hopper.items;
+-
+-        boolean empty = true;
+-        boolean full = true;
+-
+-        for (int i = 0, len = hopperItems.size(); i < len; ++i) {
+-            final ItemStack stack = hopperItems.get(i);
+-            if (stack.isEmpty()) {
+-                full = false;
+-                continue;
+-            }
+-
+-            if (!full) {
+-                // can't be full
+-                return HOPPER_HAS_ITEMS;
+-            }
+-
+-            empty = false;
+-
+-            if (stack.getCount() != stack.getMaxStackSize()) {
+-                // can't be full or empty
+-                return HOPPER_HAS_ITEMS;
+-            }
++        // Sakura start - optimise hopper ticking
++        if (hopper.items.isEmpty()) {
++            return HOPPER_EMPTY;
++        } else if (hopper.items.isFull()) {
++            return HOPPER_IS_FULL;
++        } else {
++            return HOPPER_HAS_ITEMS;
+         }
+-
+-        return empty ? HOPPER_EMPTY : (full ? HOPPER_IS_FULL : HOPPER_HAS_ITEMS);
++        // Sakura end - optimise hopper ticking
+     }
+     // Paper end - Perf: Optimize Hoppers
+ 
+@@ -201,6 +281,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
                      setChanged(level, pos, state);
                      return true;
                  }
@@ -277,7 +397,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..62073cfdfd78944720a08a1e0039bade
              }
  
              return false;
-@@ -418,7 +500,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -418,7 +504,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      // Paper end - Perf: Optimize Hoppers
  
      private static boolean ejectItems(Level level, BlockPos pos, HopperBlockEntity blockEntity) {
@@ -286,7 +406,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..62073cfdfd78944720a08a1e0039bade
          if (attachedContainer == null) {
              return false;
          } else {
-@@ -531,7 +613,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -531,7 +617,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      public static boolean suckInItems(Level level, Hopper hopper) {
          BlockPos blockPos = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
          BlockState blockState = level.getBlockState(blockPos);
@@ -295,6 +415,15 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..62073cfdfd78944720a08a1e0039bade
          if (sourceContainer != null) {
              Direction direction = Direction.DOWN;
              skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
+@@ -854,7 +940,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+ 
+     @Override
+     protected void setItems(NonNullList<ItemStack> items) {
+-        this.items = items;
++        this.items = me.samsuik.sakura.container.SlotCountingItemList.copy(items); // Sakura - optimise hopper ticking
+     }
+ 
+     public static void entityInside(Level level, BlockPos pos, BlockState state, Entity entity, HopperBlockEntity blockEntity) {
 diff --git a/net/minecraft/world/level/block/entity/TickingBlockEntity.java b/net/minecraft/world/level/block/entity/TickingBlockEntity.java
 index 28e3b73507b988f7234cbf29c4024c88180d0aef..a0d247aa883553708c4b92158232425593d50534 100644
 --- a/net/minecraft/world/level/block/entity/TickingBlockEntity.java
