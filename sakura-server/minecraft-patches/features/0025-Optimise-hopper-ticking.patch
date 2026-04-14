@@ -211,7 +211,7 @@ index fb22ebe9758014ebf2aebcda21155f1c4c83fafe..9d6dd08d87b7e6a76da3e5546c480ea3
          this.type = type;
          this.worldPosition = pos.immutable();
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f446a7558 100644
+index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..1f3f3afbf31d4599735e65c486b6a4c26397f9e1 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,13 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -230,7 +230,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f
      public int cooldownTime = -1;
      private long tickedGameTime;
      private Direction facing;
-@@ -72,6 +72,103 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -72,6 +72,119 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          this.maxStack = size;
      }
      // CraftBukkit end
@@ -247,7 +247,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f
 +
 +    @Override
 +    public final void removed(final Container container) {
-+        this.knownContainers = 0;
++        this.unwatchContainers();
 +        this.setBlockEntityTicking(true);
 +    }
 +
@@ -258,8 +258,24 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f
 +    }
 +
 +    @Override
++    public void setRemoved() {
++        this.unwatchContainers();
++        super.setRemoved();
++    }
++
++    @Override
 +    protected final void catchupTicks(int ticks) {
 +        this.cooldownTime -= ticks;
++    }
++
++    private void unwatchContainers() {
++        for (final Container container : this.containers) {
++            if (container != null) {
++                container.unwatch(this);
++            }
++        }
++
++        this.knownContainers = 0;
 +    }
 +
 +    private void waitForChange(final int fullState) {
@@ -334,7 +350,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f
  
      public HopperBlockEntity(BlockPos pos, BlockState blockState) {
          super(BlockEntityType.HOPPER, pos, blockState);
-@@ -81,7 +178,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -81,7 +194,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      @Override
      protected void loadAdditional(ValueInput input) {
          super.loadAdditional(input);
@@ -343,7 +359,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f
          if (!this.tryLoadLootTable(input)) {
              ContainerHelper.loadAllItems(input, this.items);
          }
-@@ -152,32 +249,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -152,32 +265,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      private static int getFullState(final HopperBlockEntity hopper) {
          hopper.unpackLootTable(null);
  
@@ -384,7 +400,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f
      }
      // Paper end - Perf: Optimize Hoppers
  
-@@ -201,6 +281,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -201,6 +297,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
                      setChanged(level, pos, state);
                      return true;
                  }
@@ -397,7 +413,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f
              }
  
              return false;
-@@ -418,7 +504,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -418,7 +520,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      // Paper end - Perf: Optimize Hoppers
  
      private static boolean ejectItems(Level level, BlockPos pos, HopperBlockEntity blockEntity) {
@@ -406,7 +422,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f
          if (attachedContainer == null) {
              return false;
          } else {
-@@ -531,7 +617,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -531,7 +633,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      public static boolean suckInItems(Level level, Hopper hopper) {
          BlockPos blockPos = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
          BlockState blockState = level.getBlockState(blockPos);
@@ -415,7 +431,7 @@ index 12f8105d6b12c5d63cb6e5e79435c7fd22655475..2f9040ebcf527ec084df9f6db477109f
          if (sourceContainer != null) {
              Direction direction = Direction.DOWN;
              skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
-@@ -854,7 +940,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -854,7 +956,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
  
      @Override
      protected void setItems(NonNullList<ItemStack> items) {
