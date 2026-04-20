@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/entity/monster/EnderMan.java
++++ b/net/minecraft/world/entity/monster/EnderMan.java
+@@ -83,6 +_,7 @@
+     private static final UniformInt PERSISTENT_ANGER_TIME = TimeUtil.rangeOfSeconds(20, 39);
+     private long persistentAngerEndTime;
+     private @Nullable EntityReference<LivingEntity> persistentAngerTarget;
++    private long lastTeleportAttemptTime; // Sakura - fix endermen teleporting causing lag
+ 
+     public EnderMan(EntityType<? extends EnderMan> type, Level level) {
+         super(type, level);
+@@ -298,6 +_,14 @@
+     }
+ 
+     private boolean teleport(double x, double y, double z) {
++        // Sakura start - fix endermen teleporting causing lag
++        if (this.tickCount == this.lastTeleportAttemptTime) {
++            return false;
++        }
++
++        this.lastTeleportAttemptTime = this.tickCount;
++        // Sakura end - fix endermen teleporting causing lag
++
+         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos(x, y, z);
+ 
+         while (mutableBlockPos.getY() > this.level().getMinY() && !this.level().getBlockState(mutableBlockPos).blocksMotion()) {
