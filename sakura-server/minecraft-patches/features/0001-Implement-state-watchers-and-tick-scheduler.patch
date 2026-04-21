@@ -6,10 +6,10 @@ Subject: [PATCH] Implement state watchers and tick scheduler
 
 diff --git a/me/samsuik/sakura/scheduler/LevelTickScheduler.java b/me/samsuik/sakura/scheduler/LevelTickScheduler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e7b11efef6fb9558f103dd3a5c7fdd239a8c2873
+index 0000000000000000000000000000000000000000..c54ab20ad4becccd3ec8360a2976b17860753696
 --- /dev/null
 +++ b/me/samsuik/sakura/scheduler/LevelTickScheduler.java
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,161 @@
 +package me.samsuik.sakura.scheduler;
 +
 +import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -20,6 +20,7 @@ index 0000000000000000000000000000000000000000..e7b11efef6fb9558f103dd3a5c7fdd23
 +
 +import java.util.ArrayDeque;
 +import java.util.Deque;
++import java.util.Iterator;
 +import java.util.List;
 +
 +/**
@@ -27,7 +28,7 @@ index 0000000000000000000000000000000000000000..e7b11efef6fb9558f103dd3a5c7fdd23
 + */
 +@NullMarked
 +public final class LevelTickScheduler {
-+    private final Long2ObjectOpenHashMap<List<ScheduledTickTask>> scheduledTickTasks = new Long2ObjectOpenHashMap<>();
++    private final Long2ObjectOpenHashMap<ScheduledTaskBucket> scheduledTaskBuckets = new Long2ObjectOpenHashMap<>();
 +    private final Reference2LongOpenHashMap<TickTask> tickTasks = new Reference2LongOpenHashMap<>();
 +    private final Deque<TickTask> removeLater = new ArrayDeque<>();
 +    private long schedulerTick;
@@ -71,24 +72,17 @@ index 0000000000000000000000000000000000000000..e7b11efef6fb9558f103dd3a5c7fdd23
 +    private void addTask(final ScheduledTickTask task) {
 +        final long executionTick = this.schedulerTick + task.delay;
 +
-+        this.scheduledTickTasks.computeIfAbsent(executionTick, t -> new ObjectArrayList<>())
-+            .add(task);
++        this.scheduledTaskBuckets.computeIfAbsent(executionTick, ScheduledTaskBucket::new)
++            .addTask(task);
 +        this.tickTasks.put(task.task, executionTick);
 +    }
 +
 +    private void removeTask(final TickTask task) {
 +        final long scheduledTick = this.tickTasks.removeLong(task);
-+        final List<ScheduledTickTask> tickTasks = this.scheduledTickTasks.get(scheduledTick);
++        final ScheduledTaskBucket bucket = this.scheduledTaskBuckets.get(scheduledTick);
 +        //noinspection ConstantValue
-+        if (tickTasks == null) {
-+            return;
-+        }
-+
-+        for (int index = 0; index < tickTasks.size(); index++) {
-+            if (tickTasks.get(index).task == task) {
-+                tickTasks.remove(index);
-+                break;
-+            }
++        if (bucket != null) {
++            bucket.removeTask(task);
 +        }
 +    }
 +
@@ -100,13 +94,16 @@ index 0000000000000000000000000000000000000000..e7b11efef6fb9558f103dd3a5c7fdd23
 +
 +        final long schedulerTick = this.schedulerTick++;
 +        final List<ScheduledTickTask> reschedule = new ObjectArrayList<>();
-+        for (final long tick : this.scheduledTickTasks.keySet()) {
-+            if (tick > schedulerTick) {
-+                break;
++        final Iterator<ScheduledTaskBucket> bucketIterator = this.scheduledTaskBuckets.values().iterator();
++        while (bucketIterator.hasNext()) {
++            final ScheduledTaskBucket bucket = bucketIterator.next();
++            if (bucket.scheduledTick > schedulerTick) {
++                continue;
++            } else {
++                bucketIterator.remove();
 +            }
 +
-+            final List<ScheduledTickTask> tickTasks = this.scheduledTickTasks.remove(tick);
-+            for (final ScheduledTickTask scheduledTask : tickTasks) {
++            for (final ScheduledTickTask scheduledTask : bucket.tasksToRun) {
 +                if (scheduledTask.tick(serverLevel, schedulerTick)) {
 +                    reschedule.add(scheduledTask);
 +                } else {
@@ -116,6 +113,23 @@ index 0000000000000000000000000000000000000000..e7b11efef6fb9558f103dd3a5c7fdd23
 +        }
 +
 +        reschedule.forEach(this::addTask);
++    }
++    
++    private static final class ScheduledTaskBucket {
++        private final List<ScheduledTickTask> tasksToRun = new ObjectArrayList<>();
++        private final long scheduledTick;
++
++        private ScheduledTaskBucket(final long scheduledTick) {
++            this.scheduledTick = scheduledTick;
++        }
++        
++        public void addTask(final ScheduledTickTask task) {
++            this.tasksToRun.add(task);
++        }
++        
++        public void removeTask(final TickTask task) {
++            this.tasksToRun.removeIf(scheduledTask -> scheduledTask.task == task);
++        }
 +    }
 +
 +    private static final class ScheduledTickTask {
