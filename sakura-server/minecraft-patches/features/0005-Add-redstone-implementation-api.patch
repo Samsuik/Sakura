@@ -5,10 +5,10 @@ Subject: [PATCH] Add redstone implementation api
 
 
 diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
-index cd879b13cd4c05c430e91fea4b29bf4e86bd6909..4477cb0b78092edebf3c4ac1208d72f3d48fd44a 100644
+index 61ccb346d2063b52f7b358c75d28ec3a99c14386..fea48c065cb86187be195b6e62cc26b0e9dee868 100644
 --- a/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
-@@ -274,7 +274,7 @@ public class RedStoneWireBlock extends Block {
+@@ -279,7 +279,7 @@ public class RedStoneWireBlock extends Block {
       * Note: Added 'source' argument so as to help determine direction of information flow
       */
      private void updateSurroundingRedstone(Level worldIn, BlockPos pos, BlockState state, @Nullable Orientation orientation, boolean blockAdded) {
@@ -17,8 +17,8 @@ index cd879b13cd4c05c430e91fea4b29bf4e86bd6909..4477cb0b78092edebf3c4ac1208d72f3
              // since 24w33a the source pos is no longer given, but instead an Orientation parameter
              // when this is not null, it can be used to find the source pos, which the turbo uses
              // to find the direction of information flow
-@@ -347,7 +347,7 @@ public class RedStoneWireBlock extends Block {
-     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+@@ -358,7 +358,7 @@ public class RedStoneWireBlock extends Block {
+     protected void onPlace(final BlockState state, final Level level, final BlockPos pos, final BlockState oldState, final boolean movedByPiston) {
          if (!oldState.is(state.getBlock()) && !level.isClientSide()) {
              // Paper start - optimize redstone - replace call to updatePowerStrength
 -            if (level.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
@@ -26,7 +26,7 @@ index cd879b13cd4c05c430e91fea4b29bf4e86bd6909..4477cb0b78092edebf3c4ac1208d72f3
                  level.getWireHandler().onWireAdded(pos, state); // Alternate Current
              } else {
                  this.updateSurroundingRedstone(level, pos, state, null, true); // Vanilla/Eigencraft
-@@ -370,7 +370,7 @@ public class RedStoneWireBlock extends Block {
+@@ -381,7 +381,7 @@ public class RedStoneWireBlock extends Block {
              }
  
              // Paper start - optimize redstone - replace call to updatePowerStrength
@@ -35,7 +35,7 @@ index cd879b13cd4c05c430e91fea4b29bf4e86bd6909..4477cb0b78092edebf3c4ac1208d72f3
                  level.getWireHandler().onWireRemoved(pos, state); // Alternate Current
              } else {
                  this.updateSurroundingRedstone(level, pos, state, null, false); // Vanilla/Eigencraft
-@@ -400,7 +400,7 @@ public class RedStoneWireBlock extends Block {
+@@ -413,7 +413,7 @@ public class RedStoneWireBlock extends Block {
          if (!level.isClientSide()) {
              // Paper start - optimize redstone (Alternate Current)
              // Alternate Current handles breaking of redstone wires in the WireHandler.

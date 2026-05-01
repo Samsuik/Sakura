@@ -1,24 +1,24 @@
 --- a/net/minecraft/world/inventory/AbstractContainerMenu.java
 +++ b/net/minecraft/world/inventory/AbstractContainerMenu.java
-@@ -189,7 +_,7 @@
+@@ -191,7 +_,7 @@
  
-         for (int size = this.slots.size(); i < size; i++) {
-             ItemStack item = this.slots.get(i).getItem();
--            list.add(item.copy());
+         for (int slotsSize = this.slots.size(); i < slotsSize; i++) {
+             ItemStack slotContents = this.slots.get(i).getItem();
+-            itemsToSend.add(slotContents.copy());
 +            list.add(item.copyForPacket()); // Sakura - modify components sent to the client
-             this.remoteSlots.get(i).force(item);
+             this.remoteSlots.get(i).force(slotContents);
          }
  
-@@ -202,7 +_,7 @@
+@@ -204,7 +_,7 @@
          }
  
          if (this.synchronizer != null) {
--            this.synchronizer.sendInitialData(this, list, carried.copy(), this.remoteDataSlots.toIntArray());
+-            this.synchronizer.sendInitialData(this, itemsToSend, carried.copy(), this.remoteDataSlots.toIntArray());
 +            this.synchronizer.sendInitialData(this, list, carried.copyForPacket(), this.remoteDataSlots.toIntArray()); // Sakura - modify components sent to the client
              this.synchronizer.sendOffHandSlotChange(); // Paper - Sync offhand slot in menus; update player's offhand since the offhand slot is not added to the slots for menus but can be changed by swapping from a menu slot
          }
      }
-@@ -236,7 +_,7 @@
+@@ -238,7 +_,7 @@
          ItemStack carried = this.getCarried();
          this.remoteCarried.force(carried);
          if (this.synchronizer != null) {
@@ -27,19 +27,19 @@
          }
      }
      // CraftBukkit end
-@@ -313,7 +_,7 @@
-     public void synchronizeSlotToRemote(int slotIndex, ItemStack stack, Supplier<ItemStack> supplier) {
+@@ -315,7 +_,7 @@
+     public void synchronizeSlotToRemote(final int i, final ItemStack current, final Supplier<ItemStack> currentCopy) {
          if (!this.suppressRemoteUpdates) {
-             RemoteSlot remoteSlot = this.remoteSlots.get(slotIndex);
--            if (!remoteSlot.matches(stack)) {
+             RemoteSlot remoteExpected = this.remoteSlots.get(i);
+-            if (!remoteExpected.matches(current)) {
 +            if (!remoteSlot.matches(stack) && !remoteSlot.matches(stack.copyForPacket())) { // Sakura - modify components sent to the client
-                 remoteSlot.force(stack);
+                 remoteExpected.force(current);
                  if (this.synchronizer != null) {
-                     this.synchronizer.sendSlotChange(this, slotIndex, supplier.get());
-@@ -338,9 +_,16 @@
+                     this.synchronizer.sendSlotChange(this, i, currentCopy.get());
+@@ -340,9 +_,16 @@
          if (!this.suppressRemoteUpdates) {
-             ItemStack carried = this.getCarried();
-             if (!this.remoteCarried.matches(carried)) {
+             ItemStack carriedItem = this.getCarried();
+             if (!this.remoteCarried.matches(carriedItem)) {
 +                // Sakura start - modify components sent to the client
 +                final ItemStack modifiedItem = carried.copyForPacket();
 +                if (this.remoteCarried.matches(modifiedItem)) {
@@ -47,9 +47,9 @@
 +                }
 +                // Sakura end - modify components sent to the client
 +
-                 this.remoteCarried.force(carried);
+                 this.remoteCarried.force(carriedItem);
                  if (this.synchronizer != null) {
--                    this.synchronizer.sendCarriedChange(this, carried.copy());
+-                    this.synchronizer.sendCarriedChange(this, carriedItem.copy());
 +                    this.synchronizer.sendCarriedChange(this, modifiedItem); // Sakura - modify components sent to the client
                  }
              }

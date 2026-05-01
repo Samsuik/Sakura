@@ -15,7 +15,7 @@
 +    }
 +    // Sakura start - configure default mob spawner properties
 +
-     public void setEntityId(EntityType<?> type, @Nullable Level level, RandomSource random, BlockPos pos) {
+     public void setEntityId(final EntityType<?> type, final @Nullable Level level, final RandomSource random, final BlockPos pos) {
          this.getOrCreateNextSpawnData(level, random, pos).getEntityToSpawn().putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(type).toString());
          this.spawnPotentials = WeightedList.of(); // CraftBukkit - SPIGOT-3496, MC-92282
 @@ -89,7 +_,7 @@
@@ -28,10 +28,10 @@
                  this.delay(level, pos);
              }
 @@ -129,7 +_,7 @@
-                                 if (!customSpawnRules.isValidPosition(blockPos, level)) {
+                                 if (!customSpawnRules.isValidPosition(spawnBlockPos, level)) {
                                      continue;
                                  }
--                            } else if (!SpawnPlacements.checkSpawnRules(optional.get(), level, EntitySpawnReason.SPAWNER, blockPos, level.getRandom())) {
+-                            } else if (!SpawnPlacements.checkSpawnRules(entityType.get(), level, EntitySpawnReason.SPAWNER, spawnBlockPos, level.getRandom())) {
 +                            } else if (level.sakuraConfig().environment.mobSpawner.checkSpawnConditions && !SpawnPlacements.checkSpawnRules(optional.get(), level, EntitySpawnReason.SPAWNER, pos, level.getRandom())) { // Sakura - configure mob spawner behaviour
                                  continue;
                              }
@@ -40,7 +40,7 @@
                                  return;
                              }
  
--                            int size = level.getEntities(
+-                            int nearBy = level.getEntities(
 -                                    EntityTypeTest.forExactClass(entity.getClass()),
 -                                    new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1).inflate(this.spawnRange),
 -                                    EntitySelector.NO_SPECTATORS
@@ -59,7 +59,7 @@
 +                                    .size();
 +                            }
 +                            // Sakura end - configure mob spawner behaviour
-                             if (size >= this.maxNearbyEntities) {
+                             if (nearBy >= this.maxNearbyEntities) {
                                  this.delay(level, pos);
                                  return;
 @@ -170,8 +_,11 @@

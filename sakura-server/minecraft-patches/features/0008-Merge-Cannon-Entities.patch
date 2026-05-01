@@ -16,10 +16,10 @@ index f7e8320006171fadde78afaa4c89373292ab13de..d42b73fa20025d7a05171e301a115424
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 3160c6420cc1aa8cc9a95e0dd0edab33d5db41f0..5d64a3e7443b3ac1f70dbb605a6dabdab1a1e106 100644
+index 7a1b62df9f2c60898546ee44e182151e62b28663..ace3db39a29bbc534553a95a702b763de5d69ab1 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -849,6 +849,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -883,6 +883,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
@@ -27,10 +27,10 @@ index 3160c6420cc1aa8cc9a95e0dd0edab33d5db41f0..5d64a3e7443b3ac1f70dbb605a6dabda
              this.entityTickList
                  .forEach(
                      entity -> {
-@@ -867,6 +868,15 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
-                                         entity.stopRiding();
+@@ -902,6 +903,14 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                                      }
  
+                                     profiler.push("tick");
 +                                    // Sakura start - merge cannon entities
 +                                    final Entity previous = previousEntity[0];
 +                                    if (this.mergeHandler.tryMerge(entity, previous)) {
@@ -39,15 +39,14 @@ index 3160c6420cc1aa8cc9a95e0dd0edab33d5db41f0..5d64a3e7443b3ac1f70dbb605a6dabda
 +                                        previousEntity[0] = entity;
 +                                    }
 +                                    // Sakura end - merge cannon entities
-+
-                                     profilerFiller.push("tick");
                                      this.guardEntityTick(this::tickNonPassenger, entity);
-                                     profilerFiller.pop();
+                                     profiler.pop();
+                                 }
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 85b73d5e155dadc83ddd0144ed8c382a825836b0..ef0c952bcf045988ae16f3147c092ce1b727cb50 100644
+index badf603e78d28b053ef34e962f5a09b298d9cd35..841b488a83391557f5a969889bd7a43db16e9e5f 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -567,6 +567,27 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -581,6 +581,27 @@ public abstract class Entity
          return to.entityState() != null && to.entityState().comparePositionAndMotion(this);
      }
      // Sakura end - store entity data/state
@@ -73,22 +72,22 @@ index 85b73d5e155dadc83ddd0144ed8c382a825836b0..ef0c952bcf045988ae16f3147c092ce1
 +    }
 +    // Sakura end - merge cannon entities
  
-     public Entity(EntityType<?> type, Level level) {
+     public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -5232,6 +5253,11 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -5162,6 +5183,11 @@ public abstract class Entity
          if (this.removalReason != Entity.RemovalReason.UNLOADED_TO_CHUNK) { this.getPassengers().forEach(Entity::stopRiding); } // Paper - rewrite chunk system
-         this.levelCallback.onRemove(removalReason);
-         this.onRemoval(removalReason);
+         this.levelCallback.onRemove(reason);
+         this.onRemoval(reason);
 +        // Sakura start - merge cannon entities
 +        if (removalReason == RemovalReason.DISCARDED) {
 +            this.level.mergeHandler.removeEntity(this);
 +        }
 +        // Sakura end - merge cannon entities
          // Paper start - Folia schedulers
-         if (!(this instanceof ServerPlayer) && removalReason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
+         if (!(this instanceof ServerPlayer) && reason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 1cbb3147f40cd0cccd1827edd8d18c8c3de3fb16..c0092f709789611da912de16990dc2b33a6efffd 100644
+index 9100673b30c6e34b27e657c145461f829c953e4b..8cad3eaece77dc19f9b4cd1855470a8b6ba73703 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -53,7 +53,7 @@ import net.minecraft.world.phys.Vec3;
@@ -154,7 +153,7 @@ index 1cbb3147f40cd0cccd1827edd8d18c8c3de3fb16..c0092f709789611da912de16990dc2b3
 +    }
 +    // Sakura end - merge cannon entities
 +
-     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
+     public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
          this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
@@ -163,16 +162,16 @@ index 1cbb3147f40cd0cccd1827edd8d18c8c3de3fb16..c0092f709789611da912de16990dc2b3
 +        this.mergeData.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura - merge cannon entities
      }
  
-     public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
-@@ -250,6 +301,7 @@ public class FallingBlockEntity extends Entity {
+     public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
+@@ -249,6 +300,7 @@ public class FallingBlockEntity extends Entity {
                                      return;
                                  }
                                  // CraftBukkit end
-+                                if (this.tryToRespawnEntity()) return; // Sakura - merge cannon entities HEAD
-                                 if (this.level().setBlock(blockPos, this.blockState, Block.UPDATE_ALL)) {
++                                if (this.tryToRespawnEntity()) return; // Sakura - merge cannon entities
+                                 if (this.level().setBlock(pos, this.blockState, Block.UPDATE_ALL)) {
                                      serverLevel.getChunkSource()
                                          .chunkMap
-@@ -356,6 +408,11 @@ public class FallingBlockEntity extends Entity {
+@@ -355,6 +407,11 @@ public class FallingBlockEntity extends Entity {
  
          output.putBoolean("CancelDrop", this.cancelDrop);
          if (!this.autoExpire) output.putBoolean("Paper.AutoExpire", false); // Paper - Expand FallingBlock API
@@ -184,16 +183,16 @@ index 1cbb3147f40cd0cccd1827edd8d18c8c3de3fb16..c0092f709789611da912de16990dc2b3
      }
  
      @Override
-@@ -370,6 +427,7 @@ public class FallingBlockEntity extends Entity {
+@@ -369,6 +426,7 @@ public class FallingBlockEntity extends Entity {
          this.blockData = input.read("TileEntityData", CompoundTag.CODEC).map(blockData -> this.level().paperConfig().entities.spawning.filterBadTileEntityNbtFromFallingBlocks && this.blockState.getBlock() instanceof net.minecraft.world.level.block.GameMasterBlock ? null : blockData).map(CompoundTag::copy).orElse(null); // Paper - Filter bad block entity nbt data from falling blocks
          this.cancelDrop = input.getBooleanOr("CancelDrop", false);
          this.autoExpire = input.getBooleanOr("Paper.AutoExpire", true); // Paper - Expand FallingBlock API
 +        this.mergeData.count = input.getIntOr("merge_count", 1); // Sakura - merge cannon entities; load from nbt
      }
  
-     public void setHurtsEntities(float fallDamagePerDistance, int fallDamageMax) {
+     public void setHurtsEntities(final float damagePerDistance, final int damageMax) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index a1d449d2417d7ad6bce2744c89aa1ddd84c2a6aa..cbb22c311f217176667f067a2576dfd5fe3ef781 100644
+index 4b8895393e81349db56b7d3390af1d3753b11ca5..4a9df1e64388585e20cf2b424ee40866f47fddf1 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -34,7 +34,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
@@ -205,7 +204,7 @@ index a1d449d2417d7ad6bce2744c89aa1ddd84c2a6aa..cbb22c311f217176667f067a2576dfd5
      private static final EntityDataAccessor<Integer> DATA_FUSE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.INT);
      private static final EntityDataAccessor<BlockState> DATA_BLOCK_STATE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.BLOCK_STATE);
      private static final short DEFAULT_FUSE_TIME = 80;
-@@ -59,11 +59,48 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -61,11 +61,48 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      public float explosionPower = 4.0F;
      public boolean isIncendiary = false; // CraftBukkit
  
@@ -245,7 +244,7 @@ index a1d449d2417d7ad6bce2744c89aa1ddd84c2a6aa..cbb22c311f217176667f067a2576dfd5
 +    }
 +    // Sakura end - merge cannon entities
 +
-     public PrimedTnt(EntityType<? extends PrimedTnt> type, Level level) {
+     public PrimedTnt(final EntityType<? extends PrimedTnt> type, final Level level) {
          super(type, level);
          this.blocksBuilding = true;
          this.isPrimedTNT = true; // Sakura - client visibility settings
@@ -253,16 +252,16 @@ index a1d449d2417d7ad6bce2744c89aa1ddd84c2a6aa..cbb22c311f217176667f067a2576dfd5
 +        this.mergeData.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura - merge cannon entities
      }
  
-     public PrimedTnt(Level level, double x, double y, double z, @Nullable LivingEntity owner) {
-@@ -143,6 +180,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
-         if (i <= 0) {
+     public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
+@@ -145,6 +182,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         if (fuse <= 0) {
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              //this.discard();
 +            this.tryToRespawnEntity(); // Sakura - merge cannon entities
              if (!this.level().isClientSide()) {
                  this.explode();
              }
-@@ -202,6 +240,11 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -204,6 +242,11 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          }
  
          EntityReference.store(this.owner, output, "owner");
@@ -274,7 +273,7 @@ index a1d449d2417d7ad6bce2744c89aa1ddd84c2a6aa..cbb22c311f217176667f067a2576dfd5
      }
  
      @Override
-@@ -210,6 +253,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -212,6 +255,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          this.setBlockState(input.read("block_state", BlockState.CODEC).orElse(DEFAULT_BLOCK_STATE));
          this.explosionPower = Mth.clamp(input.getFloatOr("explosion_power", 4.0F), 0.0F, 128.0F);
          this.owner = EntityReference.read(input, "owner");
@@ -283,31 +282,31 @@ index a1d449d2417d7ad6bce2744c89aa1ddd84c2a6aa..cbb22c311f217176667f067a2576dfd5
  
      @Override
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 9197fe1b93bd5f8c518aae195d46f25ed90a23e7..f6acd4ac77c7447a090b2c4fec2648c0ff8204d3 100644
+index f7b688d89864ac6ee3b93f0baf595f14ec4bb180..12d1879590b97821f30e7a8a463b0bcd1e5024c2 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -838,6 +838,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -843,6 +843,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return this.blockStateRevisionCounter.get();
      }
      // Sakura end - implement state watchers and tick scheduler
 +    public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
  
      protected Level(
-         WritableLevelData levelData,
+         final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index 7135a6bc87f90fafa94d0783aaf7b42d66449010..77f30569214d97d5de1ded3cf20491d70a5be405 100644
+index fef90ff995a211f117a28a388867ddc3047b6817..19d6bea66edcbeadc2cf4b015acb40862177f54b 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-@@ -92,7 +92,7 @@ public abstract class BasePressurePlateBlock extends Block {
+@@ -100,7 +100,7 @@ public abstract class BasePressurePlateBlock extends Block {
      }
  
-     private void checkPressed(@Nullable Entity entity, Level level, BlockPos pos, BlockState state, int currentSignal) {
--        int signalStrength = this.getSignalStrength(level, pos);
-+        int signalStrength = this.getSignalStrength(level, pos, currentSignal == 0); // Sakura - merge cannon entities
-         boolean flag = currentSignal > 0;
-         boolean flag1 = signalStrength > 0;
+     private void checkPressed(final @Nullable Entity sourceEntity, final Level level, final BlockPos pos, final BlockState state, final int oldSignal) {
+-        int signal = this.getSignalStrength(level, pos);
++        int signal = this.getSignalStrength(level, pos, oldSignal == 0); // Sakura - merge cannon entities
+         boolean wasPressed = oldSignal > 0;
+         boolean isPressed = signal > 0;
  
-@@ -162,6 +162,12 @@ public abstract class BasePressurePlateBlock extends Block {
+@@ -170,6 +170,12 @@ public abstract class BasePressurePlateBlock extends Block {
          // CraftBukkit end
      }
  
@@ -321,13 +320,13 @@ index 7135a6bc87f90fafa94d0783aaf7b42d66449010..77f30569214d97d5de1ded3cf20491d7
  
      protected abstract int getSignalForState(BlockState state);
 diff --git a/net/minecraft/world/level/block/WeightedPressurePlateBlock.java b/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
-index 5e095919828e89d12f2676b3c544842a81e047a1..e45ceec307a4944f40d044af0369d0c598a4e9ae 100644
+index e26385eb25338e7f0770b9154a542273b651c2f4..ff9730987a1ede9aced4d5bb9e84deae3082b26d 100644
 --- a/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
 @@ -39,6 +39,13 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
  
      @Override
-     protected int getSignalStrength(Level level, BlockPos pos) {
+     protected int getSignalStrength(final Level level, final BlockPos pos) {
 +        // Sakura start - merge cannon entities
 +        return this.getSignalStrength(level, pos, false);
 +    }
@@ -337,13 +336,13 @@ index 5e095919828e89d12f2676b3c544842a81e047a1..e45ceec307a4944f40d044af0369d0c5
 +        // Sakura end - merge cannon entities
          // CraftBukkit start
          // int min = Math.min(getEntityCount(level, TOUCH_AABB.move(pos), Entity.class), this.maxWeight);
-         int min = 0;
+         int count = 0;
 @@ -54,7 +61,7 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
  
              // We only want to block turning the plate on if all events are cancelled
              if (!cancellable.isCancelled()) {
--                min++;
-+                min += !entityInside && entity instanceof me.samsuik.sakura.entity.merge.MergeableEntity mergeEntity ? mergeEntity.getMergeEntityData().count : 1; // Sakura - merge cannon entities
+-                count++;
++                count += !entityInside && entity instanceof me.samsuik.sakura.entity.merge.MergeableEntity mergeEntity ? mergeEntity.getMergeEntityData().count : 1; // Sakura - merge cannon entities
              }
          }
          // CraftBukkit end

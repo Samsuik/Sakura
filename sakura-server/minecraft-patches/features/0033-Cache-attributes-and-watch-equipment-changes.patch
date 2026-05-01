@@ -5,10 +5,10 @@ Subject: [PATCH] Cache attributes and watch equipment changes
 
 
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 924408367d999ee6bda34699fce7bd5b100f253b..9bb6ec350fca2a73c6882976f00acae58f2fc9a7 100644
+index fabef00590073549986b9d315b8b3ac44a167045..4cb074f831d2a2575b4fdce69d6e1fda14eb9d4a 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -351,6 +351,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -352,6 +352,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          return (float) damage;
      }
      // Sakura end - legacy combat mechanics & attack damage override
@@ -20,12 +20,12 @@ index 924408367d999ee6bda34699fce7bd5b100f253b..9bb6ec350fca2a73c6882976f00acae5
 +    public boolean equipmentEmpty;
 +    // Sakura end - cache attribute and equipment changes
  
-     protected LivingEntity(EntityType<? extends LivingEntity> type, Level level) {
+     protected LivingEntity(final EntityType<? extends LivingEntity> type, final Level level) {
          super(type, level);
-@@ -364,6 +371,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -365,6 +372,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          this.setYRot(this.random.nextFloat() * (float) (Math.PI * 2));
          this.yHeadRot = this.getYRot();
-         this.brain = this.makeBrain(EMPTY_BRAIN);
+         this.brain = this.makeBrain(Brain.Packed.EMPTY);
 +        // Sakura start - cache attribute and equipment changes
 +        this.wayPointTransmitRangeWatcher = new me.samsuik.sakura.tracking.watchers.AttributeValueWatcher(this.attributes, Attributes.WAYPOINT_TRANSMIT_RANGE);
 +        this.gravityWatcher = new me.samsuik.sakura.tracking.watchers.AttributeValueWatcher(this.attributes, Attributes.GRAVITY);
@@ -35,7 +35,7 @@ index 924408367d999ee6bda34699fce7bd5b100f253b..9bb6ec350fca2a73c6882976f00acae5
      }
  
      @Override
-@@ -587,7 +600,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -581,7 +594,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
  
      @Override
      protected float getBlockSpeedFactor() {
@@ -44,7 +44,7 @@ index 924408367d999ee6bda34699fce7bd5b100f253b..9bb6ec350fca2a73c6882976f00acae5
      }
  
      public float getLuck() {
-@@ -3127,7 +3140,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3178,7 +3191,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
  
      @Override
      protected double getDefaultGravity() {
@@ -53,16 +53,16 @@ index 924408367d999ee6bda34699fce7bd5b100f253b..9bb6ec350fca2a73c6882976f00acae5
      }
  
      protected double getEffectiveGravity() {
-@@ -3209,7 +3222,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
-     protected void travelInWater(Vec3 travelVector, double gravity, boolean isFalling, double previousY) {
-         float f = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
-         float f1 = 0.02F;
--        float f2 = (float)this.getAttributeValue(Attributes.WATER_MOVEMENT_EFFICIENCY);
-+        float f2 = (float)this.movementEfficiencyWatcher.getValue(); // Sakura - cache attribute and equipment changes
+@@ -3264,7 +3277,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+     protected void travelInWater(final Vec3 input, final double baseGravity, final boolean isFalling, final double oldY) {
+         float slowDown = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
+         float speed = 0.02F;
+-        float waterWalker = (float)this.getAttributeValue(Attributes.WATER_MOVEMENT_EFFICIENCY);
++        float waterWalker = (float)this.movementEfficiencyWatcher.getValue(); // Sakura - cache attribute and equipment changes
          if (!this.onGround()) {
-             f2 *= 0.5F;
+             waterWalker *= 0.5F;
          }
-@@ -3477,7 +3490,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3532,7 +3545,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
                  }
              }
  
@@ -76,7 +76,7 @@ index 924408367d999ee6bda34699fce7bd5b100f253b..9bb6ec350fca2a73c6882976f00acae5
              if (this.tickCount % 20 == 0) {
                  this.getCombatTracker().recheckStatus();
              }
-@@ -3736,7 +3754,11 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3801,7 +3819,11 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              this.lerpHeadSteps--;
          }
  
@@ -86,10 +86,10 @@ index 924408367d999ee6bda34699fce7bd5b100f253b..9bb6ec350fca2a73c6882976f00acae5
 +            this.equipment.tick(this);
 +        }
 +        // Sakura end - cache attribute and equipment changes
-         Vec3 deltaMovement = this.getDeltaMovement();
-         double d = deltaMovement.x;
-         double d1 = deltaMovement.y;
-@@ -4942,7 +4964,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+         Vec3 movement = this.getDeltaMovement();
+         double dx = movement.x;
+         double dy = movement.y;
+@@ -5011,7 +5033,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
  
      @Override
      public boolean isTransmittingWaypoint() {
@@ -99,14 +99,14 @@ index 924408367d999ee6bda34699fce7bd5b100f253b..9bb6ec350fca2a73c6882976f00acae5
  
      @Override
 diff --git a/net/minecraft/world/item/enchantment/EnchantmentHelper.java b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
-index b61e0e179e78f37f670ad86476b5a533e7835948..cddb7912bd1a41ca70f477748b10a3708ca84eec 100644
+index d5f749fd0745555fa91e184abea0c40ab873c182..46797f6da25443df804142f1c429ce95c03c2268 100644
 --- a/net/minecraft/world/item/enchantment/EnchantmentHelper.java
 +++ b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
-@@ -153,6 +153,7 @@ public class EnchantmentHelper {
+@@ -157,6 +157,7 @@ public class EnchantmentHelper {
      }
  
-     private static void runIterationOnEquipment(LivingEntity entity, EnchantmentHelper.EnchantmentInSlotVisitor visitor) {
-+        if (entity.equipmentEmpty) return; // Sakura - cache attribute and equipment changes
-         for (EquipmentSlot equipmentSlot : EquipmentSlot.VALUES) {
-             runIterationOnItem(entity.getItemBySlot(equipmentSlot), equipmentSlot, entity, visitor);
+     private static void runIterationOnEquipment(final LivingEntity owner, final EnchantmentHelper.EnchantmentInSlotVisitor method) {
++        if (owner.equipmentEmpty) return; // Sakura - cache attribute and equipment changes
+         for (EquipmentSlot slot : EquipmentSlot.VALUES) {
+             runIterationOnItem(owner.getItemBySlot(slot), slot, owner, method);
          }

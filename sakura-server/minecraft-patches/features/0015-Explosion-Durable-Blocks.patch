@@ -5,10 +5,10 @@ Subject: [PATCH] Explosion Durable Blocks
 
 
 diff --git a/net/minecraft/world/item/BlockItem.java b/net/minecraft/world/item/BlockItem.java
-index 73ce7c82c0bd28c2e43ca40ba35c4603b21375ad..5a860716bb5c8e39d7adcb1ccb143398f6225abf 100644
+index 3167be4b7c2c61ef725af4a832d759ab6e061af0..1c6a5d980b6807ab5b6cf077f8b1ed7588e6e76d 100644
 --- a/net/minecraft/world/item/BlockItem.java
 +++ b/net/minecraft/world/item/BlockItem.java
-@@ -38,8 +38,30 @@ public class BlockItem extends Item {
+@@ -37,8 +37,30 @@ public class BlockItem extends Item {
          this.block = block;
      }
  
@@ -31,31 +31,31 @@ index 73ce7c82c0bd28c2e43ca40ba35c4603b21375ad..5a860716bb5c8e39d7adcb1ccb143398
 +    }
 +
      @Override
-     public InteractionResult useOn(UseOnContext context) {
+     public InteractionResult useOn(final UseOnContext context) {
 +        if (this.getBlock() == net.minecraft.world.level.block.Blocks.POTATOES && context.getPlayer() != null) {
 +            this.sendBlockDurabilityToPlayer(context);
 +        }
 +        // Sakura end - explosion durable blocks
-         InteractionResult interactionResult = this.place(new BlockPlaceContext(context));
-         return !interactionResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
+         InteractionResult placeResult = this.place(new BlockPlaceContext(context));
+         return !placeResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
              ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index e46408c300c41cca82940a5c789938d27dce2512..f70b439d9c0b9b696c77c1197ed11516cca5f53e 100644
+index cf693c3d46b5c07b890cdd45eb6b754d6a16954c..446ca8787231e40de2a6c62b0c4bf2aef9367455 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -840,6 +840,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -845,6 +845,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      // Sakura end - implement state watchers and tick scheduler
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
 +    public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
  
      protected Level(
-         WritableLevelData levelData,
+         final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 60372994352bd47ba611fcb24ad928e21b500119..a5181ed850903ac23dc86eb9a60716939d3fdc48 100644
+index a37be8d3cb0cc3594be99211dad9479da71ec32c..bb255788e91518ce0ac77bf53aece8758d3739a7 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -133,7 +133,7 @@ public class ServerExplosion implements Explosion {
+@@ -125,7 +125,7 @@ public class ServerExplosion implements Explosion {
              BlockState blockState = ((ca.spottedleaf.moonrise.patches.getblock.GetBlockChunk)chunk).moonrise$getBlock(x, y, z);
              FluidState fluidState = blockState.getFluidState();
  
@@ -64,7 +64,7 @@ index 60372994352bd47ba611fcb24ad928e21b500119..a5181ed850903ac23dc86eb9a6071693
  
              ret = new ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache(
                      key, pos, blockState, fluidState,
-@@ -359,6 +359,20 @@ public class ServerExplosion implements Explosion {
+@@ -351,6 +351,20 @@ public class ServerExplosion implements Explosion {
          }
      }
      // Sakura end - specialised explosions
@@ -84,8 +84,8 @@ index 60372994352bd47ba611fcb24ad928e21b500119..a5181ed850903ac23dc86eb9a6071693
 +    // Sakura end - explosion durable blocks
  
      public ServerExplosion(
-         ServerLevel level,
-@@ -703,6 +717,14 @@ public class ServerExplosion implements Explosion {
+         final ServerLevel level,
+@@ -696,6 +710,14 @@ public class ServerExplosion implements Explosion {
                  }
              }
              // CraftBukkit end
@@ -98,5 +98,5 @@ index 60372994352bd47ba611fcb24ad928e21b500119..a5181ed850903ac23dc86eb9a6071693
 +            }
 +            // Sakura end - explosion durable blocks
  
-             this.level
-                 .getBlockState(blockPos)
+             this.level.getBlockState(pos).onExplosionHit(this.level, pos, this, (stackx, position) -> addOrAppendStack(stacks, stackx, position));
+         }

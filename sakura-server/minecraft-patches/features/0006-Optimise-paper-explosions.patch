@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise paper explosions
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-index 2dfd412344a0e57f25a08d9c65656a13113baa4e..a578b89a8653336a2e473589442385104b1e7164 100644
+index 8d9ce3d301d5f7e4106587ae00adb8dd5b8b6f88..12e70a92ed5f40b0f94284967df3b7cc2924c17b 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 @@ -319,6 +319,12 @@ public final class ChunkEntitySlices {
@@ -40,10 +40,10 @@ index 2dfd412344a0e57f25a08d9c65656a13113baa4e..a578b89a8653336a2e47358944238510
              if (this.count == 0) {
                  return;
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index e016e21522bcae271c9de72c8cec1b3affc85b45..b3838c018f69d8c9955680a23dc03f01000722f9 100644
+index 61eb54ae354eea3d9e1bee2507d94188ca8e69e3..8ce257c68dc3a2e02aebbcf7b7badd2dc953cb78 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -88,7 +88,7 @@ public class ServerExplosion implements Explosion {
+@@ -80,7 +80,7 @@ public class ServerExplosion implements Explosion {
              }
          }
  
@@ -52,7 +52,7 @@ index e016e21522bcae271c9de72c8cec1b3affc85b45..b3838c018f69d8c9955680a23dc03f01
      }
  
      private static final int CHUNK_CACHE_SHIFT = 2;
-@@ -400,6 +400,12 @@ public class ServerExplosion implements Explosion {
+@@ -392,6 +392,12 @@ public class ServerExplosion implements Explosion {
              initialCache = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
          }
  
@@ -65,12 +65,12 @@ index e016e21522bcae271c9de72c8cec1b3affc85b45..b3838c018f69d8c9955680a23dc03f01
          // only ~1/3rd of the loop iterations in vanilla will result in a ray, as it is iterating the perimeter of
          // a 16x16x16 cube
          // we can cache the rays and their normals as well, so that we eliminate the excess iterations / checks and
-@@ -562,7 +568,7 @@ public class ServerExplosion implements Explosion {
+@@ -555,7 +561,7 @@ public class ServerExplosion implements Explosion {
  
          // CraftBukkit start
-         Location location = CraftLocation.toBukkit(this.center, this.level);
+         org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.center, this.level);
 -        List<org.bukkit.block.Block> blockList = new ObjectArrayList<>();
 +        List<org.bukkit.block.Block> blockList = new ObjectArrayList<>(fire ? ObjectArrayList.DEFAULT_INITIAL_CAPACITY : blocks.size()); // Sakura - optimise paper explosions
-         for (int i1 = blocks.size() - 1; i1 >= 0; i1--) {
-             org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, blocks.get(i1));
+         for (int i1 = targetBlocks.size() - 1; i1 >= 0; i1--) {
+             org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, targetBlocks.get(i1));
              if (!bblock.getType().isAir()) {

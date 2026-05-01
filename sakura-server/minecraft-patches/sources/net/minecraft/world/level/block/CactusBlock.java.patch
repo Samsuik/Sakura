@@ -3,7 +3,7 @@
 @@ -52,6 +_,23 @@
  
      @Override
-     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+     protected void randomTick(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
 +        // Sakura start - use random chance for crop growth
 +        if (level.sakuraConfig().environment.crops.useRandomChanceToGrow) {
 +            final int modifier = level.spigotConfig.cactusModifier;
@@ -21,27 +21,25 @@
 +    }
 +    private void ageAndGrow(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
 +        // Sakura end - use random chance for crop growth
-         BlockPos blockPos = pos.above();
-         if (level.isEmptyBlock(blockPos)) {
-             int i = 1;
-@@ -65,7 +_,7 @@
+         BlockPos above = pos.above();
+         if (level.isEmptyBlock(above)) {
+             int height = 1;
+@@ -65,12 +_,17 @@
  
-             if (ageValue == 8 && this.canSurvive(this.defaultBlockState(), level, pos.above())) {
-                 double d = i >= level.paperConfig().maxGrowthHeight.cactus ? 0.25 : 0.1; // Paper - Configurable cactus/bamboo/reed growth height
--                if (random.nextDouble() <= d) {
+             if (age == 8 && this.canSurvive(this.defaultBlockState(), level, pos.above())) {
+                 double chanceToGrowFlower = height >= level.paperConfig().maxGrowthHeight.cactus ? 0.25 : 0.1; // Paper - Configurable cactus/bamboo/reed growth height
+-                if (random.nextDouble() <= chanceToGrowFlower) {
 +                if (random.nextDouble() <= d && i >= level.sakuraConfig().environment.crops.minCactusFlowerGrowthHeight.or(0)) { // Sakura - min cactus flower growth height
-                     org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, blockPos, Blocks.CACTUS_FLOWER.defaultBlockState(), Block.UPDATE_ALL);
+                     org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, above, Blocks.CACTUS_FLOWER.defaultBlockState(), Block.UPDATE_ALL); // Paper - block grow event
                  }
-             } else if (ageValue == 15 && i < level.paperConfig().maxGrowthHeight.cactus) { // Paper - Configurable cactus/bamboo/reed growth height
-@@ -75,6 +_,11 @@
-                 }
-                 // Paper end
-                 BlockState blockState = state.setValue(AGE, 0);
+             } else if (age == 15 && height < level.paperConfig().maxGrowthHeight.cactus) { // Paper - Configurable cactus/bamboo/reed growth height
+                 if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, above, this.defaultBlockState(), Block.UPDATE_ALL)) return; // Paper - block grow event
+                 BlockState aboveBlock = state.setValue(AGE, 0);
 +                // Sakura start - use random chance for crop growth; fix cactus growing next to a block and not breaking
 +                if (level.sakuraConfig().environment.crops.useRandomChanceToGrow) {
 +                    level.neighborShapeChanged(Direction.UP, blockPos, pos, state, 4, 1);
 +                }
 +                // Sakura end - use random chance for crop growth; fix cactus growing next to a block and not breaking
-                 level.setBlock(pos, blockState, Block.UPDATE_NONE);
-                 level.neighborChanged(blockState, blockPos, this, null, false);
+                 level.setBlock(pos, aboveBlock, Block.UPDATE_NONE);
+                 level.neighborChanged(aboveBlock, above, this, null, false);
              }

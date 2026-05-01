@@ -5,20 +5,11 @@ Subject: [PATCH] Optimise cannon entity movement
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index ef0c952bcf045988ae16f3147c092ce1b727cb50..90cf5a7b106396d21998cace4281df758a14eba6 100644
+index 841b488a83391557f5a969889bd7a43db16e9e5f..66b50348888fa3c32f6ab0d0167b7cc6336ee3ef 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1217,7 +1217,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
-             Vec3 vec3 = this.collide(movement);
-             double d = vec3.lengthSqr();
-             if (d > 1.0E-7 || movement.lengthSqr() - d < 1.0E-7) {
--                if (this.fallDistance != 0.0 && d >= 1.0) {
-+                if (this.fallDistance != 0.0 && d >= 1.0 && !this.isFallingBlock) { // Sakura - optimise cannon entity movement
-                     double min = Math.min(vec3.length(), 8.0);
-                     Vec3 vec31 = this.position().add(vec3.normalize().scale(min));
-                     BlockHitResult blockHitResult = this.level()
-@@ -1580,6 +1580,132 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
-         return list.isEmpty() ? distance : -Shapes.collide(Direction.Axis.Y, boundingBox, list, -distance);
+@@ -1611,6 +1611,149 @@ public abstract class Entity
+         return colliders.isEmpty() ? maxDistance : -Shapes.collide(Direction.Axis.Y, aabb, colliders, -maxDistance);
      }
  
 +    // Sakura start - optimise cannon entity movement
@@ -27,131 +18,148 @@ index ef0c952bcf045988ae16f3147c092ce1b727cb50..90cf5a7b106396d21998cace4281df75
 +            return movement;
 +        }
 +
-+        final List<VoxelShape> potentialCollisionsVoxel = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(0);
-+        final List<AABB> potentialCollisionsBB = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(4);
-+        final AABB currBoundingBox = this.getBoundingBox();
++        final List<VoxelShape> collisionsVoxel = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(0);
++        final List<AABB> collisionsBB = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(4);
++        final AABB currentBox = this.getBoundingBox();
 +
 +        if (movement.lengthSqr() >= 12.0) { // axis scan on large movement
-+            return this.collideAxisScan(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
++            return this.collideAxisScan(movement, currentBox, collisionsVoxel, collisionsBB);
 +        } else {
-+            return this.collideCube(movement, currBoundingBox, potentialCollisionsVoxel, potentialCollisionsBB);
++            return this.collideCube(movement, currentBox, collisionsVoxel, collisionsBB);
 +        }
 +    }
 +
-+    private Vec3 collideCube(final Vec3 movement, final AABB currBoundingBox, final List<VoxelShape> voxelList, final List<AABB> bbList) {
++    private Vec3 collideCube(
++        final Vec3 movement,
++        final AABB currentBox,
++        final List<VoxelShape> collisionsVoxel,
++        final List<AABB> collisionsBB
++    ) {
 +        final AABB bb;
 +        if (movement.x() == 0.0 && movement.z() == 0.0) {
 +            if (movement.y > 0.0) {
-+                bb = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutUpwards(currBoundingBox, movement.y);
++                bb = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutUpwards(currentBox, movement.y);
 +            } else {
-+                bb = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutDownwards(currBoundingBox, movement.y);
++                bb = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutDownwards(currentBox, movement.y);
 +            }
 +        } else {
-+            bb = currBoundingBox.expandTowards(movement.x, movement.y, movement.z);
++            bb = currentBox.expandTowards(movement.x, movement.y, movement.z);
 +        }
 +
-+        this.collectCollisions(bb, voxelList, bbList, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
-+        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currBoundingBox, voxelList, bbList);
++        this.collectCollisions(bb, collisionsVoxel, collisionsBB, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
++        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currentBox, collisionsVoxel, collisionsBB);
 +    }
 +
-+    private Vec3 collideAxisScan(final Vec3 movement, AABB currBoundingBox, final List<VoxelShape> voxelList, final List<AABB> bbList) {
++    private Vec3 collideAxisScan(
++        final Vec3 movement,
++        AABB currentBox,
++        final List<VoxelShape> collisionsVoxel,
++        final List<AABB> collisionsBB
++    ) {
 +        double x = movement.x;
 +        double y = movement.y;
 +        double z = movement.z;
 +
 +        final boolean xSmaller = Math.abs(x) < Math.abs(z);
-+
 +        if (y != 0.0) {
-+            y = this.scanY(currBoundingBox, y, voxelList, bbList);
++            y = this.scanY(currentBox, y, collisionsVoxel, collisionsBB);
 +            if (y != 0.0) {
-+                currBoundingBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetY(currBoundingBox, y);
++                currentBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetY(currentBox, y);
 +            }
 +        }
 +
 +        if (xSmaller && z != 0.0) {
-+            z = this.scanZ(currBoundingBox, z, voxelList, bbList);
++            z = this.scanZ(currentBox, z, collisionsVoxel, collisionsBB);
 +            if (z != 0.0) {
-+                currBoundingBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetZ(currBoundingBox, z);
++                currentBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetZ(currentBox, z);
 +            }
 +        }
 +
 +        if (x != 0.0) {
-+            x = this.scanX(currBoundingBox, x, voxelList, bbList);
++            x = this.scanX(currentBox, x, collisionsVoxel, collisionsBB);
 +            if (x != 0.0) {
-+                currBoundingBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetX(currBoundingBox, x);
++                currentBox = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.offsetX(currentBox, x);
 +            }
 +        }
 +
 +        if (!xSmaller && z != 0.0) {
-+            z = this.scanZ(currBoundingBox, z, voxelList, bbList);
++            z = this.scanZ(currentBox, z, collisionsVoxel, collisionsBB);
 +        }
 +
 +        return new Vec3(x, y, z);
 +    }
 +
-+    private void collectCollisions(final AABB collisionBox, final List<VoxelShape> voxelList, final List<AABB> bbList, final int flags) {
++    private void collectCollisions(
++        final AABB collisionBox,
++        final List<VoxelShape> collisionsVoxel,
++        final List<AABB> collisionsBB,
++        final int collisionFlags
++    ) {
 +        // Copied from the collide method below
 +        ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder(
-+            this.level, this, collisionBox, voxelList, bbList,
-+            flags  | this.getExtraCollisionFlags(), null // Sakura - load chunks on movement
++            this.level,
++            this,
++            collisionBox,
++            collisionsVoxel,
++            collisionsBB,
++            collisionFlags | this.getExtraCollisionFlags(), // Sakura - load chunks on movement
++            null
 +        );
 +
-+        ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getEntityHardCollisions(
-+            this.level, this, collisionBox, bbList, 0, null
-+        );
++        ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getEntityHardCollisions(this.level, this, collisionBox, collisionsBB, 0, null);
 +    }
 +
-+    private double scanX(final AABB currBoundingBox, double x, final List<VoxelShape> voxelList, final List<AABB> bbList) {
-+        final AABB scanBox = cutBoundingBoxX(currBoundingBox, x);
-+        this.collectCollisions(scanBox, voxelList, bbList, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
-+        x = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsX(currBoundingBox, x, bbList);
-+        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsX(currBoundingBox, x, voxelList);
++    private double scanX(final AABB currentBox, double x, final List<VoxelShape> collisionsVoxel, final List<AABB> collisionsBB) {
++        final AABB scanBox = cutBoundingBoxX(currentBox, x);
++        this.collectCollisions(scanBox, collisionsVoxel, collisionsBB, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
++        x = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsX(currentBox, x, collisionsBB);
++        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsX(currentBox, x, collisionsVoxel);
 +    }
 +
-+    private double scanY(final AABB currBoundingBox, double y, final List<VoxelShape> voxelList, final List<AABB> bbList) {
-+        final AABB scanBox = cutBoundingBoxY(currBoundingBox, y);
-+        this.collectCollisions(scanBox, voxelList, bbList, 0);
-+        y = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsY(currBoundingBox, y, bbList);
-+        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsY(currBoundingBox, y, voxelList);
++    private double scanY(final AABB currentBox, double y, final List<VoxelShape> collisionsVoxel, final List<AABB> collisionsBB) {
++        final AABB scanBox = cutBoundingBoxY(currentBox, y);
++        this.collectCollisions(scanBox, collisionsVoxel, collisionsBB, 0);
++        y = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsY(currentBox, y, collisionsBB);
++        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsY(currentBox, y, collisionsVoxel);
 +    }
 +
-+    private double scanZ(final AABB currBoundingBox, double z, final List<VoxelShape> voxelList, final List<AABB> bbList) {
-+        final AABB scanBox = cutBoundingBoxZ(currBoundingBox, z);
-+        this.collectCollisions(scanBox, voxelList, bbList, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
-+        z = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsZ(currBoundingBox, z, bbList);
-+        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsZ(currBoundingBox, z, voxelList);
++    private double scanZ(final AABB currentBox, double z, final List<VoxelShape> collisionsVoxel, final List<AABB> collisionsBB) {
++        final AABB scanBox = cutBoundingBoxZ(currentBox, z);
++        this.collectCollisions(scanBox, collisionsVoxel, collisionsBB, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
++        z = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsZ(currentBox, z, collisionsBB);
++        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsZ(currentBox, z, collisionsVoxel);
 +    }
 +
-+    private static AABB cutBoundingBoxX(final AABB bb, final double x) {
++    private static AABB cutBoundingBoxX(final AABB currentBox, final double x) {
 +        if (x > 0.0) {
-+            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutRight(bb, x);
++            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutRight(currentBox, x);
 +        } else {
-+            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutLeft(bb, x);
++            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutLeft(currentBox, x);
 +        }
 +    }
 +
-+    private static AABB cutBoundingBoxY(final AABB bb, final double y) {
++    private static AABB cutBoundingBoxY(final AABB currentBox, final double y) {
 +        if (y > 0.0) {
-+            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutUpwards(bb, y);
++            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutUpwards(currentBox, y);
 +        } else {
-+            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutDownwards(bb, y);
++            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutDownwards(currentBox, y);
 +        }
 +    }
 +
-+    private static AABB cutBoundingBoxZ(final AABB bb, final double z) {
++    private static AABB cutBoundingBoxZ(final AABB currentBox, final double z) {
 +        if (z > 0.0) {
-+            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutForwards(bb, z);
++            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutForwards(currentBox, z);
 +        } else {
-+            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutBackwards(bb, z);
++            return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.cutBackwards(currentBox, z);
 +        }
 +    }
 +    // Sakura end - optimise cannon entity movement
 +
-     // Paper start - optimise collisions
-     protected Vec3 collide(Vec3 movement) {
+     protected Vec3 collide(final Vec3 movement) {
+         // Paper start - optimise collisions
          final boolean xZero = movement.x == 0.0;
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index afd6e062422943e053af594613beb09b40c8a00b..3a29066910bd3b068beb56d807abf1b82a3ffa8a 100644
+index 8cad3eaece77dc19f9b4cd1855470a8b6ba73703..a66247beee27f9b521b2d167df3228da8a334624 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -123,6 +123,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -165,13 +173,13 @@ index afd6e062422943e053af594613beb09b40c8a00b..3a29066910bd3b068beb56d807abf1b8
 +    }
 +    // Sakura end - optimise cannon entity movement
  
-     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
+     public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index ad5657606c8d5e3fac8bc6ef778e2ab19d8d1101..0770d039654001e0d155e605859f9620aa84edc0 100644
+index f5fd2abc0bfb279c9f6f226273fea9487e440d85..86769ddbab6598a1beaeb6580f95a23e98f869c5 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -81,6 +81,12 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -83,6 +83,12 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
          this.mergeData.count = count; // Sakura - specialised explosions
      }
      // Sakura end - merge cannon entities
@@ -182,5 +190,5 @@ index ad5657606c8d5e3fac8bc6ef778e2ab19d8d1101..0770d039654001e0d155e605859f9620
 +    }
 +    // Sakura end - optimise cannon entity movement
  
-     public PrimedTnt(EntityType<? extends PrimedTnt> type, Level level) {
+     public PrimedTnt(final EntityType<? extends PrimedTnt> type, final Level level) {
          super(type, level);

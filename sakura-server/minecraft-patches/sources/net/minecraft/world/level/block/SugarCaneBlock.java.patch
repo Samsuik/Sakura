@@ -3,7 +3,7 @@
 @@ -48,6 +_,19 @@
  
      @Override
-     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+     protected void randomTick(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
 +        // Sakura start - use random chance for crop growth
 +        if (level.sakuraConfig().environment.crops.useRandomChanceToGrow) {
 +            final int modifier = level.spigotConfig.caneModifier;
@@ -18,13 +18,13 @@
 +    private void ageAndGrow(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
 +        // Sakura end - use random chance for crop growth
          if (level.isEmptyBlock(pos.above())) {
-             int i = 1;
+             int height = 1;
  
 @@ -61,6 +_,7 @@
-                 if (ageValue >= 15 || (modifier != 100 && random.nextFloat() < (modifier / (100.0F * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                 if (age >= 15 || (modifier != 100 && random.nextFloat() < (modifier / (100.0F * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
                      org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos.above(), this.defaultBlockState(), Block.UPDATE_ALL); // CraftBukkit
                      level.setBlock(pos, state.setValue(AGE, 0), Block.UPDATE_NONE);
 +                    // Sakura - use random chance for crop growth; conflict on change
                  } else if (modifier == 100 || random.nextFloat() < (modifier / (100.0F * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
-                     level.setBlock(pos, state.setValue(AGE, ageValue + 1), Block.UPDATE_NONE);
+                     level.setBlock(pos, state.setValue(AGE, age + 1), Block.UPDATE_NONE);
                  }

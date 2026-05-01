@@ -5,7 +5,7 @@ Subject: [PATCH] Add maxSearch to getEntities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-index a578b89a8653336a2e473589442385104b1e7164..585875f95951dfd5d734608b76a6f7e2f137d5b5 100644
+index 12e70a92ed5f40b0f94284967df3b7cc2924c17b..28afdc26484fc8af90c8494862b43bd75bbe49ca 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 @@ -336,7 +336,14 @@ public final class ChunkEntitySlices {
@@ -56,7 +56,7 @@ index a578b89a8653336a2e473589442385104b1e7164..585875f95951dfd5d734608b76a6f7e2
                      if (entity == null || entity == except || !entity.getBoundingBox().intersects(box)) {
                          continue;
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
-index 2d24d03bbdb5ee0d862cbfff2219f58afffafe12..1bf06038d51efcc103fad23670686c30d676dc0b 100644
+index 56e71bf01f22579c294c6b33450bd282e082f6ae..0e354419119646da69204178f6a37ff2f7c006c8 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/EntityLookup.java
 @@ -726,6 +726,13 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
@@ -83,11 +83,11 @@ index 2d24d03bbdb5ee0d862cbfff2219f58afffafe12..1bf06038d51efcc103fad23670686c30
                          }
                      }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index f06ec2784b091cd053925c89c114e4cb4e8effff..e46408c300c41cca82940a5c789938d27dce2512 100644
+index 5549aba1559b64110010e66c37b9a655a71befd4..cf693c3d46b5c07b890cdd45eb6b754d6a16954c 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1724,10 +1724,18 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-         this.getEntities(entityTypeTest, bounds, predicate, output, Integer.MAX_VALUE);
+@@ -1815,10 +1815,18 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         this.getEntities(type, bb, selector, output, Integer.MAX_VALUE);
      }
  
 -    // Paper start - rewrite chunk system
@@ -106,7 +106,7 @@ index f06ec2784b091cd053925c89c114e4cb4e8effff..e46408c300c41cca82940a5c789938d2
          Profiler.get().incrementCounter("getEntities");
  
          if (entityTypeTest instanceof net.minecraft.world.entity.EntityType<T> byType) {
-@@ -1744,7 +1752,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1835,7 +1843,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
          if (entityTypeTest == null) {
              if (maxCount != Integer.MAX_VALUE) {

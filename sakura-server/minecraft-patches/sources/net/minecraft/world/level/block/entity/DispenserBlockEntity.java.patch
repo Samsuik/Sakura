@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/level/block/entity/DispenserBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/DispenserBlockEntity.java
 @@ -71,8 +_,11 @@
-         int i = -1;
-         int i1 = 1;
+         int replaceSlot = -1;
+         int replaceOdds = 1;
  
 +        // Sakura start - configure random item dispensing
 +        final boolean randomItemSelection = this.level.sakuraConfig().technical.dispenserRandomItemSelection || this instanceof DropperBlockEntity;
-         for (int i2 = 0; i2 < this.items.size(); i2++) {
--            if (!this.items.get(i2).isEmpty() && random.nextInt(i1++) == 0) {
+         for (int i = 0; i < this.items.size(); i++) {
+-            if (!this.items.get(i).isEmpty() && random.nextInt(replaceOdds++) == 0) {
 +            if (!this.items.get(i2).isEmpty() && (!randomItemSelection && i == -1 || randomItemSelection && random.nextInt(i1++) == 0)) {
 +                // Sakura end - configure random item dispensing
-                 i = i2;
+                 replaceSlot = i;
              }
          }

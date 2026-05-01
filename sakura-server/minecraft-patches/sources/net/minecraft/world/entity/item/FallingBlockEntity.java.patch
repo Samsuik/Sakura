@@ -6,13 +6,13 @@
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
 +    public boolean heightParity; // Sakura - falling block height parity api
  
-     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
+     public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
 +        this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
 +        this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
      }
  
-     public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
+     public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 @@ -89,6 +_,34 @@
          this.setStartPos(this.blockPosition());
      }
@@ -45,45 +45,45 @@
 +    }
 +    // Sakura end - fix falling block floating point errors
 +
-     public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state) {
-         FallingBlockEntity fallingBlockEntity = new FallingBlockEntity(
+     public static FallingBlockEntity fall(final Level level, final BlockPos pos, final BlockState state) {
+         FallingBlockEntity entity = new FallingBlockEntity(
              level,
 @@ -166,8 +_,12 @@
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
--                BlockPos blockPos = this.blockPosition();
--                boolean flag = this.blockState.getBlock() instanceof ConcretePowderBlock;
+-                BlockPos pos = this.blockPosition();
+-                boolean isConcrete = this.blockState.getBlock() instanceof ConcretePowderBlock;
 +                // Sakura start - fix falling block floating point errors
 +                BlockPos blockPos = serverLevel.sakuraConfig().cannons.mechanics.fallingBlockFloatingPointFix
 +                    ? this.patchedBlockPosition()
 +                    : this.blockPosition();
 +                // Sakura end - fix falling block floating point errors
 +                boolean flag = this.level().sakuraConfig().cannons.sand.concreteSolidifyInWater && this.blockState.getBlock() instanceof ConcretePowderBlock; // Sakura - configure concrete solidifying in water
-                 boolean flag1 = flag && this.level().getFluidState(blockPos).is(FluidTags.WATER);
-                 double d = this.getDeltaMovement().lengthSqr();
-                 if (flag && d > 1.0) {
+                 boolean isStuckInWater = isConcrete && this.level().getFluidState(pos).is(FluidTags.WATER);
+                 double moveVec = this.getDeltaMovement().lengthSqr();
+                 if (isConcrete && moveVec > 1.0) {
 @@ -183,7 +_,7 @@
                      }
                  }
  
--                if (!this.onGround() && !flag1) {
+-                if (!this.onGround() && !isStuckInWater) {
 +                if (!this.onGround() && !flag1 || this.level().sakuraConfig().cannons.sand.despawnInsideMovingPistons && this.autoExpire && this.time > 600) { // Sakura - allow falling blocks to despawn inside moving pistons
-                     if ((this.time > 100 && autoExpire) && (blockPos.getY() <= this.level().getMinY() || blockPos.getY() > this.level().getMaxY()) || (this.time > 600 && autoExpire)) { // Paper - Expand FallingBlock API
+                     if ((this.time > 100 && this.autoExpire) && (pos.getY() <= this.level().getMinY() || pos.getY() > this.level().getMaxY()) || (this.time > 600 && this.autoExpire)) { // Paper - Expand FallingBlock API
                          if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
                              this.spawnAtLocation(serverLevel, block);
 @@ -201,7 +_,7 @@
                              );
-                             boolean flag2 = FallingBlock.isFree(this.level().getBlockState(blockPos.below())) && (!flag || !flag1);
-                             boolean flag3 = this.blockState.canSurvive(this.level(), blockPos) && !flag2;
--                            if (canBeReplaced && flag3) {
+                             boolean wouldContinueFalling = FallingBlock.isFree(this.level().getBlockState(pos.below())) && (!isConcrete || !isStuckInWater);
+                             boolean wouldSurvive = this.blockState.canSurvive(this.level(), pos) && !wouldContinueFalling;
+-                            if (mayReplace && wouldSurvive) {
 +                            if (canBeReplaced && flag3 && isFallingBlockInBounds(this.level(), blockPos)) { // Sakura - falling block stacking restrictions
-                                 if (this.blockState.hasProperty(BlockStateProperties.WATERLOGGED)
-                                     && this.level().getFluidState(blockPos).getType() == Fluids.WATER) {
+                                 if (this.blockState.hasProperty(BlockStateProperties.WATERLOGGED) && this.level().getFluidState(pos).is(Fluids.WATER)) {
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
-@@ -245,6 +_,10 @@
+                                 }
+@@ -244,6 +_,10 @@
                                      this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
-                                     this.callOnBrokenAfterFall(block, blockPos);
+                                     this.callOnBrokenAfterFall(block, pos);
                                      this.spawnAtLocation(serverLevel, block);
 +                                    // Sakura start - fix falling blocks staying alive when entity drops are disabled
 +                                } else {

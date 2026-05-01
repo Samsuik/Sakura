@@ -23,7 +23,7 @@
 +    }
 +    // Sakura end - simplify nerfed mob logic
 +
-     protected Mob(EntityType<? extends Mob> type, Level level) {
+     protected Mob(final EntityType<? extends Mob> type, final Level level) {
          super(type, level);
          this.goalSelector = new GoalSelector();
 @@ -164,6 +_,11 @@
@@ -37,11 +37,11 @@
 +        // Sakura end - end disable mob ai
      }
  
-     // CraftBukkit start
-@@ -221,6 +_,7 @@
-     @Override
+     protected void registerGoals() {
+@@ -216,6 +_,7 @@
      public void inactiveTick() {
          super.inactiveTick();
+         if (!this.aware) return; // Paper - Do not tick AI for inactive unaware mobs
 +        if (!this.aware) return; // Sakura - fix nerfed mobs ticking goals while inactive
          if (this.goalSelector.inactiveTick()) {
              this.goalSelector.tick();

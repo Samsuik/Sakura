@@ -10,14 +10,14 @@
      // Paper - rewrite chunk system
      public int serverViewDistance;
 @@ -1363,7 +_,10 @@
-                 double vec3_dz = player.getZ() - this.entity.getZ();
+                 double deltaToPlayerZ = player.getZ() - this.entity.getZ();
                  // Paper end - remove allocation of Vec3D here
                  int playerViewDistance = ChunkMap.this.getPlayerViewDistance(player);
--                double d = Math.min(this.getEffectiveRange(), playerViewDistance * 16);
+-                double visibleRange = Math.min(this.getEffectiveRange(), playerViewDistance * 16);
 +                // Sakura start - entity tracking range modifier
 +                final double visibleRange = this.getEffectiveRange() * player.trackingRangeModifier;
 +                final double d = Math.min(visibleRange, playerViewDistance * 16);
 +                // Sakura end - entity tracking range modifier
-                 double d1 = vec3_dx * vec3_dx + vec3_dz * vec3_dz; // Paper
-                 double d2 = d * d;
+                 double distanceSquared = deltaToPlayerX * deltaToPlayerX + deltaToPlayerZ * deltaToPlayerZ; // Paper
+                 double rangeSquared = visibleRange * visibleRange;
                  // Paper start - Configurable entity tracking range by Y

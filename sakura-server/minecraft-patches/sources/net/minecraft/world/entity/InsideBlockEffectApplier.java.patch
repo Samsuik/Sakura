@@ -6,7 +6,7 @@
          private int lastStep = -1;
 +        private boolean unappliedEffects; // Sakura - optimise inside block effect flushing
  
-         public void advanceStep(int step, net.minecraft.core.BlockPos pos) { // Paper - track position inside effect was triggered on
+         public void advanceStep(final int step, net.minecraft.core.BlockPos pos) { // Paper - track position inside effect was triggered on
              this.currentBlockPos = pos; // Paper - track position inside effect was triggered on
 @@ -66,6 +_,13 @@
          }
@@ -19,24 +19,24 @@
 +            this.unappliedEffects = false;
 +            // Sakura end - optimise inside block effect flushing
 +
-             for (InsideBlockEffectType insideBlockEffectType : APPLY_ORDER) {
-                 List<Consumer<Entity>> list = this.beforeEffectsInStep.get(insideBlockEffectType);
-                 this.finalEffects.addAll(list);
+             for (InsideBlockEffectType type : APPLY_ORDER) {
+                 List<Consumer<Entity>> beforeEffects = this.beforeEffectsInStep.get(type);
+                 this.finalEffects.addAll(beforeEffects);
 @@ -83,16 +_,19 @@
          @Override
-         public void apply(InsideBlockEffectType type) {
-             this.effectsInStep.put(type, recorded(type));  // Paper - track position inside effect was triggered on
+         public void apply(final InsideBlockEffectType type) {
+             this.effectsInStep.put(type, recorded(type)); // Paper - track position inside effect was triggered on
 +            this.unappliedEffects = true; // Sakura - optimise inside block effect flushing
          }
  
          @Override
-         public void runBefore(InsideBlockEffectType type, Consumer<Entity> effect) {
+         public void runBefore(final InsideBlockEffectType type, final Consumer<Entity> effect) {
              this.beforeEffectsInStep.get(type).add(effect);
 +            this.unappliedEffects = true; // Sakura - optimise inside block effect flushing
          }
  
          @Override
-         public void runAfter(InsideBlockEffectType type, Consumer<Entity> effect) {
+         public void runAfter(final InsideBlockEffectType type, final Consumer<Entity> effect) {
              this.afterEffectsInStep.get(type).add(effect);
 +            this.unappliedEffects = true; // Sakura - optimise inside block effect flushing
          }

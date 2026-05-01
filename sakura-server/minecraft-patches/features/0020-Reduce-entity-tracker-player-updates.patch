@@ -5,10 +5,10 @@ Subject: [PATCH] Reduce entity tracker player updates
 
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 353d8980f7b2c54806932347a3aa8f89de2ae187..a51428ef262c195e963c2db6cf9025ddb65970c9 100644
+index 4219d549a7684b009990d5c6bdf81e5c47d0777a..c7c239580a8192cf4df7087f856882f4735c3f6c 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1058,7 +1058,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1052,7 +1052,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              if (tracker == null) {
                  continue;
              }
@@ -21,7 +21,7 @@ index 353d8980f7b2c54806932347a3aa8f89de2ae187..a51428ef262c195e963c2db6cf9025dd
              if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
                  || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
                  tracker.serverEntity.sendChanges();
-@@ -1329,12 +1333,30 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1326,6 +1330,20 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              return state != me.samsuik.sakura.player.visibility.VisibilityState.OFF;
          }
          // Sakura end - client visibility settings; entity visibility
@@ -41,7 +41,8 @@ index 353d8980f7b2c54806932347a3aa8f89de2ae187..a51428ef262c195e963c2db6cf9025dd
 +        // Sakura start - reduce entity tracker player updates
  
          public TrackedEntity(final Entity entity, final int range, final int updateInterval, final boolean trackDelta) {
-             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, updateInterval, trackDelta, this, this.seenBy); // Paper
+             Objects.requireNonNull(ChunkMap.this);
+@@ -1335,6 +1353,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              this.entity = entity;
              this.range = range;
              this.lastSectionPos = SectionPos.of(entity);

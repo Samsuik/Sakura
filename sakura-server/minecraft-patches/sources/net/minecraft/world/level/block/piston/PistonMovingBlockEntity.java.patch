@@ -10,12 +10,12 @@
 +    private float shapeProgress = Float.MIN_VALUE;
 +    // Sakura end - cache moving block entity collision shape
  
-     public PistonMovingBlockEntity(BlockPos pos, BlockState blockState) {
-         super(BlockEntityType.PISTON, pos, blockState);
-@@ -360,6 +_,18 @@
+     public PistonMovingBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
+         super(BlockEntityType.PISTON, worldPosition, blockState);
+@@ -368,6 +_,18 @@
      }
  
-     public VoxelShape getCollisionShape(BlockGetter level, BlockPos pos) {
+     public VoxelShape getCollisionShape(final BlockGetter level, final BlockPos pos) {
 +        // Sakura start - cache moving block entity collision shape
 +        Direction direction = NOCLIP.get();
 +        if (this.progress == this.shapeProgress && direction == this.shapeDirection) {
@@ -28,6 +28,6 @@
 +    }
 +    private VoxelShape createCollisionShape(final BlockGetter level, final BlockPos pos) {
 +        // Sakura end - cache moving block entity collision shape
-         VoxelShape collisionShape;
+         VoxelShape pistonHeadShape;
          if (!this.extending && this.isSourcePiston && this.movedState.getBlock() instanceof PistonBaseBlock) {
-             collisionShape = this.movedState.setValue(PistonBaseBlock.EXTENDED, true).getCollisionShape(level, pos);
+             pistonHeadShape = this.movedState.setValue(PistonBaseBlock.EXTENDED, true).getCollisionShape(level, pos);

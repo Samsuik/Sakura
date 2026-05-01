@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -115,7 +_,7 @@
+@@ -121,7 +_,7 @@
      public final List<TickingBlockEntity> blockEntityTickers = Lists.newArrayList();
      public final CollectingNeighborUpdater neighborUpdater;
      private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
@@ -9,7 +9,7 @@
      public final Thread thread;
      private final boolean isDebug;
      private int skyDarken;
-@@ -164,6 +_,18 @@
+@@ -170,6 +_,18 @@
          return this.paperConfig;
      }
      // Paper end - add paper world config
@@ -27,8 +27,8 @@
 +    // Sakura end - local config api
  
      public static @Nullable BlockPos lastPhysicsProblem; // Spigot
-     private int tileTickPosition;
-@@ -832,6 +_,7 @@
+     public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
+@@ -838,6 +_,7 @@
          org.bukkit.World.Environment environment, // Paper
          java.util.function.Function<org.spigotmc.SpigotWorldConfig, // Spigot - create per world config
          io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, // Paper - create paper world config
@@ -36,11 +36,11 @@
          java.util.concurrent.Executor executor // Paper - Anti-Xray
      ) {
          // Paper start - getblock optimisations - cache world height/sections
-@@ -845,6 +_,7 @@
-         // Paper end - getblock optimisations - cache world height/sections
-         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName()); // Spigot
+@@ -852,6 +_,7 @@
+         final org.bukkit.NamespacedKey worldKey = CraftNamespacedKey.fromMinecraft(dimension.identifier()); // Paper
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(bukkitName, worldKey); // Spigot
          this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
 +        this.sakuraConfig = sakuraWorldConfigCreator.get(); // Sakura - sakura configuration files
          this.generator = generator;
-         this.world = new CraftWorld((ServerLevel) this, generator, biomeProvider, environment);
+         this.world = new CraftWorld((ServerLevel) this, worldKey, biomeProvider, environment);
  

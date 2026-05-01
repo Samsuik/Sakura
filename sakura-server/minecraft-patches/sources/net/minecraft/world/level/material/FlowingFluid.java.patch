@@ -1,24 +1,24 @@
 --- a/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/net/minecraft/world/level/material/FlowingFluid.java
-@@ -153,12 +_,12 @@
+@@ -154,12 +_,12 @@
      }
  
-     protected void spread(ServerLevel level, BlockPos pos, BlockState state, FluidState fluidState) {
+     protected void spread(final ServerLevel level, final BlockPos pos, final BlockState state, final FluidState fluidState) {
 -        if (!fluidState.isEmpty()) {
 +        if (!fluidState.isEmpty() && (!level.sakuraConfig().environment.disableFluidsFlowingThroughTheWorldBorder || level.getWorldBorder().isWithinBounds(pos))) { // Sakura - configure fluids flowing through the world border
-             BlockPos blockPos = pos.below();
-             BlockState blockState = level.getBlockState(blockPos);
-             FluidState fluidState1 = blockState.getFluidState();
-             if (this.canMaybePassThrough(level, pos, state, Direction.DOWN, blockPos, blockState, fluidState1)) {
--                FluidState newLiquid = this.getNewLiquid(level, blockPos, blockState);
+             BlockPos belowPos = pos.below();
+             BlockState belowState = level.getBlockState(belowPos);
+             FluidState belowFluid = belowState.getFluidState();
+             if (this.canMaybePassThrough(level, pos, state, Direction.DOWN, belowPos, belowState, belowFluid)) {
+-                FluidState newBelowFluid = this.getNewLiquid(level, belowPos, belowState);
 +                FluidState newLiquid = this.getLiquidFromSurroundings(level, blockPos, blockState, Direction.DOWN); // Sakura - optimise new liquid level
-                 Fluid type = newLiquid.getType();
-                 if (fluidState1.canBeReplacedWith(level, blockPos, type, Direction.DOWN) && canHoldSpecificFluid(level, blockPos, blockState, type)) {
-                     // CraftBukkit start
-@@ -200,6 +_,11 @@
-                 BlockPos blockPos = pos.relative(direction);
-                 final BlockState blockStateIfLoaded = level.getBlockStateIfLoaded(blockPos); // Paper - Prevent chunk loading from fluid flowing
-                 if (blockStateIfLoaded == null) continue; // Paper - Prevent chunk loading from fluid flowing
+                 Fluid newBelowFluidType = newBelowFluid.getType();
+                 if (belowFluid.canBeReplacedWith(level, belowPos, newBelowFluidType, Direction.DOWN)
+                     && canHoldSpecificFluid(level, belowPos, belowState, newBelowFluidType)) {
+@@ -202,6 +_,11 @@
+                 BlockPos neighborPos = pos.relative(spread);
+                 final BlockState neighborState = level.getBlockStateIfLoaded(neighborPos); // Paper - Prevent chunk loading from fluid flowing
+                 if (neighborState == null) continue; // Paper - Prevent chunk loading from fluid flowing
 +                // Sakura start - configure fluids flowing through the world border
 +                if (level.sakuraConfig().environment.disableFluidsFlowingThroughTheWorldBorder && !level.getWorldBorder().isWithinBounds(blockPos)) {
 +                    continue;
@@ -26,8 +26,8 @@
 +                // Sakura end - configure fluids flowing through the world border
                  // CraftBukkit start
                  org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
-                 org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(direction));
-@@ -214,17 +_,83 @@
+                 org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(spread));
+@@ -216,17 +_,83 @@
          }
      }
  
@@ -59,7 +59,7 @@
 +        return stateBelow.isSolid() || this.isSourceBlockOfThisType(fluidStateBelow);
 +    }
 +
-     protected FluidState getNewLiquid(ServerLevel level, BlockPos pos, BlockState state) {
+     protected FluidState getNewLiquid(final ServerLevel level, final BlockPos pos, final BlockState state) {
 +        return this.getLiquidFromSurroundings(level, pos, state, null);
 +    }
 +
@@ -98,70 +98,70 @@
 +        final BlockPos.MutableBlockPos mutableBlockPos,
 +        final @org.jspecify.annotations.Nullable Direction incoming
 +    ) {
-         int i = 0;
-         int i1 = 0;
--        BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+         int highestNeighbor = 0;
+         int neighbourSources = 0;
+-        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
 +        // Sakura end - optimise new liquid level
  
          for (Direction direction : Direction.Plane.HORIZONTAL) {
-             BlockPos blockPos = mutableBlockPos.setWithOffset(pos, direction);
-             BlockState blockState = level.getBlockStateIfLoaded(blockPos); // Paper - Prevent chunk loading from fluid flowing
+             BlockPos relativePos = mutablePos.setWithOffset(pos, direction);
+             BlockState blockState = level.getBlockStateIfLoaded(relativePos); // Paper - Prevent chunk loading from fluid flowing
              if (blockState == null) continue; // Paper - Prevent chunk loading from fluid flowing
              FluidState fluidState = blockState.getFluidState();
--            if (fluidState.getType().isSame(this) && canPassThroughWall(direction, level, pos, state, blockPos, blockState)) {
+-            if (fluidState.getType().isSame(this) && canPassThroughWall(direction, level, pos, state, relativePos, blockState)) {
 +            if (fluidState.getType().isSame(this) && (incoming == direction || canPassThroughWall(direction, level, pos, state, blockPos, blockState))) { // Sakura - optimise new liquid level
                  if (fluidState.isSource()) {
-                     i1++;
+                     neighbourSources++;
                  }
-@@ -237,19 +_,11 @@
-             BlockState blockState1 = level.getBlockState(mutableBlockPos.setWithOffset(pos, Direction.DOWN));
-             FluidState fluidState1 = blockState1.getFluidState();
-             if (blockState1.isSolid() || this.isSourceBlockOfThisType(fluidState1)) {
+@@ -239,19 +_,11 @@
+             BlockState belowState = level.getBlockState(mutablePos.setWithOffset(pos, Direction.DOWN));
+             FluidState belowFluid = belowState.getFluidState();
+             if (belowState.isSolid() || this.isSourceBlockOfThisType(belowFluid)) {
 -                return this.getSource(false);
 +                return FORM_LIQUID_SOURCE; // Sakura - optimise new liquid level
              }
          }
  
--        BlockPos blockPos1 = mutableBlockPos.setWithOffset(pos, Direction.UP);
--        BlockState blockState2 = level.getBlockState(blockPos1);
--        FluidState fluidState2 = blockState2.getFluidState();
--        if (!fluidState2.isEmpty() && fluidState2.getType().isSame(this) && canPassThroughWall(Direction.UP, level, pos, state, blockPos1, blockState2)) {
+-        BlockPos abovePos = mutablePos.setWithOffset(pos, Direction.UP);
+-        BlockState aboveState = level.getBlockState(abovePos);
+-        FluidState aboveFluid = aboveState.getFluidState();
+-        if (!aboveFluid.isEmpty() && aboveFluid.getType().isSame(this) && canPassThroughWall(Direction.UP, level, pos, state, abovePos, aboveState)) {
 -            return this.getFlowing(8, true);
 -        } else {
--            int i2 = i - this.getDropOff(level);
--            return i2 <= 0 ? Fluids.EMPTY.defaultFluidState() : this.getFlowing(i2, false);
+-            int amount = highestNeighbor - this.getDropOff(level);
+-            return amount <= 0 ? Fluids.EMPTY.defaultFluidState() : this.getFlowing(amount, false);
 -        }
 +        return i; // Sakura - optimise new liquid level
      }
  
      // Paper start - fluid method optimisations
-@@ -415,7 +_,7 @@
-             if (blockState == null) continue; // Paper - Prevent chunk loading from fluid flowing
-             FluidState fluidState = blockState.getFluidState();
-             if (this.canMaybePassThrough(level, pos, state, direction, blockPos, blockState, fluidState)) {
--                FluidState newLiquid = this.getNewLiquid(level, blockPos, blockState);
+@@ -433,7 +_,7 @@
+             if (testState == null) continue; // Paper - Prevent chunk loading from fluid flowing
+             FluidState testFluidState = testState.getFluidState();
+             if (this.canMaybePassThrough(level, pos, state, direction, testPos, testState, testFluidState)) {
+-                FluidState newFluid = this.getNewLiquid(level, testPos, testState);
 +                FluidState newLiquid = this.getLiquidFromSurroundings(level, blockPos, blockState, direction); // Sakura - optimise new liquid level
-                 if (canHoldSpecificFluid(level, blockPos, blockState, newLiquid.getType())) {
-                     if (spreadContext == null) {
-                         spreadContext = new FlowingFluid.SpreadContext(level, pos);
-@@ -466,6 +_,11 @@
+                 if (canHoldSpecificFluid(level, testPos, testState, newFluid.getType())) {
+                     if (context == null) {
+                         context = new FlowingFluid.SpreadContext(level, pos);
+@@ -484,6 +_,11 @@
      }
  
-     private static boolean canHoldSpecificFluid(BlockGetter level, BlockPos pos, BlockState state, Fluid fluid) {
+     private static boolean canHoldSpecificFluid(final BlockGetter level, final BlockPos pos, final BlockState state, final Fluid newFluid) {
 +        // Sakura start - configure fluids breaking redstone components
 +        if (level instanceof Level gameLevel && !gameLevel.sakuraConfig().technical.redstone.fluidsBreakRedstone && (state.isSignalSource() || state.getBlock() instanceof net.minecraft.world.level.block.CarpetBlock)) {
 +            return false;
 +        }
 +        // Sakura end - configure fluids breaking redstone components
-         return !(state.getBlock() instanceof LiquidBlockContainer liquidBlockContainer) || liquidBlockContainer.canPlaceLiquid(null, level, pos, state, fluid);
+         return !(state.getBlock() instanceof LiquidBlockContainer container) || container.canPlaceLiquid(null, level, pos, state, newFluid);
      }
  
-@@ -478,7 +_,7 @@
+@@ -496,7 +_,7 @@
      @Override
-     public void tick(ServerLevel level, BlockPos pos, BlockState state, FluidState fluidState) {
+     public void tick(final ServerLevel level, final BlockPos pos, BlockState blockState, FluidState fluidState) {
          if (!fluidState.isSource()) {
--            FluidState newLiquid = this.getNewLiquid(level, pos, level.getBlockState(pos));
+-            FluidState newFluidState = this.getNewLiquid(level, pos, level.getBlockState(pos));
 +            FluidState newLiquid = this.getNewLiquid(level, pos, state); // Sakura - optimise new liquid level; liquid draining
-             int spreadDelay = this.getSpreadDelay(level, pos, fluidState, newLiquid);
-             if (newLiquid.isEmpty()) {
-                 fluidState = newLiquid;
+             int tickDelay = this.getSpreadDelay(level, pos, fluidState, newFluidState);
+             if (newFluidState.isEmpty()) {
+                 fluidState = newFluidState;

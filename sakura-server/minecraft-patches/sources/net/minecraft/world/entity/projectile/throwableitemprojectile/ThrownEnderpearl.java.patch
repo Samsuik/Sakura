@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
 @@ -39,6 +_,31 @@
-         super(EntityType.ENDER_PEARL, owner, level, item);
+         super(EntityType.ENDER_PEARL, mob, level, itemStack);
      }
  
 +    // Sakura start - enderpearls use outline for collision
@@ -33,9 +33,9 @@
      public Item getDefaultItem() {
          return Items.ENDER_PEARL;
 @@ -101,6 +_,21 @@
-             if (owner != null && isAllowedToTeleportOwner(owner, serverLevel)) {
-                 Vec3 vec3 = this.oldPosition();
-                 if (owner instanceof ServerPlayer serverPlayer) {
+             if (owner != null && isAllowedToTeleportOwner(owner, level)) {
+                 Vec3 teleportPos = this.oldPosition();
+                 if (owner instanceof ServerPlayer player) {
 +                    // Sakura start - prevent ender pearls teleporting inside blocks
 +                    if (this.level().sakuraConfig().entity.enderPearl.preventTeleportingInsideBlocks && serverPlayer.insideAnyCollisionAt(serverLevel, vec3)) {
 +                        for (int offset = 0;; ++offset) {
@@ -51,12 +51,12 @@
 +                        }
 +                    }
 +                    // Sakura end - prevent ender pearls teleporting inside blocks
-                     if (serverPlayer.connection.isAcceptingMessages()) {
+                     if (player.connection.isAcceptingMessages()) {
                          // CraftBukkit start
                          // Store pre teleportation position as the teleport has been moved up.
-@@ -146,6 +_,11 @@
-                     if (entity != null) {
-                         entity.resetFallDistance();
+@@ -151,6 +_,11 @@
+                     if (newOwner instanceof LivingEntity livingEntity) {
+                         livingEntity.resetCurrentImpulseContext();
                      }
 +                    // Sakura start - prevent ender pearls teleporting inside blocks
 +                    if (entity instanceof net.minecraft.world.entity.player.Player player) {
@@ -64,5 +64,5 @@
 +                    }
 +                    // Sakura end - prevent ender pearls teleporting inside blocks
  
-                     this.playSound(serverLevel, vec3);
+                     this.playSound(level, teleportPos);
                  }

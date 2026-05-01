@@ -1,7 +1,6 @@
 package me.samsuik.sakura.configuration;
 
 import com.google.common.collect.Table;
-import com.mojang.logging.LogUtils;
 import io.leangen.geantyref.TypeToken;
 import io.papermc.paper.configuration.*;
 import io.papermc.paper.configuration.mapping.InnerClassFieldDiscoverer;
@@ -28,7 +27,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jspecify.annotations.NullMarked;
-import org.slf4j.Logger;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.ConfigurationOptions;
@@ -48,8 +46,6 @@ import static io.papermc.paper.configuration.PaperConfigurations.defaultFieldPro
 @NullMarked
 @SuppressWarnings("Convert2Diamond")
 public final class SakuraConfigurations extends Configurations<GlobalConfiguration, WorldConfiguration> {
-
-    private static final Logger LOGGER = LogUtils.getClassLogger();
     static final String GLOBAL_CONFIG_FILE_NAME = "sakura-global.yml";
     static final String WORLD_DEFAULTS_CONFIG_FILE_NAME = "sakura-world-defaults.yml";
     static final String WORLD_CONFIG_FILE_NAME = "sakura-world.yml";
@@ -75,10 +71,9 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
         This is a world configuration file for Sakura.
         This file may start empty but can be filled with settings to override ones in the %s/%s
         
-        World: %s (%s)""",
+        World: %s""",
         SakuraConfigurations.CONFIG_DIR,
         SakuraConfigurations.WORLD_DEFAULTS_CONFIG_FILE_NAME,
-        map.require(WORLD_NAME),
         map.require(WORLD_KEY)
     );
 
@@ -97,17 +92,17 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
         return defaultGlobalFactoryBuilder(super.createGlobalObjectMapperFactoryBuilder());
     }
 
-    private static ObjectMapper.Factory.Builder defaultGlobalFactoryBuilder(ObjectMapper.Factory.Builder builder) {
+    private static ObjectMapper.Factory.Builder defaultGlobalFactoryBuilder(final ObjectMapper.Factory.Builder builder) {
         return builder.addDiscoverer(InnerClassFieldDiscoverer.globalConfig(defaultFieldProcessors()));
     }
 
     @Override
-    protected YamlConfigurationLoader.Builder createGlobalLoaderBuilder(RegistryAccess registryAccess) {
+    protected YamlConfigurationLoader.Builder createGlobalLoaderBuilder(final RegistryAccess registryAccess) {
         return super.createGlobalLoaderBuilder(registryAccess)
             .defaultOptions(SakuraConfigurations::defaultGlobalOptions);
     }
 
-    private static ConfigurationOptions defaultGlobalOptions(ConfigurationOptions options) {
+    private static ConfigurationOptions defaultGlobalOptions(final ConfigurationOptions options) {
         return options.header(GLOBAL_HEADER);
     }
 
@@ -132,7 +127,7 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
         return InnerClassFieldDiscoverer.create(overrides, defaultFieldProcessors());
     }
 
-    private static WorldConfiguration createWorldConfigInstance(ContextMap contextMap) {
+    private static WorldConfiguration createWorldConfigInstance(final ContextMap contextMap) {
         return new WorldConfiguration(contextMap.require(Configurations.WORLD_KEY));
     }
 
@@ -141,7 +136,7 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
         final RegistryAccess access = contextMap.require(REGISTRY_ACCESS);
         return super.createWorldConfigLoaderBuilder(contextMap)
             .defaultOptions(options -> options
-                .header(contextMap.require(WORLD_NAME).equals(WORLD_DEFAULTS) ? WORLD_DEFAULTS_HEADER : WORLD_HEADER.apply(contextMap))
+                .header(contextMap.require(WORLD_KEY).equals(WORLD_DEFAULTS_KEY) ? WORLD_DEFAULTS_HEADER : WORLD_HEADER.apply(contextMap))
                 .serializers(serializers -> serializers
                     .register(new TypeToken<MinecraftMechanicsTarget>() {}, new MinecraftMechanicsTargetSerializer())
                     .register(new TypeToken<Reference2IntMap<?>>() {}, new FastutilMapSerializer.SomethingToPrimitive<Reference2IntMap<?>>(Reference2IntOpenHashMap::new, Integer.TYPE))
@@ -168,11 +163,11 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
 
     @Override
     public WorldConfiguration createWorldConfig(final ContextMap contextMap) {
-        final String levelName = contextMap.require(WORLD_NAME);
+        final String worldKey = contextMap.require(WORLD_KEY).toString();
         try {
             return super.createWorldConfig(contextMap);
         } catch (IOException exception) {
-            throw new RuntimeException("Could not create world config for " + levelName, exception);
+            throw new RuntimeException("Could not create world config for " + worldKey, exception);
         }
     }
 
@@ -191,27 +186,26 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
         return WorldConfiguration.CURRENT_VERSION;
     }
 
-    public void reloadConfigs(MinecraftServer server) {
+    public void reloadConfigs(final MinecraftServer server) {
         try {
             this.initializeGlobalConfiguration(server.registryAccess(), reloader(this.globalConfigClass, GlobalConfiguration.get()));
             this.initializeWorldDefaultsConfiguration(server.registryAccess());
-            for (ServerLevel level : server.getAllLevels()) {
-                this.createWorldConfig(createWorldContextMap(level), reloader(this.worldConfigClass, level.sakuraConfig()));
+            for (final ServerLevel level : server.getAllLevels()) {
+                this.createWorldConfig(createWorldContextMap(level, server), reloader(this.worldConfigClass, level.sakuraConfig()));
             }
         } catch (Exception ex) {
             throw new RuntimeException("Could not reload sakura configuration files", ex);
         }
     }
 
-    private static ContextMap createWorldContextMap(ServerLevel level) {
-        return createWorldContextMap(level.levelStorageAccess.levelDirectory.path(), level.serverLevelData.getLevelName(), level.dimension().identifier(), level.registryAccess());
+    private static ContextMap createWorldContextMap(final ServerLevel level, final MinecraftServer server) {
+        return createWorldContextMap(server.storageSource.getDimensionPath(level.dimension()), level.dimension().identifier(), level.registryAccess());
     }
 
-    public static ContextMap createWorldContextMap(Path dir, String levelName, Identifier worldKey, RegistryAccess registryAccess) {
+    public static ContextMap createWorldContextMap(final Path worldPath, final Identifier worldIdentifier, final RegistryAccess registryAccess) {
         return ContextMap.builder()
-            .put(WORLD_DIRECTORY, dir)
-            .put(WORLD_NAME, levelName)
-            .put(WORLD_KEY, worldKey)
+            .put(WORLD_DIRECTORY, worldPath)
+            .put(WORLD_KEY, worldIdentifier)
             .put(REGISTRY_ACCESS, registryAccess)
             .build();
     }
@@ -224,5 +218,4 @@ public final class SakuraConfigurations extends Configurations<GlobalConfigurati
             throw new RuntimeException("Could not setup PaperConfigurations", ex);
         }
     }
-
 }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -62,6 +_,7 @@
+@@ -54,6 +_,7 @@
      public float yield;
      // CraftBukkit end
      public boolean excludeSourceFromDamage = true; // Paper - Allow explosions to damage source
@@ -8,26 +8,26 @@
      // Paper start - collisions optimisations
      private static final double[] CACHED_RAYS;
      static {
-@@ -328,6 +_,7 @@
+@@ -320,6 +_,7 @@
          this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F;
          this.yield = Double.isFinite(this.yield) ? this.yield : 0; // Paper - Don't allow infinite default yields
          // Paper end - add yield
 +        this.consistentExplosionRadius = level.localConfig().at(this.center).consistentExplosionRadius; // Sakura - consistent explosion radius
      }
  
-     private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity entity) {
-@@ -416,8 +_,7 @@
+     private ExplosionDamageCalculator makeDamageCalculator(final @Nullable Entity source) {
+@@ -408,8 +_,7 @@
              final double incZ = CACHED_RAYS[ray + 2];
  
              ray += 3;
 -
--            float power = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
+-            float power = this.radius * (0.7F + this.level.getRandom().nextFloat() * 0.6F);
 +            float power = this.radius * (0.7F + (this.consistentExplosionRadius ? 0.7F : this.level.random.nextFloat()) * 0.6F); // Sakura - consistent explosion radius
  
              do {
                  final int blockX = Mth.floor(currX);
-@@ -614,7 +_,20 @@
-                 .onExplosionHit(this.level, blockPos, this, (itemStack, blockPos1) -> addOrAppendStack(list, itemStack, blockPos1));
+@@ -605,7 +_,20 @@
+             this.level.getBlockState(pos).onExplosionHit(this.level, pos, this, (stackx, position) -> addOrAppendStack(stacks, stackx, position));
          }
  
 +        // Sakura start - configure explosions dropping items
@@ -39,11 +39,11 @@
 +        // Sakura start - configure items that can that drop from explosions
 +        final Set<net.minecraft.world.item.Item> explosionItemDrops = this.level.sakuraConfig().entity.items.explosionItemDrops.items;
 +        final boolean whitelist = this.level.sakuraConfig().entity.items.explosionItemDrops.whitelistOverBlacklist;
-         for (ServerExplosion.StackCollector stackCollector : list) {
+         for (ServerExplosion.StackCollector stack : stacks) {
 +            if (explosionItemDrops.contains(stackCollector.stack.getItem()) != whitelist) {
 +                continue;
 +            }
 +            // Sakura end - configure items that can that drop from explosions
-             Block.popResource(this.level, stackCollector.pos, stackCollector.stack);
+             Block.popResource(this.level, stack.pos, stack.stack);
          }
      }

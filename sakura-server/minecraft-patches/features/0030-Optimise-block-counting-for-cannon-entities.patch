@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise block counting for cannon entities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index ecf78708f9b2c6a1d41fa337fd2c8f933aeda078..48403f97ed9ca5d9336489ea2174d1e1d5275806 100644
+index 04168dc7010fe07c5f11d9e23fb2ffb4d2cb17ee..f52b92fc974a4a341fc69381a31cc9c60c70dda3 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1942,6 +1942,7 @@ public final class CollisionUtil {
@@ -42,10 +42,10 @@ index ecf78708f9b2c6a1d41fa337fd2c8f933aeda078..48403f97ed9ca5d9336489ea2174d1e1
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 235324a59c2f4a9d223cef0aa8f368a3fee73927..716f87d36d1b310ea19bfae9dbe7c195993934f4 100644
+index cf9f75dadb56c11ea69af7c62ff119eaf7c4b747..857d18b7b121be3bf63d6f0e1060ddc5d93a692d 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -621,6 +621,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -626,6 +626,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          BlockPos selected = null;
          double selectedDistance = Double.MAX_VALUE;
          final Vec3 entityPos = entity.position();
@@ -53,7 +53,7 @@ index 235324a59c2f4a9d223cef0aa8f368a3fee73927..716f87d36d1b310ea19bfae9dbe7c195
  
          // special cases:
          if (minBlockY > maxBlockY) {
-@@ -663,15 +664,19 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -668,15 +669,19 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
  
                      final boolean hasSpecial = ((ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks();
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
@@ -79,10 +79,10 @@ index 235324a59c2f4a9d223cef0aa8f368a3fee73927..716f87d36d1b310ea19bfae9dbe7c195
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/chunk/LevelChunkSection.java b/net/minecraft/world/level/chunk/LevelChunkSection.java
-index d354fad5e9c9e4a16a52dbd8c7eb1f177a75f681..0f6c7e63b9bd507f9e0f99986a0f9dd879b1baee 100644
+index 201c0e1d6391977eaeb2ca14b3084efde646c04e..dd2e6e488c246e07f40a3f490498bc8d7d122eac 100644
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -43,6 +43,13 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+@@ -45,6 +45,13 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
          return this.tickingBlocks;
      }
      // Paper end - block counting
@@ -94,9 +94,9 @@ index d354fad5e9c9e4a16a52dbd8c7eb1f177a75f681..0f6c7e63b9bd507f9e0f99986a0f9dd8
 +    }
 +    // Sakura end - optimise block counting for cannon entities
  
-     private LevelChunkSection(LevelChunkSection section) {
-         this.nonEmptyBlockCount = section.nonEmptyBlockCount;
-@@ -113,6 +120,18 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+     private LevelChunkSection(final LevelChunkSection source) {
+         this.nonEmptyBlockCount = source.nonEmptyBlockCount;
+@@ -116,6 +123,18 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
              }
          }
  
@@ -115,7 +115,7 @@ index d354fad5e9c9e4a16a52dbd8c7eb1f177a75f681..0f6c7e63b9bd507f9e0f99986a0f9dd8
          final boolean oldTicking = oldState.isRandomlyTicking();
          final boolean newTicking = newState.isRandomlyTicking();
          if (oldTicking != newTicking) {
-@@ -188,6 +207,7 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+@@ -202,6 +221,7 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
          this.tickingBlockCount = (short)0;
          this.tickingFluidCount = (short)0;
          this.specialCollidingBlocks = (short)0;
@@ -123,7 +123,7 @@ index d354fad5e9c9e4a16a52dbd8c7eb1f177a75f681..0f6c7e63b9bd507f9e0f99986a0f9dd8
          this.tickingBlocks.clear();
  
          if (this.maybeHas((final BlockState state) -> !state.isAir())) {
-@@ -216,6 +236,12 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+@@ -230,6 +250,12 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
                      continue;
                  }
  

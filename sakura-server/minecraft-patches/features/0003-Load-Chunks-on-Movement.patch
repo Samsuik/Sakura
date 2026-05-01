@@ -50,7 +50,7 @@ index de764da80793d272ff597b4a0742ce785838799a..c093f2295d6a0e1880897fe66bdcd646
  
                  // bound y
 diff --git a/net/minecraft/server/level/TicketType.java b/net/minecraft/server/level/TicketType.java
-index 6d5bfc6e26932ba1d22b339b4bcadd2cce00c989..d65268ee0d87ab3ea4b50dd1c8c45708879e57e5 100644
+index 147cd0458d719be6679b6bac2b6617b48d98ce4c..e8f1aed9ddbf7569451e796d8b616ce645e37468 100644
 --- a/net/minecraft/server/level/TicketType.java
 +++ b/net/minecraft/server/level/TicketType.java
 @@ -68,6 +68,7 @@ public final class TicketType<T> implements ca.spottedleaf.moonrise.patches.chun
@@ -59,13 +59,13 @@ index 6d5bfc6e26932ba1d22b339b4bcadd2cce00c989..d65268ee0d87ab3ea4b50dd1c8c45708
      public static final TicketType CHUNK_LOAD = register("chunk_load", NO_TIMEOUT, FLAG_LOADING); // Paper - moonrise
 +    public static final TicketType ENTITY_MOVEMENT = register("entity_movement", 200L, FLAG_LOADING | FLAG_SIMULATION); // Sakura - load chunks on movement
  
-     private static TicketType register(String name, long timeout, @TicketType.Flags int flags) {
+     private static TicketType register(final String name, final long timeout, @TicketType.Flags final int flags) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index b64d29d72a353d5c8dde9ceaffad7f8f0f4587c0..7d2f03893d31b0886fa939fb239c9be426b07643 100644
+index 1dfef3c5e5e5cbd49cf299a09fe63b7ffceaed01..d1699f418be858298b2cb96ee2824926f27b8ac2 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -539,6 +539,19 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -553,6 +553,19 @@ public abstract class Entity
      public boolean isPrimedTNT;
      public boolean isFallingBlock;
      // Sakura end - client visibility settings
@@ -83,9 +83,9 @@ index b64d29d72a353d5c8dde9ceaffad7f8f0f4587c0..7d2f03893d31b0886fa939fb239c9be4
 +    }
 +    // Sakura end - load chunks on movement
  
-     public Entity(EntityType<?> type, Level level) {
+     public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -1562,7 +1575,7 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -1593,7 +1606,7 @@ public abstract class Entity
  
          ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder(
              this.level, (Entity)(Object)this, initialCollisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
@@ -94,7 +94,7 @@ index b64d29d72a353d5c8dde9ceaffad7f8f0f4587c0..7d2f03893d31b0886fa939fb239c9be4
          );
          potentialCollisionsBB.addAll(entityAABBs);
          final Vec3 collided = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currentBox, potentialCollisionsVoxel, potentialCollisionsBB);
-@@ -5239,13 +5252,14 @@ public abstract class Entity implements SyncedDataHolder, DebugValueSource, Name
+@@ -5169,13 +5182,14 @@ public abstract class Entity
      @Override
      public boolean shouldBeSaved() {
          return (this.removalReason == null || this.removalReason.shouldSave())
@@ -109,9 +109,9 @@ index b64d29d72a353d5c8dde9ceaffad7f8f0f4587c0..7d2f03893d31b0886fa939fb239c9be4
 +        return this.loadChunks; // Sakura - load chunks on movement; always tick in unloaded & lazy chunks
      }
  
-     public boolean mayInteract(ServerLevel level, BlockPos pos) {
+     public boolean mayInteract(final ServerLevel level, final BlockPos pos) {
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 9caf04e20bed7a21ed61d12c94af7047fdf73673..14537ff56b471adab08eddd96dc85587e6dd7828 100644
+index 70abc2d83e3b7de712cc34b5495ba1f867f0e1e5..1b6d7731cddda794a60e500f477fcfaa23711bd7 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -79,6 +79,7 @@ public class FallingBlockEntity extends Entity {
@@ -121,24 +121,24 @@ index 9caf04e20bed7a21ed61d12c94af7047fdf73673..14537ff56b471adab08eddd96dc85587
 +        this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
      }
  
-     public FallingBlockEntity(Level level, double x, double y, double z, BlockState state) {
+     public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 15b6d265218b854c6da61b0c3a56be4104f545f4..b95ffd4f41ace1426370fd1af96880005416b272 100644
+index a6bf1ee799a0bd072d38749966c048dba5e788d4..ee4f712710b4fb5fce0e3ee8ab40912451b4d7a4 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -63,6 +63,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -65,6 +65,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          super(type, level);
          this.blocksBuilding = true;
          this.isPrimedTNT = true; // Sakura - client visibility settings
 +        this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
      }
  
-     public PrimedTnt(Level level, double x, double y, double z, @Nullable LivingEntity owner) {
+     public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index 54ddcf92e72b9cbd0eb442e5d0faa83c0cf3b33b..f21bbd40e62623e9a15fa50fc4b008181866a8c0 100644
+index c73b9871faa87493e081cb54e1bf1dce487359c6..5cae8de18aaea594748a067cd8e055c19adde303 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -134,6 +134,17 @@ public abstract class ChunkAccess implements BiomeManager.NoiseBiomeSource, Ligh
+@@ -134,6 +134,17 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeM
      private final int minSection;
      private final int maxSection;
      // Paper end - get block chunk optimisation
@@ -155,4 +155,4 @@ index 54ddcf92e72b9cbd0eb442e5d0faa83c0cf3b33b..f21bbd40e62623e9a15fa50fc4b00818
 +    // Sakura end - load chunks on movement
  
      public ChunkAccess(
-         ChunkPos chunkPos,
+         final ChunkPos chunkPos,

@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/level/block/IceBlock.java
 +++ b/net/minecraft/world/level/block/IceBlock.java
-@@ -41,7 +_,7 @@
-     public void afterDestroy(Level level, BlockPos pos, ItemStack stack) {
+@@ -49,7 +_,7 @@
+     public void afterDestroy(Level level, BlockPos pos, ItemStack destroyedWith) {
          // Paper end - Improve Block#breakNaturally API
-         if (!EnchantmentHelper.hasTag(stack, EnchantmentTags.PREVENTS_ICE_MELTING)) {
+         if (!EnchantmentHelper.hasTag(destroyedWith, EnchantmentTags.PREVENTS_ICE_MELTING)) {
 -            if (level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos)) {
 +            if (!level.sakuraConfig().environment.allowWaterInTheNether && level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos)) { // Sakura - allow water in the nether
                  level.removeBlock(pos, false);
                  return;
              }
-@@ -66,8 +_,7 @@
+@@ -74,8 +_,7 @@
          if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(level, pos, waterEvaporates ? Blocks.AIR.defaultBlockState() : Blocks.WATER.defaultBlockState()).isCancelled()) {
              return;
          }

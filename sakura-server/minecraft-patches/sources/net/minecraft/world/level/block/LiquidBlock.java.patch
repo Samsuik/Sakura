@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/LiquidBlock.java
 +++ b/net/minecraft/world/level/block/LiquidBlock.java
-@@ -145,7 +_,7 @@
+@@ -169,7 +_,7 @@
  
      // Paper start - Configurable speed for water flowing over lava
      public int getFlowSpeed(Level level, BlockPos pos) {
@@ -9,7 +9,7 @@
              if (
                  isLava(level, pos.north()) ||
                  isLava(level, pos.south()) ||
-@@ -155,7 +_,7 @@
+@@ -179,7 +_,7 @@
                  return level.paperConfig().environment.waterOverLavaFlowSpeed;
              }
          }
@@ -18,15 +18,15 @@
      }
  
      private static boolean isLava(Level level, BlockPos pos) {
-@@ -195,6 +_,11 @@
+@@ -240,6 +_,11 @@
  
              for (Direction direction : POSSIBLE_FLOW_DIRECTIONS) {
-                 BlockPos blockPos = pos.relative(direction.getOpposite());
+                 BlockPos neighbourPos = pos.relative(direction.getOpposite());
 +                // Sakura start - configure fluid ticking outside the world border
 +                if (level.sakuraConfig().environment.disableFluidsFlowingThroughTheWorldBorder && !level.getWorldBorder().isWithinBounds(blockPos)) {
 +                    continue;
 +                }
 +                // Sakura end - configure fluid ticking outside the world border
-                 if (level.getFluidState(blockPos).is(FluidTags.WATER)) {
-                     Block block = level.getFluidState(pos).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
+                 if (level.getFluidState(neighbourPos).is(FluidTags.WATER)) {
+                     Block convertToBlock = level.getFluidState(pos).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
                      // CraftBukkit start
