@@ -87,7 +87,7 @@ index badf603e78d28b053ef34e962f5a09b298d9cd35..841b488a83391557f5a969889bd7a43d
          if (!(this instanceof ServerPlayer) && reason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 9100673b30c6e34b27e657c145461f829c953e4b..8cad3eaece77dc19f9b4cd1855470a8b6ba73703 100644
+index 5fc9ae37f218ea5ff7a54900af27c7e300da0e05..83d7fcde28ef57d5833ca718f7e65e389259c9ff 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -53,7 +53,7 @@ import net.minecraft.world.phys.Vec3;
@@ -99,10 +99,10 @@ index 9100673b30c6e34b27e657c145461f829c953e4b..8cad3eaece77dc19f9b4cd1855470a8b
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final BlockState DEFAULT_BLOCK_STATE = Blocks.SAND.defaultBlockState();
      private static final int DEFAULT_TIME = 0;
-@@ -74,12 +74,63 @@ public class FallingBlockEntity extends Entity {
-     public boolean autoExpire = true; // Paper - Expand FallingBlock API
-     public boolean heightParity; // Sakura - falling block height parity api
- 
+@@ -101,6 +101,55 @@ public class FallingBlockEntity extends Entity {
+         return BlockPos.containing(this.getX(), this.getY() + 1.0e-12, this.getZ());
+     }
+     // Sakura end - fix falling block floating point errors
 +    // Sakura start - merge cannon entities
 +    private final me.samsuik.sakura.entity.merge.MergeEntityData mergeData = new me.samsuik.sakura.entity.merge.MergeEntityData(this);
 +
@@ -152,10 +152,10 @@ index 9100673b30c6e34b27e657c145461f829c953e4b..8cad3eaece77dc19f9b4cd1855470a8b
 +        return itemEntity;
 +    }
 +    // Sakura end - merge cannon entities
-+
+ 
      public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
-         this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
+@@ -108,6 +157,7 @@ public class FallingBlockEntity extends Entity {
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
          this.isFallingBlock = true; // Sakura - client visibility settings
          this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
@@ -163,7 +163,7 @@ index 9100673b30c6e34b27e657c145461f829c953e4b..8cad3eaece77dc19f9b4cd1855470a8b
      }
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
-@@ -249,6 +300,7 @@ public class FallingBlockEntity extends Entity {
+@@ -249,6 +299,7 @@ public class FallingBlockEntity extends Entity {
                                      return;
                                  }
                                  // CraftBukkit end
@@ -171,7 +171,7 @@ index 9100673b30c6e34b27e657c145461f829c953e4b..8cad3eaece77dc19f9b4cd1855470a8b
                                  if (this.level().setBlock(pos, this.blockState, Block.UPDATE_ALL)) {
                                      serverLevel.getChunkSource()
                                          .chunkMap
-@@ -355,6 +407,11 @@ public class FallingBlockEntity extends Entity {
+@@ -355,6 +406,11 @@ public class FallingBlockEntity extends Entity {
  
          output.putBoolean("CancelDrop", this.cancelDrop);
          if (!this.autoExpire) output.putBoolean("Paper.AutoExpire", false); // Paper - Expand FallingBlock API
@@ -183,7 +183,7 @@ index 9100673b30c6e34b27e657c145461f829c953e4b..8cad3eaece77dc19f9b4cd1855470a8b
      }
  
      @Override
-@@ -369,6 +426,7 @@ public class FallingBlockEntity extends Entity {
+@@ -369,6 +425,7 @@ public class FallingBlockEntity extends Entity {
          this.blockData = input.read("TileEntityData", CompoundTag.CODEC).map(blockData -> this.level().paperConfig().entities.spawning.filterBadTileEntityNbtFromFallingBlocks && this.blockState.getBlock() instanceof net.minecraft.world.level.block.GameMasterBlock ? null : blockData).map(CompoundTag::copy).orElse(null); // Paper - Filter bad block entity nbt data from falling blocks
          this.cancelDrop = input.getBooleanOr("CancelDrop", false);
          this.autoExpire = input.getBooleanOr("Paper.AutoExpire", true); // Paper - Expand FallingBlock API
@@ -192,7 +192,7 @@ index 9100673b30c6e34b27e657c145461f829c953e4b..8cad3eaece77dc19f9b4cd1855470a8b
  
      public void setHurtsEntities(final float damagePerDistance, final int damageMax) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 4b8895393e81349db56b7d3390af1d3753b11ca5..4a9df1e64388585e20cf2b424ee40866f47fddf1 100644
+index 8414d0ba204da9d521a9ca69e663c1f293b0e074..72706e402add0ddaf206bec3b190d62ed3706ccb 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -34,7 +34,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
@@ -253,7 +253,7 @@ index 4b8895393e81349db56b7d3390af1d3753b11ca5..4a9df1e64388585e20cf2b424ee40866
      }
  
      public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
-@@ -145,6 +182,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -130,6 +167,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          if (fuse <= 0) {
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              //this.discard();
@@ -261,7 +261,7 @@ index 4b8895393e81349db56b7d3390af1d3753b11ca5..4a9df1e64388585e20cf2b424ee40866
              if (!this.level().isClientSide()) {
                  this.explode();
              }
-@@ -204,6 +242,11 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -189,6 +227,11 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          }
  
          EntityReference.store(this.owner, output, "owner");
@@ -273,7 +273,7 @@ index 4b8895393e81349db56b7d3390af1d3753b11ca5..4a9df1e64388585e20cf2b424ee40866
      }
  
      @Override
-@@ -212,6 +255,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -197,6 +240,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          this.setBlockState(input.read("block_state", BlockState.CODEC).orElse(DEFAULT_BLOCK_STATE));
          this.explosionPower = Mth.clamp(input.getFloatOr("explosion_power", 4.0F), 0.0F, 128.0F);
          this.owner = EntityReference.read(input, "owner");

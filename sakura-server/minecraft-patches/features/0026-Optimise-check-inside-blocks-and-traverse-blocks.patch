@@ -5,48 +5,52 @@ Subject: [PATCH] Optimise check inside blocks and traverse blocks
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 8e52774769d15e25f5bf1e2774d0c54876cf20a5..1a518a2cfb3d0847fa84539fa4c153d123a21593 100644
+index e9b622f4c3ee87a70cb55edf5cfd96098bb0eb49..738979e097b3d0625ac4c739f00e9a42c77ea4f2 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1985,6 +1985,7 @@ public abstract class Entity
-     private void checkInsideBlocks(final List<Entity.Movement> movements, final InsideBlockEffectApplier.StepBasedCollector effectCollector) {
+@@ -2023,6 +2023,7 @@ public abstract class Entity
          if (this.isAffectedByBlocks()) {
              LongSet visitedBlocks = this.visitedBlocks;
+             final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget; // Sakura - configure server mechanics
 +            final net.minecraft.world.level.chunk.ChunkAccess[] chunkCache = new net.minecraft.world.level.chunk.ChunkAccess[4]; // Sakura - optimise check inside blocks
  
              for (Entity.Movement movement : movements) {
                  Vec3 pos = movement.from;
-@@ -1995,16 +1996,16 @@ public abstract class Entity
+@@ -2040,7 +2041,7 @@ public abstract class Entity
                          double axisMove = delta.get(axis);
                          if (axisMove != 0.0) {
                              Vec3 to = pos.relative(axis.getPositive(), axisMove);
--                            maxMovementIterations -= this.checkInsideBlocks(pos, to, effectCollector, visitedBlocks, maxMovementIterations);
-+                            maxMovementIterations -= this.checkInsideBlocks(pos, to, effectCollector, visitedBlocks, maxMovementIterations, chunkCache); // Sakura - optimise check inside blocks
-                             pos = to;
+-                            final int stepsTaken = this.checkInsideBlocks(pos, to, effectCollector, visitedBlocks, maxMovementIterations);
++                            final int stepsTaken = this.checkInsideBlocks(pos, to, effectCollector, visitedBlocks, maxMovementIterations, chunkCache); // Sakura - optimise check inside blocks
+                             if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)) {
+                                 maxMovementIterations -= stepsTaken;
+                             }
+@@ -2048,12 +2049,12 @@ public abstract class Entity
                          }
                      }
-                 } else {
+                 } else if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
 -                    maxMovementIterations -= this.checkInsideBlocks(movement.from(), movement.to(), effectCollector, visitedBlocks, 16);
 +                    maxMovementIterations -= this.checkInsideBlocks(movement.from(), movement.to(), effectCollector, visitedBlocks, 16, chunkCache); // Sakura - optimise check inside blocks
                  }
  
-                 if (maxMovementIterations <= 0) {
+                 if (maxMovementIterations <= 0 || mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
+                     // Sakura end - configure server mechanics
 -                    this.checkInsideBlocks(movement.to(), movement.to(), effectCollector, visitedBlocks, 1);
 +                    this.checkInsideBlocks(movement.to(), movement.to(), effectCollector, visitedBlocks, 1, chunkCache); // Sakura - optimise check inside blocks
                  }
              }
  
-@@ -2017,7 +2018,8 @@ public abstract class Entity
+@@ -2066,7 +2067,8 @@ public abstract class Entity
          final Vec3 to,
          final InsideBlockEffectApplier.StepBasedCollector effectCollector,
          final LongSet visitedBlocks,
 -        final int maxMovementIterations
 +        final int maxMovementIterations,
-+        final net.minecraft.world.level.chunk.ChunkAccess[] chunkCache // Sakura - optimise check inside blocks
++        final net.minecraft.world.level.chunk.@Nullable ChunkAccess[] chunkCache // Sakura - optimise check inside blocks
      ) {
-         AABB deflatedBoundingBoxAtTarget = this.makeBoundingBox(to).deflate(1.0E-5F);
-         boolean movedFar = from.distanceToSqr(to) > Mth.square(0.9999900000002526);
-@@ -2035,7 +2037,20 @@ public abstract class Entity
+         // Sakura start - configure server mechanics
+         final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
+@@ -2097,7 +2099,20 @@ public abstract class Entity
                      return false;
                  } else {
                      iterations.set(iteration);

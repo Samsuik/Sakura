@@ -5,10 +5,10 @@ Subject: [PATCH] Add entity travel distance limits
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 38be3a05463842e50b25addd10a56858bf91b505..64fc5d2d0723b22519fbf47832236e31bcc39d56 100644
+index 05164477befe24a4f01ad18a0d763c402cf819df..b1bbb6f2c8c81173d2a3db3555ce78a9aaad07e9 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1419,6 +1419,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1414,6 +1414,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          final boolean isActive = io.papermc.paper.entity.activation.ActivationRange.checkIfActive(entity); // Paper - EAR 2
          if (isActive) { // Paper - EAR 2
          entity.tick();
@@ -21,7 +21,7 @@ index 38be3a05463842e50b25addd10a56858bf91b505..64fc5d2d0723b22519fbf47832236e31
          } else {entity.inactiveTick();} // Paper - EAR 2
          profiler.pop();
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 2e8004fd35c3cfb05648a2bb9ab95c30edbb2ce9..2cffb7e8798a28eeca3fc7d63cb721a48279a4b8 100644
+index a85e173b39e392b646bcdb7509ccfba02585f167..8c78d3b4f536baa98c278b4b6e467b279f5713a4 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -173,6 +173,18 @@ public abstract class Entity
@@ -43,7 +43,7 @@ index 2e8004fd35c3cfb05648a2bb9ab95c30edbb2ce9..2cffb7e8798a28eeca3fc7d63cb721a4
  
      // Paper start - Share random for entities to make them more random
      public static RandomSource SHARED_RANDOM = new RandomRandomSource();
-@@ -639,6 +651,7 @@ public abstract class Entity
+@@ -650,6 +662,7 @@ public abstract class Entity
          this.setPos(0.0, 0.0, 0.0);
          this.eyeHeight = this.dimensions.eyeHeight();
          this.despawnTime = level == null || type == EntityType.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit

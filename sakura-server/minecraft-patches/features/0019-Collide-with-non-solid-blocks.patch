@@ -5,35 +5,35 @@ Subject: [PATCH] Collide with non-solid blocks
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index ce13de98e45782a7042e6f232431605a64adb668..04168dc7010fe07c5f11d9e23fb2ffb4d2cb17ee 100644
+index 0cb1906c33589592ab42bef31569d55b5ffb9fd4..07ab8f4151fca1887fde8dc7942f810933c82bd9 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-@@ -1906,6 +1906,7 @@ public final class CollisionUtil {
+@@ -1905,6 +1905,7 @@ public final class CollisionUtil {
+     public static final int COLLISION_FLAG_CHECK_BORDER = 1 << 2;
      public static final int COLLISION_FLAG_CHECK_ONLY = 1 << 3;
      public static final int COLLISION_FLAG_ADD_TICKET = 1 << 4; // Sakura - load chunks on movement
-     public static final int COLLISION_FLAG_SKIP_EDGES = 1 << 5; // Sakura - configure server mechanics
 +    public static final int COLLISION_FLAG_FULL_BLOCKS = 1 << 6; // Sakura - collide with non-solid blocks
  
      public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
                                                                final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
-@@ -1960,6 +1961,7 @@ public final class CollisionUtil {
+@@ -1965,6 +1966,7 @@ public final class CollisionUtil {
+ 
          final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
          final boolean addTicket  = (collisionFlags & COLLISION_FLAG_ADD_TICKET) != 0; // Sakura - load chunks on movement
-         final boolean skipEdges  = (collisionFlags & COLLISION_FLAG_SKIP_EDGES) != 0; // Sakura - configure server mechanics
 +        final boolean fullBlocks = (collisionFlags & COLLISION_FLAG_FULL_BLOCKS) != 0; // Sakura - collide with non-solid blocks
          final ChunkSource chunkSource = world.getChunkSource();
  
          for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
-@@ -2002,7 +2004,7 @@ public final class CollisionUtil {
+@@ -2007,7 +2009,7 @@ public final class CollisionUtil {
                          continue;
                      }
  
--                    final boolean hasSpecial = !skipEdges && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - configure server mechanics
-+                    final boolean hasSpecial = !fullBlocks && !skipEdges && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - configure server mechanics
+-                    final boolean hasSpecial = ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks();
++                    final boolean hasSpecial = !fullBlocks && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - collide with non-solid blocks
                      final int sectionAdjust = !hasSpecial ? 1 : 0;
  
                      final PalettedContainer<BlockState> blocks = section.states;
-@@ -2041,6 +2043,11 @@ public final class CollisionUtil {
+@@ -2046,6 +2048,11 @@ public final class CollisionUtil {
                                      mutablePos.set(blockX, blockY, blockZ);
                                      if (useEntityCollisionShape) {
                                          blockCollision = collisionShape.getCollisionShape(blockData, world, mutablePos);
@@ -46,7 +46,7 @@ index ce13de98e45782a7042e6f232431605a64adb668..04168dc7010fe07c5f11d9e23fb2ffb4
                                          blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
                                      }
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index b04646182f2d37b7f3d1784695d1b2687aa2d9ca..2e8004fd35c3cfb05648a2bb9ab95c30edbb2ce9 100644
+index 3f4b0daf98c5c2bdd35420b18d987ccdf46bbacd..a85e173b39e392b646bcdb7509ccfba02585f167 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -563,6 +563,14 @@ public abstract class Entity

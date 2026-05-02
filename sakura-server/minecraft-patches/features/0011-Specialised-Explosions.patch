@@ -5,22 +5,10 @@ Subject: [PATCH] Specialised Explosions
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index ace3db39a29bbc534553a95a702b763de5d69ab1..38be3a05463842e50b25addd10a56858bf91b505 100644
+index ace3db39a29bbc534553a95a702b763de5d69ab1..05164477befe24a4f01ad18a0d763c402cf819df 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -273,6 +273,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
-         }
- 
-         return true;
-+||||||| expected
-+        return serverExplosion; // CraftBukkit
-+=======
-+        serverExplosion.getHitPlayers().clear(); // Sakura - specialised explosions
-+>>>>>>> replacement
-     }
- 
-     public final void loadChunksForMoveAsync(AABB box, ca.spottedleaf.concurrentutil.util.Priority priority,
-@@ -2023,7 +2028,14 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2023,7 +2023,14 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              case STANDARD -> Explosion.BlockInteraction.DESTROY; // CraftBukkit - handle custom explosion type
          };
          Vec3 center = new Vec3(x, y, z);
@@ -36,7 +24,7 @@ index ace3db39a29bbc534553a95a702b763de5d69ab1..38be3a05463842e50b25addd10a56858
          if (configurator != null) configurator.accept(explosion); // Paper - Allow explosions to damage source
          int blockCount = explosion.explode();
          // CraftBukkit start
-@@ -2031,6 +2043,29 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2031,6 +2038,29 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              return explosion;
          }
          // CraftBukkit end
@@ -66,17 +54,17 @@ index ace3db39a29bbc534553a95a702b763de5d69ab1..38be3a05463842e50b25addd10a56858
          ParticleOptions explosionParticle = explosion.isSmall() ? smallExplosionParticles : largeExplosionParticles;
  
          for (ServerPlayer player : this.players) {
-@@ -2058,7 +2093,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2058,7 +2088,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
          }
  
 -        return explosion; // CraftBukkit
-+        // Sakura - specialised explosions; moved up
++        explosion.getHitPlayers().clear(); // Sakura - specialised explosions
      }
  
      private Explosion.BlockInteraction getDestroyType(final GameRule<Boolean> gameRule) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 4a9df1e64388585e20cf2b424ee40866f47fddf1..f5fd2abc0bfb279c9f6f226273fea9487e440d85 100644
+index 72706e402add0ddaf206bec3b190d62ed3706ccb..1d86acc75a771ef83ae32ecd0b231ef87e776689 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -80,20 +80,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -102,7 +90,7 @@ index 4a9df1e64388585e20cf2b424ee40866f47fddf1..f5fd2abc0bfb279c9f6f226273fea948
      // Sakura end - merge cannon entities
  
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index fb95c9fcc44334b7e853885b893f445ede999658..a37be8d3cb0cc3594be99211dad9479da71ec32c 100644
+index 39a7c8d280d6e6cee8c5c9aecc8d98128c9216a2..546a3abe25a138beed1c16f8d18d01383022bfa4 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -319,6 +319,38 @@ public class ServerExplosion implements Explosion {

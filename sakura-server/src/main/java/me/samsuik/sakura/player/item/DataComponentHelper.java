@@ -20,9 +20,8 @@ public final class DataComponentHelper {
         return copyComponentsAndModifyMaxStackSize(components, bucketMaxStackSize());
     }
 
-    @SuppressWarnings("OptionalAssignedToNull")
     public static boolean itemHasComponent(final ItemStack stack, final DataComponentType<?> component) {
-        return stack.getComponentsPatch().get(component) != null;
+        return stack.getComponentsPatch().get(stack, component) != null;
     }
 
     public static DataComponentMap copyComponentsAndModifyMaxStackSize(final DataComponentMap componentMap, final int maxItemSize) {

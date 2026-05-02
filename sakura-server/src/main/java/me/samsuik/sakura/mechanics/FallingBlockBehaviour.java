@@ -17,7 +17,7 @@ public final class FallingBlockBehaviour {
             return true;
         }
         // This is patched by default on Paper.
-        if (mechanicsTarget.isServerType(me.samsuik.sakura.mechanics.ServerType.PAPER)) {
+        if (mechanicsTarget.isPaperOrDerivative()) {
             return true;
         }
         // todo: Entity#getOnPos might be a good alternative to this

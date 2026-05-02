@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise explosions in protected regions
 
 
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index e4949ad2bcb554d571a8c550cdd81b73609d048c..fb95c9fcc44334b7e853885b893f445ede999658 100644
+index 13e4e5089c74be3e253c5e338ae7e56b36e01b5e..39a7c8d280d6e6cee8c5c9aecc8d98128c9216a2 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -303,6 +303,22 @@ public class ServerExplosion implements Explosion {
@@ -18,10 +18,10 @@ index e4949ad2bcb554d571a8c550cdd81b73609d048c..fb95c9fcc44334b7e853885b893f445e
 +        // It tells us if the result was thrown away, so we can avoid the block searching logic.
 +        // As a side effect the event is called twice which may interfere with some plugins.
 +        if (this.source != null && this.level.sakuraConfig().cannons.explosion.optimiseProtectedRegions) {
-+            final Location location = new Location(this.level.getWorld(), this.center.x, this.center.y, this.center.z);
++            final org.bukkit.Location location = new org.bukkit.Location(this.level.getWorld(), this.center.x, this.center.y, this.center.z);
 +            final List<org.bukkit.block.Block> blocks = new ObjectArrayList<>(1);
 +            blocks.add(location.getBlock());
-+            final org.bukkit.event.entity.EntityExplodeEvent event = CraftEventFactory.callEntityExplodeEvent(this.source, blocks, 0.0f, this.blockInteraction);
++            final org.bukkit.event.entity.EntityExplodeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityExplodeEvent(this.source, blocks, 0.0f, this.blockInteraction);
 +            return !event.isCancelled() && !event.blockList().isEmpty();
 +        }
 +

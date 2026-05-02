@@ -5,10 +5,19 @@ Subject: [PATCH] Add maxSearch to getEntities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-index 12e70a92ed5f40b0f94284967df3b7cc2924c17b..28afdc26484fc8af90c8494862b43bd75bbe49ca 100644
+index 12e70a92ed5f40b0f94284967df3b7cc2924c17b..4ca5fddb72d03722ec33a18d6a82f57ae55d4b9a 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-@@ -336,7 +336,14 @@ public final class ChunkEntitySlices {
+@@ -66,6 +66,8 @@ public final class ChunkEntitySlices {
+         this.isTransient = value;
+     }
+ 
++    private final java.util.Random random = new java.util.Random(); // Sakura - add maxSearch to getEntities
++
+     public ChunkEntitySlices(final Level world, final int chunkX, final int chunkZ, final FullChunkStatus status,
+                              final ChunkData chunkData, final int minSection, final int maxSection) { // inclusive, inclusive
+         this.minSection = minSection;
+@@ -336,7 +338,14 @@ public final class ChunkEntitySlices {
  
      public boolean getEntities(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
                                 final int maxCount) {
@@ -24,7 +33,7 @@ index 12e70a92ed5f40b0f94284967df3b7cc2924c17b..28afdc26484fc8af90c8494862b43bd7
      }
  
      public <T extends Entity> void getEntities(final EntityType<?> type, final AABB box, final List<? super T> into,
-@@ -574,6 +581,13 @@ public final class ChunkEntitySlices {
+@@ -574,6 +583,13 @@ public final class ChunkEntitySlices {
  
          public boolean getEntitiesLimited(final Entity except, final AABB box, final List<Entity> into, final Predicate<? super Entity> predicate,
                                            final int maxCount) {
@@ -38,7 +47,7 @@ index 12e70a92ed5f40b0f94284967df3b7cc2924c17b..28afdc26484fc8af90c8494862b43bd7
              if (this.count == 0) {
                  return false;
              }
-@@ -595,8 +609,14 @@ public final class ChunkEntitySlices {
+@@ -595,8 +611,14 @@ public final class ChunkEntitySlices {
  
                  final Entity[] storage = list.storage;
  
@@ -46,7 +55,7 @@ index 12e70a92ed5f40b0f94284967df3b7cc2924c17b..28afdc26484fc8af90c8494862b43bd7
 -                    final Entity entity = storage[i];
 +                // Sakura start - add maxSearch to getEntities
 +                final int len = Math.min(storage.length, list.size());
-+                final int offset = this.slices.world.random.nextInt(len);
++                final int offset = this.slices.random.nextInt(len);
 +                for (int i = 0; i < len; ++i) {
 +                    final int pos = (i + offset) % len;
 +                    final Entity entity = storage[pos];

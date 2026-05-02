@@ -1,11 +1,11 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Samsuik <kfian294ma4@gmail.com>
 Date: Tue, 21 Nov 2023 17:03:08 +0000
-Subject: [PATCH] Configure cannon physics
+Subject: [PATCH] Configure server mechanics
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index c093f2295d6a0e1880897fe66bdcd64649aa667e..ce13de98e45782a7042e6f232431605a64adb668 100644
+index c093f2295d6a0e1880897fe66bdcd64649aa667e..0cb1906c33589592ab42bef31569d55b5ffb9fd4 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1774,6 +1774,13 @@ public final class CollisionUtil {
@@ -43,7 +43,7 @@ index c093f2295d6a0e1880897fe66bdcd64649aa667e..ce13de98e45782a7042e6f232431605a
 +                                         final List<VoxelShape> voxels,
 +                                         final List<AABB> aabbs,
 +                                         final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget) {
-+        if (mechanicsTarget != null && mechanicsTarget.isServerType(me.samsuik.sakura.mechanics.ServerType.PAPER) && mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2, me.samsuik.sakura.mechanics.MechanicVersion.v1_20_2)) {
++        if (mechanicsTarget != null && mechanicsTarget.isPaperOrDerivative() && mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2, me.samsuik.sakura.mechanics.MechanicVersion.v1_20_2)) {
 +            me.samsuik.sakura.mechanics.EntityBehaviour.convertVoxelsIntoAABBs(moveVector, axisalignedbb, voxels, aabbs);
 +        }
 +        // Sakura end - configure server mechanics
@@ -63,31 +63,29 @@ index c093f2295d6a0e1880897fe66bdcd64649aa667e..ce13de98e45782a7042e6f232431605a
  
          if (xSmaller && z != 0.0) {
              z = performAABBCollisionsZ(axisalignedbb, z, aabbs);
-@@ -1886,6 +1905,7 @@ public final class CollisionUtil {
-     public static final int COLLISION_FLAG_CHECK_BORDER = 1 << 2;
-     public static final int COLLISION_FLAG_CHECK_ONLY = 1 << 3;
-     public static final int COLLISION_FLAG_ADD_TICKET = 1 << 4; // Sakura - load chunks on movement
-+    public static final int COLLISION_FLAG_SKIP_EDGES = 1 << 5; // Sakura - configure server mechanics
+@@ -1937,6 +1956,13 @@ public final class CollisionUtil {
+         final int minChunkZ = minBlockZ >> 4;
+         final int maxChunkZ = maxBlockZ >> 4;
  
-     public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
-                                                               final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
-@@ -1939,6 +1959,7 @@ public final class CollisionUtil {
- 
++        // Sakura start - configure server mechanics
++        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = entity != null
++            ? entity.mechanicsTarget()
++            : me.samsuik.sakura.mechanics.MinecraftMechanicsTarget.latest();
++        final boolean brokenFloatAlignment = mechanicsTarget.isPaperOrDerivative() && mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2, me.samsuik.sakura.mechanics.MechanicVersion.v1_21_11);
++        // Sakura end - configure server mechanics
++
          final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
          final boolean addTicket  = (collisionFlags & COLLISION_FLAG_ADD_TICKET) != 0; // Sakura - load chunks on movement
-+        final boolean skipEdges  = (collisionFlags & COLLISION_FLAG_SKIP_EDGES) != 0; // Sakura - configure server mechanics
          final ChunkSource chunkSource = world.getChunkSource();
+@@ -2030,7 +2056,7 @@ public final class CollisionUtil {
  
-         for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
-@@ -1981,7 +2002,7 @@ public final class CollisionUtil {
-                         continue;
-                     }
- 
--                    final boolean hasSpecial = ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks();
-+                    final boolean hasSpecial = !skipEdges && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - configure server mechanics
-                     final int sectionAdjust = !hasSpecial ? 1 : 0;
- 
-                     final PalettedContainer<BlockState> blocks = section.states;
+                                         // Not using the epsilon violates the collision rules but this is what Vanilla does.
+                                         // Check BlockCollisions.class
+-                                        if (blockCollision == Shapes.block()) {
++                                        if (!brokenFloatAlignment && blockCollision == Shapes.block()) { // Sakura - configure server mechanics
+                                             if (!aabb.intersects(singleAABB)) {
+                                                 continue;
+                                             }
 diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
 index 4c456c2d1b42ecfcecb22ba2bf3819cab68206b8..7d2df500c90e0451ec2cf117f44413b3593fdd62 100644
 --- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
@@ -100,7 +98,7 @@ index 4c456c2d1b42ecfcecb22ba2bf3819cab68206b8..7d2df500c90e0451ec2cf117f44413b3
      }
  }
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index 751232d09f5570a23223356a6572090e7d61139b..4bd8940827ef74045cd009383a1f9132e04b8efc 100644
+index 751232d09f5570a23223356a6572090e7d61139b..b83a62296008e8fa3452f2bb0d03701b0cf03b0d 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
 @@ -407,6 +407,22 @@ public interface DispenseItemBehavior {
@@ -109,7 +107,7 @@ index 751232d09f5570a23223356a6572090e7d61139b..4bd8940827ef74045cd009383a1f9132
  
 +                    // Sakura start - configure server mechanics
 +                    final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicTarget = level.localConfig().at(target).mechanicsTarget;
-+                    if (!mechanicTarget.isServerType(me.samsuik.sakura.mechanics.ServerType.VANILLA)
++                    if (!mechanicTarget.isVanilla()
 +                        && mechanicTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_9)
 +                        && !mechanicTarget.isLegacy()) {
 +                        event.setVelocity(event.getVelocity().setY(event.getVelocity().getY() + 0.5));
@@ -127,19 +125,134 @@ index 751232d09f5570a23223356a6572090e7d61139b..4bd8940827ef74045cd009383a1f9132
                      // CraftBukkit end
                      level.addFreshEntity(tnt);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 66b50348888fa3c32f6ab0d0167b7cc6336ee3ef..b04646182f2d37b7f3d1784695d1b2687aa2d9ca 100644
+index 66b50348888fa3c32f6ab0d0167b7cc6336ee3ef..3f4b0daf98c5c2bdd35420b18d987ccdf46bbacd 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1377,7 +1377,7 @@ public abstract class Entity
+@@ -602,6 +602,17 @@ public abstract class Entity
+         }
+     }
+     // Sakura end - merge cannon entities
++    // Sakura start - configure server mechanics
++    private me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = me.samsuik.sakura.mechanics.MinecraftMechanicsTarget.latest();
++
++    public final void updateMechanicsTarget() {
++        this.mechanicsTarget = this.level.localConfig().at(this.blockPosition).mechanicsTarget;
++    }
++
++    public final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget() {
++        return this.mechanicsTarget;
++    }
++    // Sakura end - configure server mechanics
+ 
+     public Entity(final EntityType<?> type, final Level level) {
+         this.type = type;
+@@ -1149,7 +1160,7 @@ public abstract class Entity
+     }
+ 
+     protected void checkSupportingBlock(final boolean onGround, final @Nullable Vec3 movement) {
+-        if (onGround) {
++        if (onGround && this.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_20)) { // Sakura - configure server mechanics
+             AABB boundingBox = this.getBoundingBox();
+             AABB testArea = new AABB(boundingBox.minX, boundingBox.minY - 1.0E-6, boundingBox.minZ, boundingBox.maxX, boundingBox.minY, boundingBox.maxZ);
+             Optional<BlockPos> supportingBlock = this.level.findSupportingBlock(this, testArea);
+@@ -1203,7 +1214,10 @@ public abstract class Entity
+             this.verticalCollisionBelow = false;
+             this.minorHorizontalCollision = false;
+         } else {
+-            if (moverType == MoverType.PISTON) {
++            // Sakura start - configure server mechanics
++            final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
++            if (moverType == MoverType.PISTON && mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_11)) {
++                // Sakura end - configure server mechanics
+                 delta = this.limitPistonMovement(delta);
+                 // Paper start - EAR 2
+                 this.activatedTick = Math.max(this.activatedTick, net.minecraft.server.MinecraftServer.currentTick + 20);
+@@ -1217,7 +1231,7 @@ public abstract class Entity
+             ProfilerFiller profiler = Profiler.get();
+             profiler.push("move");
+             if (this.stuckSpeedMultiplier.lengthSqr() > 1.0E-7) {
+-                if (moverType != MoverType.PISTON) {
++                if (moverType != MoverType.PISTON || mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_10)) { // Sakura - configure server mechanics
+                     delta = delta.multiply(this.stuckSpeedMultiplier);
+                 }
+ 
+@@ -1235,10 +1249,22 @@ public abstract class Entity
+             delta = this.maybeBackOffFromEdge(delta, moverType);
+             Vec3 movement = this.collide(delta);
+             double movementLength = movement.lengthSqr();
+-            if (movementLength > 1.0E-7 || delta.lengthSqr() - movementLength < 1.0E-7) {
+-                if (this.fallDistance != 0.0 && movementLength >= 1.0) {
+-                    double checkDistance = Math.min(movement.length(), 8.0);
+-                    Vec3 checkTo = this.position().add(movement.normalize().scale(checkDistance));
++            // Sakura start - configure server mechanics
++            if (me.samsuik.sakura.mechanics.EntityBehaviour.canMoveEntity(movementLength, movement, mechanicsTarget)) {
++                if (this.fallDistance != 0.0 && movementLength >= 1.0 && mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
++                    final Vec3 checkTo;
++                    if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)) {
++                        final double movementDist = Math.sqrt(movementLength);
++                        final double checkDistance = Math.min(movementDist, 8.0);
++                        final double checkX = (movement.x() / movementDist) * checkDistance;
++                        final double checkY = (movement.y() / movementDist) * checkDistance;
++                        final double checkZ = (movement.z() / movementDist) * checkDistance;
++
++                        checkTo = this.position().add(checkX, checkY, checkZ);
++                    } else {
++                        checkTo = this.position().add(movement);
++                    }
++                    // Sakura end - configure server mechanics
+                     BlockHitResult hitResult = this.level()
+                         .clip(new ClipContext(this.position(), checkTo, ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
+                     if (hitResult.getType() != HitResult.Type.MISS) {
+@@ -1247,9 +1273,15 @@ public abstract class Entity
+                 }
+ 
+                 Vec3 pos = this.position();
+-                Vec3 newPosition = pos.add(movement);
+-                this.addMovementThisTick(new Entity.Movement(pos, newPosition, delta));
+-                this.setPos(newPosition);
++                // Sakura start - configure server mechanics
++                if (mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_6)) {
++                    me.samsuik.sakura.mechanics.EntityBehaviour.changeEntityPosition(this, pos, delta, mechanicsTarget);
++                } else {
++                    Vec3 newPosition = pos.add(movement);
++                    this.addMovementThisTick(new Entity.Movement(pos, newPosition, delta));
++                    this.setPos(newPosition);
++                }
++                // Sakura end - configure server mechanics
+             }
+ 
+             profiler.pop();
+@@ -1280,6 +1312,11 @@ public abstract class Entity
+             } else {
+                 if (this.horizontalCollision) {
+                     Vec3 vec3 = this.getDeltaMovement();
++                    // Sakura start - configure server mechanics
++                    if (xCollision && zCollision && mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_14, me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
++                        xCollision = false;
++                    }
++                    // Sakura end - configure server mechanics
+                     this.setDeltaMovement(xCollision ? 0.0 : vec3.x, vec3.y, zCollision ? 0.0 : vec3.z);
+                 }
+ 
+@@ -1377,7 +1414,7 @@ public abstract class Entity
          this.finalMovementsThisTick.clear();
          this.finalMovementsThisTick.addAll(this.movementThisTick);
          this.movementThisTick.clear();
 -        if (this.finalMovementsThisTick.isEmpty()) {
-+        if (this.finalMovementsThisTick.isEmpty() || this.mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_5)) {
++        if (this.finalMovementsThisTick.isEmpty() || this.mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_5)) { // Sakura - configure server mechanics
              this.finalMovementsThisTick.add(new Entity.Movement(this.oldPosition(), this.position()));
          } else if (this.finalMovementsThisTick.getLast().to.distanceToSqr(this.position()) > 9.9999994E-11F) {
              this.finalMovementsThisTick.add(new Entity.Movement(this.finalMovementsThisTick.getLast().to, this.position()));
-@@ -1788,7 +1788,7 @@ public abstract class Entity
+@@ -1659,7 +1696,7 @@ public abstract class Entity
+         double y = movement.y;
+         double z = movement.z;
+ 
+-        final boolean xSmaller = Math.abs(x) < Math.abs(z);
++        final boolean xSmaller = me.samsuik.sakura.mechanics.EntityBehaviour.prioritiseXFirst(x, z, this.mechanicsTarget); // Sakura - configure server mechanics
+         if (y != 0.0) {
+             y = this.scanY(currentBox, y, collisionsVoxel, collisionsBB);
+             if (y != 0.0) {
+@@ -1788,7 +1825,7 @@ public abstract class Entity
              ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER  | this.getExtraCollisionFlags(), null // Sakura - load chunks on movement
          );
          potentialCollisionsBB.addAll(entityAABBs);
@@ -148,21 +261,110 @@ index 66b50348888fa3c32f6ab0d0167b7cc6336ee3ef..b04646182f2d37b7f3d1784695d1b268
  
          final boolean collidedX = collided.x != movement.x;
          final boolean collidedY = collided.y != movement.y;
-diff --git a/net/minecraft/world/entity/Entity.javapscLxj b/net/minecraft/world/entity/Entity.javapscLxj
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+@@ -1917,25 +1954,37 @@ public abstract class Entity
+     private void checkInsideBlocks(final List<Entity.Movement> movements, final InsideBlockEffectApplier.StepBasedCollector effectCollector) {
+         if (this.isAffectedByBlocks()) {
+             LongSet visitedBlocks = this.visitedBlocks;
++            final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget; // Sakura - configure server mechanics
+ 
+             for (Entity.Movement movement : movements) {
+                 Vec3 pos = movement.from;
+                 Vec3 delta = movement.to().subtract(movement.from());
+                 int maxMovementIterations = 16;
+-                if (movement.axisDependentOriginalMovement().isPresent() && delta.lengthSqr() > 0.0) {
+-                    for (Direction.Axis axis : Direction.axisStepOrder(movement.axisDependentOriginalMovement().get())) {
++                // Sakura start - configure server mechanics
++                final Optional<Vec3> axisDependentMovement = movement.axisDependentOriginalMovement();
++                if (axisDependentMovement.isPresent() && delta.lengthSqr() > 0.0 && mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_5)) {
++                    final Vec3 stepOrderVec = mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)
++                        ? axisDependentMovement.get()
++                        : delta;
++
++                    // The axis order here may differ from the order during movement in versions below 1.21.9
++                    for (Direction.Axis axis : Direction.axisStepOrder(stepOrderVec)) {
+                         double axisMove = delta.get(axis);
+                         if (axisMove != 0.0) {
+                             Vec3 to = pos.relative(axis.getPositive(), axisMove);
+-                            maxMovementIterations -= this.checkInsideBlocks(pos, to, effectCollector, visitedBlocks, maxMovementIterations);
++                            final int stepsTaken = this.checkInsideBlocks(pos, to, effectCollector, visitedBlocks, maxMovementIterations);
++                            if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)) {
++                                maxMovementIterations -= stepsTaken;
++                            }
+                             pos = to;
+                         }
+                     }
+-                } else {
++                } else if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
+                     maxMovementIterations -= this.checkInsideBlocks(movement.from(), movement.to(), effectCollector, visitedBlocks, 16);
+                 }
+ 
+-                if (maxMovementIterations <= 0) {
++                if (maxMovementIterations <= 0 || mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
++                    // Sakura end - configure server mechanics
+                     this.checkInsideBlocks(movement.to(), movement.to(), effectCollector, visitedBlocks, 1);
+                 }
+             }
+@@ -1951,8 +2000,20 @@ public abstract class Entity
+         final LongSet visitedBlocks,
+         final int maxMovementIterations
+     ) {
+-        AABB deflatedBoundingBoxAtTarget = this.makeBoundingBox(to).deflate(1.0E-5F);
+-        boolean movedFar = from.distanceToSqr(to) > Mth.square(0.9999900000002526);
++        // Sakura start - configure server mechanics
++        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
++        final double margin;
++        if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
++            margin = 1.0e-5f;
++        } else if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_19_3)) {
++            margin = 1.0e-7f;
++        } else {
++            margin = 0.001;
++        }
++        AABB deflatedBoundingBoxAtTarget = this.makeBoundingBox(to).deflate(margin);
++        boolean movedFar = mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_10)
++            || from.distanceToSqr(to) > Mth.square(0.9999900000002526);
++        // Sakura end - configure server mechanics
+         boolean debugEntityBlockIntersections = this.level instanceof ServerLevel serverLevel
+             && serverLevel.getServer().debugSubscribers().hasAnySubscriberFor(DebugSubscriptions.ENTITY_BLOCK_INTERSECTIONS);
+         AtomicInteger iterations = new AtomicInteger();
+@@ -1960,6 +2021,7 @@ public abstract class Entity
+             from,
+             to,
+             deflatedBoundingBoxAtTarget,
++            mechanicsTarget, // Sakura - configure server mechanics
+             (blockIntersection, iteration) -> {
+                 if (!this.isAlive()) {
+                     return false;
+@@ -1979,7 +2041,7 @@ public abstract class Entity
+                         boolean insideBlock = intersectShape == Shapes.block()
+                             || this.collidedWithShapeMovingFrom(from, to, intersectShape.move(new Vec3(blockIntersection)).toAabbs());
+                         boolean insideFluid = this.collidedWithFluid(state.getFluidState(), blockIntersection, from, to);
+-                        if ((insideBlock || insideFluid) && visitedBlocks.add(blockIntersection.asLong())) {
++                        if (me.samsuik.sakura.mechanics.EntityBehaviour.canCheckInsideBlock(blockIntersection, insideBlock || insideFluid, visitedBlocks, mechanicsTarget)) { // Sakura - configure server mechanics
+                             if (insideBlock) {
+                                 try {
+                                     boolean isPrecise = movedFar || deflatedBoundingBoxAtTarget.intersects(blockIntersection);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index a66247beee27f9b521b2d167df3228da8a334624..089ca387316a0ddda7c56c11a3da023ba63d9b43 100644
+index dfdec5e6eb5ae23e88a6bc9ac92319f886384d1a..d49b899eb3fa842b4f2e3e8554c7d4fe3571af54 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -129,6 +129,18 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -77,7 +77,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+     // Sakura start - falling block height parity api
+     @Override
+     public double getEyeY() {
+-        return this.heightParity ? this.getY() : super.getEyeY();
++        return this.heightParity && !this.mechanicsTarget().isLegacy() ? this.getY() : super.getEyeY(); // Sakura - configure server mechanics
+     }
+     // Sakura end - falling block height parity api
+     // Sakura start - falling block stacking restrictions
+@@ -156,6 +156,18 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          return this.sakura$collide(movement);
      }
      // Sakura end - optimise cannon entity movement
 +    // Sakura start - configure server mechanics
 +    @Override
-+    public final double distanceToSqr(final Vec3 pos) {
-+        if (!this.mechanicsTarget.isLegacy()) {
++    public double distanceToSqr(final Vec3 pos) {
++        if (!this.mechanicsTarget().isLegacy()) {
 +            return super.distanceToSqr(pos);
 +        }
 +        final double x = this.getX() - pos.x;
@@ -174,52 +376,45 @@ index a66247beee27f9b521b2d167df3228da8a334624..089ca387316a0ddda7c56c11a3da023b
  
      public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
-@@ -149,12 +161,16 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
-         this.yo = y;
-         this.zo = z;
-         this.setStartPos(this.blockPosition());
+@@ -164,6 +176,10 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+         this.isFallingBlock = true; // Sakura - client visibility settings
+         this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
+         this.mergeData.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura - merge cannon entities
 +        // Sakura start - configure server mechanics
-+        this.mechanicsTarget = level.localConfig().at(this.blockPosition()).mechanicsTarget;
-+        this.eyeHeight = this.mechanicsTarget.isLegacy() ? 0.49f : this.eyeHeight;
++        this.updateMechanicsTarget();
++        this.eyeHeight = this.mechanicsTarget().isLegacy() ? 0.49f : this.eyeHeight;
 +        // Sakura end - configure server mechanics
      }
  
-     // Sakura start - falling block height parity api
-     @Override
-     public final double getEyeY() {
--        return this.heightParity ? this.getY() : super.getEyeY();
-+        return this.heightParity && !this.mechanicsTarget.isLegacy() ? this.getY() : super.getEyeY(); // Sakura - configure server mechanics
-     }
-     // Sakura end - falling block height parity api
-     // Sakura start - falling block stacking restrictions
-@@ -188,7 +204,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+     public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
+@@ -187,7 +203,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
          );
          if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.getFluidState().createLegacyBlock())) return entity; // CraftBukkit
 -        level.setBlock(pos, state.getFluidState().createLegacyBlock(), Block.UPDATE_ALL);
 +        // Sakura start - configure server mechanics
-+        if (entity.mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
++        if (entity.mechanicsTarget().atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
 +            level.setBlock(pos, state.getFluidState().createLegacyBlock(), Block.UPDATE_ALL);
 +        }
 +        // Sakura end - configure server mechanics
          level.addFreshEntity(entity);
          return entity;
      }
-@@ -232,7 +252,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -231,7 +251,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
  
      @Override
      protected double getDefaultGravity() {
 -        return 0.04;
-+        return this.mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_14) ? 0.04f : 0.04; // Sakura - configure server mechanics
++        return this.mechanicsTarget().before(me.samsuik.sakura.mechanics.MechanicVersion.v1_14) ? 0.04f : 0.04; // Sakura - configure server mechanics
      }
  
      @Override
-@@ -241,6 +261,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -240,6 +260,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
              Block block = this.blockState.getBlock();
 +            // Sakura start - configure server mechanics
-+            final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
++            final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget();
 +            if (this.time == 0 && mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
 +                me.samsuik.sakura.mechanics.FallingBlockBehaviour.removeBlockOnFall(this, block);
 +            }
@@ -227,7 +422,7 @@ index a66247beee27f9b521b2d167df3228da8a334624..089ca387316a0ddda7c56c11a3da023b
              this.time++;
              this.applyGravity();
              this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -255,9 +281,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -254,9 +280,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              }
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
@@ -238,12 +433,12 @@ index a66247beee27f9b521b2d167df3228da8a334624..089ca387316a0ddda7c56c11a3da023b
 +            // Sakura end - configure server mechanics
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
                  // Sakura start - fix falling block floating point errors
--                BlockPos blockPos = serverLevel.sakuraConfig().cannons.mechanics.fallingBlockFloatingPointFix
-+                BlockPos blockPos = serverLevel.sakuraConfig().cannons.mechanics.fallingBlockFloatingPointFix || mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_17) // Sakura - configure server mechanics
+-                BlockPos pos = serverLevel.sakuraConfig().cannons.mechanics.fallingBlockFloatingPointFix
++                BlockPos pos = serverLevel.sakuraConfig().cannons.mechanics.fallingBlockFloatingPointFix || mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_17) // Sakura - configure server mechanics
                      ? this.patchedBlockPosition()
                      : this.blockPosition();
                  // Sakura end - fix falling block floating point errors
-@@ -287,8 +318,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -286,8 +317,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
@@ -254,13 +449,12 @@ index a66247beee27f9b521b2d167df3228da8a334624..089ca387316a0ddda7c56c11a3da023b
 +                        ? 0.7f
 +                        : 0.7;
 +                    this.setDeltaMovement(this.getDeltaMovement().multiply(friction, -0.5, friction));
-+                    // todo: sakura-update: review flag1
-+                    if (!currentState.is(Blocks.MOVING_PISTON) && (flag1 || me.samsuik.sakura.mechanics.FallingBlockBehaviour.isAbleToStackOnBlock(this, mechanicsTarget))) {
++                    if (!currentState.is(Blocks.MOVING_PISTON) && (isStuckInWater || me.samsuik.sakura.mechanics.FallingBlockBehaviour.isAbleToStackOnBlock(this, mechanicsTarget))) {
 +                        // Sakura end - configure server mechanics
                          if (!this.cancelDrop) {
                              boolean mayReplace = currentState.canBeReplaced(
                                  new DirectionalPlaceContext(this.level(), pos, Direction.DOWN, ItemStack.EMPTY, Direction.UP)
-@@ -359,7 +396,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -358,7 +394,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                  }
              }
  
@@ -277,7 +471,7 @@ index a66247beee27f9b521b2d167df3228da8a334624..089ca387316a0ddda7c56c11a3da023b
      }
  
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 86769ddbab6598a1beaeb6580f95a23e98f869c5..193d7a1c5b624b48161c4bfde346a65b330c2972 100644
+index 96650e19466f15eccde8fc6ef27771648653bfc1..0bee019f161703bab07a300eeea959d71a19db5c 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -89,6 +89,23 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -287,12 +481,12 @@ index 86769ddbab6598a1beaeb6580f95a23e98f869c5..193d7a1c5b624b48161c4bfde346a65b
 +    // Sakura start - configure server mechanics
 +    @Override
 +    public final double getEyeY() {
-+        return this.mechanicsTarget.isLegacy() ? super.getEyeY() : this.getY();
++        return this.mechanicsTarget().isLegacy() ? super.getEyeY() : this.getY();
 +    }
 +
 +    @Override
 +    public final double distanceToSqr(final net.minecraft.world.phys.Vec3 pos) {
-+        if (!this.mechanicsTarget.isLegacy()) {
++        if (!this.mechanicsTarget().isLegacy()) {
 +            return super.distanceToSqr(pos);
 +        }
 +        final double x = this.getX() - pos.x;
@@ -309,31 +503,31 @@ index 86769ddbab6598a1beaeb6580f95a23e98f869c5..193d7a1c5b624b48161c4bfde346a65b
          }
          // Sakura end - configure cannon mechanics
 +        // Sakura start - configure server mechanics
-+        this.mechanicsTarget = level.localConfig().at(this.blockPosition()).mechanicsTarget;
-+        this.eyeHeight = this.mechanicsTarget.isLegacy() ? 0.49f : this.eyeHeight;
-+        if (this.mechanicsTarget.isLegacy()) {
++        this.updateMechanicsTarget();
++        this.eyeHeight = this.mechanicsTarget().isLegacy() ? 0.49f : this.eyeHeight;
++        if (this.mechanicsTarget().isLegacy()) {
 +            this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 0.0));
 +        }
 +        // Sakura end - configure server mechanics
      }
  
-     // Sakura start - optimise tnt fluid state
-@@ -149,7 +173,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+     @Override
+@@ -134,7 +158,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
  
      @Override
      protected double getDefaultGravity() {
 -        return 0.04;
-+        return this.mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_14) ? 0.04f : 0.04; // Sakura - configure server mechanics
++        return this.mechanicsTarget().before(me.samsuik.sakura.mechanics.MechanicVersion.v1_14) ? 0.04f : 0.04; // Sakura - configure server mechanics
      }
  
      @Override
-@@ -165,14 +189,23 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -150,14 +174,23 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
              return;
          }
          // Paper end - Configurable TNT height nerf
 -        this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
 +        // Sakura start - configure server mechanics
-+        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
++        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget();
 +        final double drag = mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_14)
 +            ? 0.98f
 +            : 0.98;
@@ -354,13 +548,13 @@ index 86769ddbab6598a1beaeb6580f95a23e98f869c5..193d7a1c5b624b48161c4bfde346a65b
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              //this.discard();
              this.tryToRespawnEntity(); // Sakura - merge cannon entities
-@@ -211,13 +244,19 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -196,13 +229,19 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
                  return;
              }
              // CraftBukkit end
 +            // Sakura start - configure server mechanics
 +            // Undocumented on the minecraft wiki but the explosion position did change in 1.10
-+            final double explosionY = this.mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_10)
++            final double explosionY = this.mechanicsTarget().before(me.samsuik.sakura.mechanics.MechanicVersion.v1_10)
 +                ? this.getY() + (double) 0.49f
 +                : this.getY(0.0625D);
 +            // Sakura end - configure server mechanics
@@ -375,12 +569,12 @@ index 86769ddbab6598a1beaeb6580f95a23e98f869c5..193d7a1c5b624b48161c4bfde346a65b
                      this.getZ(),
                      event.getRadius(), // CraftBukkit
                      event.getFire(), // CraftBukkit
-@@ -306,7 +345,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -291,7 +330,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
      // Paper start - Option to prevent TNT from moving in water
      @Override
      public boolean isPushedByFluid() {
 -        return !this.level().paperConfig().fixes.preventTntFromMovingInWater && this.level().sakuraConfig().cannons.mechanics.tntFlowsInWater  && super.isPushedByFluid(); // Sakura - configure cannon mechanics
-+        return !this.level().paperConfig().fixes.preventTntFromMovingInWater && this.level().sakuraConfig().cannons.mechanics.tntFlowsInWater && !this.mechanicsTarget.isLegacy() && super.isPushedByFluid(); // Sakura - configure server mechanics // Sakura - configure cannon mechanics
++        return !this.level().paperConfig().fixes.preventTntFromMovingInWater && this.level().sakuraConfig().cannons.mechanics.tntFlowsInWater && !this.mechanicsTarget().isLegacy() && super.isPushedByFluid(); // Sakura - configure server mechanics // Sakura - configure cannon mechanics
      }
      // Paper end - Option to prevent TNT from moving in water
  }
@@ -454,7 +648,7 @@ index 446ca8787231e40de2a6c62b0c4bf2aef9367455..1b2eaab42a615bf596011399794280ed
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 061b23137baa3a96fed1f0031b188b1f14e15fdc..d08bf878a53de5815982a827071eb8e0eabc7605 100644
+index 35e787d257c78e922831ef5fbc906340a34e0dd2..c3bf4b8fdc910ef31818af2f77c918c27da33f6a 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -370,6 +370,37 @@ public class ServerExplosion implements Explosion {
@@ -509,7 +703,7 @@ index 061b23137baa3a96fed1f0031b188b1f14e15fdc..d08bf878a53de5815982a827071eb8e0
                              hitResult = density != 0.0f ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
 +                            // Sakura start - configure server mechanics
 +                        } else if (entity.mechanicsTarget().before(me.samsuik.sakura.mechanics.MechanicVersion.v1_14)) {
-+                            hitResult = me.samsuik.sakura.mechanics.LegacyExplosionBlockClipping.clip(entity.level(), vec3, explosionVector);
++                            hitResult = me.samsuik.sakura.mechanics.LegacyExplosionBlockClipping.clip(entity.level(), from, center);
                          } else {
 -                            hitResult = entity.level().clip(new ClipContext(from, center, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType();
 +                            final ClipContext.Block blockContext = entity.mechanicsTarget().atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)
@@ -711,7 +905,7 @@ index 9496fdb50c13ea5ce30220244164e47c395f034f..a65ae7fa22a79e0619bcbd147c1927ea
      }
  
 diff --git a/net/minecraft/world/level/block/LiquidBlock.java b/net/minecraft/world/level/block/LiquidBlock.java
-index 268b915a1476ce37e0e7afd6e756196d032477f7..3c8f110ab6869c8534aa684b89222caf12100abe 100644
+index fb5e469aa2c98f53e3b2de28d7708169152f2677..9ea42a3caba83d3404f85cc07c8aa939f89eac23 100644
 --- a/net/minecraft/world/level/block/LiquidBlock.java
 +++ b/net/minecraft/world/level/block/LiquidBlock.java
 @@ -246,7 +246,14 @@ public class LiquidBlock extends Block implements BucketPickup {
@@ -776,7 +970,7 @@ index 2b6ad989e1e1424d0283bae39e5dae33eba44923..0eb40e2d41550d328eb66ae30299fc40
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-index 016d56f9de0f9fa78ff12543d588304b690d4f1b..5868fd196bfb05fe126cc7340940b26e5585f3e2 100644
+index a0992572a6bd4d1c9745195dbbefbf99959f6829..5a3be369119353ec5cf26b2e4e7f95b2abd396ee 100644
 --- a/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 @@ -121,6 +121,11 @@ public class PistonBaseBlock extends DirectionalBlock {
@@ -818,11 +1012,249 @@ index f8caa0b3c21766dbad73c524c1680346e4257188..5703513b1be21ccc898f6103e01f0174
          }
      }
  
-diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.javaK4VUQu b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.javaK4VUQu
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+index a1328b8bdf91e260cdaa7203d42cef88258afad8..30433fa880e3a68b3ef3dec7b808c083c65032c4 100644
+--- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
++++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+@@ -51,6 +51,164 @@ public class PistonMovingBlockEntity extends BlockEntity {
+     private @org.jspecify.annotations.Nullable Direction shapeDirection = null;
+     private float shapeProgress = Float.MIN_VALUE;
+     // Sakura end - cache moving block entity collision shape
++    // Sakura start - configure server mechanics
++    @org.jspecify.annotations.Nullable
++    private AABB getBoundsFromProgress(
++        final BlockGetter level,
++        final BlockPos pos,
++        final BlockState state,
++        final float progress,
++        final Direction dir,
++        final boolean absolute
++    ) {
++        if (state.is(Blocks.MOVING_PISTON) || state.isAir()) {
++            return null;
++        }
++
++        VoxelShape shape = this.movedState.getCollisionShape(level, pos);
++        if (shape.isEmpty()) {
++            return null;
++        }
++
++        if (absolute) {
++            shape = shape.move(pos.getX(), pos.getY(), pos.getZ());
++        }
++
++        final AABB bounds = shape.bounds();
++        double minX = bounds.minX;
++        double minY = bounds.minY;
++        double minZ = bounds.minZ;
++        double maxX = bounds.maxX;
++        double maxY = bounds.maxY;
++        double maxZ = bounds.maxZ;
++
++        if (dir.getStepX() < 0) {
++            minX -= (float) dir.getStepX() * progress;
++        } else {
++            maxX -= (float) dir.getStepX() * progress;
++        }
++
++        if (dir.getStepY() < 0) {
++            minY -= (float) dir.getStepY() * progress;
++        } else {
++            maxY -= (float) dir.getStepY() * progress;
++        }
++
++        if (dir.getStepZ() < 0) {
++            minZ -= (float) dir.getStepZ() * progress;
++        } else {
++            maxZ -= (float) dir.getStepZ() * progress;
++        }
++
++        return this.fixZeroWidthBB(new AABB(minX, minY, minZ, maxX, maxY, maxZ), dir);
++    }
++
++    private AABB fixZeroWidthBB(AABB bb, final Direction dir) {
++        // Legacy behaviour relied on entities being able to collide with zero width shapes
++        // This is no longer possible, so we have to create a difference here for it to work
++        final double expandX = bb.getXsize() == 0.0 ? 1.0e-5 * dir.getStepX() : 0.0;
++        final double expandY = bb.getYsize() == 0.0 ? 1.0e-5 * dir.getStepY() : 0.0;
++        final double expandZ = bb.getZsize() == 0.0 ? 1.0e-5 * dir.getStepZ() : 0.0;
++
++        if (expandX != 0 || expandY != 0 || expandZ != 0) {
++            bb = bb.expandTowards(expandX, expandY, expandZ);
++        }
++
++        return bb;
++    }
++
++    public final VoxelShape getCollisionShapeFromProgress(final BlockGetter level, final BlockPos pos) {
++        float progress = this.getProgress(0.0f);
++        if (this.extending) {
++            progress = 1.0F - progress;
++        }
++
++        final AABB bb = this.getBoundsFromProgress(level, pos, this.movedState, progress, this.direction, false);
++        return bb == null ? Shapes.empty() : Shapes.create(bb);
++    }
++
++    private void moveEntities(final Level level, final float relativeProgress) {
++        float remaining = this.progress;
++        if (this.extending) {
++            remaining = 1.0F - remaining;
++        } else {
++            --remaining;
++        }
++
++        final Direction direction = this.direction;
++        final AABB bb = this.getBoundsFromProgress(level, this.worldPosition, this.movedState, remaining, direction, true);
++        if (bb == null || bb.getSize() == 0.0) {
++            return;
++        }
++
++        for (final Entity entity : level.getEntities(null, bb)) {
++            if (this.movedState.is(Blocks.SLIME_BLOCK) && this.extending) {
++                final Vec3 movement = entity.getDeltaMovement();
++                double moveX = movement.x;
++                double moveY = movement.y;
++                double moveZ = movement.z;
++
++                switch (direction.getAxis()) {
++                    case X -> moveX = direction.getStepX();
++                    case Y -> moveY = direction.getStepY();
++                    case Z -> moveZ = direction.getStepZ();
++                }
++
++                entity.setDeltaMovement(moveX, moveY, moveZ);
++            } else {
++                final Vec3 pistonMovement = new Vec3(
++                    relativeProgress * (float) direction.getStepX(),
++                    relativeProgress * (float) direction.getStepY(),
++                    relativeProgress * (float) direction.getStepZ()
++                );
++                entity.move(MoverType.PISTON, pistonMovement);
++                entity.applyEffectsFromBlocks(entity.position(), entity.position());
++            }
++        }
++    }
++
++    private static void moveEntityByPistonInDirection(final Direction direction, final Entity entity, final AABB movingBB) {
++        final AABB entityBB = entity.getBoundingBox();
++        double moveX = 0.0;
++        double moveY = 0.0;
++        double moveZ = 0.0;
++
++        switch (direction.getAxis()) {
++            case X -> {
++                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++                    moveX = movingBB.maxX - entityBB.minX;
++                } else {
++                    moveX = entityBB.maxX - movingBB.minX;
++                }
++                moveX += 0.01D;
++            }
++            case Y -> {
++                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++                    moveY = movingBB.maxY - entityBB.minY;
++                } else {
++                    moveY = entityBB.maxY - movingBB.minY;
++                }
++                moveY += 0.01D;
++            }
++            case Z -> {
++                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++                    moveZ = movingBB.maxZ - entityBB.minZ;
++                } else {
++                    moveZ = entityBB.maxZ - movingBB.minZ;
++                }
++                moveZ += 0.01D;
++            }
++        }
++
++        final Vec3 pistonMovement = new Vec3(
++            moveX * direction.getStepX(),
++            moveY * direction.getStepY(),
++            moveZ * direction.getStepZ()
++        );
++        entity.move(MoverType.PISTON, pistonMovement);
++        entity.applyEffectsFromBlocks(entity.position(), entity.position());
++    }
++    // Sakura end - configure server mechanics
+ 
+     public PistonMovingBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
+         super(BlockEntityType.PISTON, worldPosition, blockState);
+@@ -175,6 +333,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
+ 
+                     double delta = 0.0;
+ 
++                    // Sakura start - configure server mechanics
++                    if (entity.mechanicsTarget().before(me.samsuik.sakura.mechanics.MechanicVersion.v1_11)) {
++                        moveEntityByPistonInDirection(movement, entity, aabb);
++                        return;
++                    }
++                    // Sakura end - configure server mechanics
+                     for (AABB shapeAabb : shapeAabbs) {
+                         AABB movingAABB = PistonMath.getMovementArea(moveByPositionAndProgress(pos, shapeAabb, self), movement, deltaProgress);
+                         AABB entityAabb = entity.getBoundingBox();
+@@ -202,6 +366,11 @@ public class PistonMovingBlockEntity extends BlockEntity {
+         NOCLIP.set(pistonDirection);
+         Vec3 previousPos = entity.position();
+         entity.move(MoverType.PISTON, new Vec3(delta * movement.getStepX(), delta * movement.getStepY(), delta * movement.getStepZ()));
++        // Sakura start - configure server mechanics
++        if (entity.mechanicsTarget().before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_5)) {
++            previousPos = entity.position();
++        }
++        // Sakura end - configure server mechanics
+         entity.applyEffectsFromBlocks(previousPos, entity.position());
+         entity.removeLatestMovementRecording();
+         NOCLIP.set(null);
+@@ -317,12 +486,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
+     }
+ 
+     public static void tick(final Level level, final BlockPos pos, final BlockState state, final PistonMovingBlockEntity entity) {
++        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = level.localConfig().at(pos).mechanicsTarget; // Sakura - configure server mechanics
+         entity.lastTicked = level.getGameTime();
+         entity.progressO = entity.progress;
+         if (entity.progressO >= 1.0F) {
+             if (level.isClientSide() && entity.deathTicks < 5) {
+                 entity.deathTicks++;
+             } else {
++                // Sakura start - configure server mechanics
++                if (mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_9, me.samsuik.sakura.mechanics.MechanicVersion.v1_10)) {
++                    moveCollidedEntities(level, pos, 1.0f, entity);
++                    moveStuckEntities(level, pos, 1.0f, entity);
++                } else if (mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_9)) {
++                    entity.moveEntities(level, 0.25f);
++                }
++                // Sakura end - configure server mechanics
+                 level.removeBlockEntity(pos);
+                 entity.setRemoved();
+                 if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
+@@ -342,12 +520,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
+             }
+         } else {
+             float newProgress = entity.progress + 0.5F;
+-            moveCollidedEntities(level, pos, newProgress, entity);
+-            moveStuckEntities(level, pos, newProgress, entity);
++            // Sakura start - configure server mechanics
++            if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_11)) {
++                moveCollidedEntities(level, pos, newProgress, entity);
++                moveStuckEntities(level, pos, newProgress, entity);
++            }
+             entity.progress = newProgress;
+             if (entity.progress >= 1.0F) {
+                 entity.progress = 1.0F;
+             }
++            if (mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_9, me.samsuik.sakura.mechanics.MechanicVersion.v1_10)) {
++                moveCollidedEntities(level, pos, newProgress, entity);
++                moveStuckEntities(level, pos, newProgress, entity);
++            } else if (entity.extending && mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_9)) {
++                entity.moveEntities(level, entity.progress - entity.progressO + 0.0625f);
++            }
++            // Sakura end - configure server mechanics
+         }
+     }
+ 
 diff --git a/net/minecraft/world/level/material/LavaFluid.java b/net/minecraft/world/level/material/LavaFluid.java
-index 8b9417ca6ac57587dfce553aef61b2a663f7d292..ef00b1771ec433c9495fa5255f0dd24ac9ec0495 100644
+index cffde590c457e7be053c268524fd9c7163cee9ad..b48a5e38f8c497486b1425315cdfa8c25a482769 100644
 --- a/net/minecraft/world/level/material/LavaFluid.java
 +++ b/net/minecraft/world/level/material/LavaFluid.java
 @@ -186,6 +186,11 @@ public abstract class LavaFluid extends FlowingFluid {

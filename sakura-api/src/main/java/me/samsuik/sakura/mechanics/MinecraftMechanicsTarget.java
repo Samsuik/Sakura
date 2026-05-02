@@ -53,6 +53,14 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
         return MinecraftVersionEncoding.isSnapshot(this.mechanicVersion);
     }
 
+    public boolean isVanilla() {
+        return this.serverType == ServerType.VANILLA;
+    }
+
+    public boolean isPaperOrDerivative() {
+        return this.serverType == ServerType.PAPER || this.serverType == ServerType.SAKE;
+    }
+
     public static MinecraftMechanicsTarget latest() {
         return LATEST;
     }

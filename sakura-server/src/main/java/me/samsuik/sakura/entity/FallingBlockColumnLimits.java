@@ -11,7 +11,7 @@ public final class FallingBlockColumnLimits {
     private final Long2ObjectOpenHashMap<Column> columns = new Long2ObjectOpenHashMap<>();
 
     public int count(final BlockPos pos) {
-        final long columnKey = ChunkPos.asLong(pos.getX(), pos.getZ());
+        final long columnKey = ChunkPos.pack(pos.getX(), pos.getZ());
         final Column column = this.columns.computeIfAbsent(columnKey, c -> new Column());
         return column.count(pos);
     }

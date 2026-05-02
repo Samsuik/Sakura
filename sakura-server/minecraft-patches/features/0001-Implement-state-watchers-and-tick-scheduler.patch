@@ -349,7 +349,7 @@ index 0000000000000000000000000000000000000000..27c6be86d09efc8d1ebc888d3a331b1b
 +}
 diff --git a/me/samsuik/sakura/tracking/block_change/BlockStateChangeTracker.java b/me/samsuik/sakura/tracking/block_change/BlockStateChangeTracker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..92dbe78fb569df4318b4458259b84bbbbc410a47
+index 0000000000000000000000000000000000000000..d97c73c95b7e4a61bd4b10453453f4561172110e
 --- /dev/null
 +++ b/me/samsuik/sakura/tracking/block_change/BlockStateChangeTracker.java
 @@ -0,0 +1,102 @@
@@ -403,7 +403,7 @@ index 0000000000000000000000000000000000000000..92dbe78fb569df4318b4458259b84bbb
 +        final ListeningToPositions listener = new ListeningToPositions(immutablePositions, identifier, filter, callback);
 +
 +        for (final BlockPos pos : immutablePositions) {
-+            final long chunkKey = ChunkPos.asLong(pos);
++            final long chunkKey = ChunkPos.pack(pos);
 +            final LongOpenHashSet chunkIdentifiers = this.chunkAssociatedIdentifiers.computeIfAbsent(chunkKey, k -> new LongOpenHashSet());
 +
 +            if (!chunkIdentifiers.add(identifier)) {
@@ -427,7 +427,7 @@ index 0000000000000000000000000000000000000000..92dbe78fb569df4318b4458259b84bbb
 +        }
 +
 +        for (final BlockPos pos : listener.positions()) {
-+            final long chunkKey = ChunkPos.asLong(pos);
++            final long chunkKey = ChunkPos.pack(pos);
 +            final LongOpenHashSet chunkIdentifiers = this.chunkAssociatedIdentifiers.get(chunkKey);
 +
 +            if (chunkIdentifiers == null || !chunkIdentifiers.remove(identifier)) {
@@ -734,14 +734,14 @@ index 0000000000000000000000000000000000000000..a5fa2dd230319dca30ba0e23b725d8ec
 +    }
 +}
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 90b3deaff372ac27d0f240489ce0076e8d155f20..c45ba4300abba0d7a15678c6c902777a43ea2cdd 100644
+index be729944f892a69698ef836f6101908b938bb78e..fd08ae73e857d55b5e32d034f8bc8fd0b9c7ee42 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -1887,6 +1887,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              profiler.pop();
              profiler.pop();
              level.explosionDensityCache.clear(); // Paper - Optimize explosions
-+            serverLevel.levelTickScheduler.tick(serverLevel); // Sakura - implement state watchers and tick scheduler
++            level.levelTickScheduler.tick(level); // Sakura - implement state watchers and tick scheduler
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
@@ -963,7 +963,7 @@ index e59787c1698e96df98ef4cf98d62b4a67c4e95dc..62ad0d316404fd80808a6cdcbf7413ed
      }
  
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 815410ac4c1e5ac61aefa5ab21b12e119b644b07..02a4a6181fb18b2f12c729697f9e5c12fc11144e 100644
+index 7c78bcf8bcbdc470dddd9ebe3660e690a38aa85f..04f4bca4395f947f3242bf85e622ba2ad2bd8652 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -100,7 +100,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -975,10 +975,10 @@ index 815410ac4c1e5ac61aefa5ab21b12e119b644b07..02a4a6181fb18b2f12c729697f9e5c12
      private static final List<Component> OP_NBT_WARNING = List.of(
          Component.translatable("item.op_warning.line1").withStyle(ChatFormatting.RED, ChatFormatting.BOLD),
          Component.translatable("item.op_warning.line2").withStyle(ChatFormatting.RED),
-@@ -251,6 +251,20 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
-         return !this.isEmpty() && this.components.hasNonDefault(type);
+@@ -259,6 +259,19 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+         return stackCopy;
      }
- 
+     // Sakura end - modify components sent to the client
 +    // Sakura start - implement state watchers and tick scheduler
 +    private final me.samsuik.sakura.tracking.ChangeWatchers<ItemStack> watchers = new me.samsuik.sakura.tracking.ChangeWatchers<>();
 +
@@ -992,11 +992,10 @@ index 815410ac4c1e5ac61aefa5ab21b12e119b644b07..02a4a6181fb18b2f12c729697f9e5c12
 +        this.watchers.remove(listener);
 +    }
 +    // Sakura end - implement state watchers and tick scheduler
-+
+ 
      public ItemStack(final ItemLike item, final int count) {
          this(item.asItem().builtInRegistryHolder(), count);
-     }
-@@ -989,11 +1003,16 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -989,11 +1002,16 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      // CraftBukkit start
      public void restorePatch(DataComponentPatch datacomponentpatch) {
          this.components.restorePatch(datacomponentpatch);
@@ -1014,7 +1013,7 @@ index 815410ac4c1e5ac61aefa5ab21b12e119b644b07..02a4a6181fb18b2f12c729697f9e5c12
      }
  
      public <T> @Nullable T set(final TypedDataComponent<T> value) {
-@@ -1014,7 +1033,11 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1014,7 +1032,11 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      }
  
      public <T> @Nullable T remove(final DataComponentType<? extends T> type) {
@@ -1027,7 +1026,7 @@ index 815410ac4c1e5ac61aefa5ab21b12e119b644b07..02a4a6181fb18b2f12c729697f9e5c12
      }
  
      public void applyComponentsAndValidate(final DataComponentPatch patch) {
-@@ -1332,6 +1355,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1332,6 +1354,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
  
      public void setCount(final int count) {
          this.count = count;

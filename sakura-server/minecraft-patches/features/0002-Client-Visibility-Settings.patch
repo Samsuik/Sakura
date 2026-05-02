@@ -48,7 +48,7 @@ index 42bfd4b3b626ef66b0f2ef8438add5342b367800..1125b25fe9dd130f4666ea37245acdb9
  
          private BlockEntityInfo(final int packedXZ, final int y, final BlockEntityType<?> type, final @Nullable CompoundTag tag) {
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index c705cff0e761ec3c97f940e826bcb3b069334c6c..4219d549a7684b009990d5c6bdf81e5c47d0777a 100644
+index b1a81e0a6b3d0cde7f7bf67a4c542abc5f1392d4..d6a7b003334b9cb867eab70dd94f1dfb5b0401a9 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
 @@ -171,6 +171,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
@@ -116,7 +116,7 @@ index c705cff0e761ec3c97f940e826bcb3b069334c6c..4219d549a7684b009990d5c6bdf81e5c
                      && this.entity.broadcastToPlayer(player)
                      && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
                  // Paper end - Configurable entity tracking range by Y
-+                flag = flag && this.checkEntityVisibility(player); // Sakura start - client visibility settings; entity visibility
++                visibleToPlayer &= this.checkEntityVisibility(player); // Sakura start - client visibility settings; entity visibility
                  // CraftBukkit start - respect vanish API
                  if (visibleToPlayer && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
                      visibleToPlayer = false;
@@ -173,13 +173,13 @@ index 898a0059586dbc6750a4b3968e5f4ae31aa87121..7a1b62df9f2c60898546ee44e182151e
              }
          }
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index f81867da3e43f976ac3ac1e520154e289f2bc71f..f38d7004328c52b1343829d427e58706785a4f09 100644
+index eb807af00ba960cfb0f8345eed56f1f62cdc3178..dc17919f1bd149ba2b965461ac63738029413a3e 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -485,6 +485,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
-         return this.viewDistanceHolder;
      }
      // Paper end - rewrite chunk system
+     public double trackingRangeModifier = 1.0; // Sakura - entity tracking range modifier api
 +    public final me.samsuik.sakura.player.visibility.PlayerVisibilitySettings visibilitySettings = new me.samsuik.sakura.player.visibility.PlayerVisibilitySettings(); // Sakura - client visibility settings
  
      public ServerPlayer(final MinecraftServer server, final ServerLevel level, final GameProfile gameProfile, final ClientInformation clientInformation) {
@@ -290,10 +290,10 @@ index 05ddf3debd87adc3fb29caa8bac058932bedbe3a..1dfef3c5e5e5cbd49cf299a09fe63b7f
      public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 4e1d0986add739cfbf972cc8ce207544dbcc911b..70abc2d83e3b7de712cc34b5495ba1f867f0e1e5 100644
+index a6c3f7be4b1c77cd9ebb0ebc25203f943eb96aad..c40487da0e8971b3704d461d2b44df57f843c691 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -78,6 +78,7 @@ public class FallingBlockEntity extends Entity {
+@@ -106,6 +106,7 @@ public class FallingBlockEntity extends Entity {
          super(type, level);
          this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
@@ -302,7 +302,7 @@ index 4e1d0986add739cfbf972cc8ce207544dbcc911b..70abc2d83e3b7de712cc34b5495ba1f8
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 6c1e1de3f08885f7a4d8efe5d9c6aa03fa57db29..a6bf1ee799a0bd072d38749966c048dba5e788d4 100644
+index 8c5b676a9ab97f0fe038996ba8801d1d34d3e549..ff4634479269a44e85302cc45c316da74d5319e4 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -64,6 +64,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {

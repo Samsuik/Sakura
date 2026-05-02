@@ -9,7 +9,7 @@ public final class DispenserGroup {
     private final Long2ObjectMap<BlockPos> columns = new Long2ObjectOpenHashMap<>();
 
     public BlockPos getSpawnPosition(final BlockPos pos) {
-        final long column = ChunkPos.asLong(pos.getX(), pos.getZ());
+        final long column = ChunkPos.pack(pos.getX(), pos.getZ());
         return this.columns.computeIfAbsent(column, c -> pos);
     }
 }
