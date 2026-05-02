@@ -1,21 +1,26 @@
 --- a/net/minecraft/world/level/material/LavaFluid.java
 +++ b/net/minecraft/world/level/material/LavaFluid.java
-@@ -194,9 +_,17 @@
-         return isFastLava(level) ? 10 : 30;
+@@ -189,6 +_,14 @@
+         return state.getHeight(level, pos) >= 0.44444445F && other.is(FluidTags.WATER);
      }
  
 +    // Sakura start - lava flow speed api
 +    @Override
-+    public final int getTickDelay(final Level world, final BlockPos pos) {
-+        final int flowSpeed = world.localConfig().at(pos).lavaFlowSpeed;
-+        return flowSpeed >= 0 ? flowSpeed : this.getTickDelay(world);
++    public final int sakura$getTickDelay(final Level level, final BlockPos pos) {
++        final int flowSpeed = level.localConfig().at(pos).lavaFlowSpeed;
++        return flowSpeed >= 0 ? flowSpeed : this.getTickDelay(level);
 +    }
 +    // Sakura end - lava flow speed api
 +
      @Override
+     public int getTickDelay(final LevelReader level) {
+         return isFastLava(level) ? 10 : 30;
+@@ -196,7 +_,7 @@
+ 
+     @Override
      public int getSpreadDelay(final Level level, final BlockPos pos, final FluidState oldFluidState, final FluidState newFluidState) {
 -        int result = this.getTickDelay(level);
-+        int tickDelay = this.getTickDelay(level, pos); // Sakura - lava flow speed api
++        int result = this.sakura$getTickDelay(level, pos); // Sakura - lava flow speed api
          if (!oldFluidState.isEmpty()
              && !newFluidState.isEmpty()
              && !oldFluidState.getValue(FALLING)
@@ -24,7 +29,7 @@
  
      private static boolean isFastLava(final LevelReader level) {
 +        // Sakura start - configure fast nether lava
-+        if (level instanceof Level gameLevel && gameLevel.sakuraConfig().environment.disableFastNetherLava) {
++        if (level instanceof final Level gameLevel && gameLevel.sakuraConfig().environment.disableFastNetherLava) {
 +            return false;
 +        }
 +        // Sakura end - configure fast nether lava

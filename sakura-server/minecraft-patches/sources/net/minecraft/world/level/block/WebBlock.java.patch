@@ -1,18 +1,9 @@
 --- a/net/minecraft/world/level/block/WebBlock.java
 +++ b/net/minecraft/world/level/block/WebBlock.java
-@@ -10,6 +_,7 @@
- import net.minecraft.world.level.block.state.BlockBehaviour;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.phys.Vec3;
-+import net.minecraft.world.phys.shapes.EntityCollisionContext;
- 
- public class WebBlock extends Block {
-     public static final MapCodec<WebBlock> CODEC = simpleCodec(WebBlock::new);
-@@ -22,6 +_,31 @@
-     public WebBlock(final BlockBehaviour.Properties properties) {
+@@ -23,6 +_,31 @@
          super(properties);
      }
-+
+ 
 +    // Sakura start - configure players colliding with cobwebs
 +    @Override
 +    protected final net.minecraft.world.phys.shapes.VoxelShape getCollisionShape(
@@ -21,15 +12,15 @@
 +        final BlockPos pos,
 +        final net.minecraft.world.phys.shapes.CollisionContext context
 +    ) {
-+        if (blockGetter instanceof Level level
-+            && level.sakuraConfig().players.collideWithCobwebs
-+            && context instanceof EntityCollisionContext entityContext
++        if (blockGetter instanceof final Level gameLevel
++            && gameLevel.sakuraConfig().players.collideWithCobwebs
++            && context instanceof net.minecraft.world.phys.shapes.EntityCollisionContext entityContext
 +            && entityContext.getEntity() instanceof net.minecraft.world.entity.player.Player) {
 +            final BlockPos blockPosAbove = pos.above();
-+            final BlockState stateAbove = level.getBlockState(blockPosAbove);
++            final BlockState stateAbove = gameLevel.getBlockState(blockPosAbove);
 +
 +            // If the block above is a full block then this cobweb should have a solid collision (for players)
-+            if (stateAbove.getCollisionShape(level, blockPosAbove, context).moonrise$isFullBlock()) {
++            if (stateAbove.getCollisionShape(gameLevel, blockPosAbove, context).moonrise$isFullBlock()) {
 +                return net.minecraft.world.phys.shapes.Shapes.block();
 +            }
 +        }
@@ -37,6 +28,7 @@
 +        return super.getCollisionShape(state, blockGetter, pos, context);
 +    }
 +    // Sakura end - configure players colliding with cobwebs
- 
++
      @Override
      protected void entityInside(
+         final BlockState state,

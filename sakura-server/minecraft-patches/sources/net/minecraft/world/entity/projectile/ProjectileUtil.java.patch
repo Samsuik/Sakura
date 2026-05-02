@@ -1,19 +1,21 @@
 --- a/net/minecraft/world/entity/projectile/ProjectileUtil.java
 +++ b/net/minecraft/world/entity/projectile/ProjectileUtil.java
-@@ -75,7 +_,15 @@
+@@ -75,7 +_,17 @@
              to = hitResult.getLocation();
          }
  
 -        HitResult entityHit = getEntityHitResult(level, source, from, to, source.getBoundingBox().expandTowards(delta).inflate(1.0), matching, entityMargin);
 +        // Sakura start - configure potion mechanics
-+        final AABB movementAABB = source.getBoundingBox().expandTowards(deltaMovement).inflate(1.0);
-+        final HitResult entityHitResult;
-+        if (level.sakuraConfig().entity.thrownPotion.allowBreakingInsideEntities && source instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.AbstractThrownPotion) {
-+            entityHitResult = getEntityHitResult(source, pos, vec3, movementAABB, filter, margin);
++        final AABB collisionBox = source.getBoundingBox().expandTowards(delta).inflate(1.0);
++        final HitResult entityHit;
++        if (level.sakuraConfig().entity.thrownPotion.allowBreakingInsideEntities
++            && source instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.AbstractThrownPotion) {
++            entityHit = getEntityHitResult(source, from, to, collisionBox, matching, entityMargin);
 +        } else {
-+            entityHitResult = getEntityHitResult(level, source, pos, vec3, movementAABB, filter, margin);
++            entityHit = getEntityHitResult(level, source, from, to, collisionBox, matching, entityMargin);
 +        }
 +        // Sakura end - configure potion mechanics
++
          if (entityHit != null) {
              hitResult = entityHit;
          }

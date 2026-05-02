@@ -23,7 +23,7 @@
          if (tickDelay == -1) { return; } // If disabled
          // Paper end - Configurable mob spawner tick rate
 -        if (this.isNearPlayer(level, pos) && level.isSpawnerBlockEnabled()) {
-+        if (!level.sakuraConfig().environment.mobSpawner.requireNearbyPlayer || this.isNearPlayer(level, pos)) { // Sakura - configure mob spawner behaviour
++        if ((!level.sakuraConfig().environment.mobSpawner.requireNearbyPlayer || this.isNearPlayer(level, pos)) && level.isSpawnerBlockEnabled()) { // Sakura - configure mob spawner behaviour
              if (this.spawnDelay < -tickDelay) { // Paper - Configurable mob spawner tick rate
                  this.delay(level, pos);
              }
@@ -32,7 +32,7 @@
                                      continue;
                                  }
 -                            } else if (!SpawnPlacements.checkSpawnRules(entityType.get(), level, EntitySpawnReason.SPAWNER, spawnBlockPos, level.getRandom())) {
-+                            } else if (level.sakuraConfig().environment.mobSpawner.checkSpawnConditions && !SpawnPlacements.checkSpawnRules(optional.get(), level, EntitySpawnReason.SPAWNER, pos, level.getRandom())) { // Sakura - configure mob spawner behaviour
++                            } else if (level.sakuraConfig().environment.mobSpawner.checkSpawnConditions && !SpawnPlacements.checkSpawnRules(entityType.get(), level, EntitySpawnReason.SPAWNER, spawnBlockPos, level.getRandom())) { // Sakura - configure mob spawner behaviour
                                  continue;
                              }
  
@@ -47,11 +47,11 @@
 -                                )
 -                                .size();
 +                            // Sakura start - configure mob spawner behaviour
-+                            final int size;
++                            final int nearBy;
 +                            if (level.sakuraConfig().environment.mobSpawner.ignoreEntityLimit) {
-+                                size = 0;
++                                nearBy = 0;
 +                            } else {
-+                                size = level.getEntities(
++                                nearBy = level.getEntities(
 +                                        EntityTypeTest.forExactClass(entity.getClass()),
 +                                        new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1).inflate(this.spawnRange),
 +                                        EntitySelector.NO_SPECTATORS
@@ -62,17 +62,13 @@
                              if (nearBy >= this.maxNearbyEntities) {
                                  this.delay(level, pos);
                                  return;
-@@ -170,8 +_,11 @@
+@@ -170,8 +_,7 @@
  
                              entity.snapTo(entity.getX(), entity.getY(), entity.getZ(), random.nextFloat() * 360.0F, 0.0F);
                              if (entity instanceof Mob mob) {
 -                                if (nextSpawnData.getCustomSpawnRules().isEmpty() && !mob.checkSpawnRules(level, EntitySpawnReason.SPAWNER)
 -                                    || !mob.checkSpawnObstruction(level)) {
-+                                // Sakura start - configure mob spawner behaviour
-+                                if (level.sakuraConfig().environment.mobSpawner.checkSpawnConditions &&
-+                                    (nextSpawnData.getCustomSpawnRules().isEmpty() && !mob.checkSpawnRules(level, EntitySpawnReason.SPAWNER)
-+                                        || !mob.checkSpawnObstruction(level))) {
-+                                    // Sakura end - configure mob spawner behaviour
++                                if (level.sakuraConfig().environment.mobSpawner.checkSpawnConditions && (nextSpawnData.getCustomSpawnRules().isEmpty() && !mob.checkSpawnRules(level, EntitySpawnReason.SPAWNER) || !mob.checkSpawnObstruction(level))) { // Sakura - configure mob spawner behaviour
                                      continue;
                                  }
  

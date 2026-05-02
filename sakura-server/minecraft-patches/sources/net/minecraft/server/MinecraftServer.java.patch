@@ -1,9 +1,17 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -313,6 +_,17 @@
-         thread.start();
-         return server;
+@@ -333,6 +_,7 @@
+     public volatile boolean abnormalExit; // Paper - Improved watchdog support
+     public volatile Thread shutdownThread; // Paper - Improved watchdog support
+     public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
++    public final me.samsuik.sakura.configuration.SakuraConfigurations sakuraConfigurations; // Sakura - sakura configuration files
+     public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
+     private final Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
+     public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
+@@ -512,6 +_,17 @@
+         LOGGER.warn("Performed emergency save");
      }
+     // Paper end - rewrite chunk system
 +    // Sakura start - track tick information
 +    private final me.samsuik.sakura.tps.TickInformationCollector tickInformationCollector = new me.samsuik.sakura.tps.TickInformationCollector();
 +
@@ -16,16 +24,8 @@
 +    }
 +    // Sakura end - track tick information
  
-     // CraftBukkit start
-     public final WorldLoader.DataLoadContext worldLoaderContext;
-@@ -333,6 +_,7 @@
-     public volatile boolean abnormalExit; // Paper - Improved watchdog support
-     public volatile Thread shutdownThread; // Paper - Improved watchdog support
-     public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
-+    public final me.samsuik.sakura.configuration.SakuraConfigurations sakuraConfigurations; // Sakura
-     public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
-     private final Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
-     public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
+     public MinecraftServer(
+         // CraftBukkit start
 @@ -604,6 +_,10 @@
          Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
          // CraftBukkit end

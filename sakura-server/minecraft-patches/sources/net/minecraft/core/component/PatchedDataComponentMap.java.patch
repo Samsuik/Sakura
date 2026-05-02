@@ -1,16 +1,16 @@
 --- a/net/minecraft/core/component/PatchedDataComponentMap.java
 +++ b/net/minecraft/core/component/PatchedDataComponentMap.java
-@@ -31,6 +_,13 @@
-         this.copyOnWrite = copyOnWrite;
-     }
+@@ -19,6 +_,13 @@
+     private Reference2ObjectMap<DataComponentType<?>, Optional<?>> patch;
+     private boolean copyOnWrite;
  
 +    // Sakura start - modify components sent to the client
-+    public <T> void sakura$patchComponent(final DataComponentType<T> component, final @Nullable T newValue) {
++    public <T> void sakura$patchComponent(final DataComponentType<T> prototype, final @Nullable T newValue) {
 +        this.ensureMapOwnership();
-+        this.patch.put(component, Optional.ofNullable(newValue));
++        this.patch.put(prototype, Optional.ofNullable(newValue));
 +    }
 +    // Sakura end - modify components sent to the client
 +
-     public static PatchedDataComponentMap fromPatch(final DataComponentMap prototype, final DataComponentPatch patch) {
-         if (isPatchSanitized(prototype, patch.map)) {
-             return new PatchedDataComponentMap(prototype, patch.map, true);
+     public PatchedDataComponentMap(final DataComponentMap prototype) {
+         this(prototype, Reference2ObjectMaps.emptyMap(), true);
+     }

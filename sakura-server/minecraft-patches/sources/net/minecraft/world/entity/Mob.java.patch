@@ -13,8 +13,8 @@
 +    }
 +
 +    @Override
-+    protected boolean updateInWaterStateAndDoFluidPushing() {
-+        return this.isAwareOnGroundOrSwimming() && super.updateInWaterStateAndDoFluidPushing();
++    protected boolean updateFluidInteraction() {
++        return this.isAwareOnGroundOrSwimming() && super.updateFluidInteraction();
 +    }
 +
 +    @Override
@@ -30,19 +30,11 @@
          if (level instanceof ServerLevel) {
              this.registerGoals();
          }
-+        // Sakura start - add disable mob ai
++        // Sakura start - configure mob ai
 +        if (this.level().sakuraConfig().entity.disableMobAi) {
 +            this.aware = false;
 +        }
-+        // Sakura end - end disable mob ai
++        // Sakura end - configure mob ai
      }
  
      protected void registerGoals() {
-@@ -216,6 +_,7 @@
-     public void inactiveTick() {
-         super.inactiveTick();
-         if (!this.aware) return; // Paper - Do not tick AI for inactive unaware mobs
-+        if (!this.aware) return; // Sakura - fix nerfed mobs ticking goals while inactive
-         if (this.goalSelector.inactiveTick()) {
-             this.goalSelector.tick();
-         }

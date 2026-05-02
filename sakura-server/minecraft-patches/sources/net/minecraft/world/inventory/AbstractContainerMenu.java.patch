@@ -5,7 +5,7 @@
          for (int slotsSize = this.slots.size(); i < slotsSize; i++) {
              ItemStack slotContents = this.slots.get(i).getItem();
 -            itemsToSend.add(slotContents.copy());
-+            list.add(item.copyForPacket()); // Sakura - modify components sent to the client
++            itemsToSend.add(slotContents.copyForPacket()); // Sakura - modify components sent to the client
              this.remoteSlots.get(i).force(slotContents);
          }
  
@@ -14,7 +14,7 @@
  
          if (this.synchronizer != null) {
 -            this.synchronizer.sendInitialData(this, itemsToSend, carried.copy(), this.remoteDataSlots.toIntArray());
-+            this.synchronizer.sendInitialData(this, list, carried.copyForPacket(), this.remoteDataSlots.toIntArray()); // Sakura - modify components sent to the client
++            this.synchronizer.sendInitialData(this, itemsToSend, carried.copyForPacket(), this.remoteDataSlots.toIntArray()); // Sakura - modify components sent to the client
              this.synchronizer.sendOffHandSlotChange(); // Paper - Sync offhand slot in menus; update player's offhand since the offhand slot is not added to the slots for menus but can be changed by swapping from a menu slot
          }
      }
@@ -32,7 +32,7 @@
          if (!this.suppressRemoteUpdates) {
              RemoteSlot remoteExpected = this.remoteSlots.get(i);
 -            if (!remoteExpected.matches(current)) {
-+            if (!remoteSlot.matches(stack) && !remoteSlot.matches(stack.copyForPacket())) { // Sakura - modify components sent to the client
++            if (!remoteExpected.matches(current) && !remoteExpected.matches(current.copyForPacket())) { // Sakura - modify components sent to the client
                  remoteExpected.force(current);
                  if (this.synchronizer != null) {
                      this.synchronizer.sendSlotChange(this, i, currentCopy.get());
@@ -41,7 +41,7 @@
              ItemStack carriedItem = this.getCarried();
              if (!this.remoteCarried.matches(carriedItem)) {
 +                // Sakura start - modify components sent to the client
-+                final ItemStack modifiedItem = carried.copyForPacket();
++                final ItemStack modifiedItem = carriedItem.copyForPacket();
 +                if (this.remoteCarried.matches(modifiedItem)) {
 +                    return;
 +                }

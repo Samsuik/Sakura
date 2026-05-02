@@ -1,24 +1,24 @@
 --- a/net/minecraft/world/entity/projectile/ThrowableProjectile.java
 +++ b/net/minecraft/world/entity/projectile/ThrowableProjectile.java
-@@ -22,6 +_,12 @@
-         this.setPos(x, y, z);
-     }
+@@ -13,6 +_,12 @@
+ public abstract class ThrowableProjectile extends Projectile {
+     private static final float MIN_CAMERA_DISTANCE_SQUARED = 12.25F;
  
-+    // Sakura start - enderpearls use outline for collision
++    // Sakura start - configure enderpearl mechanics
 +    protected net.minecraft.world.level.ClipContext.Block getClipType() {
 +        return net.minecraft.world.level.ClipContext.Block.COLLIDER;
 +    }
-+    // Sakura end - enderpearls use outline for collision
++    // Sakura end - configure enderpearl mechanics
 +
-     @Override
-     public boolean shouldRenderAtSqrDistance(final double distance) {
-         if (this.tickCount < 2 && distance < 12.25) {
+     protected ThrowableProjectile(final EntityType<? extends ThrowableProjectile> type, final Level level) {
+         super(type, level);
+     }
 @@ -47,7 +_,7 @@
          this.handleFirstTickBubbleColumn();
          this.applyGravity();
          this.applyInertia();
 -        HitResult result = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
-+        HitResult hitResultOnMoveVector = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, this.getClipType()); // Sakura - enderpearls use outline for collision
++        HitResult result = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, this.getClipType()); // Sakura - configure enderpearl mechanics
          Vec3 newPosition;
          if (result.getType() != HitResult.Type.MISS) {
              newPosition = result.getLocation();

@@ -1,30 +1,23 @@
 --- a/net/minecraft/world/level/block/SugarCaneBlock.java
 +++ b/net/minecraft/world/level/block/SugarCaneBlock.java
-@@ -48,6 +_,19 @@
+@@ -48,6 +_,20 @@
  
      @Override
      protected void randomTick(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
 +        // Sakura start - use random chance for crop growth
++        BlockState agedState = state;
 +        if (level.sakuraConfig().environment.crops.useRandomChanceToGrow) {
 +            final int modifier = level.spigotConfig.caneModifier;
 +            if (random.nextFloat() >= modifier / (100.0f * 16)) {
 +                return;
 +            }
 +            // set crop age to max so it grows right away
-+            state = state.setValue(SugarCaneBlock.AGE, AGE.max);
++            agedState = state.setValue(SugarCaneBlock.AGE, AGE.max);
 +        }
-+        this.ageAndGrow(state, level, pos, random);
++        this.ageAndGrow(agedState, level, pos, random);
 +    }
 +    private void ageAndGrow(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
 +        // Sakura end - use random chance for crop growth
          if (level.isEmptyBlock(pos.above())) {
              int height = 1;
  
-@@ -61,6 +_,7 @@
-                 if (age >= 15 || (modifier != 100 && random.nextFloat() < (modifier / (100.0F * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
-                     org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos.above(), this.defaultBlockState(), Block.UPDATE_ALL); // CraftBukkit
-                     level.setBlock(pos, state.setValue(AGE, 0), Block.UPDATE_NONE);
-+                    // Sakura - use random chance for crop growth; conflict on change
-                 } else if (modifier == 100 || random.nextFloat() < (modifier / (100.0F * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
-                     level.setBlock(pos, state.setValue(AGE, age + 1), Block.UPDATE_NONE);
-                 }

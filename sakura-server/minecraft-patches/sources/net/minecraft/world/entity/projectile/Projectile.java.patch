@@ -1,14 +1,19 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
-@@ -50,6 +_,12 @@
-         super(type, level);
-     }
+@@ -46,10 +_,17 @@
+     private @Nullable Entity lastDeflectedBy;
+     protected boolean hitCancelled = false; // CraftBukkit
  
 +    // Sakura start - configure potion mechanics
 +    protected boolean breakInsideOwner() {
 +        return false;
 +    }
 +    // Sakura end - configure potion mechanics
++
+     protected Projectile(final EntityType<? extends Projectile> type, final Level level) {
+         super(type, level);
+     }
+ 
 +
      protected void setOwner(final @Nullable EntityReference<Entity> owner) {
          this.owner = owner;
@@ -18,7 +23,7 @@
              }
              // Paper end - Cancel hit for vanished entities
 -            return owner == null || this.leftOwner || !owner.isPassengerOfSameVehicle(entity);
-+            return owner == null || this.leftOwner || this.breakInsideOwner() || !owner.isPassengerOfSameVehicle(target); // Sakura - configure potion mechanics
++            return owner == null || this.leftOwner || this.breakInsideOwner() || !owner.isPassengerOfSameVehicle(entity); // Sakura - configure potion mechanics
          }
      }
  

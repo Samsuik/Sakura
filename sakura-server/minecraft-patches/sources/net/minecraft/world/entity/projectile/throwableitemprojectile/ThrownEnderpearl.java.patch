@@ -1,65 +1,69 @@
 --- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
-@@ -39,6 +_,31 @@
-         super(EntityType.ENDER_PEARL, mob, level, itemStack);
-     }
+@@ -31,6 +_,34 @@
+ public class ThrownEnderpearl extends ThrowableItemProjectile {
+     private long ticketTimer = 0L;
  
-+    // Sakura start - enderpearls use outline for collision
++    // Sakura start - configure enderpearl mechanics
 +    @Override
 +    protected final net.minecraft.world.level.ClipContext.Block getClipType() {
 +        return this.level().sakuraConfig().entity.enderPearl.useOutlineForCollision
 +            ? net.minecraft.world.level.ClipContext.Block.OUTLINE
 +            : super.getClipType();
 +    }
-+    // Sakura end - enderpearls use outline for collision
-+    // Sakura start - configure enderpearls being slowed down by water
++
 +    @Override
-+    public final boolean isInWater() {
++    public boolean isInWater() {
 +        return super.isInWater() && this.level().sakuraConfig().entity.enderPearl.slowedDownByWater;
 +    }
-+    // Sakura end - configure enderpearls being slowed down by water
-+    // Sakura start - configure enderpearls random spread
++
 +    @Override
-+    public final Vec3 getMovementToShoot(final double x, final double y, final double z, final float velocity, final float inaccuracy) {
++    public Vec3 getMovementToShoot(
++        final double x,
++        final double y,
++        final double z,
++        final float velocity,
++        final float inaccuracy
++    ) {
 +        final float randomness = this.level().sakuraConfig().entity.enderPearl.randomSpreadWhenThrown
 +            ? inaccuracy
 +            : 0.0f;
 +        return super.getMovementToShoot(x, y, z, velocity, randomness);
 +    }
-+    // Sakura end - configure enderpearls random spread
++    // Sakura end - configure enderpearl mechanics
 +
-+
-     @Override
-     public Item getDefaultItem() {
-         return Items.ENDER_PEARL;
-@@ -101,6 +_,21 @@
-             if (owner != null && isAllowedToTeleportOwner(owner, level)) {
+     public ThrownEnderpearl(final EntityType<? extends ThrownEnderpearl> type, final Level level) {
+         super(type, level);
+     }
+@@ -102,6 +_,22 @@
                  Vec3 teleportPos = this.oldPosition();
                  if (owner instanceof ServerPlayer player) {
-+                    // Sakura start - prevent ender pearls teleporting inside blocks
-+                    if (this.level().sakuraConfig().entity.enderPearl.preventTeleportingInsideBlocks && serverPlayer.insideAnyCollisionAt(serverLevel, vec3)) {
-+                        for (int offset = 0;; ++offset) {
-+                            vec3 = Vec3.atBottomCenterOf(BlockPos.containing(vec3.subtract(0, offset, 0))); // teleportation position
-+                            if (!serverPlayer.insideAnyCollisionAt(serverLevel, vec3)) {
-+                                break;
-+                            }
+                     if (player.connection.isAcceptingMessages()) {
++                        // Sakura start - prevent ender pearls teleporting inside blocks
++                        if (level.sakuraConfig().entity.enderPearl.preventTeleportingInsideBlocks && player.insideAnyCollisionAt(level, teleportPos)) {
++                            for (int offset = 0;; ++offset) {
++                                teleportPos = Vec3.atBottomCenterOf(BlockPos.containing(teleportPos.subtract(0, offset, 0)));
++                                if (!player.insideAnyCollisionAt(level, teleportPos)) {
++                                    break;
++                                }
 +
-+                            if (offset == 1) {
-+                                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT);
-+                                return;
++                                if (offset == 1) {
++                                    // Could not find a safe teleport position
++                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT);
++                                    return;
++                                }
 +                            }
 +                        }
-+                    }
-+                    // Sakura end - prevent ender pearls teleporting inside blocks
-                     if (player.connection.isAcceptingMessages()) {
++                        // Sakura end - prevent ender pearls teleporting inside blocks
                          // CraftBukkit start
                          // Store pre teleportation position as the teleport has been moved up.
+                         final double preTeleportX = player.getX(), preTeleportY = player.getY(), preTeleportZ = player.getZ();
 @@ -151,6 +_,11 @@
                      if (newOwner instanceof LivingEntity livingEntity) {
                          livingEntity.resetCurrentImpulseContext();
                      }
 +                    // Sakura start - prevent ender pearls teleporting inside blocks
-+                    if (entity instanceof net.minecraft.world.entity.player.Player player) {
++                    if (newOwner instanceof final ServerPlayer player) {
 +                        player.updatePlayerPose();
 +                    }
 +                    // Sakura end - prevent ender pearls teleporting inside blocks

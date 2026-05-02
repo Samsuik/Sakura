@@ -1,35 +1,18 @@
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -76,7 +_,28 @@
+@@ -76,6 +_,12 @@
          this.yo = y;
          this.zo = z;
          this.owner = EntityReference.of(owner);
--    }
 +        // Sakura start - configure cannon mechanics
 +        switch (level.sakuraConfig().cannons.mechanics.tntSpread) {
 +            case NONE -> this.setDeltaMovement(0.0, 0.0, 0.0);
 +            case Y -> this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 0.0));
 +        }
 +        // Sakura end - configure cannon mechanics
-+    }
-+
-+    // Sakura start - optimise tnt fluid state
-+    @Override
-+    protected final boolean updateInWaterStateAndDoFluidPushing() {
-+        if (this.isPushedByFluid()) {
-+            return super.updateInWaterStateAndDoFluidPushing();
-+        } else {
-+            // super method also handles lava fluid pushing
-+            // we only need to search for water to negate fall distance
-+            this.fluidHeight.clear();
-+            this.updateInWaterStateAndDoWaterCurrentPushing();
-+            return this.isInWater();
-+        }
-+    }
-+    // Sakura end - optimise tnt fluid state
+     }
  
      @Override
-     protected void defineSynchedData(final SynchedEntityData.Builder entityData) {
 @@ -101,7 +_,7 @@
  
      @Override
