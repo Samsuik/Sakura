@@ -37,12 +37,14 @@
      }
  
      protected abstract boolean initServer() throws IOException;
-@@ -1369,6 +_,11 @@
+@@ -1369,6 +_,13 @@
  
                  this.currentTickStart = tickStart;
                  ++MinecraftServer.currentTick;
 +                // Sakura start - track tick information
-+                if (MinecraftServer.currentTick % 20 == 0) {
++                final int roundedTickRate = (int) Math.ceil(this.tickRateManager.tickrate());
++                final int sampleRate = Math.clamp(roundedTickRate, 20, 200);
++                if (MinecraftServer.currentTick % sampleRate == 0) {
 +                    this.tickInformationCollector.levelData(this.levels.values(), getTPS(this.tickTimes1s, this.tickRateManager.nanosecondsPerTick()));
 +                }
 +                // Sakura end - track tick information
