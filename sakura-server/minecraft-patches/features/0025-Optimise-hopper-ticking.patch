@@ -145,7 +145,7 @@ index 0000000000000000000000000000000000000000..822e29472b94c77ca93963110a69fab6
 +    }
 +}
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 1b2eaab42a615bf596011399794280ed41dfc970..01057cd781d769a20aa12a3976774bd9809e26a9 100644
+index 2dee34eca346c51993d1f875ab693ae17e06d6a3..e451418146fb053efceee3d32d90aea4bfc01154 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -1527,7 +1527,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -153,12 +153,12 @@ index 1b2eaab42a615bf596011399794280ed41dfc970..01057cd781d769a20aa12a3976774bd9
              if (ticker.isRemoved()) {
                  toRemove.add(ticker); // Paper - Fix MC-117075 use removeAll
 -            } else if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
-+            } else if (tickBlockEntities && ticker.isBlockEntityActive() && this.shouldTickBlocksAt(ticker.getPos())) { // Sakura - optimise hopper ticking
++            } else if (tickBlockEntities && ticker.sakura$isActive() && this.shouldTickBlocksAt(ticker.getPos())) { // Sakura - optimise hopper ticking
                  ticker.tick();
                  // Paper start - rewrite chunk system
                  if ((++tickedEntities & 7) == 0) {
 diff --git a/net/minecraft/world/level/block/HopperBlock.java b/net/minecraft/world/level/block/HopperBlock.java
-index e032b5289abe413009fe7c9068e71e788fab512a..a84587e9ee015c1272cd67dbbbe043a1424416d5 100644
+index e032b5289abe413009fe7c9068e71e788fab512a..593063ccb1fc41a6d29175cb4ac482ef4d7474e3 100644
 --- a/net/minecraft/world/level/block/HopperBlock.java
 +++ b/net/minecraft/world/level/block/HopperBlock.java
 @@ -123,6 +123,12 @@ public class HopperBlock extends BaseEntityBlock {
@@ -168,14 +168,14 @@ index e032b5289abe413009fe7c9068e71e788fab512a..a84587e9ee015c1272cd67dbbbe043a1
 +            // Sakura start - optimise hopper ticking
 +            final BlockEntity blockEntity = level.getBlockEntity(pos);
 +            if (blockEntity instanceof HopperBlockEntity hbe && level.sakuraConfig().technical.optimiseIdleHopperTicking) {
-+                hbe.setBlockEntityTicking(shouldBeOn);
++                hbe.sakura$setActive(shouldBeOn);
 +            }
 +            // Sakura end - optimise hopper ticking
              level.setBlock(pos, state.setValue(ENABLED, shouldBeOn), Block.UPDATE_CLIENTS);
          }
      }
 diff --git a/net/minecraft/world/level/block/entity/BlockEntity.java b/net/minecraft/world/level/block/entity/BlockEntity.java
-index 865f08c92946010a36947b7766b957f4c0517285..57addfc524eb769247dc84da404dfcf29950dd57 100644
+index 865f08c92946010a36947b7766b957f4c0517285..8adc56e33a4b69b4a6dea6475957b30cb42e64a6 100644
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
 @@ -54,6 +54,31 @@ public abstract class BlockEntity implements DebugValueSource, TypedInstance<Blo
@@ -186,16 +186,16 @@ index 865f08c92946010a36947b7766b957f4c0517285..57addfc524eb769247dc84da404dfcf2
 +    private boolean blockEntityTicking = true;
 +    private int idleTickCount = 0;
 +
-+    public final boolean isBlockEntityActive() {
++    public final boolean sakura$isActive() {
 +        if (!this.blockEntityTicking && this.idleTickCount >= 1200) {
-+            this.setBlockEntityTicking(true);
++            this.sakura$setActive(true);
 +        }
 +
 +        this.idleTickCount++;
 +        return this.blockEntityTicking;
 +    }
 +
-+    public final void setBlockEntityTicking(final boolean blockEntityTicking) {
++    public final void sakura$setActive(final boolean blockEntityTicking) {
 +        if (blockEntityTicking) {
 +            this.catchupTicks(this.idleTickCount);
 +        }
@@ -211,7 +211,7 @@ index 865f08c92946010a36947b7766b957f4c0517285..57addfc524eb769247dc84da404dfcf2
          this.type = type;
          this.worldPosition = worldPosition.immutable();
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 085ed0eecc47cf9c0fa9fc26b3f7b8522610a941..2f1c4c85fbe936436d7bf160c0987bab95b23478 100644
+index 085ed0eecc47cf9c0fa9fc26b3f7b8522610a941..70470c86cc840b3314679b5a489b5124db404d96 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,13 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -242,19 +242,19 @@ index 085ed0eecc47cf9c0fa9fc26b3f7b8522610a941..2f1c4c85fbe936436d7bf160c0987bab
 +
 +    @Override
 +    public final void changed(final Container container) {
-+        this.setBlockEntityTicking(true);
++        this.sakura$setActive(true);
 +    }
 +
 +    @Override
 +    public final void removed(final Container container) {
 +        this.unwatchContainers();
-+        this.setBlockEntityTicking(true);
++        this.sakura$setActive(true);
 +    }
 +
 +    @Override
 +    public void setChanged() {
 +        super.setChanged();
-+        this.setBlockEntityTicking(true);
++        this.sakura$setActive(true);
 +    }
 +
 +    @Override
@@ -281,7 +281,7 @@ index 085ed0eecc47cf9c0fa9fc26b3f7b8522610a941..2f1c4c85fbe936436d7bf160c0987bab
 +    private void waitForChange(final int fullState) {
 +        if ((fullState == HOPPER_IS_FULL || (this.knownContainers & SOURCE_CONTAINER) != 0)
 +            && (fullState == HOPPER_EMPTY || (this.knownContainers & ATTACHED_CONTAINER) != 0)) {
-+            this.setBlockEntityTicking(false);
++            this.sakura$setActive(false);
 +        }
 +    }
 +
@@ -441,7 +441,7 @@ index 085ed0eecc47cf9c0fa9fc26b3f7b8522610a941..2f1c4c85fbe936436d7bf160c0987bab
  
      public static void entityInside(final Level level, final BlockPos pos, final BlockState blockState, final Entity entity, final HopperBlockEntity hopper) {
 diff --git a/net/minecraft/world/level/block/entity/TickingBlockEntity.java b/net/minecraft/world/level/block/entity/TickingBlockEntity.java
-index 28e3b73507b988f7234cbf29c4024c88180d0aef..a0d247aa883553708c4b92158232425593d50534 100644
+index 28e3b73507b988f7234cbf29c4024c88180d0aef..152969a1ad4caa102e675565fd5f086c13d5c6f2 100644
 --- a/net/minecraft/world/level/block/entity/TickingBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/TickingBlockEntity.java
 @@ -10,4 +10,10 @@ public interface TickingBlockEntity {
@@ -450,13 +450,13 @@ index 28e3b73507b988f7234cbf29c4024c88180d0aef..a0d247aa883553708c4b921582324255
      String getType();
 +
 +    // Sakura start - optimise hopper ticking
-+    default boolean isBlockEntityActive() {
++    default boolean sakura$isActive() {
 +        return true;
 +    }
 +    // Sakura end - optimise hopper ticking
  }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index 21710c5acb1a5f12c303954b5d1249462cf5366d..58f441b9e7e18de37f53c23951f88f1b4a11206d 100644
+index 21710c5acb1a5f12c303954b5d1249462cf5366d..34610255a7ca22e1bc9c65e80713de83b7052a00 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -1002,6 +1002,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
@@ -465,8 +465,8 @@ index 21710c5acb1a5f12c303954b5d1249462cf5366d..58f441b9e7e18de37f53c23951f88f1b
  
 +        // Sakura start - optimise hopper ticking
 +        @Override
-+        public final boolean isBlockEntityActive() {
-+            return this.blockEntity.isBlockEntityActive();
++        public final boolean sakura$isActive() {
++            return this.blockEntity.sakura$isActive();
 +        }
 +        // Sakura end - optimise hopper ticking
 +
@@ -479,8 +479,8 @@ index 21710c5acb1a5f12c303954b5d1249462cf5366d..58f441b9e7e18de37f53c23951f88f1b
  
 +        // Sakura start - optimise hopper ticking
 +        @Override
-+        public final boolean isBlockEntityActive() {
-+            return this.ticker.isBlockEntityActive();
++        public final boolean sakura$isActive() {
++            return this.ticker.sakura$isActive();
 +        }
 +        // Sakura end - optimise hopper ticking
 +

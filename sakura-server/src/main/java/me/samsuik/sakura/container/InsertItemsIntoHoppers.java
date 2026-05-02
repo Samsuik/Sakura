@@ -12,6 +12,7 @@ import org.jspecify.annotations.NullMarked;
 
 import java.util.List;
 
+@SuppressWarnings({"ConstantValue", "DataFlowIssue"})
 @NullMarked
 public final class InsertItemsIntoHoppers {
     public static void onMobDeath(final ServerLevel level, final Entity entity, final List<Entity.DefaultDrop> drops) {

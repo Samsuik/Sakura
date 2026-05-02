@@ -4,6 +4,64 @@ Date: Wed, 15 Nov 2023 23:18:38 +0000
 Subject: [PATCH] Explosion Durable Blocks
 
 
+diff --git a/me/samsuik/sakura/explosion/DurableBlockManager.java b/me/samsuik/sakura/explosion/DurableBlockManager.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf07fbc434ed02b5e2c3b4b9eb9095daef1c4a30
+--- /dev/null
++++ b/me/samsuik/sakura/explosion/DurableBlockManager.java
+@@ -0,0 +1,52 @@
++package me.samsuik.sakura.explosion;
++
++import com.google.common.cache.Cache;
++import com.google.common.cache.CacheBuilder;
++import me.samsuik.sakura.explosion.durable.DurableMaterial;
++import net.minecraft.core.BlockPos;
++import org.jspecify.annotations.NullMarked;
++
++import java.util.concurrent.TimeUnit;
++
++@NullMarked
++public final class DurableBlockManager {
++    private final Cache<BlockPos, DurableBlock> durableBlocks = CacheBuilder.newBuilder()
++            .expireAfterAccess(1, TimeUnit.MINUTES)
++            .maximumSize(Short.MAX_VALUE)
++            .build();
++
++    public boolean damage(final BlockPos blockPos, final DurableMaterial material) {
++        DurableBlock block = this.durableBlocks.getIfPresent(blockPos);
++        if (block == null) {
++            this.durableBlocks.put(blockPos, block = new DurableBlock(material.durability()));
++        }
++
++        final boolean destroyedBlock = block.damage();
++        if (destroyedBlock) {
++            this.durableBlocks.invalidate(blockPos);
++        }
++
++        return destroyedBlock;
++    }
++
++    public int durability(final BlockPos pos, final DurableMaterial material) {
++        final DurableBlock block = this.durableBlocks.getIfPresent(pos);
++        return block != null ? block.durability() : material.durability();
++    }
++
++    private static final class DurableBlock {
++        private int durability;
++
++        public DurableBlock(final int durability) {
++            this.durability = durability;
++        }
++
++        public int durability() {
++            return this.durability;
++        }
++
++        public boolean damage() {
++            return --this.durability <= 0;
++        }
++    }
++}
 diff --git a/net/minecraft/world/item/BlockItem.java b/net/minecraft/world/item/BlockItem.java
 index 3167be4b7c2c61ef725af4a832d759ab6e061af0..1c6a5d980b6807ab5b6cf077f8b1ed7588e6e76d 100644
 --- a/net/minecraft/world/item/BlockItem.java
@@ -40,14 +98,14 @@ index 3167be4b7c2c61ef725af4a832d759ab6e061af0..1c6a5d980b6807ab5b6cf077f8b1ed75
          return !placeResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
              ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index cf693c3d46b5c07b890cdd45eb6b754d6a16954c..446ca8787231e40de2a6c62b0c4bf2aef9367455 100644
+index cf693c3d46b5c07b890cdd45eb6b754d6a16954c..61be5f0b0df06a34b172a657f40703b3ef21b385 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -845,6 +845,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      // Sakura end - implement state watchers and tick scheduler
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
-+    public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
++    public final me.samsuik.sakura.explosion.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.DurableBlockManager(); // Sakura - explosion durable blocks
  
      protected Level(
          final WritableLevelData levelData,

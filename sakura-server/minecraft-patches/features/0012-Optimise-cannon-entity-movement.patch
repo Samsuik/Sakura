@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise cannon entity movement
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 841b488a83391557f5a969889bd7a43db16e9e5f..66b50348888fa3c32f6ab0d0167b7cc6336ee3ef 100644
+index 841b488a83391557f5a969889bd7a43db16e9e5f..ad47712217f119de386ed60389bfd3879ebb9e7c 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -1611,6 +1611,149 @@ public abstract class Entity
@@ -110,22 +110,22 @@ index 841b488a83391557f5a969889bd7a43db16e9e5f..66b50348888fa3c32f6ab0d0167b7cc6
 +    }
 +
 +    private double scanX(final AABB currentBox, double x, final List<VoxelShape> collisionsVoxel, final List<AABB> collisionsBB) {
-+        final AABB scanBox = cutBoundingBoxX(currentBox, x);
-+        this.collectCollisions(scanBox, collisionsVoxel, collisionsBB, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
++        final AABB collisionBox = cutBoundingBoxX(currentBox, x);
++        this.collectCollisions(collisionBox, collisionsVoxel, collisionsBB, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
 +        x = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsX(currentBox, x, collisionsBB);
 +        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsX(currentBox, x, collisionsVoxel);
 +    }
 +
 +    private double scanY(final AABB currentBox, double y, final List<VoxelShape> collisionsVoxel, final List<AABB> collisionsBB) {
-+        final AABB scanBox = cutBoundingBoxY(currentBox, y);
-+        this.collectCollisions(scanBox, collisionsVoxel, collisionsBB, 0);
++        final AABB collisionBox = cutBoundingBoxY(currentBox, y);
++        this.collectCollisions(collisionBox, collisionsVoxel, collisionsBB, 0);
 +        y = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsY(currentBox, y, collisionsBB);
 +        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsY(currentBox, y, collisionsVoxel);
 +    }
 +
 +    private double scanZ(final AABB currentBox, double z, final List<VoxelShape> collisionsVoxel, final List<AABB> collisionsBB) {
-+        final AABB scanBox = cutBoundingBoxZ(currentBox, z);
-+        this.collectCollisions(scanBox, collisionsVoxel, collisionsBB, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
++        final AABB collisionBox = cutBoundingBoxZ(currentBox, z);
++        this.collectCollisions(collisionBox, collisionsVoxel, collisionsBB, ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER);
 +        z = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performAABBCollisionsZ(currentBox, z, collisionsBB);
 +        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performVoxelCollisionsZ(currentBox, z, collisionsVoxel);
 +    }

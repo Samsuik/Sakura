@@ -86,6 +86,1043 @@ index c093f2295d6a0e1880897fe66bdcd64649aa667e..0cb1906c33589592ab42bef31569d55b
                                              if (!aabb.intersects(singleAABB)) {
                                                  continue;
                                              }
+diff --git a/me/samsuik/sakura/mechanics/BlockFormation.java b/me/samsuik/sakura/mechanics/BlockFormation.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..417ad75a8c2c59524892b7880210450de7c84fa2
+--- /dev/null
++++ b/me/samsuik/sakura/mechanics/BlockFormation.java
+@@ -0,0 +1,34 @@
++package me.samsuik.sakura.mechanics;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.material.FlowingFluid;
++import net.minecraft.world.level.material.FluidState;
++import org.jspecify.annotations.NullMarked;
++
++@NullMarked
++public final class BlockFormation {
++    public static boolean canLiquidFormBlock(
++        final Level level,
++        final BlockPos pos,
++        final FluidState fluidState,
++        final MinecraftMechanicsTarget mechanicsTarget
++    ) {
++        // In legacy-paper and versions since 1.16, liquids should always solidify.
++        if (mechanicsTarget.atLeast(MechanicVersion.v1_16) || mechanicsTarget.before(MechanicVersion.v1_10) && mechanicsTarget.isServerType(ServerType.PAPER)) {
++            return true;
++        }
++
++        // In 1.13 and later, liquids can only solidify if they occupy at least half of the block.
++        if (mechanicsTarget.atLeast(MechanicVersion.v1_13) && fluidState.getHeight(level, pos) >= 0.44444445f) {
++            return true;
++        }
++
++        // todo: not sure if this is necessary, this looks identical to the condition above.
++        if (mechanicsTarget.before(MechanicVersion.v1_13)) {
++            return FlowingFluid.getLegacyLevel(fluidState) < 4;
++        }
++
++        return true;
++    }
++}
+diff --git a/me/samsuik/sakura/mechanics/EntityBehaviour.java b/me/samsuik/sakura/mechanics/EntityBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..43a9bae3d5114e7f702cd9ce17c1653a2a672076
+--- /dev/null
++++ b/me/samsuik/sakura/mechanics/EntityBehaviour.java
+@@ -0,0 +1,80 @@
++package me.samsuik.sakura.mechanics;
++
++import ca.spottedleaf.moonrise.patches.collisions.CollisionUtil;
++import it.unimi.dsi.fastutil.longs.LongSet;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.Vec3;
++import net.minecraft.world.phys.shapes.VoxelShape;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++import java.util.List;
++
++@NullMarked
++public final class EntityBehaviour {
++    public static void changeEntityPosition(
++        final Entity entity,
++        final Vec3 position,
++        final Vec3 relativeMovement,
++        final MinecraftMechanicsTarget mechanicsTarget
++    ) {
++        final Vec3 newPosition = position.add(relativeMovement);
++        final Vec3 newEntityPosition;
++        if (mechanicsTarget.is(MechanicVersion.v1_21_5)) {
++            newEntityPosition = manglePosition(position, relativeMovement);
++            entity.addMovementThisTick(new Entity.Movement(position, newPosition, relativeMovement));
++        } else {
++            newEntityPosition = newPosition;
++        }
++
++        entity.setPos(newEntityPosition);
++    }
++
++    private static Vec3 manglePosition(final Vec3 position, final Vec3 relativeMovement) {
++        Vec3 newPosition = position;
++        for (final Direction.Axis axis : Direction.axisStepOrder(relativeMovement)) {
++            final double movement = relativeMovement.get(axis);
++            if (movement != 0.0) {
++                newPosition = newPosition.relative(axis.getPositive(), movement);
++            }
++        }
++
++        return newPosition;
++    }
++
++    public static boolean canMoveEntity(final double relativeMovementSqr, final Vec3 movement, final MinecraftMechanicsTarget mechanicsTarget) {
++        return relativeMovementSqr > 1.0E-7
++            || mechanicsTarget.atLeast(MechanicVersion.v1_21_2) && movement.lengthSqr() - relativeMovementSqr < 1.0E-7
++            || mechanicsTarget.before(MechanicVersion.v1_14);
++    }
++
++    public static boolean canCheckInsideBlock(final BlockPos pos, final boolean canCollide, final LongSet visited, final MinecraftMechanicsTarget mechanicsTarget) {
++        final boolean before1_21_9 = mechanicsTarget.before(MechanicVersion.v1_21_9);
++        if (before1_21_9 && !visited.add(pos.asLong())) {
++            return false;
++        }
++        return (mechanicsTarget.before(MechanicVersion.v1_21_2) || canCollide) && (before1_21_9 || visited.add(pos.asLong()));
++    }
++
++    public static boolean prioritiseXFirst(final double x, final double z, final @Nullable MinecraftMechanicsTarget mechanicsTarget) {
++        return mechanicsTarget == null || mechanicsTarget.atLeast(MechanicVersion.v1_14)
++            ? Math.abs(x) < Math.abs(z)
++            : mechanicsTarget.isLegacy() && Math.abs(x) > Math.abs(z);
++    }
++
++    public static void convertVoxelsIntoAABBs(final Vec3 movement, final AABB bb, final List<VoxelShape> voxels, final List<AABB> aabbs) {
++        final AABB collisions = bb.expandTowards(movement);
++        for (final VoxelShape shape : voxels) {
++            for (final AABB boundingBox : shape.toAabbs()) {
++                if (CollisionUtil.voxelShapeIntersect(boundingBox, collisions) && !CollisionUtil.isEmpty(boundingBox)) {
++                    aabbs.add(boundingBox);
++                }
++            }
++        }
++
++        voxels.clear();
++    }
++}
+diff --git a/me/samsuik/sakura/mechanics/FallingBlockBehaviour.java b/me/samsuik/sakura/mechanics/FallingBlockBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..200032836081807dc2f5b398a1efdcf61d6b50b9
+--- /dev/null
++++ b/me/samsuik/sakura/mechanics/FallingBlockBehaviour.java
+@@ -0,0 +1,44 @@
++package me.samsuik.sakura.mechanics;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.entity.item.FallingBlockEntity;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.FallingBlock;
++import net.minecraft.world.level.block.state.BlockState;
++import org.jspecify.annotations.NullMarked;
++
++@NullMarked
++public final class FallingBlockBehaviour {
++    public static boolean isAbleToStackOnBlock(final FallingBlockEntity fallingBlock, final MinecraftMechanicsTarget mechanicsTarget) {
++        if (!mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_9, me.samsuik.sakura.mechanics.MechanicVersion.v1_14)) {
++            return true;
++        }
++        // This is patched by default on Paper.
++        if (mechanicsTarget.isPaperOrDerivative()) {
++            return true;
++        }
++        // todo: Entity#getOnPos might be a good alternative to this
++        final BlockPos blockPos = BlockPos.containing(fallingBlock.getX(), fallingBlock.getY() - 0.001f, fallingBlock.getZ());
++        final BlockState state = fallingBlock.level().getBlockState(blockPos);
++        return !FallingBlock.isFree(state);
++    }
++
++    public static void removeBlockOnFall(final FallingBlockEntity fallingBlock, final Block block) {
++        final Level level = fallingBlock.level();
++        final BlockPos blockPos = fallingBlock.blockPosition();
++        final BlockState state = level.getBlockState(blockPos);
++
++        // todo: Do we need to call the event here? This event is already called in the fall method that spawns the falling block entity.
++        if (state.is(block) && org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(fallingBlock, blockPos, Blocks.AIR.defaultBlockState())) {
++            level.removeBlock(blockPos, false);
++        } else {
++            if (state.is(block)) {
++                ((ServerLevel) level).getChunkSource().blockChanged(blockPos);
++            }
++            fallingBlock.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
++        }
++    }
++}
+diff --git a/me/samsuik/sakura/mechanics/PistonBehaviour.java b/me/samsuik/sakura/mechanics/PistonBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f68eba06e7b8eb494e1273607bb5f421ece35175
+--- /dev/null
++++ b/me/samsuik/sakura/mechanics/PistonBehaviour.java
+@@ -0,0 +1,153 @@
++package me.samsuik.sakura.mechanics;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.MoverType;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.Vec3;
++import net.minecraft.world.phys.shapes.VoxelShape;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++@NullMarked
++public final class PistonBehaviour {
++    @Nullable
++    public static AABB getBoundsFromProgress(
++        final BlockGetter level,
++        final BlockPos pos,
++        final BlockState state,
++        final float progress,
++        final Direction direction
++    ) {
++        if (state.is(Blocks.MOVING_PISTON) || state.isAir()) {
++            return null;
++        }
++
++        VoxelShape shape = state.getCollisionShape(level, pos);
++        if (shape.isEmpty()) {
++            return null;
++        }
++
++        final AABB bounds = shape.bounds();
++        double minX = bounds.minX;
++        double minY = bounds.minY;
++        double minZ = bounds.minZ;
++        double maxX = bounds.maxX;
++        double maxY = bounds.maxY;
++        double maxZ = bounds.maxZ;
++
++        if (direction.getStepX() < 0) {
++            minX -= (float) direction.getStepX() * progress;
++        } else {
++            maxX -= (float) direction.getStepX() * progress;
++        }
++
++        if (direction.getStepY() < 0) {
++            minY -= (float) direction.getStepY() * progress;
++        } else {
++            maxY -= (float) direction.getStepY() * progress;
++        }
++
++        if (direction.getStepZ() < 0) {
++            minZ -= (float) direction.getStepZ() * progress;
++        } else {
++            maxZ -= (float) direction.getStepZ() * progress;
++        }
++
++        return fixZeroWidthBB(new AABB(minX, minY, minZ, maxX, maxY, maxZ), direction);
++    }
++
++    private static AABB fixZeroWidthBB(AABB movingBlockBox, final Direction direction) {
++        // Legacy behaviour relied on entities being able to collide with zero width shapes
++        // This is no longer possible, so we have to create a difference here for it to work
++        final double expandX = movingBlockBox.getXsize() == 0.0 ? 1.0e-5 * direction.getStepX() : 0.0;
++        final double expandY = movingBlockBox.getYsize() == 0.0 ? 1.0e-5 * direction.getStepY() : 0.0;
++        final double expandZ = movingBlockBox.getZsize() == 0.0 ? 1.0e-5 * direction.getStepZ() : 0.0;
++
++        if (expandX != 0 || expandY != 0 || expandZ != 0) {
++            movingBlockBox = movingBlockBox.expandTowards(expandX, expandY, expandZ);
++        }
++
++        return movingBlockBox;
++    }
++
++    public static void moveEntitiesWithProgress(
++        final Level level,
++        final AABB movingBlockBox,
++        final Direction direction,
++        final float relativeProgress,
++        final boolean pushingSlime
++    ) {
++        for (final Entity entity : level.getEntities(null, movingBlockBox)) {
++            if (pushingSlime) {
++                final Vec3 movement = entity.getDeltaMovement();
++                double moveX = movement.x;
++                double moveY = movement.y;
++                double moveZ = movement.z;
++
++                switch (direction.getAxis()) {
++                    case X -> moveX = direction.getStepX();
++                    case Y -> moveY = direction.getStepY();
++                    case Z -> moveZ = direction.getStepZ();
++                }
++
++                entity.setDeltaMovement(moveX, moveY, moveZ);
++            } else {
++                final Vec3 pistonMovement = new Vec3(
++                    relativeProgress * (float) direction.getStepX(),
++                    relativeProgress * (float) direction.getStepY(),
++                    relativeProgress * (float) direction.getStepZ()
++                );
++                entity.move(MoverType.PISTON, pistonMovement);
++                entity.applyEffectsFromBlocks(entity.position(), entity.position());
++            }
++        }
++    }
++
++    public static void moveEntityByPistonInDirection(final Direction direction, final Entity entity, final AABB movingBlockBox) {
++        final AABB entityBox = entity.getBoundingBox();
++        double moveX = 0.0;
++        double moveY = 0.0;
++        double moveZ = 0.0;
++
++        switch (direction.getAxis()) {
++            case X -> {
++                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++                    moveX = movingBlockBox.maxX - entityBox.minX;
++                } else {
++                    moveX = entityBox.maxX - movingBlockBox.minX;
++                }
++                moveX += 0.01D;
++            }
++            case Y -> {
++                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++                    moveY = movingBlockBox.maxY - entityBox.minY;
++                } else {
++                    moveY = entityBox.maxY - movingBlockBox.minY;
++                }
++                moveY += 0.01D;
++            }
++            case Z -> {
++                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++                    moveZ = movingBlockBox.maxZ - entityBox.minZ;
++                } else {
++                    moveZ = entityBox.maxZ - movingBlockBox.minZ;
++                }
++                moveZ += 0.01D;
++            }
++        }
++
++        final Vec3 pistonMovement = new Vec3(
++            moveX * direction.getStepX(),
++            moveY * direction.getStepY(),
++            moveZ * direction.getStepZ()
++        );
++        entity.move(MoverType.PISTON, pistonMovement);
++        entity.applyEffectsFromBlocks(entity.position(), entity.position());
++    }
++}
+diff --git a/me/samsuik/sakura/mechanics/legacy/LegacyExplosionBlockClipping.java b/me/samsuik/sakura/mechanics/legacy/LegacyExplosionBlockClipping.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1aace3ff185c39f08e8642d9c74b293cf6bb8943
+--- /dev/null
++++ b/me/samsuik/sakura/mechanics/legacy/LegacyExplosionBlockClipping.java
+@@ -0,0 +1,183 @@
++package me.samsuik.sakura.mechanics.legacy;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.util.Mth;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.chunk.LevelChunk;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.BlockHitResult;
++import net.minecraft.world.phys.HitResult;
++import net.minecraft.world.phys.Vec3;
++import net.minecraft.world.phys.shapes.VoxelShape;
++import org.jspecify.annotations.NullMarked;
++
++/**
++ * A replica of the explosion raytrace code before it was replaced in Minecraft 1.14.
++ */
++@SuppressWarnings("MathClampMigration")
++@NullMarked
++public final class LegacyExplosionBlockClipping {
++    private static final double EPSILON = 1.0e-7f; // the precision loss is intentional
++
++    private Vec3 currentPos;
++    private final Vec3 endPos;
++    private final int endX;
++    private final int endY;
++    private final int endZ;
++
++    private LegacyExplosionBlockClipping(final Vec3 currentPos, final Vec3 endPos) {
++        this.currentPos = currentPos;
++        this.endPos = endPos;
++        this.endX = Mth.floor(endPos.x);
++        this.endY = Mth.floor(endPos.y);
++        this.endZ = Mth.floor(endPos.z);
++    }
++
++    public static BlockHitResult.Type clip(final Level level, final Vec3 startPos, final Vec3 endPos) {
++        final LegacyExplosionBlockClipping clipDetection = new LegacyExplosionBlockClipping(startPos, endPos);
++        final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos(startPos.x(), startPos.y(), startPos.z());
++        LevelChunk chunk = null;
++        int steps = 0;
++
++        do {
++            final int chunkX = mutableBlockPos.getX() >> 4;
++            final int chunkZ = mutableBlockPos.getZ() >> 4;
++            if (chunk == null || chunkX != chunk.locX || chunkZ != chunk.locZ) {
++                chunk = level.getChunkIfLoaded(chunkX, chunkZ);
++                if (chunk == null) break;
++            }
++
++            final BlockState state = chunk.getBlockState(mutableBlockPos);
++            final VoxelShape shape = state.getShape(level, mutableBlockPos);
++            for (final AABB shapeBB : shape.toAabbs()) {
++                if (clip(shapeBB, mutableBlockPos, clipDetection.currentPos, endPos)) {
++                    return HitResult.Type.BLOCK;
++                }
++            }
++        } while (++steps < 16 && clipDetection.next(mutableBlockPos));
++
++        return HitResult.Type.MISS;
++    }
++
++    private boolean next(final BlockPos.MutableBlockPos mutableBlockPos) {
++        final int currX = mutableBlockPos.getX();
++        final int currY = mutableBlockPos.getY();
++        final int currZ = mutableBlockPos.getZ();
++        final int toX = this.endX;
++        final int toY = this.endY;
++        final int toZ = this.endZ;
++
++        if (currX == toX && currY == toY && currZ == toZ) {
++            return false;
++        }
++
++        boolean moveX = true;
++        boolean moveY = true;
++        boolean moveZ = true;
++        double d0 = 999.0D;
++        double d1 = 999.0D;
++        double d2 = 999.0D;
++
++        if (toX > currX) {
++            d0 = (double) currX + 1.0D;
++        } else if (toX < currX) {
++            d0 = (double) currX + 0.0D;
++        } else {
++            moveX = false;
++        }
++
++        if (toY > currY) {
++            d1 = (double) currY + 1.0D;
++        } else if (toY < currY) {
++            d1 = (double) currY + 0.0D;
++        } else {
++            moveY = false;
++        }
++
++        if (toZ > currZ) {
++            d2 = (double) currZ + 1.0D;
++        } else if (toZ < currZ) {
++            d2 = (double) currZ + 0.0D;
++        } else {
++            moveZ = false;
++        }
++
++        double d3 = 999.0D;
++        double d4 = 999.0D;
++        double d5 = 999.0D;
++
++        final Vec3 currPos = this.currentPos;
++        final Vec3 endPos = this.endPos;
++        final double d6 = endPos.x - currPos.x;
++        final double d7 = endPos.y - currPos.y;
++        final double d8 = endPos.z - currPos.z;
++
++        if (moveX) d3 = (d0 - currPos.x) / d6;
++        if (moveY) d4 = (d1 - currPos.y) / d7;
++        if (moveZ) d5 = (d2 - currPos.z) / d8;
++
++        if (d3 == -0.0D) d3 = -1.0E-4D;
++        if (d4 == -0.0D) d4 = -1.0E-4D;
++        if (d5 == -0.0D) d5 = -1.0E-4D;
++
++        final Direction moveDir;
++        final Vec3 newCurrentPos;
++        if (d3 < d4 && d3 < d5) {
++            moveDir = toX > currX ? Direction.WEST : Direction.EAST;
++            newCurrentPos = new Vec3(d0, currPos.y + d7 * d3, currPos.z + d8 * d3);
++        } else if (d4 < d5) {
++            moveDir = toY > currY ? Direction.DOWN : Direction.UP;
++            newCurrentPos = new Vec3(currPos.x + d6 * d4, d1, currPos.z + d8 * d4);
++        } else {
++            moveDir = toZ > currZ ? Direction.NORTH : Direction.SOUTH;
++            newCurrentPos = new Vec3(currPos.x + d6 * d5, currPos.y + d7 * d5, d2);
++        }
++
++        mutableBlockPos.set(
++            Mth.floor(newCurrentPos.x) - (moveDir == Direction.EAST ? 1 : 0),
++            Mth.floor(newCurrentPos.y) - (moveDir == Direction.UP ? 1 : 0),
++            Mth.floor(newCurrentPos.z) - (moveDir == Direction.SOUTH ? 1 : 0)
++        );
++
++        this.currentPos = newCurrentPos;
++        return true;
++    }
++
++    private static boolean clip(final AABB bb, final BlockPos pos, final Vec3 from, final Vec3 to) {
++        final Vec3 origin    = from.subtract(pos.getX(), pos.getY(), pos.getZ());
++        final Vec3 direction = to.subtract(pos.getX(), pos.getY(), pos.getZ()).subtract(origin);
++        double tmin = Double.NEGATIVE_INFINITY;
++        double tmax = Double.POSITIVE_INFINITY;
++
++        if (direction.x * direction.x >= EPSILON) {
++            final double t1 = (bb.minX - origin.x) / direction.x;
++            final double t2 = (bb.maxX - origin.x) / direction.x;
++            tmin = Math.max(tmin, Math.min(t1, t2));
++            tmax = Math.min(tmax, Math.max(t1, t2));
++        } else if (origin.x < bb.minX || origin.x > bb.maxX) {
++            return false;
++        }
++
++        if (direction.y * direction.y >= EPSILON) {
++            final double t1 = (bb.minY - origin.y) / direction.y;
++            final double t2 = (bb.maxY - origin.y) / direction.y;
++            tmin = Math.max(tmin, Math.min(t1, t2));
++            tmax = Math.min(tmax, Math.max(t1, t2));
++        } else if (origin.y < bb.minY || origin.y > bb.maxY) {
++            return false;
++        }
++
++        if (direction.z * direction.z >= EPSILON) {
++            double t1 = (bb.minZ - origin.z) / direction.z;
++            double t2 = (bb.maxZ - origin.z) / direction.z;
++            tmin = Math.max(tmin, Math.min(t1, t2));
++            tmax = Math.min(tmax, Math.max(t1, t2));
++        } else if (origin.z < bb.minZ || origin.z > bb.maxZ) {
++            return false;
++        }
++
++        return tmax >= tmin && tmax >= 0.0 && tmin <= 1.0;
++    }
++}
+diff --git a/me/samsuik/sakura/mechanics/legacy/PandaRedstoneWireEvaluator.java b/me/samsuik/sakura/mechanics/legacy/PandaRedstoneWireEvaluator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bd6ba8eebe611f2e43e071f32d457dcf393d2d9
+--- /dev/null
++++ b/me/samsuik/sakura/mechanics/legacy/PandaRedstoneWireEvaluator.java
+@@ -0,0 +1,358 @@
++package me.samsuik.sakura.mechanics.legacy;
++
++import com.google.common.collect.Sets;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.core.Vec3i;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.*;
++import net.minecraft.world.level.block.piston.PistonBaseBlock;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.properties.RedstoneSide;
++import net.minecraft.world.level.redstone.Orientation;
++import net.minecraft.world.level.redstone.RedstoneWireEvaluator;
++import org.apache.commons.lang3.ArrayUtils;
++import org.bukkit.craftbukkit.block.CraftBlock;
++import org.bukkit.event.block.BlockRedstoneEvent;
++import org.jetbrains.annotations.Nullable;
++import org.jspecify.annotations.NullMarked;
++
++import java.util.ArrayDeque;
++import java.util.HashSet;
++import java.util.LinkedHashSet;
++import java.util.Set;
++
++/**
++ * This is a PandaWire implementation for modern Minecraft.
++ * <p>
++ * Not to be confused with {@link net.minecraft.world.level.redstone.ExperimentalRedstoneWireEvaluator}
++ *
++ * @see <a href="https://gist.github.com/Panda4994/70ed6d39c89396570e062e4404a8d518">The original Pandawire gist</a>
++ */
++@NullMarked
++public final class PandaRedstoneWireEvaluator extends RedstoneWireEvaluator {
++    /*
++    * I considered replacing the lists with LinkedHashSets for faster lookup,
++    * but an artificial test showed barely any difference in performance
++    */
++    /** Positions that need to be turned off **/
++    private final ArrayDeque<BlockPos> turnOff = new ArrayDeque<>();
++    /** Positions that need to be checked to be turned on **/
++    private final ArrayDeque<BlockPos> turnOn = new ArrayDeque<>();
++    /** Positions of wire that was updated already (Ordering determines update order and is therefore required!) **/
++    private final LinkedHashSet<BlockPos> updatedRedstoneWire = new LinkedHashSet<>();
++
++    /** Ordered arrays of the facings; Needed for the update order.
++     *  I went with a vertical-first order here, but vertical last would work to.
++     *  However it should be avoided to update the vertical axis between the horizontal ones as this would cause unneeded directional behavior. **/
++    private static final Direction[] FACINGS_HORIZONTAL = {Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH};
++    private static final Direction[] FACINGS_VERTICAL = {Direction.DOWN, Direction.UP};
++    private static final Direction[] FACINGS = ArrayUtils.addAll(FACINGS_VERTICAL, FACINGS_HORIZONTAL);
++
++    /** Offsets for all surrounding blocks that need to receive updates **/
++    private static final Vec3i[] SURROUNDING_BLOCKS_OFFSET;
++    static {
++        final Set<Vec3i> set = Sets.newLinkedHashSet();
++        for (final Direction facing : FACINGS) {
++            set.add(facing.getUnitVec3i());
++        }
++
++        final Set<Vec3i> offsets = Sets.newLinkedHashSet(set);
++        for (final Vec3i neighborOffset : offsets) {
++            for (final Vec3i adjacentOffset : offsets) {
++                set.add(neighborOffset.offset(adjacentOffset));
++            }
++        }
++
++        set.remove(Vec3i.ZERO);
++        SURROUNDING_BLOCKS_OFFSET = set.toArray(new Vec3i[0]);
++    }
++    
++    public PandaRedstoneWireEvaluator(final RedStoneWireBlock wireBlock) {
++        super(wireBlock);
++    }
++
++    @Override
++    public void updatePowerStrength(
++        final Level level,
++        final BlockPos pos,
++        final BlockState state,
++        final @Nullable Orientation orientation,
++        final boolean updateShape
++    ) {
++        // Recalculate the connected wires
++        this.calculateCurrentChanges(level, pos, level.getBlockState(pos));
++
++        // Set to collect all the updates, to only execute them once. Ordering required.
++        final Set<BlockPos> blocksNeedingUpdate = Sets.newLinkedHashSet();
++
++        // Add the needed updates
++        for (final BlockPos updatedWirePos : this.updatedRedstoneWire) {
++            this.addBlocksNeedingUpdate(level, updatedWirePos, blocksNeedingUpdate);
++        }
++
++        // Add all other updates to keep known behaviors
++        // They are added in a backwards order because it preserves a commonly used behavior with the update order
++        for (final BlockPos updatedWirePos : this.updatedRedstoneWire.reversed()) {
++            this.addAllSurroundingBlocks(updatedWirePos, blocksNeedingUpdate);
++        }
++
++        // Remove updates on the wires as they just were updated
++        blocksNeedingUpdate.removeAll(this.updatedRedstoneWire);
++
++        /*
++         * Avoid unnecessary updates on the just updated wires
++         * A huge scale test showed about 40% more ticks per second
++         * It's probably less in normal usage but likely still worth it
++         */
++        this.updatedRedstoneWire.clear();
++
++        // Execute updates
++        for (final BlockPos neighborPos : blocksNeedingUpdate) {
++            level.neighborChanged(neighborPos, this.wireBlock, null);
++        }
++    }
++
++    /**
++     * Turns on or off all connected wires
++     *
++     * @param level	      World
++     * @param sourcePos	  Position of the wire that received the update
++     * @param sourceState Current state of this block
++     */
++    private void calculateCurrentChanges(final Level level, final BlockPos sourcePos, final BlockState sourceState) {
++        // Turn off all connected wires first if needed
++        if (sourceState.is(this.wireBlock)) {
++            this.turnOff.add(sourcePos);
++        } else {
++            // In case this wire was removed, check the surrounding wires
++            this.checkSurroundingWires(level, sourcePos);
++        }
++
++        while (!this.turnOff.isEmpty()) {
++            final BlockPos pos = this.turnOff.poll();
++            final BlockState state = level.getBlockState(pos);
++            final int oldPower = state.getValue(RedStoneWireBlock.POWER);
++            final int blockPower = this.getBlockSignal(level, pos);
++            final int wirePower = this.getIncomingWireSignal(level, pos);
++            final int newPower = Math.max(blockPower, wirePower);
++
++            // Power lowered?
++            if (newPower < oldPower) {
++                // If it's still powered by a direct source (but weaker) mark for turn on
++                if (blockPower > 0 && !this.turnOn.contains(pos)) {
++                    this.turnOn.add(pos);
++                }
++                // Set all the way to off for now, because wires that were powered by this need to update first
++                this.setWireState(level, pos, state, 0);
++                // Power rose?
++            } else if (newPower > oldPower) {
++                // Set new Power
++                this.setWireState(level, pos, state, newPower);
++            }
++            // Check if surrounding wires need to change based on the current/new state and add them to the lists
++            this.checkSurroundingWires(level, pos);
++        }
++
++        while (!this.turnOn.isEmpty()) {
++            final BlockPos pos = this.turnOn.poll();
++            final BlockState state = level.getBlockState(pos);
++            final int oldPower = state.getValue(RedStoneWireBlock.POWER);
++            final int blockPower = this.getBlockSignal(level, pos);
++            final int wirePower = this.getIncomingWireSignal(level, pos);
++            int newPower = Math.max(blockPower, wirePower);
++
++            if (oldPower != newPower) {
++                final BlockRedstoneEvent event = new BlockRedstoneEvent(CraftBlock.at(level, pos), oldPower, newPower);
++                newPower = event.callEvent() ? event.getNewCurrent() : oldPower;
++            }
++
++            if (newPower > oldPower) {
++                this.setWireState(level, pos, state, newPower);
++            }
++            // Check if surrounding wires need to change based on the current/new state and add them to the lists
++            this.checkSurroundingWires(level, pos);
++        }
++
++        this.turnOff.clear();
++    }
++
++    /**
++     * Checks if an wire needs to be marked for update depending on the power next to it
++     *
++     * @author panda
++     *
++     * @param level      World
++     * @param pos		 Position of the wire that might need to change
++     * @param otherPower Power of the wire next to it
++     */
++    private void addWireToList(final Level level, final BlockPos pos, final int otherPower) {
++        final BlockState state = level.getBlockState(pos);
++        if (state.is(this.wireBlock)) {
++            final int power = state.getValue(RedStoneWireBlock.POWER);
++            // Could get powered stronger by the neighbor?
++            if (power < otherPower - 1 && !this.turnOn.contains(pos)) {
++                // Mark for turn on check.
++                this.turnOn.add(pos);
++            }
++            // Should have powered the neighbor? Probably was powered by it and is in turn off phase.
++            if (power > otherPower && !this.turnOff.contains(pos)) {
++                // Mark for turn off check.
++                this.turnOff.add(pos);
++            }
++        }
++    }
++
++    /**
++     * Checks if the wires around need to get updated depending on this wires state.
++     * Checks all wires below before the same layer before on top to keep
++     * some more rotational symmetry around the y-axis.
++     *
++     * @author panda
++     *
++     * @param level	World
++     * @param pos	Position of the wire
++     */
++    private void checkSurroundingWires(final Level level, final BlockPos pos) {
++        final BlockState state = level.getBlockState(pos);
++        int ownPower = 0;
++        if (state.is(this.wireBlock)) {
++            ownPower = state.getValue(RedStoneWireBlock.POWER);
++        }
++        // Check wires on the same layer first as they appear closer to the wire
++        for (final Direction facingHorizontal : FACINGS_HORIZONTAL) {
++            this.addWireToList(level, pos.relative(facingHorizontal), ownPower);
++        }
++        for (final Direction facingVertical : FACINGS_VERTICAL) {
++            final BlockPos offsetPos = pos.relative(facingVertical);
++            final boolean solidBlock = level.getBlockState(offsetPos).isRedstoneConductor(level, offsetPos);
++            for (final Direction facingHorizontal : FACINGS_HORIZONTAL) {
++                final BlockPos adjacentPos = offsetPos.relative(facingHorizontal);
++                // wire can travel upwards if the block on top doesn't cut the wire (is non-solid)
++                // it can travel down if the block below is solid and the block "diagonal" doesn't cut off the wire (is non-solid)
++                if (facingVertical == Direction.UP && !solidBlock) {
++                    this.addWireToList(level, adjacentPos, ownPower);
++                } else if (facingVertical == Direction.DOWN && solidBlock && !level.getBlockState(adjacentPos).isRedstoneConductor(level, adjacentPos)) {
++                    this.addWireToList(level, adjacentPos, ownPower);
++                }
++            }
++        }
++    }
++
++    /**
++     * Adds all blocks that need to receive an update from a redstone change in this position.
++     * This means only blocks that actually could change.
++     *
++     * @author panda
++     *
++     * @param level	World
++     * @param pos	Position of the wire
++     * @param set	Set to add the update positions too
++     */
++    private void addBlocksNeedingUpdate(final Level level, final BlockPos pos, final Set<BlockPos> set) {
++        final Set<Direction> connectedSides = this.getSidesToPower(level, pos);
++        // Add the blocks next to the wire first (closest first order)
++        for (final Direction facing : FACINGS) {
++            final BlockPos offsetPos = pos.relative(facing);
++            final BlockState state = level.getBlockState(offsetPos);
++            // canConnectTo() is not the nicest solution here as it returns true for e.g. the front of a repeater
++            // canBlockBePowereFromSide catches these cases
++            final boolean flag = connectedSides.contains(facing.getOpposite()) || facing == Direction.DOWN;
++            if (flag || (facing.getAxis().isHorizontal() && RedStoneWireBlock.shouldConnectTo(state, facing))) {
++                if (canBlockBePoweredFromSide(state, facing, true)) {
++                    set.add(offsetPos);
++                }
++            }
++
++            // Later add blocks around the surrounding blocks that get powered
++            if (flag && state.isRedstoneConductor(level, offsetPos)) {
++                for (final Direction adjacentFacing : FACINGS) {
++                    final BlockPos adjacentPos = offsetPos.relative(adjacentFacing);
++                    if (canBlockBePoweredFromSide(level.getBlockState(adjacentPos), adjacentFacing, false)) {
++                        set.add(adjacentPos);
++                    }
++                }
++            }
++        }
++    }
++    
++    /**
++     * Checks if a block can get powered from a side.
++     * This behavior would better be implemented per block type as follows:
++     *  - return false as default. (blocks that are not affected by redstone don't need to be updated, it doesn't really hurt if they are either)
++     *  - return true for all blocks that can get powered from all side and change based on it (doors, fence gates, trap doors, note blocks, lamps, dropper, hopper, TNT, rails, possibly more)
++     *  - implement own logic for pistons, repeaters, comparators and redstone torches
++     *  The current implementation was chosen to keep everything in one class.
++     * <p>
++     *  Why is this extra check needed?
++     *  1. It makes sure that many old behaviors still work (QC + Pistons).
++     *  2. It prevents updates from "jumping".
++     *     Or rather it prevents this wire to update a block that would get powered by the next one of the same line.
++     *     This is to prefer as it makes understanding the update order of the wire really easy. The signal "travels" from the power source.
++     *
++     * @author panda
++     *
++     * @param state		State of the block
++     * @param side		Side from which it gets powered
++     * @param isWire	True if it's powered by a wire directly, False if through a block
++     * @return			True if the block can change based on the power level it gets on the given side, false otherwise
++     */
++    private boolean canBlockBePoweredFromSide(final BlockState state, final Direction side, final boolean isWire) {
++        Block block = state.getBlock();
++        if (state.isAir()) return false;
++        if (block instanceof PistonBaseBlock && state.getValue(PistonBaseBlock.FACING) == side.getOpposite()) return false;
++        if (block instanceof DiodeBlock && state.getValue(DiodeBlock.FACING) != side.getOpposite())
++            return isWire && block instanceof ComparatorBlock && state.getValue(ComparatorBlock.FACING).getAxis() != side.getAxis() && side.getAxis().isHorizontal();
++        return !(state.getBlock() instanceof RedstoneWallTorchBlock) || (!isWire && state.getValue(RedstoneWallTorchBlock.FACING) == side);
++    }
++
++    /**
++     * Creates a list of all horizontal sides that can get powered by a wire.
++     * The list is ordered the same as the facingsHorizontal.
++     *
++     * @param level	World
++     * @param pos   Position of the wire
++     * @return		List of all facings that can get powered by this wire
++     */
++    private Set<Direction> getSidesToPower(final Level level, final BlockPos pos) {
++        final Set<Direction> sidesToPower = new HashSet<>();
++        final BlockState state = level.getBlockState(pos);
++        for (final Direction direction : FACINGS_HORIZONTAL) {
++            final RedstoneSide side = state.getValue(RedStoneWireBlock.PROPERTY_BY_DIRECTION.get(direction));
++            if (side.isConnected()) {
++                sidesToPower.add(direction);
++            }
++        }
++
++        return sidesToPower;
++    }
++
++    /**
++     * Adds all surrounding positions to a set.
++     * This is the neighbor blocks, as well as their neighbors
++     *
++     * @param pos
++     * @param set
++     */
++    private void addAllSurroundingBlocks(final BlockPos pos, final Set<BlockPos> set) {
++        for (final Vec3i vect : SURROUNDING_BLOCKS_OFFSET) {
++            set.add(pos.offset(vect));
++        }
++    }
++
++    /**
++     * Sets the block state of a wire with a new power level and marks for updates
++     *
++     * @author panda
++     *
++     * @param level	World
++     * @param pos	Position at which the state needs to be set
++     * @param state	Old state
++     * @param power	Power it should get set to
++     */
++    private void setWireState(final Level level, final BlockPos pos, final BlockState state, final int power) {
++        final BlockState newState = state.setValue(RedStoneWireBlock.POWER, power);
++        level.setBlock(pos, newState, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
++        this.updatedRedstoneWire.add(pos);
++    }
++}
+diff --git a/me/samsuik/sakura/mechanics/sake/DispenseRelocationHandler.java b/me/samsuik/sakura/mechanics/sake/DispenseRelocationHandler.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ed52ec1b6dc521800516e1a0cc492e3140a7d393
+--- /dev/null
++++ b/me/samsuik/sakura/mechanics/sake/DispenseRelocationHandler.java
+@@ -0,0 +1,120 @@
++package me.samsuik.sakura.mechanics.sake;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.world.Container;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.Items;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.DispenserBlock;
++import net.minecraft.world.level.block.state.BlockState;
++import org.jspecify.annotations.NullMarked;
++
++import java.util.*;
++
++/**
++ * Adjusts the dispense position when using the Sake mechanics server type.
++ * <p>
++ * This attempts to replicate the behaviour found on Kore jars (Wine and Tequila).
++ */
++@NullMarked
++public final class DispenseRelocationHandler {
++    private final Level level;
++    private final Map<BlockPos, DispenserGroup> groups = new HashMap<>();
++
++    public DispenseRelocationHandler(final Level level) {
++        this.level = level;
++    }
++
++    public BlockPos relocatePosition(final BlockPos pos, final BlockPos sourcePos, final BlockState sourceState) {
++        DispenserGroup group = this.groups.get(sourcePos);
++        if (group == null) {
++            final Set<BlockPos> connected = this.getConnectedDispensers(sourcePos, sourceState);
++            final DispenserGroup newGroup = new DispenserGroup();
++            connected.forEach(dispenserPos -> this.groups.putIfAbsent(dispenserPos, newGroup));
++            group = newGroup;
++        }
++
++        return group.getSpawnPosition(pos);
++    }
++
++    public void clear() {
++        this.groups.clear();
++    }
++
++    private Set<BlockPos> getConnectedDispensers(final BlockPos pos, final BlockState state) {
++        // from testing in-game the expected behaviour is as follows:
++        // it checks horizontally then vertically for dispensers that meet the conditions
++        // - must be facing the same direction & powered
++        // - must be scheduled in the same tick
++        // - the block in front or the block below cannot have a collision shape
++        // - must have tnt in the first occupied slot
++        final Set<BlockPos> dispensers = new HashSet<>(List.of(pos));
++        final Direction facing = state.getValue(DispenserBlock.FACING);
++
++        // check if the source meets the conditions and is facing horizontally
++        if (facing.getAxis().isVertical() || !this.doesDispenserMeetConditions(pos, state, facing, true)) {
++            return dispensers;
++        }
++
++        for (final Direction horizontalDirection : facing.getClockWise().getAxis().getDirections()) {
++            for (int distance = 1; distance < 64; ++distance) {
++                final BlockPos adjacentPos = pos.relative(horizontalDirection, distance);
++                final BlockState adjacentState = this.level.getBlockState(adjacentPos);
++
++                if (state != adjacentState || !this.doesDispenserMeetConditions(adjacentPos, adjacentState, facing, false)) {
++                    break;
++                }
++
++                dispensers.add(adjacentPos);
++            }
++        }
++
++        for (final BlockPos horizontalPos : List.copyOf(dispensers)) {
++            for (final Direction verticalDirection : Direction.Plane.VERTICAL) {
++                for (int distance = 1; distance < 384; ++distance) {
++                    final BlockPos adjacentPos = horizontalPos.relative(verticalDirection, distance);
++                    final BlockState adjacentState = this.level.getBlockState(adjacentPos);
++
++                    if (state != adjacentState || !this.doesDispenserMeetConditions(adjacentPos, adjacentState, facing, false)) {
++                        break;
++                    }
++
++                    dispensers.add(adjacentPos);
++                }
++            }
++        }
++
++        return dispensers;
++    }
++
++    private boolean doesDispenserMeetConditions(final BlockPos pos, final BlockState state, final Direction facing, final boolean source) {
++        if (!source && !this.level.getBlockTicks().willTickThisTick(pos, state.getBlock())) {
++            return false;
++        }
++
++        final BlockState stateInFront = this.level.getBlockState(pos.relative(facing));
++        final BlockState stateBeneath = this.level.getBlockState(pos.relative(facing).below());
++
++        if (!stateInFront.getCollisionShape(this.level, pos).isEmpty() && !stateBeneath.getCollisionShape(this.level, pos).isEmpty()) {
++            return false;
++        }
++
++        final Container container = (Container) this.level.getBlockEntity(pos);
++        if (container == null) {
++            return false; // we should never get here, but you never know with FAWE
++        }
++
++        for (int slot = 0; slot < container.getContainerSize(); ++slot) {
++            if (!isSlotEmptyOrHasTnt(container.getItem(slot))) {
++                return false;
++            }
++        }
++
++        return true;
++    }
++
++    private static boolean isSlotEmptyOrHasTnt(final ItemStack itemstack) {
++        return itemstack.isEmpty() || itemstack.is(Items.TNT);
++    }
++}
+diff --git a/me/samsuik/sakura/mechanics/sake/DispenserGroup.java b/me/samsuik/sakura/mechanics/sake/DispenserGroup.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8d611e095716175a17e4f6b42bbc632b22a42aaa
+--- /dev/null
++++ b/me/samsuik/sakura/mechanics/sake/DispenserGroup.java
+@@ -0,0 +1,17 @@
++package me.samsuik.sakura.mechanics.sake;
++
++import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
++import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.level.ChunkPos;
++import org.jspecify.annotations.NullMarked;
++
++@NullMarked
++public final class DispenserGroup {
++    private final Long2ObjectMap<BlockPos> columns = new Long2ObjectOpenHashMap<>();
++
++    public BlockPos getSpawnPosition(final BlockPos pos) {
++        final long column = ChunkPos.pack(pos.getX(), pos.getZ());
++        return this.columns.computeIfAbsent(column, c -> pos);
++    }
++}
 diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
 index 4c456c2d1b42ecfcecb22ba2bf3819cab68206b8..7d2df500c90e0451ec2cf117f44413b3593fdd62 100644
 --- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
@@ -125,7 +1162,7 @@ index 751232d09f5570a23223356a6572090e7d61139b..b83a62296008e8fa3452f2bb0d03701b
                      // CraftBukkit end
                      level.addFreshEntity(tnt);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 66b50348888fa3c32f6ab0d0167b7cc6336ee3ef..3f4b0daf98c5c2bdd35420b18d987ccdf46bbacd 100644
+index ad47712217f119de386ed60389bfd3879ebb9e7c..8f0ec78c0744bbc66aaf5b3416ab81c9438ea26b 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -602,6 +602,17 @@ public abstract class Entity
@@ -636,19 +1673,19 @@ index f9073223aad937a9bd27a9a8be8817de32f967f6..4c9eb6ee78727e21925f47d56d260bf7
                  return false;
              } else {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 446ca8787231e40de2a6c62b0c4bf2aef9367455..1b2eaab42a615bf596011399794280ed41dfc970 100644
+index 61be5f0b0df06a34b172a657f40703b3ef21b385..7ba10b7bb3c74b914140a66cb8b8c143fd1d3d9a 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -846,6 +846,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
      public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
-     public final me.samsuik.sakura.explosion.durable.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.durable.DurableBlockManager(); // Sakura - explosion durable blocks
-+    public final me.samsuik.sakura.entity.dispensing.DispenseRelocationHandler dispenseRelocationHandler = new me.samsuik.sakura.entity.dispensing.DispenseRelocationHandler(this); // Sakura - configure server mechanics
+     public final me.samsuik.sakura.explosion.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.DurableBlockManager(); // Sakura - explosion durable blocks
++    public final me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler dispenseRelocationHandler = new me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler(this); // Sakura - configure server mechanics
  
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 35e787d257c78e922831ef5fbc906340a34e0dd2..c3bf4b8fdc910ef31818af2f77c918c27da33f6a 100644
+index 35e787d257c78e922831ef5fbc906340a34e0dd2..d7eed2f526e5fa90135b4192d007c8b41c7e7ba4 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -370,6 +370,37 @@ public class ServerExplosion implements Explosion {
@@ -675,7 +1712,7 @@ index 35e787d257c78e922831ef5fbc906340a34e0dd2..c3bf4b8fdc910ef31818af2f77c918c2
 +
 +        final HitResult.Type hitResult;
 +        if (this.mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_14)) {
-+            hitResult = me.samsuik.sakura.mechanics.LegacyExplosionBlockClipping.clip(entity.level(), point, explosionPos);
++            hitResult = me.samsuik.sakura.mechanics.legacy.LegacyExplosionBlockClipping.clip(entity.level(), point, explosionPos);
 +        } else {
 +            final ClipContext.Block blockContext = entity.mechanicsTarget().atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)
 +                ? ClipContext.Block.COLLIDER
@@ -703,7 +1740,7 @@ index 35e787d257c78e922831ef5fbc906340a34e0dd2..c3bf4b8fdc910ef31818af2f77c918c2
                              hitResult = density != 0.0f ? net.minecraft.world.phys.HitResult.Type.MISS : net.minecraft.world.phys.HitResult.Type.BLOCK;
 +                            // Sakura start - configure server mechanics
 +                        } else if (entity.mechanicsTarget().before(me.samsuik.sakura.mechanics.MechanicVersion.v1_14)) {
-+                            hitResult = me.samsuik.sakura.mechanics.LegacyExplosionBlockClipping.clip(entity.level(), from, center);
++                            hitResult = me.samsuik.sakura.mechanics.legacy.LegacyExplosionBlockClipping.clip(entity.level(), from, center);
                          } else {
 -                            hitResult = entity.level().clip(new ClipContext(from, center, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity)).getType();
 +                            final ClipContext.Block blockContext = entity.mechanicsTarget().atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)
@@ -905,7 +1942,7 @@ index 9496fdb50c13ea5ce30220244164e47c395f034f..a65ae7fa22a79e0619bcbd147c1927ea
      }
  
 diff --git a/net/minecraft/world/level/block/LiquidBlock.java b/net/minecraft/world/level/block/LiquidBlock.java
-index fb5e469aa2c98f53e3b2de28d7708169152f2677..9ea42a3caba83d3404f85cc07c8aa939f89eac23 100644
+index fb5e469aa2c98f53e3b2de28d7708169152f2677..957418fca673ab27bfeb250d0c3211674a86ac9a 100644
 --- a/net/minecraft/world/level/block/LiquidBlock.java
 +++ b/net/minecraft/world/level/block/LiquidBlock.java
 @@ -246,7 +246,14 @@ public class LiquidBlock extends Block implements BucketPickup {
@@ -917,7 +1954,7 @@ index fb5e469aa2c98f53e3b2de28d7708169152f2677..9ea42a3caba83d3404f85cc07c8aa939
 +                    final FluidState fluidState = state.getFluidState();
 +                    final Block convertToBlock = fluidState.isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
 +                    final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = level.localConfig().at(pos).mechanicsTarget;
-+                    if (convertToBlock == Blocks.COBBLESTONE && !me.samsuik.sakura.mechanics.LegacyBlockFormation.canLiquidFormBlock(level, pos, fluidState, mechanicsTarget)) {
++                    if (convertToBlock == Blocks.COBBLESTONE && !me.samsuik.sakura.mechanics.BlockFormation.canLiquidFormBlock(level, pos, fluidState, mechanicsTarget)) {
 +                        return true;
 +                    }
 +                    // Sakura end - configure server mechanics
@@ -925,7 +1962,7 @@ index fb5e469aa2c98f53e3b2de28d7708169152f2677..9ea42a3caba83d3404f85cc07c8aa939
                      if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, convertToBlock.defaultBlockState(), Block.UPDATE_ALL)) {
                          this.fizz(level, pos);
 diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
-index fea48c065cb86187be195b6e62cc26b0e9dee868..7a6087f02848d93c626e39aa26a7ab6077cf8ebe 100644
+index fea48c065cb86187be195b6e62cc26b0e9dee868..f88d985010618e0359f61c532dec82883bbe930d 100644
 --- a/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
 @@ -332,6 +332,10 @@ public class RedStoneWireBlock extends Block {
@@ -934,7 +1971,7 @@ index fea48c065cb86187be195b6e62cc26b0e9dee868..7a6087f02848d93c626e39aa26a7ab60
              new ExperimentalRedstoneWireEvaluator(this).updatePowerStrength(level, pos, state, orientation, shapeUpdateWiresAroundInitialPosition);
 +            // Sakura start - configure server mechanics
 +        } else if (level.localConfig().at(pos).mechanicsTarget.isLegacy()) {
-+            new me.samsuik.sakura.redstone.PandaRedstoneWireEvaluator(this).updatePowerStrength(level, pos, state, orientation, shapeUpdateWiresAroundInitialPosition);
++            new me.samsuik.sakura.mechanics.legacy.PandaRedstoneWireEvaluator(this).updatePowerStrength(level, pos, state, orientation, shapeUpdateWiresAroundInitialPosition);
 +            // Sakura end - configure server mechanics
          } else {
              this.evaluator.updatePowerStrength(level, pos, state, orientation, shapeUpdateWiresAroundInitialPosition);
@@ -1013,90 +2050,32 @@ index f8caa0b3c21766dbad73c524c1680346e4257188..5703513b1be21ccc898f6103e01f0174
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index a1328b8bdf91e260cdaa7203d42cef88258afad8..30433fa880e3a68b3ef3dec7b808c083c65032c4 100644
+index a1328b8bdf91e260cdaa7203d42cef88258afad8..6238ac582aee4e32846d311cde018550a345f53f 100644
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-@@ -51,6 +51,164 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -51,6 +51,51 @@ public class PistonMovingBlockEntity extends BlockEntity {
      private @org.jspecify.annotations.Nullable Direction shapeDirection = null;
      private float shapeProgress = Float.MIN_VALUE;
      // Sakura end - cache moving block entity collision shape
 +    // Sakura start - configure server mechanics
-+    @org.jspecify.annotations.Nullable
-+    private AABB getBoundsFromProgress(
-+        final BlockGetter level,
-+        final BlockPos pos,
-+        final BlockState state,
-+        final float progress,
-+        final Direction dir,
-+        final boolean absolute
-+    ) {
-+        if (state.is(Blocks.MOVING_PISTON) || state.isAir()) {
-+            return null;
-+        }
-+
-+        VoxelShape shape = this.movedState.getCollisionShape(level, pos);
-+        if (shape.isEmpty()) {
-+            return null;
-+        }
-+
-+        if (absolute) {
-+            shape = shape.move(pos.getX(), pos.getY(), pos.getZ());
-+        }
-+
-+        final AABB bounds = shape.bounds();
-+        double minX = bounds.minX;
-+        double minY = bounds.minY;
-+        double minZ = bounds.minZ;
-+        double maxX = bounds.maxX;
-+        double maxY = bounds.maxY;
-+        double maxZ = bounds.maxZ;
-+
-+        if (dir.getStepX() < 0) {
-+            minX -= (float) dir.getStepX() * progress;
-+        } else {
-+            maxX -= (float) dir.getStepX() * progress;
-+        }
-+
-+        if (dir.getStepY() < 0) {
-+            minY -= (float) dir.getStepY() * progress;
-+        } else {
-+            maxY -= (float) dir.getStepY() * progress;
-+        }
-+
-+        if (dir.getStepZ() < 0) {
-+            minZ -= (float) dir.getStepZ() * progress;
-+        } else {
-+            maxZ -= (float) dir.getStepZ() * progress;
-+        }
-+
-+        return this.fixZeroWidthBB(new AABB(minX, minY, minZ, maxX, maxY, maxZ), dir);
-+    }
-+
-+    private AABB fixZeroWidthBB(AABB bb, final Direction dir) {
-+        // Legacy behaviour relied on entities being able to collide with zero width shapes
-+        // This is no longer possible, so we have to create a difference here for it to work
-+        final double expandX = bb.getXsize() == 0.0 ? 1.0e-5 * dir.getStepX() : 0.0;
-+        final double expandY = bb.getYsize() == 0.0 ? 1.0e-5 * dir.getStepY() : 0.0;
-+        final double expandZ = bb.getZsize() == 0.0 ? 1.0e-5 * dir.getStepZ() : 0.0;
-+
-+        if (expandX != 0 || expandY != 0 || expandZ != 0) {
-+            bb = bb.expandTowards(expandX, expandY, expandZ);
-+        }
-+
-+        return bb;
-+    }
-+
 +    public final VoxelShape getCollisionShapeFromProgress(final BlockGetter level, final BlockPos pos) {
 +        float progress = this.getProgress(0.0f);
 +        if (this.extending) {
 +            progress = 1.0F - progress;
 +        }
 +
-+        final AABB bb = this.getBoundsFromProgress(level, pos, this.movedState, progress, this.direction, false);
-+        return bb == null ? Shapes.empty() : Shapes.create(bb);
++        final AABB movingBlockBox = me.samsuik.sakura.mechanics.PistonBehaviour.getBoundsFromProgress(
++            level,
++            pos,
++            this.movedState,
++            progress,
++            this.direction
++        );
++
++        return movingBlockBox == null ? Shapes.empty() : Shapes.create(movingBlockBox);
 +    }
 +
-+    private void moveEntities(final Level level, final float relativeProgress) {
++    private void moveEntities(final Level level, final BlockPos pos, final float relativeProgress) {
 +        float remaining = this.progress;
 +        if (this.extending) {
 +            remaining = 1.0F - remaining;
@@ -1104,97 +2083,42 @@ index a1328b8bdf91e260cdaa7203d42cef88258afad8..30433fa880e3a68b3ef3dec7b808c083
 +            --remaining;
 +        }
 +
++        final BlockState movedState = this.movedState;
 +        final Direction direction = this.direction;
-+        final AABB bb = this.getBoundsFromProgress(level, this.worldPosition, this.movedState, remaining, direction, true);
-+        if (bb == null || bb.getSize() == 0.0) {
-+            return;
-+        }
 +
-+        for (final Entity entity : level.getEntities(null, bb)) {
-+            if (this.movedState.is(Blocks.SLIME_BLOCK) && this.extending) {
-+                final Vec3 movement = entity.getDeltaMovement();
-+                double moveX = movement.x;
-+                double moveY = movement.y;
-+                double moveZ = movement.z;
-+
-+                switch (direction.getAxis()) {
-+                    case X -> moveX = direction.getStepX();
-+                    case Y -> moveY = direction.getStepY();
-+                    case Z -> moveZ = direction.getStepZ();
-+                }
-+
-+                entity.setDeltaMovement(moveX, moveY, moveZ);
-+            } else {
-+                final Vec3 pistonMovement = new Vec3(
-+                    relativeProgress * (float) direction.getStepX(),
-+                    relativeProgress * (float) direction.getStepY(),
-+                    relativeProgress * (float) direction.getStepZ()
-+                );
-+                entity.move(MoverType.PISTON, pistonMovement);
-+                entity.applyEffectsFromBlocks(entity.position(), entity.position());
-+            }
-+        }
-+    }
-+
-+    private static void moveEntityByPistonInDirection(final Direction direction, final Entity entity, final AABB movingBB) {
-+        final AABB entityBB = entity.getBoundingBox();
-+        double moveX = 0.0;
-+        double moveY = 0.0;
-+        double moveZ = 0.0;
-+
-+        switch (direction.getAxis()) {
-+            case X -> {
-+                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
-+                    moveX = movingBB.maxX - entityBB.minX;
-+                } else {
-+                    moveX = entityBB.maxX - movingBB.minX;
-+                }
-+                moveX += 0.01D;
-+            }
-+            case Y -> {
-+                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
-+                    moveY = movingBB.maxY - entityBB.minY;
-+                } else {
-+                    moveY = entityBB.maxY - movingBB.minY;
-+                }
-+                moveY += 0.01D;
-+            }
-+            case Z -> {
-+                if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
-+                    moveZ = movingBB.maxZ - entityBB.minZ;
-+                } else {
-+                    moveZ = entityBB.maxZ - movingBB.minZ;
-+                }
-+                moveZ += 0.01D;
-+            }
-+        }
-+
-+        final Vec3 pistonMovement = new Vec3(
-+            moveX * direction.getStepX(),
-+            moveY * direction.getStepY(),
-+            moveZ * direction.getStepZ()
++        AABB movingBlockBox = me.samsuik.sakura.mechanics.PistonBehaviour.getBoundsFromProgress(
++            level, pos, movedState, remaining, direction
 +        );
-+        entity.move(MoverType.PISTON, pistonMovement);
-+        entity.applyEffectsFromBlocks(entity.position(), entity.position());
++
++        if (movingBlockBox == null || movingBlockBox.getSize() == 0.0) {
++            return;
++        } else {
++            movingBlockBox = movingBlockBox.move(pos);
++        }
++
++        final boolean isPushingSlime = movedState.is(Blocks.SLIME_BLOCK) && this.extending;
++        me.samsuik.sakura.mechanics.PistonBehaviour.moveEntitiesWithProgress(
++            level, movingBlockBox, direction, relativeProgress, isPushingSlime
++        );
 +    }
 +    // Sakura end - configure server mechanics
  
      public PistonMovingBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
          super(BlockEntityType.PISTON, worldPosition, blockState);
-@@ -175,6 +333,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -175,6 +220,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
  
                      double delta = 0.0;
  
 +                    // Sakura start - configure server mechanics
 +                    if (entity.mechanicsTarget().before(me.samsuik.sakura.mechanics.MechanicVersion.v1_11)) {
-+                        moveEntityByPistonInDirection(movement, entity, aabb);
++                        me.samsuik.sakura.mechanics.PistonBehaviour.moveEntityByPistonInDirection(movement, entity, aabb);
 +                        return;
 +                    }
 +                    // Sakura end - configure server mechanics
                      for (AABB shapeAabb : shapeAabbs) {
                          AABB movingAABB = PistonMath.getMovementArea(moveByPositionAndProgress(pos, shapeAabb, self), movement, deltaProgress);
                          AABB entityAabb = entity.getBoundingBox();
-@@ -202,6 +366,11 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -202,6 +253,11 @@ public class PistonMovingBlockEntity extends BlockEntity {
          NOCLIP.set(pistonDirection);
          Vec3 previousPos = entity.position();
          entity.move(MoverType.PISTON, new Vec3(delta * movement.getStepX(), delta * movement.getStepY(), delta * movement.getStepZ()));
@@ -1206,7 +2130,7 @@ index a1328b8bdf91e260cdaa7203d42cef88258afad8..30433fa880e3a68b3ef3dec7b808c083
          entity.applyEffectsFromBlocks(previousPos, entity.position());
          entity.removeLatestMovementRecording();
          NOCLIP.set(null);
-@@ -317,12 +486,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -317,12 +373,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
      }
  
      public static void tick(final Level level, final BlockPos pos, final BlockState state, final PistonMovingBlockEntity entity) {
@@ -1222,13 +2146,13 @@ index a1328b8bdf91e260cdaa7203d42cef88258afad8..30433fa880e3a68b3ef3dec7b808c083
 +                    moveCollidedEntities(level, pos, 1.0f, entity);
 +                    moveStuckEntities(level, pos, 1.0f, entity);
 +                } else if (mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_9)) {
-+                    entity.moveEntities(level, 0.25f);
++                    entity.moveEntities(level, pos, 0.25f);
 +                }
 +                // Sakura end - configure server mechanics
                  level.removeBlockEntity(pos);
                  entity.setRemoved();
                  if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-@@ -342,12 +520,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -342,12 +407,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
              }
          } else {
              float newProgress = entity.progress + 0.5F;
@@ -1247,7 +2171,7 @@ index a1328b8bdf91e260cdaa7203d42cef88258afad8..30433fa880e3a68b3ef3dec7b808c083
 +                moveCollidedEntities(level, pos, newProgress, entity);
 +                moveStuckEntities(level, pos, newProgress, entity);
 +            } else if (entity.extending && mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_9)) {
-+                entity.moveEntities(level, entity.progress - entity.progressO + 0.0625f);
++                entity.moveEntities(level, pos, entity.progress - entity.progressO + 0.0625f);
 +            }
 +            // Sakura end - configure server mechanics
          }
