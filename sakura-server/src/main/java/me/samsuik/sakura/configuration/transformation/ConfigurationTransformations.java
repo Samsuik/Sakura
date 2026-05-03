@@ -5,6 +5,7 @@ import me.samsuik.sakura.configuration.transformation.global.V1_RelocateMessages
 import me.samsuik.sakura.configuration.transformation.global.V2_ConvertIconToMaterial;
 import me.samsuik.sakura.configuration.transformation.world.*;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.NodePath;
@@ -55,7 +56,7 @@ public final class ConfigurationTransformations {
         return ConfigurationTransformation.builder().addAction(path, transform).build();
     }
 
-    public static TransformAction newValue(final Function<ConfigurationNode, Object> func) {
+    public static TransformAction newValue(final Function<ConfigurationNode, @Nullable Object> func) {
         return (k, v) -> {
             if (!v.virtual()) {
                 Object val = func.apply(v);

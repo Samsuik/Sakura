@@ -91,7 +91,7 @@ public final class CombatUtil {
             enchantment.value().modifyDamage(level, enchantmentLevel, itemstack, entity, damageSource, damage);
         }
         // legacy - modern
-        return enchantmentLevel * 1.25F - damage.getValue();
+        return enchantmentLevel * 1.25F - damage.floatValue();
     }
 
     private static Holder<Enchantment> getEnchantmentHolder(final ResourceKey<Enchantment> enchantmentKey) {

@@ -17,7 +17,7 @@ public final class ComponentCanvas {
     public ComponentCanvas(final int width, final int height) {
         this.width = width;
         this.height = height;
-        // [x, y] is flipped as it makes converting the components into a list easier
+        // [x, y] is flipped to make converting the components into a list easier
         this.components = new Component[height][width];
     }
 

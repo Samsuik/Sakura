@@ -39,6 +39,7 @@ public final class SimpleBlockPosIterator extends AbstractIterator<BlockPos> {
         this.endZ = Mth.floor(bounds.maxZ);
     }
 
+    @Nullable
     @Override
     protected BlockPos computeNext() {
         final MutableBlockPos pos = this.pos;

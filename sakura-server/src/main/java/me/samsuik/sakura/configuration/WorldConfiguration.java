@@ -1,6 +1,5 @@
 package me.samsuik.sakura.configuration;
 
-import com.mojang.logging.LogUtils;
 import io.papermc.paper.configuration.Configuration;
 import io.papermc.paper.configuration.ConfigurationPart;
 import io.papermc.paper.configuration.NestedSetting;
@@ -18,7 +17,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import org.slf4j.Logger;
 import org.spongepowered.configurate.objectmapping.meta.Comment;
 import org.spongepowered.configurate.objectmapping.meta.Setting;
 
@@ -28,24 +26,22 @@ import java.util.Set;
 
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic", "RedundantSuppression"})
 public final class WorldConfiguration extends ConfigurationPart {
+    static final int CURRENT_VERSION = 12;
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
-    static final int CURRENT_VERSION = 12; // (when you change the version, change the comment, so it conflicts on rebases): rename filter bad nbt from spawn eggs
-
-    private transient final Identifier worldKey;
-    WorldConfiguration(Identifier worldKey) {
-        this.worldKey = worldKey;
+    private transient final Identifier worldIdentifier;
+    WorldConfiguration(final Identifier worldIdentifier) {
+        this.worldIdentifier = worldIdentifier;
     }
 
     public boolean isDefault() {
-        return this.worldKey.equals(PaperConfigurations.WORLD_DEFAULTS_KEY);
+        return this.worldIdentifier.equals(PaperConfigurations.WORLD_DEFAULTS_KEY);
     }
 
     @Setting(Configuration.VERSION_FIELD)
     public int version = CURRENT_VERSION;
 
     public Cannons cannons;
-    public class Cannons extends ConfigurationPart {
+    public final class Cannons extends ConfigurationPart {
         public MergeLevel mergeLevel = MergeLevel.STRICT;
         public boolean tntAndSandAffectedByBubbleColumns = true;
 
@@ -56,7 +52,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         public boolean loadChunks = false;
 
         public Restrictions restrictions = new Restrictions();
-        public class Restrictions extends ConfigurationPart {
+        public final class Restrictions extends ConfigurationPart {
             @Comment("The amount of blocks that can be travelled before changing direction is restricted")
             public IntOr.Disabled leftShootingThreshold = IntOr.Disabled.DISABLED;
             @Comment("The maximum amount of blocks that a cannon can adjust")
@@ -66,12 +62,12 @@ public final class WorldConfiguration extends ConfigurationPart {
         }
 
         public Tnt tnt = new Tnt();
-        public class Tnt extends ConfigurationPart {
+        public final class Tnt extends ConfigurationPart {
             public boolean forcePositionUpdates;
         }
 
         public Sand sand = new Sand();
-        public class Sand extends ConfigurationPart {
+        public final class Sand extends ConfigurationPart {
             public boolean despawnInsideMovingPistons = true;
             public boolean concreteSolidifyInWater = true;
 
@@ -83,7 +79,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         }
 
         public Explosion explosion = new Explosion();
-        public class Explosion extends ConfigurationPart {
+        public final class Explosion extends ConfigurationPart {
             public boolean optimiseProtectedRegions = false;
             public boolean avoidRedundantBlockSearches = false;
             public boolean reuseBlockCacheAcrossExplosions = false;
@@ -112,7 +108,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         }
 
         public Mechanics mechanics = new Mechanics();
-        public class Mechanics extends ConfigurationPart {
+        public final class Mechanics extends ConfigurationPart {
             public TNTSpread tntSpread = TNTSpread.ALL;
             public boolean tntFlowsInWater = true;
             public boolean fallingBlockParity = false;
@@ -125,7 +121,7 @@ public final class WorldConfiguration extends ConfigurationPart {
             )
             public boolean brokenPaperExplosionBehaviour = false;
 
-            public final boolean useBrokenPaperExplosionBehaviour(final Level level) {
+            public boolean useBrokenPaperExplosionBehaviour(final Level level) {
                 return level.paperConfig().environment.optimizeExplosions && this.mechanicsTarget.isLegacy()
                     || this.brokenPaperExplosionBehaviour;
             }
@@ -137,7 +133,7 @@ public final class WorldConfiguration extends ConfigurationPart {
     }
 
     public Technical technical;
-    public class Technical extends ConfigurationPart {
+    public final class Technical extends ConfigurationPart {
         public boolean dispenserRandomItemSelection = true;
         @Comment(
             "Only tick hoppers when items are able to be moved\n" +
@@ -146,7 +142,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         public boolean optimiseIdleHopperTicking = true;
 
         public Redstone redstone = new Redstone();
-        public class Redstone extends ConfigurationPart {
+        public final class Redstone extends ConfigurationPart {
             public boolean redstoneCache = false;
             public boolean fluidsBreakRedstone = true;
         }
@@ -159,9 +155,9 @@ public final class WorldConfiguration extends ConfigurationPart {
     }
 
     public Players players;
-    public class Players extends ConfigurationPart {
+    public final class Players extends ConfigurationPart {
         public Combat combat = new Combat();
-        public class Combat extends ConfigurationPart {
+        public final class Combat extends ConfigurationPart {
             public boolean legacyCombatMechanics = false;
             public boolean allowSweepAttacks = true;
             public boolean shieldDamageReduction = false;
@@ -180,7 +176,7 @@ public final class WorldConfiguration extends ConfigurationPart {
         }
 
         public Knockback knockback = new Knockback();
-        public class Knockback extends ConfigurationPart {
+        public final class Knockback extends ConfigurationPart {
             public DoubleOr.Default knockbackVertical = DoubleOr.Default.USE_DEFAULT;
             public double knockbackVerticalLimit = 0.4;
             public boolean verticalKnockbackRequireGround = true;
@@ -189,7 +185,7 @@ public final class WorldConfiguration extends ConfigurationPart {
             public double sweepingEdgeKnockback = 0.4;
 
             public Sprinting sprinting = new Sprinting();
-            public class Sprinting extends ConfigurationPart {
+            public final class Sprinting extends ConfigurationPart {
                 public boolean requireFullAttack = true;
                 public double extraKnockback = 0.5;
                 @Comment("Delay between extra knockback hits in milliseconds")
@@ -213,7 +209,7 @@ public final class WorldConfiguration extends ConfigurationPart {
     }
 
     public Entity entity;
-    public class Entity extends ConfigurationPart {
+    public final class Entity extends ConfigurationPart {
         @Comment("Only modify if you know what you're doing")
         public boolean disableMobAi = false;
         public boolean waterSensitivity = true;
@@ -223,15 +219,15 @@ public final class WorldConfiguration extends ConfigurationPart {
         public boolean nerfedMobsCanPushEntities = false;
 
         public Items items = new Items();
-        public class Items extends ConfigurationPart {
+        public final class Items extends ConfigurationPart {
             public BlastResistant blastResistant = new BlastResistant();
-            public class BlastResistant extends ConfigurationPart {
+            public final class BlastResistant extends ConfigurationPart {
                 public Set<Item> items = Set.of();
                 public boolean whitelistOverBlacklist = true;
             }
 
             public ExplosionItemDrops explosionItemDrops = new ExplosionItemDrops();
-            public class ExplosionItemDrops extends ConfigurationPart {
+            public final class ExplosionItemDrops extends ConfigurationPart {
                 public Set<Item> items = Set.of();
                 public boolean whitelistOverBlacklist = false;
             }
@@ -243,14 +239,14 @@ public final class WorldConfiguration extends ConfigurationPart {
         });
 
         public ThrownPotion thrownPotion = new ThrownPotion();
-        public class ThrownPotion extends ConfigurationPart {
+        public final class ThrownPotion extends ConfigurationPart {
             public double horizontalSpeed = 1.0;
             public double verticalSpeed = 1.0;
             public boolean allowBreakingInsideEntities = false;
         }
 
         public EnderPearl enderPearl = new EnderPearl();
-        public class EnderPearl extends ConfigurationPart {
+        public final class EnderPearl extends ConfigurationPart {
             public boolean useOutlineForCollision = false;
             public boolean preventTeleportingInsideBlocks = false;
             public boolean slowedDownByWater = true;
@@ -259,28 +255,27 @@ public final class WorldConfiguration extends ConfigurationPart {
     }
 
     public Environment environment;
-    public class Environment extends ConfigurationPart {
+    public final class Environment extends ConfigurationPart {
         public boolean allowWaterInTheNether = false;
         public boolean disableFastNetherLava = false;
         public boolean disableFluidsFlowingThroughTheWorldBorder = false;
 
         public BlockGeneration blockGeneration = new BlockGeneration();
-        public class BlockGeneration extends ConfigurationPart {
+        public final class BlockGeneration extends ConfigurationPart {
             public boolean legacyBlockFormation = false;
         }
 
         public Crops crops = new Crops();
-        public class Crops extends ConfigurationPart {
+        public final class Crops extends ConfigurationPart {
             public boolean useRandomChanceToGrow = false;
             public IntOr.Default minCactusFlowerGrowthHeight = IntOr.Default.USE_DEFAULT;
         }
 
         public MobSpawner mobSpawner = new MobSpawner();
-        public class MobSpawner extends ConfigurationPart {
+        public final class MobSpawner extends ConfigurationPart {
             public boolean checkSpawnConditions = true;
             public boolean requireNearbyPlayer = true;
             public boolean ignoreEntityLimit = false;
         }
     }
-
 }

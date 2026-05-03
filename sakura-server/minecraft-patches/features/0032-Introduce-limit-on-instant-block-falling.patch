@@ -5,14 +5,14 @@ Subject: [PATCH] Introduce limit on instant block falling
 
 
 diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
-index 4e459d618cc2c5f7824deb5587e95b5e22c95861..ef136f78c146b62f4060894df862f0f5841bfb11 100644
+index 7248f05839894a7ab9fe4ce32dd40eded2139c15..26b57382f6a1341e55dcacc9d5d1bf14a6770c2d 100644
 --- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
 +++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
 @@ -11,5 +11,6 @@ public final class ScheduleSakuraTasks {
-         scheduler.endless((tick, level, cb) -> level.mergeHandler.expire(tick), 200); // Sakura - merge cannon entities
-         scheduler.endless((tick, level, cb) -> level.densityCache.expire(tick), 0); // Sakura - explosion density cache
-         scheduler.endless((tick, level, cb) -> level.dispenseRelocationHandler.clear(), 0); // Sakura - configure server mechanics
-+        scheduler.endless((tick, level, cb) -> level.fallingBlockColumnLimits.clear(), 0); // Sakura - limit instant block falling
+         scheduler.endless((tick, level) -> level.mergeHandler.expire(tick), 200); // Sakura - merge cannon entities
+         scheduler.endless((tick, level) -> level.densityCache.expire(tick), 0); // Sakura - explosion density cache
+         scheduler.endless((tick, level) -> level.dispenseRelocationHandler.clear(), 0); // Sakura - configure server mechanics
++        scheduler.endless((tick, level) -> level.fallingBlockColumnLimits.clear(), 0); // Sakura - limit instant block falling
      }
  }
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
