@@ -1,9 +1,9 @@
 package me.samsuik.sakura.command;
 
-import me.samsuik.sakura.command.subcommands.*;
-import me.samsuik.sakura.command.subcommands.debug.DebugCommand;
-import me.samsuik.sakura.command.subcommands.debug.DebugLocalConfiguration;
-import me.samsuik.sakura.player.visibility.VisibilityTypes;
+import me.samsuik.sakura.SakuraFeatureHooks;
+import me.samsuik.sakura.command.subcommand.*;
+import me.samsuik.sakura.command.subcommand.debug.DebugCommand;
+import me.samsuik.sakura.command.subcommand.debug.DebugLocalConfiguration;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.command.Command;
 import org.jspecify.annotations.NullMarked;
@@ -20,22 +20,22 @@ public final class SakuraCommands {
     public static final Set<Command> DEBUG_COMMANDS = new HashSet<>();
 
     static {
+        // Register primary commands (these can be called through / or the "sakura" command)
         COMMANDS.put("config", new ConfigCommand("config"));
         COMMANDS.put("tps", new TPSCommand("tps"));
-        COMMANDS.put("fps", new FPSCommand("fps"));
-        COMMANDS.put("tntvisibility", new VisualCommand(VisibilityTypes.TNT, "tnttoggle"));
-        COMMANDS.put("sandvisibility", new VisualCommand(VisibilityTypes.SAND, "sandtoggle"));
         COMMANDS.put("mechanic", new MechanicCommand("mechanic"));
+        SakuraFeatureHooks.setupCommands(COMMANDS);
+
+        // Register sub commands (commands callable through the main "sakura" command)
         SUB_COMMANDS.addAll(COMMANDS.values());
         SUB_COMMANDS.add(new DebugCommand("debug"));
-        // "sakura" isn't a subcommand
-        COMMANDS.put("sakura", new SakuraCommand("sakura"));
+
+        // Register debug commands (commands intended for debugging features/api)
         DEBUG_COMMANDS.add(new DebugLocalConfiguration("local-regions"));
+        COMMANDS.put("sakura", new SakuraCommand("sakura"));
     }
 
-    public static void registerCommands(MinecraftServer server) {
-        COMMANDS.forEach((name, command) -> {
-            server.server.getCommandMap().register(name, "sakura", command);
-        });
+    public static void registerCommands(final MinecraftServer server) {
+        COMMANDS.forEach((name, command) -> server.server.getCommandMap().register(name, "sakura", command));
     }
 }

@@ -1,4 +1,4 @@
-package me.samsuik.sakura.command.subcommands.debug;
+package me.samsuik.sakura.command.subcommand.debug;
 
 import me.samsuik.sakura.command.BaseMenuCommand;
 import me.samsuik.sakura.command.SakuraCommands;

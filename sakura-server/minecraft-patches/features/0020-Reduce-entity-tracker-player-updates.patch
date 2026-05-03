@@ -5,10 +5,10 @@ Subject: [PATCH] Reduce entity tracker player updates
 
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index d6a7b003334b9cb867eab70dd94f1dfb5b0401a9..72a37dc4451840c5b633e2e2551f9f3d4baeaf61 100644
+index 87441a0345943ec843e55505f859b456765c8aab..f47bf090b06ce2e4d73471daad2f8d20a36c0ad0 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1052,7 +1052,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1047,7 +1047,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              if (tracker == null) {
                  continue;
              }
@@ -21,10 +21,10 @@ index d6a7b003334b9cb867eab70dd94f1dfb5b0401a9..72a37dc4451840c5b633e2e2551f9f3d
              if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
                  || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
                  tracker.serverEntity.sendChanges();
-@@ -1326,6 +1330,20 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
-             return state != me.samsuik.sakura.player.visibility.VisibilityState.OFF;
+@@ -1293,6 +1297,20 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+             return !this.seenBy.isEmpty();
          }
-         // Sakura end - client visibility settings; entity visibility
+         // Paper end - optimise entity tracker
 +        // Sakura start - reduce entity tracker player updates
 +        private final int playerUpdateInterval;
 +        private net.minecraft.world.phys.Vec3 entityPosition;
@@ -42,7 +42,7 @@ index d6a7b003334b9cb867eab70dd94f1dfb5b0401a9..72a37dc4451840c5b633e2e2551f9f3d
  
          public TrackedEntity(final Entity entity, final int range, final int updateInterval, final boolean trackDelta) {
              Objects.requireNonNull(ChunkMap.this);
-@@ -1335,6 +1353,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1302,6 +1320,10 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              this.entity = entity;
              this.range = range;
              this.lastSectionPos = SectionPos.of(entity);

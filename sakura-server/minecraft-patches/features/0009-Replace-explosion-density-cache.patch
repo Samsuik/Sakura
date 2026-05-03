@@ -5,23 +5,23 @@ Subject: [PATCH] Replace explosion density cache
 
 
 diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
-index d42b73fa20025d7a05171e301a115424dc1bbb9f..4c456c2d1b42ecfcecb22ba2bf3819cab68206b8 100644
+index db77eb6e71360ee8cb6837a1d3c57181f7a653b5..ebe8275d28ddc42de0d94461b7fe62f115e098a3 100644
 --- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
 +++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
-@@ -10,5 +10,6 @@ public final class ScheduleSakuraTasks {
+@@ -9,5 +9,6 @@ import org.jspecify.annotations.NullMarked;
+ public final class ScheduleSakuraTasks {
      public static void schedule(final LevelTickScheduler scheduler) {
-         scheduler.endless((tick, level, cb) -> level.explosionPositions.clear(), 0); // Sakura - client visibility settings
          scheduler.endless((tick, level, cb) -> level.mergeHandler.expire(tick), 200); // Sakura - merge cannon entities
 +        scheduler.endless((tick, level, cb) -> level.densityCache.expire(tick), 0); // Sakura - explosion density cache
      }
  }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 12d1879590b97821f30e7a8a463b0bcd1e5024c2..5549aba1559b64110010e66c37b9a655a71befd4 100644
+index 30c62cdd2ac4ed8b59473004a3116d231c43ecce..ae7ecb98f996bef1ead72b66e9cf0019cd05d0d3 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -844,6 +844,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-     }
+@@ -845,6 +845,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      // Sakura end - implement state watchers and tick scheduler
+     public final me.samsuik.sakura.player.visibility.MinimalVisibility minimalVisibility = new me.samsuik.sakura.player.visibility.MinimalVisibility(); // Sakura - client visibility settings
      public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
 +    public final me.samsuik.sakura.explosion.density.BlockDensityCache densityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosion density cache
  

@@ -5,21 +5,21 @@ Subject: [PATCH] Merge Cannon Entities
 
 
 diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
-index f7e8320006171fadde78afaa4c89373292ab13de..d42b73fa20025d7a05171e301a115424dc1bbb9f 100644
+index c3060d4602a062b4d1713bfb9def2686c4b7a4c7..db77eb6e71360ee8cb6837a1d3c57181f7a653b5 100644
 --- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
 +++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
-@@ -9,5 +9,6 @@ import org.jspecify.annotations.NullMarked;
+@@ -8,5 +8,6 @@ import org.jspecify.annotations.NullMarked;
+ @NullMarked
  public final class ScheduleSakuraTasks {
      public static void schedule(final LevelTickScheduler scheduler) {
-         scheduler.endless((tick, level, cb) -> level.explosionPositions.clear(), 0); // Sakura - client visibility settings
 +        scheduler.endless((tick, level, cb) -> level.mergeHandler.expire(tick), 200); // Sakura - merge cannon entities
      }
  }
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 7a1b62df9f2c60898546ee44e182151e62b28663..ace3db39a29bbc534553a95a702b763de5d69ab1 100644
+index 30ec8cd216cce3cbde2d540cda3c0ed47bd66097..2d7e47ee49012d87438b388d8829d29966228e09 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -883,6 +883,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -867,6 +867,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
  
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
@@ -27,7 +27,7 @@ index 7a1b62df9f2c60898546ee44e182151e62b28663..ace3db39a29bbc534553a95a702b763d
              this.entityTickList
                  .forEach(
                      entity -> {
-@@ -902,6 +903,14 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -886,6 +887,14 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
                                      }
  
                                      profiler.push("tick");
@@ -43,10 +43,10 @@ index 7a1b62df9f2c60898546ee44e182151e62b28663..ace3db39a29bbc534553a95a702b763d
                                      profiler.pop();
                                  }
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index badf603e78d28b053ef34e962f5a09b298d9cd35..841b488a83391557f5a969889bd7a43db16e9e5f 100644
+index b5f4e598f0cfde878257c4424bf536677b37c703..2ba28ea9bac439a9c9b455e67c1bc202d386609b 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -581,6 +581,27 @@ public abstract class Entity
+@@ -578,6 +578,27 @@ public abstract class Entity
          return to.entityState() != null && to.entityState().comparePositionAndMotion(this);
      }
      // Sakura end - store entity data/state
@@ -74,7 +74,7 @@ index badf603e78d28b053ef34e962f5a09b298d9cd35..841b488a83391557f5a969889bd7a43d
  
      public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -5162,6 +5183,11 @@ public abstract class Entity
+@@ -5159,6 +5180,11 @@ public abstract class Entity
          if (this.removalReason != Entity.RemovalReason.UNLOADED_TO_CHUNK) { this.getPassengers().forEach(Entity::stopRiding); } // Paper - rewrite chunk system
          this.levelCallback.onRemove(reason);
          this.onRemoval(reason);
@@ -87,7 +87,7 @@ index badf603e78d28b053ef34e962f5a09b298d9cd35..841b488a83391557f5a969889bd7a43d
          if (!(this instanceof ServerPlayer) && reason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
              // Players need to be special cased, because they are regularly removed from the world
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 5fc9ae37f218ea5ff7a54900af27c7e300da0e05..83d7fcde28ef57d5833ca718f7e65e389259c9ff 100644
+index a13120edcd58574e77864c13aa2ae31c04dc4dd5..1b72c9148c072afd19afa437e57870c9684f0115 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -53,7 +53,7 @@ import net.minecraft.world.phys.Vec3;
@@ -157,7 +157,7 @@ index 5fc9ae37f218ea5ff7a54900af27c7e300da0e05..83d7fcde28ef57d5833ca718f7e65e38
          super(type, level);
 @@ -108,6 +157,7 @@ public class FallingBlockEntity extends Entity {
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
-         this.isFallingBlock = true; // Sakura - client visibility settings
+         this.cannonEntity = true; // Sakura - add cannon entity field
          this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
 +        this.mergeData.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura - merge cannon entities
      }
@@ -192,7 +192,7 @@ index 5fc9ae37f218ea5ff7a54900af27c7e300da0e05..83d7fcde28ef57d5833ca718f7e65e38
  
      public void setHurtsEntities(final float damagePerDistance, final int damageMax) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 8414d0ba204da9d521a9ca69e663c1f293b0e074..72706e402add0ddaf206bec3b190d62ed3706ccb 100644
+index 7c933a28eb8e5fb24c2cd95c538eba30a9a476d7..51a7be19f8ac748490467d4fa32c851a9b280304 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -34,7 +34,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
@@ -247,7 +247,7 @@ index 8414d0ba204da9d521a9ca69e663c1f293b0e074..72706e402add0ddaf206bec3b190d62e
      public PrimedTnt(final EntityType<? extends PrimedTnt> type, final Level level) {
          super(type, level);
          this.blocksBuilding = true;
-         this.isPrimedTNT = true; // Sakura - client visibility settings
+         this.cannonEntity = true; // Sakura - add cannon entity field
          this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
 +        this.mergeData.mergeLevel = level.sakuraConfig().cannons.mergeLevel; // Sakura - merge cannon entities
      }
@@ -282,13 +282,13 @@ index 8414d0ba204da9d521a9ca69e663c1f293b0e074..72706e402add0ddaf206bec3b190d62e
  
      @Override
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index f7b688d89864ac6ee3b93f0baf595f14ec4bb180..12d1879590b97821f30e7a8a463b0bcd1e5024c2 100644
+index ddc53cbcc5be349e4d94e5763e572b672f109aab..30c62cdd2ac4ed8b59473004a3116d231c43ecce 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -843,6 +843,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-         return this.blockStateRevisionCounter.get();
+@@ -844,6 +844,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      }
      // Sakura end - implement state watchers and tick scheduler
+     public final me.samsuik.sakura.player.visibility.MinimalVisibility minimalVisibility = new me.samsuik.sakura.player.visibility.MinimalVisibility(); // Sakura - client visibility settings
 +    public final me.samsuik.sakura.entity.merge.EntityMergeHandler mergeHandler = new me.samsuik.sakura.entity.merge.EntityMergeHandler(); // Sakura - merge cannon entities
  
      protected Level(

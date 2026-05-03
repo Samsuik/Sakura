@@ -1,4 +1,4 @@
-package me.samsuik.sakura.command.subcommands;
+package me.samsuik.sakura.command.subcommand;
 
 import me.samsuik.sakura.command.PlayerOnlySubCommand;
 import me.samsuik.sakura.configuration.GlobalConfiguration;

@@ -11,6 +11,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.FallingBlockEntity;
+import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.ServerExplosion;
 import net.minecraft.world.level.gameevent.GameEvent;
@@ -223,7 +225,7 @@ public abstract class SpecialisedExplosion<T extends Entity> extends ServerExplo
         if (this.excludeSourceFromDamage && this.source == entity || entity.ignoreExplosion(this)) {
             return; // Make sure the entity can be affected by explosions.
         }
-        if (entity.isPrimedTNT || entity.isFallingBlock) {
+        if (entity instanceof PrimedTnt || entity instanceof FallingBlockEntity) {
             this.impactCannonEntity(entity, pos, potential, radius);
         } else {
             for (int i = 0; i < potential; ++i) {

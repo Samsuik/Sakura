@@ -62,13 +62,13 @@ index 147cd0458d719be6679b6bac2b6617b48d98ce4c..e8f1aed9ddbf7569451e796d8b616ce6
      private static TicketType register(final String name, final long timeout, @TicketType.Flags final int flags) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 1dfef3c5e5e5cbd49cf299a09fe63b7ffceaed01..d1699f418be858298b2cb96ee2824926f27b8ac2 100644
+index 291dc503086728bbe2c0a8a6ab182682da76160f..fa41c7fb259474cd0f990bc381eb79800980c705 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -553,6 +553,19 @@ public abstract class Entity
-     public boolean isPrimedTNT;
-     public boolean isFallingBlock;
-     // Sakura end - client visibility settings
+@@ -550,6 +550,19 @@ public abstract class Entity
+     // Paper end - optimise entity tracker
+     public boolean pushedByFluid = true; // Sakura - entity pushed by fluid api
+     public boolean cannonEntity = false; // Sakura - add cannon entity field
 +    // Sakura start - load chunks on movement
 +    protected boolean loadChunks = false;
 +
@@ -85,7 +85,7 @@ index 1dfef3c5e5e5cbd49cf299a09fe63b7ffceaed01..d1699f418be858298b2cb96ee2824926
  
      public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -1593,7 +1606,7 @@ public abstract class Entity
+@@ -1590,7 +1603,7 @@ public abstract class Entity
  
          ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder(
              this.level, (Entity)(Object)this, initialCollisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
@@ -94,7 +94,7 @@ index 1dfef3c5e5e5cbd49cf299a09fe63b7ffceaed01..d1699f418be858298b2cb96ee2824926
          );
          potentialCollisionsBB.addAll(entityAABBs);
          final Vec3 collided = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currentBox, potentialCollisionsVoxel, potentialCollisionsBB);
-@@ -5169,13 +5182,14 @@ public abstract class Entity
+@@ -5166,13 +5179,14 @@ public abstract class Entity
      @Override
      public boolean shouldBeSaved() {
          return (this.removalReason == null || this.removalReason.shouldSave())
@@ -111,25 +111,25 @@ index 1dfef3c5e5e5cbd49cf299a09fe63b7ffceaed01..d1699f418be858298b2cb96ee2824926
  
      public boolean mayInteract(final ServerLevel level, final BlockPos pos) {
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index c40487da0e8971b3704d461d2b44df57f843c691..8037cf75bf3f562b121c8037390b68de4472bf87 100644
+index a8f0d360e3117414138cca7186e76f8f1968df81..dce551464410f063de7ba82bf081914f64edd1e6 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -107,6 +107,7 @@ public class FallingBlockEntity extends Entity {
          this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
          this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
-         this.isFallingBlock = true; // Sakura - client visibility settings
+         this.cannonEntity = true; // Sakura - add cannon entity field
 +        this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
      }
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index ff4634479269a44e85302cc45c316da74d5319e4..64f426a5ba6cf2dcc489215363cd2f1d29909b6c 100644
+index ac14f78097943ff3abb4d15ab842067ccd91d6eb..7cadb7ceb57eeb6c942021dadab3669dad3f5ab0 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -65,6 +65,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          super(type, level);
          this.blocksBuilding = true;
-         this.isPrimedTNT = true; // Sakura - client visibility settings
+         this.cannonEntity = true; // Sakura - add cannon entity field
 +        this.loadChunks = level.sakuraConfig().cannons.loadChunks; // Sakura - load chunks on movement
      }
  

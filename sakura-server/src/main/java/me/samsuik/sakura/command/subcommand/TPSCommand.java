@@ -1,4 +1,4 @@
-package me.samsuik.sakura.command.subcommands;
+package me.samsuik.sakura.command.subcommand;
 
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;

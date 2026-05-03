@@ -5,14 +5,14 @@ Subject: [PATCH] Optimise block counting for cannon entities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 07ab8f4151fca1887fde8dc7942f810933c82bd9..7db13a5dd3df2ff03bed911d351bff6df27f4bfa 100644
+index 07ab8f4151fca1887fde8dc7942f810933c82bd9..85e27d8732ef0bf3b8ea796c8bcbb88855ad9066 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1941,6 +1941,7 @@ public final class CollisionUtil {
          final CollisionContext collisionShape = new LazyEntityCollisionContext(entity);
          final boolean useEntityCollisionShape = LazyEntityCollisionContext.useEntityCollisionShape(world, entity);
          final long gameTime = world.getGameTime(); // Sakura - load chunks on movement
-+        final boolean cannonEntity = entity != null && (entity.isFallingBlock || entity.isPrimedTNT); // Sakura - optimise block counting for cannon entities
++        final boolean cannonEntity = entity != null && (entity.cannonEntity); // Sakura - optimise block counting for cannon entities
  
          // special cases:
          if (minBlockY > maxBlockY) {
@@ -42,14 +42,14 @@ index 07ab8f4151fca1887fde8dc7942f810933c82bd9..7db13a5dd3df2ff03bed911d351bff6d
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index cf9f75dadb56c11ea69af7c62ff119eaf7c4b747..857d18b7b121be3bf63d6f0e1060ddc5d93a692d 100644
+index b8da7e31450fd92127542064f633f69defaa6d07..a5657675c31ba1f933fe85c1725172c5b05b128b 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -626,6 +626,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          BlockPos selected = null;
          double selectedDistance = Double.MAX_VALUE;
          final Vec3 entityPos = entity.position();
-+        final boolean cannonEntity = entity.isFallingBlock || entity.isPrimedTNT; // Sakura - optimise block counting for cannon entities
++        final boolean cannonEntity = entity.cannonEntity; // Sakura - optimise block counting for cannon entities
  
          // special cases:
          if (minBlockY > maxBlockY) {
