@@ -92,7 +92,7 @@ index 0000000000000000000000000000000000000000..6450f2013eb71b956fcdfb2aa8ba0050
 +}
 diff --git a/me/samsuik/sakura/player/visibility/FilterOrModifyPackets.java b/me/samsuik/sakura/player/visibility/FilterOrModifyPackets.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6414821597380a73770b64132e22eec23d8e8c0a
+index 0000000000000000000000000000000000000000..fff2220e351e925307fa55a43d7f98252037a0bd
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/FilterOrModifyPackets.java
 @@ -0,0 +1,96 @@
@@ -117,7 +117,7 @@ index 0000000000000000000000000000000000000000..6414821597380a73770b64132e22eec2
 +@NullMarked
 +public final class FilterOrModifyPackets {
 +    public static boolean filterExplosion(
-+        final Vec3 position,
++        final Vec3 explosionPos,
 +        final ServerPlayer player,
 +        final long gameTime,
 +        final MinimalVisibility minimalVisibility
@@ -125,11 +125,11 @@ index 0000000000000000000000000000000000000000..6414821597380a73770b64132e22eec2
 +        final VisibilitySettings settings = player.visibilitySettings;
 +        final VisibilityState state = settings.get(VisibilityTypes.EXPLOSIONS);
 +
-+        if (state == VisibilityState.MINIMAL && minimalVisibility.filterExplosion(position, gameTime)) {
-+            return true;
++        if (state == VisibilityState.MINIMAL && minimalVisibility.filterExplosion(explosionPos, gameTime)) {
++            return false;
 +        }
 +
-+        return state == VisibilityState.OFF;
++        return state != VisibilityState.ON;
 +    }
 +
 +    public static boolean canSendEntityUpdates(
@@ -194,7 +194,7 @@ index 0000000000000000000000000000000000000000..6414821597380a73770b64132e22eec2
 +}
 diff --git a/me/samsuik/sakura/player/visibility/MinimalVisibility.java b/me/samsuik/sakura/player/visibility/MinimalVisibility.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..81a289c528a48f5273b24a10268d600e73eaafa2
+index 0000000000000000000000000000000000000000..c7b81da60c8d05406042d020cc95c17e895fb8a6
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/MinimalVisibility.java
 @@ -0,0 +1,44 @@
@@ -232,14 +232,14 @@ index 0000000000000000000000000000000000000000..81a289c528a48f5273b24a10268d600e
 +        }
 +    }
 +
-+    public boolean filterExplosion(final Vec3 position, final long gameTime) {
++    public boolean filterExplosion(final Vec3 explosionPos, final long gameTime) {
 +        if (this.lastExplosion != gameTime) {
 +            this.explosions.clear();
 +            this.lastExplosion = gameTime;
 +        }
 +
-+        final BlockPos blockPos = BlockPos.containing(position);
-+        return this.explosions.add(blockPos);
++        final BlockPos explosionBlockPos = BlockPos.containing(explosionPos);
++        return this.explosions.add(explosionBlockPos);
 +    }
 +}
 diff --git a/me/samsuik/sakura/player/visibility/PlayerVisibilitySettings.java b/me/samsuik/sakura/player/visibility/PlayerVisibilitySettings.java
