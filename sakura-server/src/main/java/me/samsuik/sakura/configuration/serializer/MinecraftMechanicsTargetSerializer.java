@@ -1,5 +1,6 @@
 package me.samsuik.sakura.configuration.serializer;
 
+import me.samsuik.sakura.mechanics.MechanicVersion;
 import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
 import me.samsuik.sakura.mechanics.MinecraftVersionEncoding;
 import me.samsuik.sakura.mechanics.ServerType;
@@ -35,7 +36,7 @@ public final class MinecraftMechanicsTargetSerializer implements TypeSerializer<
             mechanicsTarget = MinecraftMechanicsTarget.latest();
         }
 
-        root.node(MECHANIC_VERSION).set(MinecraftVersionEncoding.asString(mechanicsTarget.mechanicVersion()));
+        root.node(MECHANIC_VERSION).set(MechanicVersion.name(mechanicsTarget.mechanicVersion()));
         root.node(SERVER_TYPE).set(ServerType.name(mechanicsTarget.serverType()));
     }
 }

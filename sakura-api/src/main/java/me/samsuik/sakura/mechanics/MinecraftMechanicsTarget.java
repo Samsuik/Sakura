@@ -110,6 +110,6 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
 
     @Override
     public String toString() {
-        return MinecraftVersionEncoding.asString(this.mechanicVersion) + "+" + ServerType.name(this.serverType);
+        return MechanicVersion.name(this.mechanicVersion) + "+" + ServerType.name(this.serverType);
     }
 }

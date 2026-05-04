@@ -27,4 +27,12 @@ public final class MechanicVersion {
     public static final short v1_21_9 = MinecraftVersionEncoding.v1xy(21, 9);
     public static final short v1_21_10 = MinecraftVersionEncoding.v1xy(21, 10);
     public static final short v1_21_11 = MinecraftVersionEncoding.v1xy(21, 11);
+
+    public static String name(final short mechanicVersion) {
+        return switch (mechanicVersion) {
+            case MechanicVersion.LATEST -> "latest";
+            case MechanicVersion.LEGACY -> "legacy";
+            default -> MinecraftVersionEncoding.asString(mechanicVersion);
+        };
+    }
 }
