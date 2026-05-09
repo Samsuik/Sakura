@@ -93,10 +93,10 @@ index 0000000000000000000000000000000000000000..6450f2013eb71b956fcdfb2aa8ba0050
 +}
 diff --git a/me/samsuik/sakura/player/visibility/FilterOrModifyPackets.java b/me/samsuik/sakura/player/visibility/FilterOrModifyPackets.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fff2220e351e925307fa55a43d7f98252037a0bd
+index 0000000000000000000000000000000000000000..09bf28d04723094ff7c61571c1a1be1152d6a231
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/FilterOrModifyPackets.java
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,106 @@
 +package me.samsuik.sakura.player.visibility;
 +
 +import net.minecraft.network.protocol.Packet;
@@ -106,8 +106,7 @@ index 0000000000000000000000000000000000000000..fff2220e351e925307fa55a43d7f9825
 +import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 +import net.minecraft.server.level.ServerPlayer;
 +import net.minecraft.world.entity.Entity;
-+import net.minecraft.world.entity.item.FallingBlockEntity;
-+import net.minecraft.world.entity.item.PrimedTnt;
++import net.minecraft.world.entity.EntityType;
 +import net.minecraft.world.level.block.entity.BlockEntityType;
 +import net.minecraft.world.level.block.piston.PistonBaseBlock;
 +import net.minecraft.world.phys.Vec3;
@@ -139,14 +138,25 @@ index 0000000000000000000000000000000000000000..fff2220e351e925307fa55a43d7f9825
 +        final MinimalVisibility minimalVisibility
 +    ) {
 +        final VisibilitySettings settings = player.visibilitySettings;
-+        if (!settings.playerModified() || !(entity instanceof PrimedTnt || entity instanceof FallingBlockEntity)) {
++        if (!settings.playerModified() || !entity.cannonEntity) {
 +            return true;
 +        }
 +
-+        final VisibilityType type = entity instanceof PrimedTnt ? VisibilityTypes.TNT : VisibilityTypes.SAND;
-+        final VisibilityState state = settings.get(type);
-+        if (state == VisibilityState.MINIMAL && minimalVisibility.filterEntity(entity)) {
++        final EntityType<?> entityType = entity.getType();
++        final VisibilityType type;
++        if (entityType == EntityType.TNT) {
++            type = VisibilityTypes.TNT;
++        } else if (entityType == EntityType.FALLING_BLOCK) {
++            type = VisibilityTypes.SAND;
++        } else if (entityType == EntityType.WIND_CHARGE || entityType == EntityType.BREEZE_WIND_CHARGE) {
++            type = VisibilityTypes.WIND_CHARGE;
++        } else {
 +            return true;
++        }
++
++        final VisibilityState state = settings.get(type);
++        if (state == VisibilityState.MINIMAL) {
++            return !minimalVisibility.filterEntity(entity);
 +        }
 +
 +        return state != VisibilityState.OFF;
@@ -195,7 +205,7 @@ index 0000000000000000000000000000000000000000..fff2220e351e925307fa55a43d7f9825
 +}
 diff --git a/me/samsuik/sakura/player/visibility/MinimalVisibility.java b/me/samsuik/sakura/player/visibility/MinimalVisibility.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c7b81da60c8d05406042d020cc95c17e895fb8a6
+index 0000000000000000000000000000000000000000..0bb9d61d0d377eb1057847233f23209bce6bc5b2
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/MinimalVisibility.java
 @@ -0,0 +1,44 @@
@@ -226,7 +236,7 @@ index 0000000000000000000000000000000000000000..c7b81da60c8d05406042d020cc95c17e
 +        final Entity visibleEntity = this.minimalEntities.getIfPresent(posAndType);
 +
 +        if (visibleEntity != null && visibleEntity.isAlive() && blockPos.equals(visibleEntity.blockPosition())) {
-+            return entity == visibleEntity;
++            return entity != visibleEntity;
 +        } else {
 +            this.minimalEntities.put(posAndType, entity);
 +            return false;
@@ -313,7 +323,7 @@ index 0000000000000000000000000000000000000000..5239478c397169f82206fcaefb77f71d
 +}
 diff --git a/me/samsuik/sakura/player/visibility/VisibilityGui.java b/me/samsuik/sakura/player/visibility/VisibilityGui.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8c1b3eb16b924141302e9f1bf2460363c035037a
+index 0000000000000000000000000000000000000000..3dca28b1533d128e87ea01f7baa558875db5afd5
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/VisibilityGui.java
 @@ -0,0 +1,100 @@
@@ -408,7 +418,7 @@ index 0000000000000000000000000000000000000000..8c1b3eb16b924141302e9f1bf2460363
 +        final IntArrayFIFOQueue slots = new IntArrayFIFOQueue();
 +        for (int row = 1; row < 4; ++row) {
 +            for (int column = 3; column < 6; ++column) {
-+                if ((column + row) % 2 == 0) {
++                if (row == 1 || (column + row) % 2 == 0) {
 +                    slots.enqueue((row * 9) + column);
 +                }
 +            }
@@ -419,10 +429,10 @@ index 0000000000000000000000000000000000000000..8c1b3eb16b924141302e9f1bf2460363
 +}
 diff --git a/me/samsuik/sakura/player/visibility/VisibilityGuiItems.java b/me/samsuik/sakura/player/visibility/VisibilityGuiItems.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b7895fdde6fbc7693ebe5746a37dcd464194af2a
+index 0000000000000000000000000000000000000000..6fdea0a5d22b5656fa79257074b0abab4808db8b
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/VisibilityGuiItems.java
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,55 @@
 +package me.samsuik.sakura.player.visibility;
 +
 +import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
@@ -446,6 +456,7 @@ index 0000000000000000000000000000000000000000..b7895fdde6fbc7693ebe5746a37dcd46
 +    static {
 +        final Reference2ObjectMap<VisibilityType, ItemStack> items = new Reference2ObjectOpenHashMap<>();
 +        items.put(VisibilityTypes.TNT, ItemStackUtil.itemWithName(Material.TNT, Component.text("Tnt", NamedTextColor.RED)));
++        items.put(VisibilityTypes.WIND_CHARGE, ItemStackUtil.itemWithName(Material.WIND_CHARGE, Component.text("Wind Charge", NamedTextColor.GRAY)));
 +        items.put(VisibilityTypes.SAND, ItemStackUtil.itemWithName(Material.SAND, Component.text("Sand", NamedTextColor.YELLOW)));
 +        items.put(VisibilityTypes.EXPLOSIONS, ItemStackUtil.itemWithName(Material.COBWEB, Component.text("Explosions", NamedTextColor.WHITE)));
 +        items.put(VisibilityTypes.SPAWNERS, ItemStackUtil.itemWithName(Material.SPAWNER, Component.text("Spawners", NamedTextColor.DARK_GRAY)));
