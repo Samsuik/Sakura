@@ -1,5 +1,6 @@
 package me.samsuik.sakura.configuration.local;
 
+import me.samsuik.sakura.entity.merge.MergeLevel;
 import me.samsuik.sakura.explosion.durable.DurableMaterialsContainer.SealedDurableMaterialsContainer;
 import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
 import me.samsuik.sakura.redstone.RedstoneConfiguration;
@@ -16,6 +17,7 @@ public record ConfigurableKey<T>(Class<T> expectedType) {
     public static final ConfigurableKey<RedstoneConfiguration> REDSTONE_BEHAVIOUR = new ConfigurableKey<>(RedstoneConfiguration.class);
     public static final ConfigurableKey<Boolean> CONSISTENT_EXPLOSION_RADIUS = new ConfigurableKey<>(Boolean.class);
     public static final ConfigurableKey<Integer> LAVA_FLOW_SPEED = new ConfigurableKey<>(Integer.class);
+    public static final ConfigurableKey<MergeLevel> MERGE_LEVEL = new ConfigurableKey<>(MergeLevel.class);
 
     public T validate(@Nullable final Object value) {
         final T casted = this.conform(value);

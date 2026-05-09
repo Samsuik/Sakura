@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 20 Apr 2026 11:15:03 +0100
+Subject: [PATCH] Optimise cannon entities
+
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
+index ece6db7b9a0dfd535141c0c756947c4898140503..1c3d78162befd402a8b8ed9c42764d0a1e01073f 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/list/IteratorSafeOrderedReferenceSet.java
+@@ -42,6 +42,20 @@ public final class IteratorSafeOrderedReferenceSet<E> {
+         this.listElements = (E[])Array.newInstance(arrComponent, arrayCapacity);
+     }
+ 
++    // Sakura start - optimise cannon entities
++    public E rawGet(final int index) {
++        return this.listElements[index];
++    }
++
++    public int indexOf(final E element) {
++        return this.indexMap.getInt(element);
++    }
++
++    public void startRawIterator() {
++        this.iteratorCount++;
++    }
++    // Sakura end - optimise cannon entities
++
+     // includes null (gravestone) elements
+     public E[] getListRaw() {
+         return this.listElements;
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index 6728a7f28384b2628a748e3fc3ffeef2b174c7b3..733a5c5c93ac872fa5d849bb4f6f4bac59ff7d5f 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -186,7 +186,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+ 
+     @Override
+     public Location getLocation() {
+-        return CraftLocation.toBukkit(this.entity.position(), this.getWorld(), this.entity.getBukkitYaw(), this.entity.getXRot());
++        return CraftLocation.toBukkit(this.entity.sakura$position(), this.getWorld(), this.entity.getBukkitYaw(), this.entity.getXRot()); // Sakura - optimise cannon entities
+     }
+ 
+     @Override
+@@ -205,7 +205,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+ 
+     @Override
+     public Vector getVelocity() {
+-        return CraftVector.toBukkit(this.entity.getDeltaMovement());
++        return CraftVector.toBukkit(this.entity.sakura$deltaMovement()); // Sakura - optimise cannon entities
+     }
+ 
+     @Override

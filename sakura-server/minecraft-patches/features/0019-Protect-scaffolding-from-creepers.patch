@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 17 Jun 2024 14:04:12 +0100
+Subject: [PATCH] Protect scaffolding from creepers
+
+
+diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
+index c903afdb86c75ce8304306e045ee213dc1ca3926..d2fb6404a5fd3cbfa5c9d1053b89485a824bc542 100644
+--- a/net/minecraft/world/level/ServerExplosion.java
++++ b/net/minecraft/world/level/ServerExplosion.java
+@@ -383,6 +383,11 @@ public class ServerExplosion implements Explosion {
+                 return Optional.of(ZERO_RESISTANCE);
+             }
+             // Sakura end - allow explosions to destroy lava
++            // Sakura start - protect scaffolding from creepers
++            if (this.level.sakuraConfig().cannons.explosion.protectScaffoldingFromCreepers && blockState.is(net.minecraft.world.level.block.Blocks.SCAFFOLDING) && this.source instanceof net.minecraft.world.entity.monster.Creeper) {
++                return Optional.of(net.minecraft.world.level.block.Blocks.BARRIER.getExplosionResistance());
++            }
++            // Sakura end - protect scaffolding from creepers
+         }
+ 
+         return this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, blockState, fluidState);

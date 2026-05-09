@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Mon, 7 Apr 2025 00:29:00 +0100
+Subject: [PATCH] Add redstone implementation api
+
+
+diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
+index 83067e5cb58587b10b094179310faa0736f07b7e..f88d985010618e0359f61c532dec82883bbe930d 100644
+--- a/net/minecraft/world/level/block/RedStoneWireBlock.java
++++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
+@@ -279,7 +279,7 @@ public class RedStoneWireBlock extends Block {
+      * Note: Added 'source' argument so as to help determine direction of information flow
+      */
+     private void updateSurroundingRedstone(Level worldIn, BlockPos pos, BlockState state, @Nullable Orientation orientation, boolean blockAdded) {
+-        if (worldIn.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.EIGENCRAFT) {
++        if (worldIn.localConfig().at(pos).paperRedstoneImplementation() == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.EIGENCRAFT) { // Sakura - redstone implementation api
+             // since 24w33a the source pos is no longer given, but instead an Orientation parameter
+             // when this is not null, it can be used to find the source pos, which the turbo uses
+             // to find the direction of information flow
+@@ -362,7 +362,7 @@ public class RedStoneWireBlock extends Block {
+     protected void onPlace(final BlockState state, final Level level, final BlockPos pos, final BlockState oldState, final boolean movedByPiston) {
+         if (!oldState.is(state.getBlock()) && !level.isClientSide()) {
+             // Paper start - optimize redstone - replace call to updatePowerStrength
+-            if (level.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++            if (level.localConfig().at(pos).paperRedstoneImplementation() == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) { // Sakura - redstone implementation api
+                 level.getWireHandler().onWireAdded(pos, state); // Alternate Current
+             } else {
+                 this.updateSurroundingRedstone(level, pos, state, null, true); // Vanilla/Eigencraft
+@@ -385,7 +385,7 @@ public class RedStoneWireBlock extends Block {
+             }
+ 
+             // Paper start - optimize redstone - replace call to updatePowerStrength
+-            if (level.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++            if (level.localConfig().at(pos).paperRedstoneImplementation() == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) { // Sakura - redstone implementation api
+                 level.getWireHandler().onWireRemoved(pos, state); // Alternate Current
+             } else {
+                 this.updateSurroundingRedstone(level, pos, state, null, false); // Vanilla/Eigencraft
+@@ -417,7 +417,7 @@ public class RedStoneWireBlock extends Block {
+         if (!level.isClientSide()) {
+             // Paper start - optimize redstone (Alternate Current)
+             // Alternate Current handles breaking of redstone wires in the WireHandler.
+-            if (level.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++            if (level.localConfig().at(pos).paperRedstoneImplementation() == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) { // Sakura - redstone implementation api
+                 level.getWireHandler().onWireUpdated(pos, state, orientation);
+             } else
+                 // Paper end - optimize redstone (Alternate Current)

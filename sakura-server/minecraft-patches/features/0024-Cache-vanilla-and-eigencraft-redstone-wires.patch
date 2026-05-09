@@ -1,0 +1,686 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sun, 16 Feb 2025 23:27:59 +0000
+Subject: [PATCH] Cache vanilla and eigencraft redstone wires
+
+
+diff --git a/io/papermc/paper/redstone/RedstoneWireTurbo.java b/io/papermc/paper/redstone/RedstoneWireTurbo.java
+index ff747a1ecdf3c888bca0d69de4f85dcd810b6139..befff5079f314449d2f47b812afccc3a047d782d 100644
+--- a/io/papermc/paper/redstone/RedstoneWireTurbo.java
++++ b/io/papermc/paper/redstone/RedstoneWireTurbo.java
+@@ -657,6 +657,7 @@ public final class RedstoneWireTurbo {
+                     // The Orientation parameter is (for now) only used by redstone wire
+                     // while these updates are dispatched to non-wires only, so we can
+                     // pass null.
++                    worldIn.redstoneWireCache.singleNeighborUpdate(upd.self); // Sakura - cache vanilla and eigencraft wires
+                     worldIn.getBlockState(upd.self).handleNeighborChanged(worldIn, upd.self, wire, null, false);
+                 }
+             }
+@@ -801,6 +802,7 @@ public final class RedstoneWireTurbo {
+         // Perform the walk over all directly reachable redstone wire blocks, propagating wire value
+         // updates in a breadth first order out from the initial update received for the block at 'pos'.
+         breadthFirstWalk(worldIn);
++        worldIn.redstoneWireCache.cacheNetwork(); // Sakura - cache vanilla and eigencraft wires
+ 
+         // With the whole search completed, clear the list of all known blocks.
+         // We do not want to keep around state information that may be changed by other code.
+@@ -909,6 +911,7 @@ public final class RedstoneWireTurbo {
+                 // bypass the new neighbor update stack.
+                 if (worldIn.setBlock(upd.self, state, Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS))
+                     updateNeighborShapes(worldIn, upd.self, state);
++                worldIn.redstoneWireCache.wirePower(upd.self, i, j); // Sakura - cache vanilla and eigencraft wires
+             }
+         }
+ 
+diff --git a/me/samsuik/sakura/redstone/RedstoneBlockUtil.java b/me/samsuik/sakura/redstone/RedstoneBlockUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..78a3bfdb031a503bb0a562d09b4e2d6c0717c074
+--- /dev/null
++++ b/me/samsuik/sakura/redstone/RedstoneBlockUtil.java
+@@ -0,0 +1,22 @@
++package me.samsuik.sakura.redstone;
++
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.FallingBlock;
++import net.minecraft.world.level.block.LiquidBlockContainer;
++import net.minecraft.world.level.block.state.BlockState;
++
++public final class RedstoneBlockUtil {
++    public static boolean needsRedstoneUpdate(final BlockState state) {
++        return state.isAir()
++            || state.liquid()
++            || !state.isSpecialBlock();
++    }
++
++    public static boolean needsShapeUpdate(final BlockState state, final Block block) {
++        return state.is(Blocks.OBSERVER)
++            || state.liquid()
++            || block instanceof FallingBlock
++            || block instanceof LiquidBlockContainer;
++    }
++}
+diff --git a/me/samsuik/sakura/redstone/RedstoneWireCache.java b/me/samsuik/sakura/redstone/RedstoneWireCache.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..462a5ed29f949fd574bebd67bd376150038f2242
+--- /dev/null
++++ b/me/samsuik/sakura/redstone/RedstoneWireCache.java
+@@ -0,0 +1,82 @@
++package me.samsuik.sakura.redstone;
++
++import com.google.common.cache.Cache;
++import com.google.common.cache.CacheBuilder;
++import me.samsuik.sakura.redstone.network.RedstoneNetwork;
++import me.samsuik.sakura.redstone.network.RedstoneSourceKey;
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.level.Level;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++import java.time.Duration;
++
++@SuppressWarnings("DataFlowIssue")
++@NullMarked
++public final class RedstoneWireCache {
++    private final Cache<RedstoneSourceKey, RedstoneNetwork> redstoneNetworks = CacheBuilder.newBuilder()
++        .removalListener(notification -> ((RedstoneNetwork) notification.getValue()).unregister())
++        .expireAfterAccess(Duration.ofSeconds(30))
++        .maximumSize(8192)
++        .build();
++    private @Nullable TrackedRedstoneChanges redstoneChanges;
++    private @Nullable RedstoneNetwork applyingRedstoneNetwork;
++
++    public boolean isApplyingNetwork() {
++        return this.applyingRedstoneNetwork != null;
++    }
++
++    public boolean isUpdatingRedstone(final BlockPos pos) {
++        return this.isApplyingNetwork() && this.applyingRedstoneNetwork.isWirePos(pos);
++    }
++
++    public void wirePower(final BlockPos redstoneWirePos, final int oldPower, final int newPower) {
++        if (this.redstoneChanges != null) {
++            this.redstoneChanges.addWireUpdate(redstoneWirePos, oldPower, newPower);
++        }
++    }
++
++    public void singleNeighborUpdate(final BlockPos updatePos) {
++        if (this.redstoneChanges != null) {
++            this.redstoneChanges.addNeighborUpdate(updatePos, true);
++        }
++    }
++
++    public void neighborUpdates(final BlockPos updatePos) {
++        if (this.redstoneChanges != null) {
++            this.redstoneChanges.addNeighborUpdate(updatePos, false);
++        }
++    }
++
++    /**
++     * Tries to apply a cached redstone network. If that isn't possible then
++     * it caches the existing network.
++     *
++     * @return if applied successfully
++     */
++    public boolean cache(final Level level, final RedstoneSourceKey sourceKey) {
++        final RedstoneNetwork redstoneNetwork = this.redstoneNetworks.getIfPresent(sourceKey);
++        try {
++            this.applyingRedstoneNetwork = redstoneNetwork;
++            if (redstoneNetwork != null && redstoneNetwork.apply(level)) {
++                return true;
++            }
++        } finally {
++            this.applyingRedstoneNetwork = null;
++        }
++
++        if (this.redstoneChanges == null) {
++            this.redstoneChanges = new TrackedRedstoneChanges(level, sourceKey);
++        }
++
++        return false;
++    }
++
++    public void cacheNetwork() {
++        final TrackedRedstoneChanges redstoneChanges = this.redstoneChanges;
++        if (redstoneChanges != null) {
++            this.redstoneNetworks.put(redstoneChanges.getSourceKey(), redstoneChanges.createNetwork());
++            this.redstoneChanges = null;
++        }
++    }
++}
+diff --git a/me/samsuik/sakura/redstone/TrackedRedstoneChanges.java b/me/samsuik/sakura/redstone/TrackedRedstoneChanges.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d31529613486c8848e19cd97cdb39583cd3f5418
+--- /dev/null
++++ b/me/samsuik/sakura/redstone/TrackedRedstoneChanges.java
+@@ -0,0 +1,134 @@
++package me.samsuik.sakura.redstone;
++
++import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
++import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
++import me.samsuik.sakura.redstone.network.RedstoneNetwork;
++import me.samsuik.sakura.redstone.network.RedstoneSourceKey;
++import me.samsuik.sakura.redstone.network.RedstoneWireState;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.tags.BlockTags;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.redstone.NeighborUpdater;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++import java.util.BitSet;
++import java.util.List;
++import java.util.Map;
++
++@NullMarked
++public final class TrackedRedstoneChanges {
++    private final Map<BlockPos, RedstoneWireState> redstoneChanges = new Object2ObjectLinkedOpenHashMap<>();
++    private final List<RedstoneWireState> redstoneUpdates = new ObjectArrayList<>();
++    private final List<BlockPos> neighborUpdates = new ObjectArrayList<>();
++    private final RedstoneSourceKey sourceKey;
++    private final Level level;
++
++    public TrackedRedstoneChanges(final Level level, final RedstoneSourceKey sourceKey) {
++        this.level = level;
++        this.sourceKey = sourceKey;
++    }
++
++    public void addWireUpdate(final BlockPos redstoneWirePos, final int oldPower, final int newPower) {
++        final RedstoneWireState redstoneWireState = new RedstoneWireState(
++            redstoneWirePos,
++            oldPower,
++            newPower,
++            false,
++            false,
++            this.neighborUpdates.size()
++        );
++
++        this.redstoneChanges.compute(redstoneWirePos, (p, state) -> {
++            if (state == null) {
++                return redstoneWireState;
++            }
++
++            return state.newPower(newPower);
++        });
++
++        this.redstoneUpdates.add(redstoneWireState);
++    }
++
++    public void addNeighborUpdate(final BlockPos updatePos, final boolean single) {
++        if (single) {
++            this.neighborUpdates.add(updatePos);
++            return;
++        }
++
++        for (final Direction direction : NeighborUpdater.UPDATE_ORDER) {
++            this.neighborUpdates.add(updatePos.relative(direction));
++        }
++    }
++
++    public RedstoneSourceKey getSourceKey() {
++        return this.sourceKey;
++    }
++
++    public @Nullable RedstoneNetwork createNetwork() {
++        final Level level = this.level;
++        final boolean skipWireUpdates = this.sourceKey.isVanilla();
++
++        final List<RedstoneWireState> redstoneUpdates = this.redstoneUpdates;
++        final Object2IntOpenHashMap<BlockPos> wireIndexes = new Object2IntOpenHashMap<>();
++        wireIndexes.defaultReturnValue(-1);
++
++        for (int wireIndex = redstoneUpdates.size() - 1; wireIndex >= 0; wireIndex--) {
++            final RedstoneWireState redstoneUpdate = redstoneUpdates.get(wireIndex);
++            final BlockPos wirePos = redstoneUpdate.position();
++
++            // It's possible for the block below the redstone to break while the network is updating
++            final BlockState blockStateBelow = level.getBlockState(wirePos.below());
++            if (blockStateBelow.is(Blocks.PISTON_HEAD) || blockStateBelow.is(BlockTags.TRAPDOORS)) {
++                return null;
++            }
++
++            // Filter out wires updates that are not the first and last update when using the vanilla algorithm
++            if (skipWireUpdates && redstoneUpdate.isRedundantWireUpdate(this.redstoneChanges.get(wirePos))) {
++                redstoneUpdates.set(wireIndex, redstoneUpdate.skip(true));
++            }
++
++            wireIndexes.put(wirePos, wireIndex);
++        }
++
++        final List<BlockPos> neighborUpdates = this.neighborUpdates;
++        final BitSet redundantUpdates = new BitSet(neighborUpdates.size());
++
++        for (int updateIndex = 0; updateIndex < neighborUpdates.size(); ++updateIndex) {
++            final BlockPos updatePos = neighborUpdates.get(updateIndex);
++            final BlockState state = level.getBlockState(updatePos);
++            final Block block = state.getBlock();
++
++            // Filter out redundant neighbor updates
++            if (RedstoneBlockUtil.needsRedstoneUpdate(state)) {
++                redundantUpdates.set(updateIndex);
++            }
++
++            // Never apply updates to redstone wires
++            if (state.is(Blocks.REDSTONE_WIRE)) {
++                neighborUpdates.set(updateIndex, null);
++                continue;
++            }
++
++            // Look for blocks that actually need updateShapes updates
++            if (RedstoneBlockUtil.needsShapeUpdate(state, block)) {
++                for (final Direction direction : NeighborUpdater.UPDATE_ORDER) {
++                    final int neighborWireIndex = wireIndexes.getInt(updatePos.relative(direction));
++                    if (neighborWireIndex < 0) {
++                        continue;
++                    }
++
++                    final RedstoneWireState neighborWireState = redstoneUpdates.get(neighborWireIndex);
++                    redstoneUpdates.set(neighborWireIndex, neighborWireState.updateShapes(true));
++                }
++            }
++        }
++
++        return new RedstoneNetwork(this.redstoneChanges, redstoneUpdates, neighborUpdates, redundantUpdates, level.blockStateChangeTracker);
++    }
++}
+diff --git a/me/samsuik/sakura/redstone/network/RedstoneNetwork.java b/me/samsuik/sakura/redstone/network/RedstoneNetwork.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ee34f4b09e0fb5e9c1e7308ed6933d79b3c8c18a
+--- /dev/null
++++ b/me/samsuik/sakura/redstone/network/RedstoneNetwork.java
+@@ -0,0 +1,148 @@
++package me.samsuik.sakura.redstone.network;
++
++import it.unimi.dsi.fastutil.longs.LongArrayList;
++import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
++import me.samsuik.sakura.tracking.block_change.BlockFilter;
++import me.samsuik.sakura.tracking.block_change.BlockStateChangeTracker;
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.RedStoneWireBlock;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.redstone.ExperimentalRedstoneUtils;
++import net.minecraft.world.level.redstone.Orientation;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++import java.util.*;
++
++@NullMarked
++public final class RedstoneNetwork {
++    private final Map<BlockPos, RedstoneWireState> redstoneChanges;
++    private final List<RedstoneWireState> redstoneUpdates;
++    private final List<BlockPos> neighborUpdates;
++    private final BitSet redundantUpdates;
++    private final BlockStateChangeTracker blockStateChangeTracker;
++    private final LongArrayList listeners = new LongArrayList(2);
++
++    public RedstoneNetwork(
++        final Map<BlockPos, RedstoneWireState> redstoneChanges,
++        final List<RedstoneWireState> redstoneUpdates,
++        final List<BlockPos> neighborUpdates,
++        final BitSet redundantUpdates,
++        final BlockStateChangeTracker blockStateChangeTracker
++    ) {
++        this.redstoneChanges = redstoneChanges;
++        this.redstoneUpdates = redstoneUpdates;
++        this.neighborUpdates = neighborUpdates;
++        this.redundantUpdates = redundantUpdates;
++        this.blockStateChangeTracker = blockStateChangeTracker;
++        this.register(redstoneChanges.keySet(), blockStateChangeTracker);
++    }
++
++    private void register(final Set<BlockPos> wirePositions, final BlockStateChangeTracker tracker) {
++        final ObjectOpenHashSet<BlockPos> positions = new ObjectOpenHashSet<>(this.neighborUpdates);
++        positions.addAll(wirePositions);
++        positions.remove(null);
++
++        this.listeners.add(tracker.firstChange(
++            positions,
++            BlockFilter.REDSTONE_COMPONENT,
++            this::unregister
++        ));
++
++        this.listeners.add(tracker.firstChange(
++            positions,
++            BlockFilter.BLOCK_TYPE,
++            this::allowRedundantNeighborUpdates
++        ));
++    }
++
++    public void unregister() {
++        for (final long identifier : this.listeners) {
++            this.blockStateChangeTracker.stopListening(identifier);
++        }
++
++        this.listeners.clear();
++    }
++
++    private void allowRedundantNeighborUpdates() {
++        for (int updateIndex = 0; updateIndex < this.neighborUpdates.size(); ++updateIndex) {
++            if (!this.redundantUpdates.get(updateIndex)) {
++                continue;
++            }
++
++            final BlockPos pos = this.neighborUpdates.get(updateIndex);
++            if (!this.redstoneChanges.containsKey(pos)) {
++                this.redundantUpdates.clear(updateIndex);
++            }
++        }
++    }
++
++    public boolean isWirePos(final BlockPos pos) {
++        return this.redstoneChanges.containsKey(pos);
++    }
++
++    private void performUpdates(
++        final Level level,
++        final RedStoneWireBlock wireBlock,
++        final @Nullable Orientation orientation,
++        final int updateFrom,
++        final int updateTo
++    ) {
++        for (int updateIndex = updateFrom; updateIndex < updateTo; ++updateIndex) {
++            if (this.redundantUpdates.get(updateIndex)) {
++                continue;
++            }
++
++            final BlockPos updatePos = this.neighborUpdates.get(updateIndex);
++            //noinspection ConstantValue
++            if (updatePos != null) {
++                level.getBlockState(updatePos).handleNeighborChanged(level, updatePos, wireBlock, orientation, false);
++            }
++        }
++    }
++
++    private boolean verifyWiresInNetwork(Level level) {
++        return this.redstoneChanges.entrySet()
++            .stream()
++            .noneMatch(wireEntry -> level.getBlockState(wireEntry.getKey()).getValue(RedStoneWireBlock.POWER) != wireEntry.getValue().oldPower());
++    }
++
++    public boolean apply(final Level level) {
++        if (this.listeners.isEmpty() || !this.verifyWiresInNetwork(level)) {
++            return false;
++        }
++
++        final RedStoneWireBlock wireBlock = (RedStoneWireBlock) Blocks.REDSTONE_WIRE;
++        final Orientation defaultOrientation = ExperimentalRedstoneUtils.initialOrientation(level, null, null);
++        int updateFrom = 0;
++
++        // Apply all wire updates in the network
++        for (final RedstoneWireState redstoneUpdate : this.redstoneUpdates) {
++            if (redstoneUpdate.skip()) {
++                updateFrom = redstoneUpdate.updateIndex();
++                continue;
++            }
++
++            final int updateTo = redstoneUpdate.updateIndex();
++            this.performUpdates(level, wireBlock, defaultOrientation, updateFrom, updateTo);
++            updateFrom = updateTo;
++
++            final BlockPos wirePos = redstoneUpdate.position();
++            final BlockState state = level.getBlockState(wirePos);
++            final BlockState newState = state.setValue(RedStoneWireBlock.POWER, redstoneUpdate.newPower());
++
++            // Update the wire power and apply updateShapes updates when needed
++            if (level.setBlock(wirePos, newState, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE)) {
++                if (redstoneUpdate.updateShapes()) {
++                    wireBlock.turbo.updateNeighborShapes(level, wirePos, newState);
++                }
++            }
++        }
++
++        this.performUpdates(level, wireBlock, defaultOrientation, updateFrom, this.neighborUpdates.size());
++        return true;
++    }
++}
+diff --git a/me/samsuik/sakura/redstone/network/RedstoneSourceKey.java b/me/samsuik/sakura/redstone/network/RedstoneSourceKey.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..edc98985afe2080baf843d9131f21d66d7e9eb9d
+--- /dev/null
++++ b/me/samsuik/sakura/redstone/network/RedstoneSourceKey.java
+@@ -0,0 +1,21 @@
++package me.samsuik.sakura.redstone.network;
++
++import io.papermc.paper.configuration.WorldConfiguration;
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.level.redstone.Orientation;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++@NullMarked
++public record RedstoneSourceKey(
++    WorldConfiguration.Misc.RedstoneImplementation redstoneImplementation,
++    BlockPos position,
++    @Nullable Orientation orientation,
++    int updateDepth,
++    int oldPower,
++    int newPower
++) {
++    public boolean isVanilla() {
++        return this.redstoneImplementation == WorldConfiguration.Misc.RedstoneImplementation.VANILLA;
++    }
++}
+diff --git a/me/samsuik/sakura/redstone/network/RedstoneWireState.java b/me/samsuik/sakura/redstone/network/RedstoneWireState.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..78c9fc17c361abdcee8f549e94a05d8e855fdb02
+--- /dev/null
++++ b/me/samsuik/sakura/redstone/network/RedstoneWireState.java
+@@ -0,0 +1,30 @@
++package me.samsuik.sakura.redstone.network;
++
++import net.minecraft.core.BlockPos;
++import org.jspecify.annotations.NullMarked;
++
++@NullMarked
++public record RedstoneWireState(
++    BlockPos position,
++    int oldPower,
++    int newPower,
++    boolean updateShapes,
++    boolean skip,
++    int updateIndex
++) {
++    public RedstoneWireState newPower(final int newPower) {
++        return new RedstoneWireState(this.position, this.oldPower, newPower, this.updateShapes, this.skip, this.updateIndex);
++    }
++
++    public RedstoneWireState updateShapes(final boolean updateShapes) {
++        return new RedstoneWireState(this.position, this.oldPower, this.newPower, updateShapes, this.skip, this.updateIndex);
++    }
++
++    public RedstoneWireState skip(final boolean skip) {
++        return new RedstoneWireState(this.position, this.oldPower, this.newPower, this.updateShapes, skip, this.updateIndex);
++    }
++
++    public boolean isRedundantWireUpdate(final RedstoneWireState wireState) {
++        return this.oldPower != wireState.oldPower && this.newPower != wireState.newPower;
++    }
++}
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 4abc5a76ed158949192404b8a16ba095168d172f..7888de4001137584e29fb333d01cac0b3fbd19dc 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -848,6 +848,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     public final me.samsuik.sakura.explosion.density.BlockDensityCache blockDensityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosions
+     public final me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler dispenseRelocationHandler = new me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler(this); // Sakura - configure server mechanics
+     public final me.samsuik.sakura.explosion.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.DurableBlockManager(); // Sakura - explosion durable blocks
++    public final me.samsuik.sakura.redstone.RedstoneWireCache redstoneWireCache = new me.samsuik.sakura.redstone.RedstoneWireCache(); // Sakura - cache vanilla and eigencraft wires
+ 
+     protected Level(
+         final WritableLevelData levelData,
+diff --git a/net/minecraft/world/level/block/RedStoneWireBlock.java b/net/minecraft/world/level/block/RedStoneWireBlock.java
+index f88d985010618e0359f61c532dec82883bbe930d..be493c920959c5aff9db338efd93d9db0dafda5e 100644
+--- a/net/minecraft/world/level/block/RedStoneWireBlock.java
++++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
+@@ -310,6 +310,22 @@ public class RedStoneWireBlock extends Block {
+ 
+             newPower = event.getNewCurrent();
+ 
++            // Sakura start - cache vanilla and eigencraft wires
++            final me.samsuik.sakura.redstone.RedstoneWireCache redstoneWireCache = level.redstoneWireCache;
++            final me.samsuik.sakura.redstone.network.RedstoneSourceKey sourceKey = new me.samsuik.sakura.redstone.network.RedstoneSourceKey(
++                io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.EIGENCRAFT,
++                pos,
++                null,
++                level.neighborUpdater.getUpdateDepth(),
++                oldPower,
++                newPower
++            );
++
++            if (level.localConfig().at(pos).redstoneBehaviour.cache() && redstoneWireCache.cache(level, sourceKey)) {
++                return state;
++            }
++            // Sakura end - cache vanilla and eigencraft wires
++
+             if (level.getBlockState(pos) == state) {
+                 state = state.setValue(POWER, newPower);
+                 // [Space Walker] suppress shape updates and emit those manually to
+@@ -317,6 +333,7 @@ public class RedStoneWireBlock extends Block {
+                 if (level.setBlock(pos, state, Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS)) {
+                     turbo.updateNeighborShapes(level, pos, state);
+                 }
++                level.redstoneWireCache.wirePower(pos, oldPower, newPower); // Sakura - cache vanilla and eigencraft wires
+             }
+         }
+         return state;
+@@ -414,7 +431,7 @@ public class RedStoneWireBlock extends Block {
+     protected void neighborChanged(
+         final BlockState state, final Level level, final BlockPos pos, final Block block, final @Nullable Orientation orientation, final boolean movedByPiston
+     ) {
+-        if (!level.isClientSide()) {
++        if (!level.isClientSide() && !level.redstoneWireCache.isApplyingNetwork()) { // Sakura - cache vanilla and eigencraft wires; ignore redstone updates when applying from cache
+             // Paper start - optimize redstone (Alternate Current)
+             // Alternate Current handles breaking of redstone wires in the WireHandler.
+             if (level.localConfig().at(pos).paperRedstoneImplementation() == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) { // Sakura - redstone implementation api
+@@ -448,8 +465,14 @@ public class RedStoneWireBlock extends Block {
+             if (power == 0) {
+                 return Redstone.SIGNAL_MIN;
+             } else {
+-                return direction != Direction.UP
+-                        && !this.getConnectionState(level, state, pos).getValue(PROPERTY_BY_DIRECTION.get(direction.getOpposite())).isConnected()
++                // Sakura start - cache vanilla and eigencraft wires
++                if (direction == Direction.UP) {
++                    return power;
++                }
++                final boolean updating = level instanceof ServerLevel serverLevel && serverLevel.redstoneWireCache.isUpdatingRedstone(pos);
++                final BlockState connectionState = updating ? state : this.getConnectionState(level, state, pos);
++                return !connectionState.getValue(PROPERTY_BY_DIRECTION.get(direction.getOpposite())).isConnected()
++                // Sakura end - cache vanilla and eigencraft wires
+                     ? Redstone.SIGNAL_MIN
+                     : power;
+             }
+diff --git a/net/minecraft/world/level/block/state/BlockBehaviour.java b/net/minecraft/world/level/block/state/BlockBehaviour.java
+index 6d2ff2e842ca6dd64b66ceb076434d9f4c0b90c7..b7b0df5e41cd935410d217508c21e626835e9e8b 100644
+--- a/net/minecraft/world/level/block/state/BlockBehaviour.java
++++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
+@@ -539,6 +539,13 @@ public abstract class BlockBehaviour implements FeatureElement {
+             return this.constantCollisionShape;
+         }
+         // Paper end - optimise collisions
++        // Sakura start - cache vanilla and eigencraft wires
++        private boolean specialBlock;
++
++        public final boolean isSpecialBlock() {
++            return this.specialBlock;
++        }
++        // Sakura end - cache vanilla and eigencraft wires
+ 
+         protected BlockStateBase(final Block owner, final Property<?>[] propertyKeys, final Comparable<?>[] propertyValues) {
+             super(owner, propertyKeys, propertyValues);
+@@ -652,6 +659,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+                 }
+             }
+             // Paper end - optimise collisions
++            this.specialBlock = !Block.class.equals(this.owner.getClass()); // Sakura - cache vanilla and eigencraft wires
+         }
+ 
+         public Block getBlock() {
+diff --git a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
+index deb62cf4b878f34ba13f83faf711c0666f12e6fa..7c20c212034d78990f05e64def3ec76d16f99613 100644
+--- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
++++ b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
+@@ -23,6 +23,13 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+     private int count = 0;
+     private @Nullable Consumer<BlockPos> debugListener;
+ 
++    // Sakura start - cache vanilla and eigencraft wires
++    @Override
++    public final int getUpdateDepth() {
++        return this.count;
++    }
++    // Sakura end - cache vanilla and eigencraft wires
++
+     public CollectingNeighborUpdater(final Level level, final int maxChainedNeighborUpdates) {
+         this.level = level;
+         this.maxChainedNeighborUpdates = maxChainedNeighborUpdates;
+@@ -105,6 +112,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+                 }
+             }
+         } finally {
++            this.level.redstoneWireCache.cacheNetwork(); // Sakura - cache vanilla and eigencraft wires
+             this.stack.clear();
+             this.addedThisLayer.clear();
+             this.count = 0;
+diff --git a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
+index afdcbb9e5a4c859d82bfb33a1d253514c17eed39..0773f3837379112d811e7cba694800e29a7e079d 100644
+--- a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
++++ b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
+@@ -30,7 +30,24 @@ public class DefaultRedstoneWireEvaluator extends RedstoneWireEvaluator {
+         }
+         if (oldPower != targetStrength) {
+             // CraftBukkit end
++            // Sakura start - cache vanilla and eigencraft wires
++            final me.samsuik.sakura.redstone.RedstoneWireCache redstoneWireCache = level.redstoneWireCache;
++            final me.samsuik.sakura.redstone.network.RedstoneSourceKey sourceKey = new me.samsuik.sakura.redstone.network.RedstoneSourceKey(
++                io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.EIGENCRAFT,
++                pos,
++                null,
++                level.neighborUpdater.getUpdateDepth(),
++                oldPower,
++                targetStrength
++            );
++
++            if (level.localConfig().at(pos).redstoneBehaviour.cache() && redstoneWireCache.cache(level, sourceKey)) {
++                return;
++            }
++
+             if (level.getBlockState(pos) == state) {
++                redstoneWireCache.wirePower(pos, oldPower, targetStrength);
++                // Sakura end - cache vanilla and eigencraft wires
+                 level.setBlock(pos, state.setValue(RedStoneWireBlock.POWER, targetStrength), Block.UPDATE_CLIENTS);
+             }
+ 
+@@ -42,6 +59,7 @@ public class DefaultRedstoneWireEvaluator extends RedstoneWireEvaluator {
+             }
+ 
+             for (BlockPos blockPos : toUpdate) {
++                redstoneWireCache.neighborUpdates(blockPos); // Sakura - cache vanilla and eigencraft wires
+                 level.updateNeighborsAt(blockPos, this.wireBlock);
+             }
+         }
+diff --git a/net/minecraft/world/level/redstone/NeighborUpdater.java b/net/minecraft/world/level/redstone/NeighborUpdater.java
+index 353085151026b0d695be3c35d0638ecd39a962ce..abff9d8962c2100ecc4ceedcf52e0d858c160412 100644
+--- a/net/minecraft/world/level/redstone/NeighborUpdater.java
++++ b/net/minecraft/world/level/redstone/NeighborUpdater.java
+@@ -17,6 +17,12 @@ import org.jspecify.annotations.Nullable;
+ public interface NeighborUpdater {
+     Direction[] UPDATE_ORDER = new Direction[]{Direction.WEST, Direction.EAST, Direction.DOWN, Direction.UP, Direction.NORTH, Direction.SOUTH};
+ 
++    // Sakura start - cache vanilla and eigencraft wires
++    default int getUpdateDepth() {
++        return 0;
++    }
++    // Sakura end - cache vanilla and eigencraft wires
++
+     void shapeUpdate(Direction direction, BlockState neighborState, BlockPos pos, BlockPos neighborPos, @Block.UpdateFlags int updateFlags, int updateLimit);
+ 
+     void neighborChanged(BlockPos pos, Block changedBlock, @Nullable Orientation orientation);

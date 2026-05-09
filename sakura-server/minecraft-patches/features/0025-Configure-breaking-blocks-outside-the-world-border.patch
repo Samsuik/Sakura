@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 7 Mar 2025 17:14:35 +0000
+Subject: [PATCH] Configure breaking blocks outside the world border
+
+
+diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
+index d2fb6404a5fd3cbfa5c9d1053b89485a824bc542..27e6263511449ede26fd6baff95f3d36b6605933 100644
+--- a/net/minecraft/world/level/ServerExplosion.java
++++ b/net/minecraft/world/level/ServerExplosion.java
+@@ -514,6 +514,12 @@ public class ServerExplosion implements Explosion {
+             return ret;
+         }
+         // Sakura end - optimise explosions
++        // Sakura start - configure breaking blocks when outside the world border
++        if (!this.level.sakuraConfig().cannons.explosion.breakBlocksWhenOutsideTheWorldBorder
++            && !this.level.getWorldBorder().isWithinBounds(center)) {
++            return ret;
++        }
++        // Sakura end - configure breaking blocks when outside the world border
+ 
+         // only ~1/3rd of the loop iterations in vanilla will result in a ray, as it is iterating the perimeter of
+         // a 16x16x16 cube

@@ -1,0 +1,123 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 8 Nov 2024 19:35:49 +0000
+Subject: [PATCH] Optimise check inside blocks and traverse blocks
+
+
+diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
+index 4b9cff32185cab71d1eac999bd9a032506c4b5f9..63327c6dc06f9cc93c3bef0e0b7e60e31403dfe0 100644
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -1993,6 +1993,7 @@ public abstract class Entity
+         if (this.isAffectedByBlocks()) {
+             LongSet visitedBlocks = this.visitedBlocks;
+             final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget; // Sakura - configure server mechanics
++            final net.minecraft.world.level.chunk.ChunkAccess[] chunkCache = new net.minecraft.world.level.chunk.ChunkAccess[4]; // Sakura - optimise check inside blocks
+ 
+             for (Entity.Movement movement : movements) {
+                 Vec3 pos = movement.from;
+@@ -2010,7 +2011,7 @@ public abstract class Entity
+                         double axisMove = delta.get(axis);
+                         if (axisMove != 0.0) {
+                             Vec3 to = pos.relative(axis.getPositive(), axisMove);
+-                            final int stepsTaken = this.checkInsideBlocks(pos, to, effectCollector, visitedBlocks, maxMovementIterations);
++                            final int stepsTaken = this.checkInsideBlocks(pos, to, effectCollector, visitedBlocks, maxMovementIterations, chunkCache); // Sakura - optimise check inside blocks
+                             if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)) {
+                                 maxMovementIterations -= stepsTaken;
+                             }
+@@ -2018,12 +2019,12 @@ public abstract class Entity
+                         }
+                     }
+                 } else if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
+-                    maxMovementIterations -= this.checkInsideBlocks(movement.from(), movement.to(), effectCollector, visitedBlocks, 16);
++                    maxMovementIterations -= this.checkInsideBlocks(movement.from(), movement.to(), effectCollector, visitedBlocks, 16, chunkCache); // Sakura - optimise check inside blocks
+                 }
+ 
+                 if (maxMovementIterations <= 0 || mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
+                     // Sakura end - configure server mechanics
+-                    this.checkInsideBlocks(movement.to(), movement.to(), effectCollector, visitedBlocks, 1);
++                    this.checkInsideBlocks(movement.to(), movement.to(), effectCollector, visitedBlocks, 1, chunkCache); // Sakura - optimise check inside blocks
+                 }
+             }
+ 
+@@ -2036,7 +2037,8 @@ public abstract class Entity
+         final Vec3 to,
+         final InsideBlockEffectApplier.StepBasedCollector effectCollector,
+         final LongSet visitedBlocks,
+-        final int maxMovementIterations
++        final int maxMovementIterations,
++        final net.minecraft.world.level.chunk.@Nullable ChunkAccess[] chunkCache // Sakura - optimise check inside blocks
+     ) {
+         // Sakura start - configure server mechanics
+         final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
+@@ -2067,7 +2069,20 @@ public abstract class Entity
+                     return false;
+                 } else {
+                     iterations.set(iteration);
+-                    BlockState state = this.level().getBlockState(blockIntersection);
++                    // Sakura start - optimise check inside blocks
++                    final int chunkX = blockIntersection.getX() >> 4;
++                    final int chunkZ = blockIntersection.getZ() >> 4;
++                    final int chunkKey = ((chunkX << 2) | chunkZ) & 3;
++                    net.minecraft.world.level.chunk.ChunkAccess chunk = chunkCache[chunkKey];
++                    if (chunk == null || chunk.locX != chunkX || chunk.locZ != chunkZ) {
++                        chunk = this.level().getChunkIfLoadedImmediately(chunkX, chunkZ);
++                        if (chunk == null) {
++                            return true;
++                        }
++                        chunkCache[chunkKey] = chunk;
++                    }
++                    final BlockState state = chunk.getBlockState(blockIntersection);
++                    // Sakura end - optimise check inside blocks
+                     if (state.isAir()) {
+                         if (debugEntityBlockIntersections) {
+                             this.debugBlockIntersection((ServerLevel)this.level(), blockIntersection.immutable(), false, false);
+diff --git a/net/minecraft/world/level/BlockGetter.java b/net/minecraft/world/level/BlockGetter.java
+index 4c9eb6ee78727e21925f47d56d260bf7bc17302d..6aaa17abd19c55582fdbcdbac6c558617f5b3558 100644
+--- a/net/minecraft/world/level/BlockGetter.java
++++ b/net/minecraft/world/level/BlockGetter.java
+@@ -223,8 +223,7 @@ public interface BlockGetter extends LevelHeightAccessor {
+             ? 1.0E-5F
+             : 0.99999F;
+         if (travel.lengthSqr() < Mth.square(movedThreshold) || mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
+-            // Sakura end - configure server mechanics
+-            for (BlockPos blockPos : BlockPos.betweenClosed(aabbAtTarget)) {
++            for (final BlockPos blockPos : me.samsuik.sakura.utils.SimpleBlockPosIterator.iterable(aabbAtTarget)) { // Sakura - optimise check inside blocks
+                 if (!visitor.visit(blockPos, 0)) {
+                     return false;
+                 }
+@@ -232,11 +231,24 @@ public interface BlockGetter extends LevelHeightAccessor {
+ 
+             return true;
+         } else {
++            // Sakura start - optimise check inside blocks
++            final boolean xZero = travel.x() == 0.0;
++            final boolean yZero = travel.y() == 0.0;
++            final boolean zZero = travel.z() == 0.0;
++            if (xZero && yZero || yZero && zZero || xZero && zZero) {
++                for (final BlockPos blockPos : me.samsuik.sakura.utils.SimpleBlockPosIterator.traverseBoundsInDirection(travel, aabbAtTarget, 16.0)) {
++                    if (!visitor.visit(blockPos, 0)) {
++                        return false;
++                    }
++                }
++                return true;
++            }
++            // Sakura end - optimise check inside blocks
+             LongSet visitedBlocks = new LongOpenHashSet();
+ 
+             // Sakura start - configure server mechanics
+             if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)) {
+-                for (BlockPos blockPosx : BlockPos.betweenCornersInDirection(aabbAtTarget.move(travel.scale(-1.0)), travel)) {
++                for (BlockPos blockPosx : me.samsuik.sakura.utils.SimpleBlockPosIterator.iterable(aabbAtTarget.move(travel.scale(-1.0)))) { // Sakura - optimise check inside blocks
+                     if (!visitor.visit(blockPosx, 0)) {
+                         return false;
+                     }
+@@ -253,7 +265,7 @@ public interface BlockGetter extends LevelHeightAccessor {
+             if (iterations < 0) {
+                 return false;
+             } else {
+-                for (BlockPos blockPosx : BlockPos.betweenCornersInDirection(aabbAtTarget, travel)) {
++                for (final BlockPos blockPosx : me.samsuik.sakura.utils.SimpleBlockPosIterator.iterable(aabbAtTarget)) { // Sakura - optimise check inside blocks
+                     if (visitedBlocks.add(blockPosx.asLong()) && !visitor.visit(blockPosx, iterations + 1)) {
+                         return false;
+                     }

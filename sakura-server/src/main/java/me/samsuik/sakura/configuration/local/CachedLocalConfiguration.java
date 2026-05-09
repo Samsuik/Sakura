@@ -1,6 +1,7 @@
 package me.samsuik.sakura.configuration.local;
 
 import io.papermc.paper.configuration.WorldConfiguration;
+import me.samsuik.sakura.entity.merge.MergeLevel;
 import me.samsuik.sakura.explosion.durable.DurableMaterial;
 import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
 import me.samsuik.sakura.redstone.RedstoneConfiguration;
@@ -21,6 +22,7 @@ public final class CachedLocalConfiguration {
     public final RedstoneConfiguration redstoneBehaviour;
     public final boolean consistentExplosionRadius;
     public final int lavaFlowSpeed;
+    public final MergeLevel mergeLevel;
 
     public static CachedLocalConfiguration emptyConfiguration() {
         return new CachedLocalConfiguration();
@@ -41,6 +43,8 @@ public final class CachedLocalConfiguration {
             .orElse(level.sakuraConfig().cannons.explosion.consistentRadius);
         this.lavaFlowSpeed = container.getOptional(ConfigurableKey.LAVA_FLOW_SPEED)
             .orElse(30);
+        this.mergeLevel = container.getOptional(ConfigurableKey.MERGE_LEVEL)
+            .orElse(level.sakuraConfig().cannons.mergeLevel);
     }
 
     private CachedLocalConfiguration() {
@@ -50,6 +54,7 @@ public final class CachedLocalConfiguration {
         this.redstoneBehaviour = new RedstoneConfiguration(RedstoneImplementation.VANILLA, false);
         this.consistentExplosionRadius = false;
         this.lavaFlowSpeed = 30;
+        this.mergeLevel = MergeLevel.NONE;
     }
 
     public WorldConfiguration.Misc.RedstoneImplementation paperRedstoneImplementation() {

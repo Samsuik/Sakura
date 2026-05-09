@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sun, 26 Nov 2023 17:57:50 +0000
+Subject: [PATCH] Collide with non-solid blocks
+
+
+diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
+index 0cb1906c33589592ab42bef31569d55b5ffb9fd4..07ab8f4151fca1887fde8dc7942f810933c82bd9 100644
+--- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
++++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
+@@ -1905,6 +1905,7 @@ public final class CollisionUtil {
+     public static final int COLLISION_FLAG_CHECK_BORDER = 1 << 2;
+     public static final int COLLISION_FLAG_CHECK_ONLY = 1 << 3;
+     public static final int COLLISION_FLAG_ADD_TICKET = 1 << 4; // Sakura - load chunks on movement
++    public static final int COLLISION_FLAG_FULL_BLOCKS = 1 << 6; // Sakura - collide with non-solid blocks
+ 
+     public static boolean getCollisionsForBlocksOrWorldBorder(final Level world, final Entity entity, final AABB aabb,
+                                                               final List<VoxelShape> intoVoxel, final List<AABB> intoAABB,
+@@ -1965,6 +1966,7 @@ public final class CollisionUtil {
+ 
+         final boolean loadChunks = (collisionFlags & COLLISION_FLAG_LOAD_CHUNKS) != 0;
+         final boolean addTicket  = (collisionFlags & COLLISION_FLAG_ADD_TICKET) != 0; // Sakura - load chunks on movement
++        final boolean fullBlocks = (collisionFlags & COLLISION_FLAG_FULL_BLOCKS) != 0; // Sakura - collide with non-solid blocks
+         final ChunkSource chunkSource = world.getChunkSource();
+ 
+         for (int currChunkZ = minChunkZ; currChunkZ <= maxChunkZ; ++currChunkZ) {
+@@ -2007,7 +2009,7 @@ public final class CollisionUtil {
+                         continue;
+                     }
+ 
+-                    final boolean hasSpecial = ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks();
++                    final boolean hasSpecial = !fullBlocks && ((BlockCountingChunkSection)section).moonrise$hasSpecialCollidingBlocks(); // Sakura - collide with non-solid blocks
+                     final int sectionAdjust = !hasSpecial ? 1 : 0;
+ 
+                     final PalettedContainer<BlockState> blocks = section.states;
+@@ -2046,6 +2048,11 @@ public final class CollisionUtil {
+                                     mutablePos.set(blockX, blockY, blockZ);
+                                     if (useEntityCollisionShape) {
+                                         blockCollision = collisionShape.getCollisionShape(blockData, world, mutablePos);
++                                        // Sakura start - collide with non-solid blocks
++                                        // todo: move this logic above emptyCollisionShape and consider all blocks as a solid except scaffolding and liquids
++                                    } else if (fullBlocks && blockData.moonrise$getConstantContextCollisionShape() != null) {
++                                        blockCollision = net.minecraft.world.phys.shapes.Shapes.block();
++                                        // Sakura end - collide with non-solid blocks
+                                     } else if (blockCollision == null) {
+                                         blockCollision = blockData.getCollisionShape(world, mutablePos, collisionShape);
+                                     }
+diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
+index 713e566d7fad3c5132e607b5c564eda567e394fa..6c7566b1974055072df03c77dfefe0fd76231f8d 100644
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -580,6 +580,14 @@ public abstract class Entity
+             flags |= ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_ADD_TICKET;
+         }
+ 
++        // Sakura start - collide with non-solid blocks
++        if (this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMoving && this.cannonEntity) {
++            final double horizontalMovementSqr = this.getDeltaMovement().horizontalDistanceSqr();
++            if (horizontalMovementSqr > Math.pow(this.level().sakuraConfig().cannons.treatAllBlocksAsFullWhenMovingFasterThan, 2.0)) {
++                flags |= ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_FULL_BLOCKS;
++            }
++        }
++        // Sakura end - collide with non-solid blocks
+         return flags;
+     }
+     // Sakura end - load chunks on movement

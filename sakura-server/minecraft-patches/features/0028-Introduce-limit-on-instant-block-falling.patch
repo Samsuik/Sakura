@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sun, 29 Mar 2026 20:25:30 +0100
+Subject: [PATCH] Introduce limit on instant block falling
+
+
+diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+index 73e5d19ef15e321eba300d1288b1617b3e94c557..e008e2a0d811006cf3bfbe47365a4a61d6c5a33a 100644
+--- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
++++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+@@ -11,5 +11,6 @@ public final class ScheduleSakuraTasks {
+         scheduler.endless((tick, level) -> level.sakuraEntityManager.tick(tick), 0);
+         scheduler.endless((tick, level) -> level.blockDensityCache.tick(tick), 0);
+         scheduler.endless((tick, level) -> level.dispenseRelocationHandler.clear(), 0);
++        scheduler.endless((tick, level) -> level.fallingBlockColumnLimits.clear(), 0); // Sakura - limit instant block falling
+     }
+ }
+diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
+index d76475509894341dba87ca49c973b17b87148320..fe3ea7efba6ddd1b4fda46539048c78d2a8fbd66 100644
+--- a/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -202,6 +202,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+             state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
+         );
+         if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.getFluidState().createLegacyBlock())) return entity; // CraftBukkit
++
++        // Sakura start - limit instant block falling
++        final int instantBlockFallLimit = level.sakuraConfig().cannons.restrictions.instantBlockFallLimit.or(-1);
++        if (instantBlockFallLimit > 1 && level.fallingBlockColumnLimits.count(pos) >= instantBlockFallLimit && level instanceof ServerLevel serverLevel) {
++            serverLevel.getBlockTicks().clearArea(new net.minecraft.world.level.levelgen.structure.BoundingBox(pos.above()));
++        }
++        // Sakura end - limit instant block falling
+         // Sakura start - configure server mechanics
+         if (entity.mechanicsTarget().atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
+             level.setBlock(pos, state.getFluidState().createLegacyBlock(), Block.UPDATE_ALL);
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 5ef9daddcebbf907d0ffb913a9454b5841fd4ea4..61567ff6be50d87c5b253d96882f497b0dbe6b4e 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -854,6 +854,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     public final me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler dispenseRelocationHandler = new me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler(this); // Sakura - configure server mechanics
+     public final me.samsuik.sakura.explosion.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.DurableBlockManager(); // Sakura - explosion durable blocks
+     public final me.samsuik.sakura.redstone.RedstoneWireCache redstoneWireCache = new me.samsuik.sakura.redstone.RedstoneWireCache(); // Sakura - cache vanilla and eigencraft wires
++    public final me.samsuik.sakura.entity.FallingBlockColumnLimits fallingBlockColumnLimits = new me.samsuik.sakura.entity.FallingBlockColumnLimits(); // Sakura - limit instant block falling
+ 
+     protected Level(
+         final WritableLevelData levelData,

@@ -1,0 +1,1125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 8 May 2026 21:08:36 +0100
+Subject: [PATCH] Optimise cannon entities
+
+
+diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+index 8d9ce3d301d5f7e4106587ae00adb8dd5b8b6f88..8e5d6cc4cf66be6e5dcf87b0736555221166a277 100644
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
+@@ -66,6 +66,18 @@ public final class ChunkEntitySlices {
+         this.isTransient = value;
+     }
+ 
++    // Sakura start - optimise cannon entities
++    public void addEntityToSections(final Entity entity) {
++        final int sectionIndex = entity.moonrise$getSectionY() - this.minSection;
++        this.allEntities.addEntity(entity, sectionIndex);
++    }
++
++    public void removeEntityFromSections(final Entity entity) {
++        final int sectionIndex = entity.moonrise$getSectionY() - this.minSection;
++        this.allEntities.removeEntity(entity, sectionIndex);
++    }
++    // Sakura end - optimise cannon entities
++
+     public ChunkEntitySlices(final Level world, final int chunkX, final int chunkZ, final FullChunkStatus status,
+                              final ChunkData chunkData, final int minSection, final int maxSection) { // inclusive, inclusive
+         this.minSection = minSection;
+diff --git a/me/samsuik/sakura/entity/EntityState.java b/me/samsuik/sakura/entity/EntityState.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c471afd0d7d28751de2dc61280f00e722a43943d
+--- /dev/null
++++ b/me/samsuik/sakura/entity/EntityState.java
+@@ -0,0 +1,75 @@
++package me.samsuik.sakura.entity;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.Vec3;
++import org.jspecify.annotations.NullMarked;
++
++import java.util.Optional;
++
++@NullMarked
++public record EntityState(
++    Vec3 oldPosition,
++    Vec3 position,
++    Vec3 movement,
++    AABB bb,
++    Vec3 stuckSpeed,
++    Optional<BlockPos> supportingPos,
++    boolean onGround,
++    double fallDistance
++) {
++    public static EntityState unknown() {
++        return new EntityState(
++            Vec3.ZERO,
++            Vec3.ZERO,
++            Vec3.ZERO,
++            new AABB(Vec3.ZERO, Vec3.ZERO),
++            Vec3.ZERO,
++            Optional.empty(),
++            false,
++            0.0f
++        );
++    }
++
++    public static EntityState of(final Entity entity) {
++        return new EntityState(
++            entity.oldPosition(),
++            entity.position(),
++            entity.getDeltaMovement(),
++            entity.getBoundingBox(),
++            entity.stuckSpeedMultiplier,
++            entity.mainSupportingBlockPos,
++            entity.onGround(),
++            entity.fallDistance
++        );
++    }
++
++    public void apply(final Entity entity) {
++        entity.setOldPosAndRot(this.oldPosition, 0.0f, 0.0f);
++        entity.setPos(this.position);
++        entity.setDeltaMovement(this.movement);
++        entity.setBoundingBox(this.bb);
++        entity.makeStuckInBlock(Blocks.AIR.defaultBlockState(), this.stuckSpeed);
++        entity.onGround = this.onGround;
++        entity.mainSupportingBlockPos = this.supportingPos;
++        entity.fallDistance = this.fallDistance;
++    }
++
++    public boolean isInSimilarState(final EntityState state) {
++        return this.comparePositionAndMotion(state, false)
++            && this.compareFallDistance(state);
++    }
++
++    public boolean comparePositionAndMotion(final EntityState state, final boolean strict) {
++        return this.position.equals(state.position())
++            && this.movement.equals(state.movement())
++            && (!strict || this.bb.equals(state.bb()));
++    }
++
++    public boolean compareFallDistance(final EntityState state) {
++        return this.fallDistance == state.fallDistance()
++            || this.fallDistance <= 2.5 && state.fallDistance() <= 2.5;
++    }
++}
+diff --git a/me/samsuik/sakura/entity/LinkedEntityControllers.java b/me/samsuik/sakura/entity/LinkedEntityControllers.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4899d29bb588d1d20a59339466ad625f53149368
+--- /dev/null
++++ b/me/samsuik/sakura/entity/LinkedEntityControllers.java
+@@ -0,0 +1,85 @@
++package me.samsuik.sakura.entity;
++
++import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
++import me.samsuik.sakura.entity.data.PersistentEntityData;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++import java.util.Comparator;
++import java.util.List;
++
++@NullMarked
++public final class LinkedEntityControllers {
++    private static final Comparator<SakuraEntityController> BY_ENTITY_ID = Comparator.comparingInt(
++        controller -> controller.sakuraEntity.asEntity().getId()
++    );
++
++    private final List<SakuraEntityController> linked = new ObjectArrayList<>();
++    private final LongOpenHashSet linkedSpawnPositions;
++    private SakuraEntityController headController;
++    private SakuraEntityController tailController;
++    public @Nullable SakuraEntityController lastToTick;
++
++    public LinkedEntityControllers(final SakuraEntityController controller) {
++        this.linked.add(controller);
++        this.linkedSpawnPositions = new LongOpenHashSet();
++        this.updateHeadAndTail();
++    }
++
++    private LinkedEntityControllers(final List<SakuraEntityController> controllers, final LongOpenHashSet linkedSpawnPositions) {
++        this.linked.addAll(controllers);
++        this.linkedSpawnPositions = linkedSpawnPositions;
++        this.updateHeadAndTail();
++    }
++
++    private void updateHeadAndTail() {
++        this.headController = this.linked.getFirst();
++        this.tailController = this.linked.getLast();
++    }
++
++    public SakuraEntityController getHead() {
++        return this.headController;
++    }
++
++    public SakuraEntityController getTail() {
++        return this.tailController;
++    }
++
++    public int count() {
++        return this.linked.size();
++    }
++
++    public void link(final SakuraEntityController controller, final LinkedEntityControllers links) {
++        this.linked.addAll(links.linked);
++        this.linked.sort(BY_ENTITY_ID);
++        this.linkedSpawnPositions.add(controller.encodedSpawnPosition());
++        this.linkedSpawnPositions.addAll(links.linkedSpawnPositions);
++
++        links.linked.forEach(otherController -> otherController.updateLinks(this));
++        this.updateHeadAndTail();
++    }
++
++    public @Nullable SakuraEntityController decouple(final SakuraEntityController otherController) {
++        final int index = this.linked.indexOf(otherController);
++        if (index < 0 || index + 1 >= this.linked.size()) {
++            return null;
++        }
++
++        final List<SakuraEntityController> subList = this.linked.subList(0, index + 1);
++        final List<SakuraEntityController> decoupledControllers = new ObjectArrayList<>(subList);
++        subList.clear();
++
++        final LinkedEntityControllers decoupled = new LinkedEntityControllers(decoupledControllers, this.linkedSpawnPositions);
++        decoupledControllers.forEach(decoupledController -> decoupledController.updateLinks(decoupled));
++        decoupled.updateHeadAndTail();
++
++        final SakuraEntityController newHead = this.linked.getFirst();
++        this.headController = newHead;
++        return newHead;
++    }
++
++    public void save(final PersistentEntityData persistentEntityData) {
++        persistentEntityData.addLinkedPositions(this.linkedSpawnPositions);
++    }
++}
+diff --git a/me/samsuik/sakura/entity/SakuraEntity.java b/me/samsuik/sakura/entity/SakuraEntity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4ec0430c1bfd78a4446705c6e9f2885b62d72c35
+--- /dev/null
++++ b/me/samsuik/sakura/entity/SakuraEntity.java
+@@ -0,0 +1,34 @@
++package me.samsuik.sakura.entity;
++
++import net.minecraft.world.entity.Entity;
++import org.jspecify.annotations.NullMarked;
++
++@NullMarked
++public interface SakuraEntity {
++    SakuraEntityController getSakuraEntityController();
++
++    default Entity asEntity() {
++        return (Entity) this;
++    }
++
++    default boolean canLink(final Entity otherEntity) {
++        return true;
++    }
++
++    default boolean samePropertiesAndState(final SakuraEntity otherSakuraEntity, final int tickDifference) {
++        final SakuraEntityController otherController = otherSakuraEntity.getSakuraEntityController();
++        return this.sameProperties(otherSakuraEntity.asEntity(), tickDifference)
++            && this.isInSimilarState(otherController.getEntityState());
++    }
++
++    default boolean isInSimilarState(final EntityState state) {
++        final SakuraEntityController controller = this.getSakuraEntityController();
++        return controller.getEntityState().isInSimilarState(state);
++    }
++
++    default boolean sameProperties(final Entity otherEntity, final int tickDifference) {
++        return true;
++    }
++
++    default void catchupOnTicks(final int ticks) {}
++}
+diff --git a/me/samsuik/sakura/entity/SakuraEntityController.java b/me/samsuik/sakura/entity/SakuraEntityController.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b807d15597096d140cd2c42f9430d84a3f26fdf
+--- /dev/null
++++ b/me/samsuik/sakura/entity/SakuraEntityController.java
+@@ -0,0 +1,242 @@
++package me.samsuik.sakura.entity;
++
++import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices;
++import ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup;
++import me.samsuik.sakura.entity.data.EntityData;
++import me.samsuik.sakura.entity.data.PersistentEntityData;
++import me.samsuik.sakura.entity.merge.MergeLevel;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.level.Level;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++import java.util.Objects;
++
++@NullMarked
++public final class SakuraEntityController {
++    public final SakuraEntity sakuraEntity;
++    public final Entity entity;
++    private final SakuraEntityManager manager;
++    private int sleepTimer = 0;
++    private LinkedEntityControllers links = new LinkedEntityControllers(this);
++    private @Nullable EntityData entityData;
++    private EntityState entityState = EntityState.unknown();
++    private long blockStateRevision;
++    private boolean triedLinkingOnSpawn;
++
++    public SakuraEntityController(final SakuraEntity sakuraEntity, final SakuraEntityManager manager) {
++        this.sakuraEntity = sakuraEntity;
++        this.entity = sakuraEntity.asEntity();
++        this.manager = manager;
++    }
++
++    public long encodedSpawnPosition() {
++        return this.getEntityData().spawnPosition().encodedPosition();
++    }
++
++    public LinkedEntityControllers getLinks() {
++        return this.links;
++    }
++
++    public void updateLinks(final LinkedEntityControllers newLinks) {
++        this.links = newLinks;
++    }
++
++    public EntityData getEntityData() {
++        return Objects.requireNonNull(this.entityData);
++    }
++
++    public EntityState getEntityState() {
++        return this.entityState;
++    }
++
++    public void restoreEntityState() {
++        this.entityState.apply(this.entity);
++    }
++
++    public boolean haveBlocksChangedSinceTicking(final Level level) {
++        return this.blockStateRevision != level.getBlockStateRevisionCount();
++    }
++
++    public void tickEntity() {
++        final SakuraEntity sakuraEntity = this.sakuraEntity;
++        final Entity entity = this.entity;
++
++        this.updateTickingState(true);
++        if (!this.isSleeping()) {
++            if (this.entityData == null) {
++                this.entityData = this.manager.getEntityData(entity);
++            }
++
++            final EntityState currentState = EntityState.of(entity);
++            this.entityState = currentState;
++
++            this.tickAwakeEntity(entity, sakuraEntity, currentState);
++        }
++
++        this.sleepTimer++;
++    }
++
++    private void tickAwakeEntity(final Entity entity, final SakuraEntity sakuraEntity, final EntityState currentState) {
++        if (!this.attemptToLinkEntities(entity, sakuraEntity, currentState)) {
++            final Level level = entity.level();
++            this.blockStateRevision = level.getBlockStateRevisionCount();
++
++            entity.tick();
++            entity.postTick();
++
++            if (entity.isRemoved() || this.blockStateRevision != level.getBlockStateRevisionCount()) {
++                this.manager.decoupleAllTickingEntities();
++            }
++        }
++    }
++
++    public void removeEntity() {
++        if (this.entityData != null && this.entityData.mergeLevel() == MergeLevel.SPAWN) {
++            final PersistentEntityData persistentEntityData = new PersistentEntityData();
++            this.links.save(persistentEntityData);
++            this.manager.saveEntityData(this, persistentEntityData);
++        }
++    }
++
++    private boolean attemptLinkingOnSpawn() {
++        final boolean triedLinkingOnSpawn = this.triedLinkingOnSpawn;
++        this.triedLinkingOnSpawn = true;
++        return !triedLinkingOnSpawn;
++    }
++
++    public boolean canLinkOnSpawn(final SakuraEntity otherSakuraEntity) {
++        final Entity entity = this.entity;
++        if (entity.tickCount < 2 || entity.tickCount != otherSakuraEntity.asEntity().tickCount) {
++            return false;
++        }
++
++        final EntityData entityData = this.getEntityData();
++        if (!entityData.hasSavedBefore()
++            || !this.attemptLinkingOnSpawn()
++            || entityData.randomChanceToSpawn()) {
++            return false;
++        }
++
++        final boolean isFallingBlock = entity.getType() == EntityType.FALLING_BLOCK;
++        return entityData.hasLinkedInThePast(otherSakuraEntity, isFallingBlock ? 100 : 0);
++    }
++
++    private boolean canLinkWith(final SakuraEntity sakuraEntity, final SakuraEntity otherSakuraEntity) {
++        final Entity otherEntity = otherSakuraEntity.asEntity();
++        final Entity entity = this.entity;
++        return entity.getType() == otherEntity.getType()
++            && entity.isAlive()
++            && otherEntity.isAlive()
++            && otherEntity.getId() < entity.getId()
++            && entity.moonrise$getSectionY() != Integer.MIN_VALUE
++            && this.isFullyAwake()
++            && sakuraEntity.canLink(otherEntity);
++    }
++
++    private boolean attemptToLinkEntities(
++        final Entity entity,
++        final SakuraEntity sakuraEntity,
++        final EntityState currentState
++    ) {
++        final MergeLevel mergeLevel = this.getEntityData().mergeLevel();
++        final SakuraEntity otherSakuraEntity = this.manager.getEntityToLinkWith(
++            entity,
++            sakuraEntity,
++            this,
++            currentState,
++            mergeLevel
++        );
++
++        if (otherSakuraEntity != null && this.canLinkWith(sakuraEntity, otherSakuraEntity)) {
++            otherSakuraEntity.getSakuraEntityController().links.link(this, this.links);
++            this.setSleeping(true);
++            return true;
++        }
++
++        return false;
++    }
++
++    public void decoupleTicking() {
++        final SakuraEntityController ticking = this.links.lastToTick;
++        if (ticking != null) {
++            this.decouple(ticking);
++            this.links.lastToTick = null;
++        }
++    }
++
++    public void decouple() {
++        this.decouple(this);
++    }
++
++    public void decouple(final SakuraEntityController otherController) {
++        final SakuraEntityController decoupled = this.links.decouple(otherController);
++        if (decoupled != null) {
++            decoupled.entityState = this.entityState;
++            decoupled.restoreEntityState();
++
++            // Update the entity position then wake up the entity
++            decoupled.entity.levelCallback.onMove();
++            decoupled.setSleeping(false);
++
++            decoupled.updateTickingState(false);
++        }
++    }
++
++    private void updateTickingState(final boolean newTick) {
++        final LinkedEntityControllers links = this.links;
++        if (newTick) {
++            links.lastToTick = this;
++        }
++
++        final SakuraEntityController head = links.getHead();
++        final SakuraEntityController tail = links.getTail();
++
++        if (head != tail && head == this) {
++            this.manager.updateTickingStatus(links, true);
++        }
++
++        if (tail == this) {
++            this.manager.updateTickingStatus(links, false);
++        }
++    }
++
++    public boolean isFullyAwake() {
++        return this.sleepTimer > 0;
++    }
++
++    public boolean isSleeping() {
++        return this.sleepTimer < 0;
++    }
++
++    public void setSleeping(final boolean sleeping) {
++        if (this.isSleeping() == sleeping) {
++            return;
++        }
++
++        final Entity entity = this.entity;
++        if (sleeping) {
++            this.sleepTimer = Integer.MIN_VALUE;
++        } else {
++            final int ticksToCatchupOn = this.sleepTimer - Integer.MIN_VALUE;
++            this.sakuraEntity.catchupOnTicks(ticksToCatchupOn);
++            entity.tickCount += ticksToCatchupOn;
++            this.sleepTimer = 0;
++        }
++
++        final ServerLevel level = entity.level().getMinecraftWorld();
++        final EntityLookup lookup = level.moonrise$getEntityLookup();
++        final ChunkEntitySlices slices = lookup.getOrCreateChunk(entity.moonrise$getSectionX(), entity.moonrise$getSectionZ());
++
++        // Remove sleeping entities from the chunk map and add them back when woken up
++        if (sleeping) {
++            slices.removeEntityFromSections(entity);
++            level.chunkSource.removeEntity(entity);
++        } else {
++            slices.addEntityToSections(entity);
++            level.chunkSource.addEntity(entity);
++        }
++    }
++}
+diff --git a/me/samsuik/sakura/entity/SakuraEntityManager.java b/me/samsuik/sakura/entity/SakuraEntityManager.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c08c4c0798b36ca5be9fbf33c594811e2fcdef31
+--- /dev/null
++++ b/me/samsuik/sakura/entity/SakuraEntityManager.java
+@@ -0,0 +1,111 @@
++package me.samsuik.sakura.entity;
++
++import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
++import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
++import me.samsuik.sakura.configuration.local.CachedLocalConfiguration;
++import me.samsuik.sakura.entity.data.EntityData;
++import me.samsuik.sakura.entity.data.EntitySpawnPosition;
++import me.samsuik.sakura.entity.data.PersistentEntityData;
++import me.samsuik.sakura.entity.merge.MergeLevel;
++import me.samsuik.sakura.utils.SimpleHashTable;
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.entity.Entity;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++import java.util.List;
++import java.util.Map;
++
++@NullMarked
++public final class SakuraEntityManager {
++    private final SimpleHashTable<BlockPos, SakuraEntity> tickedEntityPositions = new SimpleHashTable<>(128);
++    private @Nullable SakuraEntity lastEntityToTick;
++    private final ReferenceOpenHashSet<LinkedEntityControllers> activelyTicking = new ReferenceOpenHashSet<>();
++    private final Map<EntitySpawnPosition, PersistentEntityData> entityData = new Object2ObjectOpenHashMap<>();
++
++    public SakuraEntityController createController(final SakuraEntity sakuraEntity) {
++        return new SakuraEntityController(sakuraEntity, this);
++    }
++
++    public EntityData getEntityData(final Entity entity) {
++        final EntitySpawnPosition spawnPosition = EntitySpawnPosition.from(entity);
++        final PersistentEntityData persistentEntityData = this.entityData.computeIfAbsent(spawnPosition,
++            sp -> new PersistentEntityData());
++
++        final BlockPos blockPos = entity.blockPosition();
++        final CachedLocalConfiguration localConfig = entity.level().localConfig().at(blockPos);
++
++        return new EntityData(spawnPosition, localConfig.mergeLevel, persistentEntityData);
++    }
++
++    public void saveEntityData(final SakuraEntityController controller, final PersistentEntityData persistentEntityData) {
++        final EntitySpawnPosition entitySpawnPosition = controller.getEntityData().spawnPosition();
++        final PersistentEntityData savedPersistentEntityData = this.entityData.get(entitySpawnPosition);
++
++        if (savedPersistentEntityData != null) {
++            savedPersistentEntityData.load(persistentEntityData);
++        } else {
++            this.entityData.put(entitySpawnPosition, persistentEntityData);
++        }
++    }
++
++    public @Nullable SakuraEntity getEntityToLinkWith(
++        final Entity entity,
++        final SakuraEntity sakuraEntity,
++        final SakuraEntityController controller,
++        final EntityState currentState,
++        final MergeLevel mergeLevel
++    ) {
++        if (mergeLevel == MergeLevel.NONE) {
++            return null;
++        }
++
++        SakuraEntity lastSakuraEntity = this.lastEntityToTick;
++        if (lastSakuraEntity != null
++            && mergeLevel == MergeLevel.SPAWN
++            && controller.canLinkOnSpawn(lastSakuraEntity)
++            && sakuraEntity.sameProperties(lastSakuraEntity.asEntity(), 1)
++            && lastSakuraEntity.getSakuraEntityController().isFullyAwake()) {
++            return lastSakuraEntity;
++        }
++
++        this.lastEntityToTick = sakuraEntity;
++
++        SakuraEntity linkWithEntity = null;
++        if (lastSakuraEntity != null
++            && mergeLevel == MergeLevel.STRICT
++            && sakuraEntity.sameProperties(lastSakuraEntity.asEntity(), 1)) {
++            linkWithEntity = lastSakuraEntity;
++        }
++
++        if (mergeLevel == MergeLevel.LENIENT || mergeLevel == MergeLevel.SPAWN) {
++            linkWithEntity = this.tickedEntityPositions.put(entity.blockPosition(), sakuraEntity);
++        }
++
++        return linkWithEntity != null && linkWithEntity.isInSimilarState(currentState) ? linkWithEntity : null;
++    }
++
++    public void tick(final long gameTime) {
++        this.activelyTicking.clear();
++        this.lastEntityToTick = null;
++        this.tickedEntityPositions.clear();
++
++        if (gameTime % 20 == 0) {
++            this.entityData.values().removeIf(data -> data.expire(20));
++        }
++    }
++
++    public void decoupleAllTickingEntities() {
++        for (final LinkedEntityControllers controllers : List.copyOf(this.activelyTicking)) {
++            controllers.getHead().decoupleTicking();
++        }
++    }
++
++    public void updateTickingStatus(final LinkedEntityControllers controllers, final boolean ticking) {
++        if (ticking) {
++            this.activelyTicking.add(controllers);
++        } else {
++            this.activelyTicking.remove(controllers);
++        }
++    }
++}
+diff --git a/me/samsuik/sakura/entity/data/EntityData.java b/me/samsuik/sakura/entity/data/EntityData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..15a4b66874a5ca78f4aa6b6f878dd01ed8a8713e
+--- /dev/null
++++ b/me/samsuik/sakura/entity/data/EntityData.java
+@@ -0,0 +1,33 @@
++package me.samsuik.sakura.entity.data;
++
++import me.samsuik.sakura.entity.SakuraEntity;
++import me.samsuik.sakura.entity.merge.MergeLevel;
++import org.jspecify.annotations.NullMarked;
++
++import java.util.Random;
++
++@NullMarked
++public record EntityData(EntitySpawnPosition spawnPosition, MergeLevel mergeLevel, PersistentEntityData persistentEntityData) {
++    private static final Random RANDOM = new Random();
++
++    public boolean randomChanceToSpawn() {
++        return RANDOM.nextDouble() > this.persistentEntityData.chanceToSpawnEntity();
++    }
++
++    public boolean hasLinkedInThePast(final SakuraEntity otherEntity, final int ticksPast) {
++        return this.persistentEntityData.haveTicksPast(ticksPast)
++            && this.hasLinkedBefore(otherEntity);
++    }
++
++    public boolean hasLinkedBefore(final SakuraEntity sakuraEntity) {
++        return this.hasLinkedBefore(sakuraEntity.getSakuraEntityController().encodedSpawnPosition());
++    }
++
++    public boolean hasLinkedBefore(final long position) {
++        return this.persistentEntityData.linkedPositions.contains(position);
++    }
++
++    public boolean hasSavedBefore() {
++        return !this.persistentEntityData.linkedPositions.isEmpty();
++    }
++}
+diff --git a/me/samsuik/sakura/entity/data/EntitySpawnPosition.java b/me/samsuik/sakura/entity/data/EntitySpawnPosition.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7dc14ce6c4ac53183657492c28f0b388a2ceb222
+--- /dev/null
++++ b/me/samsuik/sakura/entity/data/EntitySpawnPosition.java
+@@ -0,0 +1,12 @@
++package me.samsuik.sakura.entity.data;
++
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EntityType;
++import org.jspecify.annotations.NullMarked;
++
++@NullMarked
++public record EntitySpawnPosition(EntityType<?> type, long encodedPosition) {
++    public static EntitySpawnPosition from(final Entity entity) {
++        return new EntitySpawnPosition(entity.getType(), entity.blockPosition().asLong());
++    }
++}
+diff --git a/me/samsuik/sakura/entity/data/PersistentEntityData.java b/me/samsuik/sakura/entity/data/PersistentEntityData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..958f9ae679b4ce9de6e5dfe6dbf01dda337dc823
+--- /dev/null
++++ b/me/samsuik/sakura/entity/data/PersistentEntityData.java
+@@ -0,0 +1,40 @@
++package me.samsuik.sakura.entity.data;
++
++import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
++import org.jspecify.annotations.NullMarked;
++
++@NullMarked
++public final class PersistentEntityData {
++    public final LongOpenHashSet linkedPositions = new LongOpenHashSet();
++    private long totalTicksPast;
++    private int ticksSinceLastAccess;
++
++    public double chanceToSpawnEntity() {
++        final double minutePercentile = this.totalTicksPast / 1200.0;
++        return 0.95 + Math.min(minutePercentile / 20.0, 0.05);
++    }
++
++    public boolean haveTicksPast(final int ticksPast) {
++        return this.totalTicksPast >= ticksPast;
++    }
++
++    public void addLinkedPositions(final LongOpenHashSet linkedPositions) {
++        this.linkedPositions.addAll(linkedPositions);
++    }
++
++    public void load(final PersistentEntityData persistentEntityData) {
++        if (this.totalTicksPast >= 100) {
++            this.linkedPositions.retainAll(persistentEntityData.linkedPositions);
++        } else {
++            this.linkedPositions.addAll(persistentEntityData.linkedPositions);
++        }
++
++        this.ticksSinceLastAccess = 0;
++    }
++
++    public boolean expire(final int ticksPast) {
++        this.totalTicksPast += ticksPast;
++        this.ticksSinceLastAccess += ticksPast;
++        return this.ticksSinceLastAccess >= 200;
++    }
++}
+diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+index c3060d4602a062b4d1713bfb9def2686c4b7a4c7..72c00ba66881539cfec183deec9f37bf63e92ac9 100644
+--- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
++++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
+@@ -8,5 +8,6 @@ import org.jspecify.annotations.NullMarked;
+ @NullMarked
+ public final class ScheduleSakuraTasks {
+     public static void schedule(final LevelTickScheduler scheduler) {
++        scheduler.endless((tick, level) -> level.sakuraEntityManager.tick(tick), 0);
+     }
+ }
+diff --git a/me/samsuik/sakura/utils/SimpleHashTable.java b/me/samsuik/sakura/utils/SimpleHashTable.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..86c24fd87be41aaa9c3073997ba8e3bcf06e94fe
+--- /dev/null
++++ b/me/samsuik/sakura/utils/SimpleHashTable.java
+@@ -0,0 +1,46 @@
++package me.samsuik.sakura.utils;
++
++import it.unimi.dsi.fastutil.HashCommon;
++import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
++
++import java.util.Arrays;
++
++@NullMarked
++public final class SimpleHashTable<K, V> {
++    private final @Nullable V[] table;
++    private final int mask;
++
++    public SimpleHashTable(final int expectedSize) {
++        if (expectedSize < 0) {
++            throw new IllegalArgumentException("Table size cannot be negative");
++        } else {
++            final int size = HashCommon.nextPowerOfTwo(expectedSize - 1);
++            this.table = (V[]) new Object[size];
++            this.mask = (size - 1);
++        }
++    }
++
++    private int index(final K key) {
++        return key.hashCode() & this.mask;
++    }
++
++    public @Nullable V get(final K key) {
++        return this.table[this.index(key)];
++    }
++
++    public @Nullable V put(final K key, final @Nullable V value) {
++        final int index = this.index(key);
++        final V present = this.table[index];
++        this.table[index] = value;
++        return present;
++    }
++
++    public @Nullable V remove(final K key) {
++        return this.put(key, null);
++    }
++
++    public void clear() {
++        Arrays.fill(this.table, null);
++    }
++}
+diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
+index 30ec8cd216cce3cbde2d540cda3c0ed47bd66097..18894ffea9a1d1e379a02c71bbfe6086a86485b9 100644
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -1387,10 +1387,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+         profiler.push(entity.typeHolder()::getRegisteredName);
+         profiler.incrementCounter("tickNonPassenger");
+         final boolean isActive = io.papermc.paper.entity.activation.ActivationRange.checkIfActive(entity); // Paper - EAR 2
+-        if (isActive) { // Paper - EAR 2
+-        entity.tick();
+-        entity.postTick(); // CraftBukkit
+-        } else {entity.inactiveTick();} // Paper - EAR 2
++        // Sakura start - optimise cannon entities
++        // Hopefully this diff doesn't cause too many issues when updating.
++        if (entity instanceof final me.samsuik.sakura.entity.SakuraEntity sakuraEntity) {
++            sakuraEntity.getSakuraEntityController().tickEntity();
++        } else {
++            if (isActive) { // Paper - EAR 2
++                entity.tick();
++                entity.postTick(); // CraftBukkit
++            } else {entity.inactiveTick();} // Paper - EAR 2
++        }
++        // Sakura end - optimise cannon entities
+         profiler.pop();
+ 
+         for (Entity passenger : entity.getPassengers()) {
+@@ -2000,6 +2007,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+         Vec3 center = new Vec3(x, y, z);
+         ServerExplosion explosion = new ServerExplosion(this, source, damageSource, damageCalculator, center, r, fire, blockInteraction);
+         if (configurator != null) configurator.accept(explosion); // Paper - Allow explosions to damage source
++        this.sakuraEntityManager.decoupleAllTickingEntities(); // Sakura - optimise cannon entities
+         int blockCount = explosion.explode();
+         // CraftBukkit start
+         if (explosion.wasCanceled) {
+diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
+index 489adb53e1035f5fb744d673f00006b3829c34dd..df12e66ecf34a71ba894d043ca550613e94f05cc 100644
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -550,6 +550,15 @@ public abstract class Entity
+     // Paper end - optimise entity tracker
+     public boolean pushedByFluid = true; // Sakura - entity pushed by fluid api
+     public boolean cannonEntity = false; // Sakura - add cannon entity field
++    // Sakura start - optimise cannon entities
++    public Vec3 sakura$position() {
++        return this.position;
++    }
++
++    public Vec3 sakura$deltaMovement() {
++        return this.deltaMovement;
++    }
++    // Sakura end - optimise cannon entities
+ 
+     public Entity(final EntityType<?> type, final Level level) {
+         this.type = type;
+@@ -5128,6 +5137,12 @@ public abstract class Entity
+             this.stopRiding();
+         }
+ 
++        // Sakura start - optimise cannon entities
++        if (!alreadyRemoved && this instanceof final me.samsuik.sakura.entity.SakuraEntity sakuraEntity) {
++            sakuraEntity.getSakuraEntityController().removeEntity();
++        }
++        // Sakura end - optimise cannon entities
++
+         if (this.removalReason != Entity.RemovalReason.UNLOADED_TO_CHUNK) { this.getPassengers().forEach(Entity::stopRiding); } // Paper - rewrite chunk system
+         this.levelCallback.onRemove(reason);
+         this.onRemoval(reason);
+diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
+index a8f0d360e3117414138cca7186e76f8f1968df81..a4f5d280cfeb0af482b96ce993a9b2c7a262a15b 100644
+--- a/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -53,7 +53,7 @@ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+-public class FallingBlockEntity extends Entity {
++public class FallingBlockEntity extends Entity implements me.samsuik.sakura.entity.SakuraEntity { // Sakura - optimise cannon entities
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final BlockState DEFAULT_BLOCK_STATE = Blocks.SAND.defaultBlockState();
+     private static final int DEFAULT_TIME = 0;
+@@ -101,12 +101,61 @@ public class FallingBlockEntity extends Entity {
+         return BlockPos.containing(this.getX(), this.getY() + 1.0e-12, this.getZ());
+     }
+     // Sakura end - fix falling block floating point errors
++    // Sakura start - optimise cannon entities
++    private final me.samsuik.sakura.entity.SakuraEntityController sakuraEntityController;
++
++    public final me.samsuik.sakura.entity.SakuraEntityController getSakuraEntityController() {
++        return this.sakuraEntityController;
++    }
++
++    private boolean canSolidifyInWater() {
++        return this.level().sakuraConfig().cannons.sand.concreteSolidifyInWater
++            && this.blockState.getBlock() instanceof ConcretePowderBlock;
++    }
++
++    @Override
++    public final boolean canLink(final Entity entity) {
++        if (!(entity instanceof final FallingBlockEntity otherFallingBlock)) {
++            return false;
++        }
++
++        // It's only safe for regular falling block entities to merge into a concrete entity.
++        // The other way around will cause issues as concrete performs an additional ray cast.
++        final boolean otherEntityCanSolidify = otherFallingBlock.canSolidifyInWater();
++        return this.canSolidifyInWater() == otherEntityCanSolidify
++            || this.getId() > otherFallingBlock.getId() && otherEntityCanSolidify;
++    }
++
++    @Override
++    public final boolean sameProperties(final Entity otherEntity, final int tickDifference) {
++        return otherEntity instanceof final FallingBlockEntity otherFallingBlockEntity
++            && this.time + tickDifference == otherFallingBlockEntity.time
++            && this.blockState == otherFallingBlockEntity.blockState
++            && this.heightParity == otherFallingBlockEntity.heightParity;
++    }
++
++    @Override
++    public final void catchupOnTicks(final int ticks) {
++        this.time += ticks;
++    }
++
++    @Override
++    public final Vec3 sakura$position() {
++        return this.sakuraEntityController.getLinks().getHead().entity.position();
++    }
++
++    @Override
++    public final Vec3 sakura$deltaMovement() {
++        return this.sakuraEntityController.getLinks().getHead().entity.getDeltaMovement();
++    }
++    // Sakura end - optimise cannon entities
+ 
+     public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
+         super(type, level);
+         this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
+         this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
+         this.cannonEntity = true; // Sakura - add cannon entity field
++        this.sakuraEntityController = level.sakuraEntityManager.createController(this); // Sakura - optimise cannon entities
+     }
+ 
+     public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
+diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
+index ac14f78097943ff3abb4d15ab842067ccd91d6eb..30c3a48460e89476415a54f3c2fb89ba182b8025 100644
+--- a/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -34,7 +34,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
+ import org.bukkit.event.entity.ExplosionPrimeEvent;
+ // CraftBukkit end
+ 
+-public class PrimedTnt extends Entity implements TraceableEntity {
++public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sakura.entity.SakuraEntity { // Sakura - optimise cannon entities
+     private static final EntityDataAccessor<Integer> DATA_FUSE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.INT);
+     private static final EntityDataAccessor<BlockState> DATA_BLOCK_STATE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.BLOCK_STATE);
+     private static final short DEFAULT_FUSE_TIME = 80;
+@@ -61,10 +61,43 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+     public float explosionPower = 4.0F;
+     public boolean isIncendiary = false; // CraftBukkit
+ 
++    // Sakura start - optimise cannon entities
++    private final me.samsuik.sakura.entity.SakuraEntityController sakuraEntityController;
++
++    @Override
++    public final me.samsuik.sakura.entity.SakuraEntityController getSakuraEntityController() {
++        return this.sakuraEntityController;
++    }
++
++    @Override
++    public final boolean sameProperties(final Entity otherEntity, final int tickDifference) {
++        return otherEntity instanceof final PrimedTnt otherTntEntity
++            && this.getFuse() - tickDifference == otherTntEntity.getFuse()
++            && this.explosionPower == otherTntEntity.explosionPower
++            && this.isIncendiary == otherTntEntity.isIncendiary;
++    }
++
++    @Override
++    public final void catchupOnTicks(final int ticks) {
++        this.setFuse(this.getFuse() - ticks);
++    }
++
++    @Override
++    public final net.minecraft.world.phys.Vec3 sakura$position() {
++        return this.sakuraEntityController.getLinks().getHead().entity.position();
++    }
++
++    @Override
++    public final net.minecraft.world.phys.Vec3 sakura$deltaMovement() {
++        return this.sakuraEntityController.getLinks().getHead().entity.getDeltaMovement();
++    }
++    // Sakura end - optimise cannon entities
++
+     public PrimedTnt(final EntityType<? extends PrimedTnt> type, final Level level) {
+         super(type, level);
+         this.blocksBuilding = true;
+         this.cannonEntity = true; // Sakura - add cannon entity field
++        this.sakuraEntityController = level.sakuraEntityManager.createController(this); // Sakura - optimise cannon entities
+     }
+ 
+     public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
+diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java b/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java
+index 84c07fb51e8321b32f8607a602dd1e417ce36af7..aae799df278a15885b23e9d66a40fc3677a2a7a4 100644
+--- a/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java
++++ b/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java
+@@ -18,15 +18,50 @@ import net.minecraft.world.phys.HitResult;
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
+-public abstract class AbstractHurtingProjectile extends Projectile {
++public abstract class AbstractHurtingProjectile extends Projectile implements me.samsuik.sakura.entity.SakuraEntity { // Sakura - optimise cannon entities
+     public static final double INITAL_ACCELERATION_POWER = 0.1;
+     public static final double DEFLECTION_SCALE = 0.5;
+     public double accelerationPower = 0.1;
+     public float bukkitYield = 1; // CraftBukkit
+     public boolean isIncendiary = true; // CraftBukkit
+ 
++    // Sakura start - optimise cannon entities
++    private final me.samsuik.sakura.entity.SakuraEntityController sakuraEntityController;
++
++    public final me.samsuik.sakura.entity.SakuraEntityController getSakuraEntityController() {
++        return this.sakuraEntityController;
++    }
++
++    @Override
++    public boolean canLink(final Entity entity) {
++        return false;
++    }
++
++    @Override
++    public boolean deflect(
++        final net.minecraft.world.entity.projectile.ProjectileDeflection deflection,
++        final Entity entity,
++        final net.minecraft.world.entity.EntityReference<Entity> owner,
++        final boolean deflectedByPlayer
++    ) {
++        this.sakuraEntityController.decouple();
++        return super.deflect(deflection, entity, owner, deflectedByPlayer);
++    }
++
++    @Override
++    public final Vec3 sakura$position() {
++        return this.sakuraEntityController.getLinks().getHead().entity.position();
++    }
++
++    @Override
++    public final Vec3 sakura$deltaMovement() {
++        return this.sakuraEntityController.getLinks().getHead().entity.getDeltaMovement();
++    }
++    // Sakura end - optimise cannon entities
++
+     protected AbstractHurtingProjectile(final EntityType<? extends AbstractHurtingProjectile> type, final Level level) {
+         super(type, level);
++        this.sakuraEntityController = level.sakuraEntityManager.createController(this); // Sakura - optimise cannon entities
+     }
+ 
+     protected AbstractHurtingProjectile(
+diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java
+index 95cd69a068f180e0911b485270e6d368108a1d6b..6f539ce6e3f2eddee7d8db3bae20172ace53991d 100644
+--- a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java
++++ b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java
+@@ -31,6 +31,13 @@ public abstract class AbstractWindCharge extends AbstractHurtingProjectile imple
+     );
+     public static final double JUMP_SCALE = 0.25;
+ 
++    // Sakura start - optimise cannon entities
++    @Override
++    public final boolean canLink(final Entity entity) {
++        return true;
++    }
++    // Sakura end - optimise cannon entities
++
+     public AbstractWindCharge(final EntityType<? extends AbstractWindCharge> type, final Level level) {
+         super(type, level);
+         this.accelerationPower = 0.0;
+diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
+index 5fe01466a4fd1c31a379f0e7a3865b25a8249bda..eec4083d2cdd37f40532f00525f38882829049b4 100644
+--- a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
++++ b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
+@@ -27,6 +27,13 @@ public class WindCharge extends AbstractWindCharge {
+     private static final float MIN_CAMERA_DISTANCE_SQUARED = Mth.square(3.5F);
+     private int noDeflectTicks = 5;
+ 
++    // Sakura start - optimise cannon entities
++    @Override
++    public final void catchupOnTicks(final int ticks) {
++        this.noDeflectTicks = Math.max(this.noDeflectTicks - ticks, 0);
++    }
++    // Sakura end - optimise cannon entities
++
+     public WindCharge(final EntityType<? extends AbstractWindCharge> type, final Level level) {
+         super(type, level);
+     }
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 4ec0bda340ca569d4bbf68b498317190f655d610..febc29eb3a54957f218875a41ec943205fb5c948 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -844,6 +844,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     }
+     // Sakura end - implement state watchers and tick scheduler
+     public final me.samsuik.sakura.player.visibility.MinimalVisibility minimalVisibility = new me.samsuik.sakura.player.visibility.MinimalVisibility(); // Sakura - client visibility settings
++    public final me.samsuik.sakura.entity.SakuraEntityManager sakuraEntityManager = new me.samsuik.sakura.entity.SakuraEntityManager(); // Sakura - optimise cannon entities
+ 
+     protected Level(
+         final WritableLevelData levelData,
+diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
+index fef90ff995a211f117a28a388867ddc3047b6817..344a9a21d7554242a0da9164d36088ddf64cb264 100644
+--- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
++++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
+@@ -172,6 +172,12 @@ public abstract class BasePressurePlateBlock extends Block {
+ 
+     protected abstract int getSignalStrength(Level level, BlockPos pos);
+ 
++    // Sakura start - optimise cannon entities
++    protected int sakura$getSignalStrength(final Level world, final BlockPos pos, final boolean entityInside) {
++        return this.getSignalStrength(world, pos);
++    }
++    // Sakura end - optimise cannon entities
++
+     protected abstract int getSignalForState(BlockState state);
+ 
+     protected abstract BlockState setSignalForState(BlockState state, int signal);
+diff --git a/net/minecraft/world/level/block/WeightedPressurePlateBlock.java b/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
+index e26385eb25338e7f0770b9154a542273b651c2f4..7bf6c015716c237836b42ee5049a66fc2e55065f 100644
+--- a/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
++++ b/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
+@@ -37,8 +37,15 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+         this.maxWeight = maxWeight;
+     }
+ 
++    // Sakura start - optimise cannon entities
+     @Override
+     protected int getSignalStrength(final Level level, final BlockPos pos) {
++        return this.sakura$getSignalStrength(level, pos, false);
++    }
++
++    @Override
++    protected final int sakura$getSignalStrength(final Level level, final BlockPos pos, final boolean entityInside) {
++        // Sakura end - optimise cannon entities
+         // CraftBukkit start
+         // int min = Math.min(getEntityCount(level, TOUCH_AABB.move(pos), Entity.class), this.maxWeight);
+         int count = 0;
+@@ -54,6 +61,12 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+ 
+             // We only want to block turning the plate on if all events are cancelled
+             if (!cancellable.isCancelled()) {
++                // Sakura start - optimise cannon entities
++                if (!entityInside && entity instanceof final me.samsuik.sakura.entity.SakuraEntity sakuraEntity) {
++                    count += sakuraEntity.getSakuraEntityController().getLinks().count();
++                    continue;
++                }
++                // Sakura end - optimise cannon entities
+                 count++;
+             }
+         }
