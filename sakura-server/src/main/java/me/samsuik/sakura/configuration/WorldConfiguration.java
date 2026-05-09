@@ -42,7 +42,7 @@ public final class WorldConfiguration extends ConfigurationPart {
 
     public Cannons cannons;
     public final class Cannons extends ConfigurationPart {
-        public MergeLevel mergeLevel = MergeLevel.STRICT;
+        public MergeLevel mergeLevel = MergeLevel.LENIENT;
         public boolean tntAndSandAffectedByBubbleColumns = true;
 
         @NestedSetting({"treat-collidable-blocks-as-full", "while-moving"})
@@ -144,7 +144,7 @@ public final class WorldConfiguration extends ConfigurationPart {
 
         public Redstone redstone = new Redstone();
         public final class Redstone extends ConfigurationPart {
-            public boolean redstoneCache = false;
+            public boolean redstoneCache = true;
             public boolean fluidsBreakRedstone = true;
         }
 
