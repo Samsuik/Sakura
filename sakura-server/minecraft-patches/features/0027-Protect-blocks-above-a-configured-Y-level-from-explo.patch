@@ -5,12 +5,12 @@ Subject: [PATCH] Protect blocks above a configured Y-level from explosions
 
 
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 27e6263511449ede26fd6baff95f3d36b6605933..5f1e7f5830ff46ae2a20f26b9e47f104c5a08884 100644
+index b6250c168a2e3be19ca51d2ab0a2c269b2e68297..557cfb8804940b1350d039563393c1807cb13a73 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -370,6 +370,11 @@ public class ServerExplosion implements Explosion {
+@@ -372,6 +372,11 @@ public class ServerExplosion implements Explosion {
              final Block block = blockState.getBlock();
-             final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().at(pos).durableMaterials.get(block);
+             final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.durableMaterials.get(block);
  
 +            // Sakura start - protect blocks above a configured Y-level from explosions
 +            if (this.level.sakuraConfig().cannons.explosion.protectBlocksAboveY.test(val -> pos.getY() >= val)) {

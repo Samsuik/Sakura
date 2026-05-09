@@ -110,7 +110,7 @@ index e424cafa6305094b31409bb7aa657cc1a8e42e56..676b153cc81afca1701a36ad1e095d82
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 525d0c0b185a1a5f5fbf38607431fe2cbc5f9d02..538d99eaeac70fc97475f9a796d9d7ae86d355f4 100644
+index 525d0c0b185a1a5f5fbf38607431fe2cbc5f9d02..29d592b5f5d3ae0aee8c5a32f5ac1e63987d62a3 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -125,7 +125,7 @@ public class ServerExplosion implements Explosion {
@@ -122,15 +122,17 @@ index 525d0c0b185a1a5f5fbf38607431fe2cbc5f9d02..538d99eaeac70fc97475f9a796d9d7ae
  
              ret = new ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache(
                      key, pos, blockState, fluidState,
-@@ -364,6 +364,20 @@ public class ServerExplosion implements Explosion {
+@@ -364,6 +364,22 @@ public class ServerExplosion implements Explosion {
          return hitResult == HitResult.Type.MISS ? 1.0f : 0.0f;
      }
      // Sakura end - configure server mechanics
 +    // Sakura start - explosion durable blocks
++    private final Map<Block, me.samsuik.sakura.explosion.durable.DurableMaterial> durableMaterials;
++
 +    private Optional<Float> calculateBlockResistance(final BlockState blockState, final FluidState fluidState, final BlockPos pos) {
 +        if (!blockState.isAir()) {
 +            final Block block = blockState.getBlock();
-+            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().at(pos).durableMaterials.get(block);
++            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.durableMaterials.get(block);
 +
 +            if (material != null && material.replaceBlastResistance() && pos.getY() > this.level.getMinY()) {
 +                return Optional.of(material.resistance());
@@ -143,12 +145,20 @@ index 525d0c0b185a1a5f5fbf38607431fe2cbc5f9d02..538d99eaeac70fc97475f9a796d9d7ae
  
      public ServerExplosion(
          final ServerLevel level,
-@@ -748,6 +762,14 @@ public class ServerExplosion implements Explosion {
+@@ -389,6 +405,7 @@ public class ServerExplosion implements Explosion {
+         // Paper end - add yield
+         this.consistentExplosionRadius = level.localConfig().at(this.center).consistentExplosionRadius; // Sakura - consistent explosion radius
+         this.mechanicsTarget = source != null ? source.mechanicsTarget() : level.localConfig().at(this.center).mechanicsTarget; // Sakura - configure server mechanics
++        this.durableMaterials = level.localConfig().at(this.center).durableMaterials; // Sakura - explosion durable blocks
+     }
+ 
+     private ExplosionDamageCalculator makeDamageCalculator(final @Nullable Entity source) {
+@@ -748,6 +765,14 @@ public class ServerExplosion implements Explosion {
                  }
              }
              // CraftBukkit end
 +            // Sakura start - explosion durable blocks
-+            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.level.localConfig().at(pos).durableMaterials.get(block);
++            final me.samsuik.sakura.explosion.durable.DurableMaterial material = this.durableMaterials.get(block);
 +            if (material != null && material.applyDurability()) { // if durability is < 0 then only altar the blast resistance
 +                if (material.onlyDamagedByTnt() && !(this.source instanceof PrimedTnt) || !this.level.durabilityManager.damage(pos, material)) {
 +                    continue;
