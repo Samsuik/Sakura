@@ -1492,7 +1492,7 @@ index 8ef2eb5b729776f72858ea15379d5688eb7a5175..692f8665ac93c1a16ef7d1b3ef527a30
                                  try {
                                      boolean isPrecise = movedFar || deflatedBoundingBoxAtTarget.intersects(blockIntersection);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index a9d49feab3aec6ec96a413a7d653134a9cb2c5cf..8d3e3a385f3b386ca69f81900f7aa61edf8036ac 100644
+index a9d49feab3aec6ec96a413a7d653134a9cb2c5cf..861a74cbdf95243e1fd1fbda04195c53b4e30965 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -77,7 +77,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -1534,7 +1534,23 @@ index a9d49feab3aec6ec96a413a7d653134a9cb2c5cf..8d3e3a385f3b386ca69f81900f7aa61e
      }
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
-@@ -185,7 +201,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -177,15 +193,26 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+     }
+ 
+     public static FallingBlockEntity fall(final Level level, final BlockPos pos, final BlockState state) {
++        // Sakura start - configure server mechanics
++        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = level.localConfig().at(pos).mechanicsTarget;
++        final double spawnY = mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_9, me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)
++            ? pos.getY() + (double) ((1.0f - 0.98f) / 2.0f)
++            : pos.getY();
++        // Sakura end - configure server mechanics
++
+         FallingBlockEntity entity = new FallingBlockEntity(
+             level,
+             pos.getX() + 0.5,
+-            pos.getY(),
++            spawnY, // Sakura - configure server mechanics
+             pos.getZ() + 0.5,
              state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
          );
          if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.getFluidState().createLegacyBlock())) return entity; // CraftBukkit
@@ -1547,7 +1563,7 @@ index a9d49feab3aec6ec96a413a7d653134a9cb2c5cf..8d3e3a385f3b386ca69f81900f7aa61e
          level.addFreshEntity(entity);
          return entity;
      }
-@@ -229,7 +249,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -229,7 +256,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
  
      @Override
      protected double getDefaultGravity() {
@@ -1556,7 +1572,7 @@ index a9d49feab3aec6ec96a413a7d653134a9cb2c5cf..8d3e3a385f3b386ca69f81900f7aa61e
      }
  
      @Override
-@@ -238,6 +258,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -238,6 +265,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
              Block block = this.blockState.getBlock();
@@ -1569,7 +1585,7 @@ index a9d49feab3aec6ec96a413a7d653134a9cb2c5cf..8d3e3a385f3b386ca69f81900f7aa61e
              this.time++;
              this.applyGravity();
              this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -252,9 +278,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -252,9 +285,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              }
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
@@ -1585,7 +1601,7 @@ index a9d49feab3aec6ec96a413a7d653134a9cb2c5cf..8d3e3a385f3b386ca69f81900f7aa61e
                      ? this.patchedBlockPosition()
                      : this.blockPosition();
                  // Sakura end - fix falling block floating point errors
-@@ -284,8 +315,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -284,8 +322,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
@@ -1601,7 +1617,7 @@ index a9d49feab3aec6ec96a413a7d653134a9cb2c5cf..8d3e3a385f3b386ca69f81900f7aa61e
                          if (!this.cancelDrop) {
                              boolean mayReplace = currentState.canBeReplaced(
                                  new DirectionalPlaceContext(this.level(), pos, Direction.DOWN, ItemStack.EMPTY, Direction.UP)
-@@ -355,7 +391,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -355,7 +398,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                  }
              }
  
