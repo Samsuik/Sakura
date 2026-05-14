@@ -5,14 +5,14 @@ Subject: [PATCH] Optimise block counting for cannon entities
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 07ab8f4151fca1887fde8dc7942f810933c82bd9..85e27d8732ef0bf3b8ea796c8bcbb88855ad9066 100644
+index 07ab8f4151fca1887fde8dc7942f810933c82bd9..90e29adfb907aa6fb6d357ad0fe8617798fa5996 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1941,6 +1941,7 @@ public final class CollisionUtil {
          final CollisionContext collisionShape = new LazyEntityCollisionContext(entity);
          final boolean useEntityCollisionShape = LazyEntityCollisionContext.useEntityCollisionShape(world, entity);
          final long gameTime = world.getGameTime(); // Sakura - load chunks on movement
-+        final boolean cannonEntity = entity != null && (entity.cannonEntity); // Sakura - optimise block counting for cannon entities
++        final boolean cannonEntity = entity != null && entity.cannonEntity; // Sakura - optimise block counting for cannon entities
  
          // special cases:
          if (minBlockY > maxBlockY) {
@@ -42,7 +42,7 @@ index 07ab8f4151fca1887fde8dc7942f810933c82bd9..85e27d8732ef0bf3b8ea796c8bcbb888
                      for (int currY = minYIterate; currY <= maxYIterate; ++currY) {
                          final int blockY = currY | (currChunkY << 4);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 7888de4001137584e29fb333d01cac0b3fbd19dc..5ef9daddcebbf907d0ffb913a9454b5841fd4ea4 100644
+index 9cabecd15ffa45d66ef8a660211614cafc777f7a..634aecf4c945604edf9a58d47ec6269c91734f96 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -626,6 +626,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
