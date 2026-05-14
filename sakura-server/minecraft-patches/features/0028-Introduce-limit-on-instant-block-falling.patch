@@ -5,12 +5,12 @@ Subject: [PATCH] Introduce limit on instant block falling
 
 
 diff --git a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
-index 73e5d19ef15e321eba300d1288b1617b3e94c557..e008e2a0d811006cf3bfbe47365a4a61d6c5a33a 100644
+index fe1294fa83e1a3c42cbbd762d531b18b2a8cfe89..92b01f8941aec04a3c2cef369d7e6c1eeac11579 100644
 --- a/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
 +++ b/me/samsuik/sakura/scheduler/ScheduleSakuraTasks.java
 @@ -11,5 +11,6 @@ public final class ScheduleSakuraTasks {
          scheduler.endless((tick, level) -> level.sakuraEntityManager.tick(tick), 0);
-         scheduler.endless((tick, level) -> level.blockDensityCache.tick(tick), 0);
+         scheduler.endless((tick, level) -> level.obstructionCache.tick(tick), 0);
          scheduler.endless((tick, level) -> level.dispenseRelocationHandler.clear(), 0);
 +        scheduler.endless((tick, level) -> level.fallingBlockColumnLimits.clear(), 0); // Sakura - limit instant block falling
      }
@@ -34,7 +34,7 @@ index d76475509894341dba87ca49c973b17b87148320..fe3ea7efba6ddd1b4fda46539048c78d
          if (entity.mechanicsTarget().atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
              level.setBlock(pos, state.getFluidState().createLegacyBlock(), Block.UPDATE_ALL);
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 5ef9daddcebbf907d0ffb913a9454b5841fd4ea4..61567ff6be50d87c5b253d96882f497b0dbe6b4e 100644
+index 634aecf4c945604edf9a58d47ec6269c91734f96..92afa7c76467a7efe273c0cf21214ec84e81d105 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -854,6 +854,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

@@ -98,19 +98,19 @@ index 3167be4b7c2c61ef725af4a832d759ab6e061af0..1c6a5d980b6807ab5b6cf077f8b1ed75
          return !placeResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
              ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index e424cafa6305094b31409bb7aa657cc1a8e42e56..676b153cc81afca1701a36ad1e095d8252d91240 100644
+index 68078ee8aa34a9a64759f133d8c57faee7ba518f..e3d284834bf9dd405783224488d96fb31150f096 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -847,6 +847,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.entity.SakuraEntityManager sakuraEntityManager = new me.samsuik.sakura.entity.SakuraEntityManager(); // Sakura - optimise cannon entities
-     public final me.samsuik.sakura.explosion.density.BlockDensityCache blockDensityCache = new me.samsuik.sakura.explosion.density.BlockDensityCache(this); // Sakura - optimise explosions
+     public final me.samsuik.sakura.explosion.density.ExplosionObstructionCache obstructionCache = new me.samsuik.sakura.explosion.density.ExplosionObstructionCache(); // Sakura - optimise explosions
      public final me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler dispenseRelocationHandler = new me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler(this); // Sakura - configure server mechanics
 +    public final me.samsuik.sakura.explosion.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.DurableBlockManager(); // Sakura - explosion durable blocks
  
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 525d0c0b185a1a5f5fbf38607431fe2cbc5f9d02..29d592b5f5d3ae0aee8c5a32f5ac1e63987d62a3 100644
+index 2e53bd361f958430fb2e1c9ce11af138b5b6bf4b..6c2cedaaf07b58fec762a4413fe6161d10ce1a71 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -125,7 +125,7 @@ public class ServerExplosion implements Explosion {
@@ -122,8 +122,8 @@ index 525d0c0b185a1a5f5fbf38607431fe2cbc5f9d02..29d592b5f5d3ae0aee8c5a32f5ac1e63
  
              ret = new ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache(
                      key, pos, blockState, fluidState,
-@@ -364,6 +364,22 @@ public class ServerExplosion implements Explosion {
-         return hitResult == HitResult.Type.MISS ? 1.0f : 0.0f;
+@@ -366,6 +366,22 @@ public class ServerExplosion implements Explosion {
+         }
      }
      // Sakura end - configure server mechanics
 +    // Sakura start - explosion durable blocks
@@ -145,15 +145,15 @@ index 525d0c0b185a1a5f5fbf38607431fe2cbc5f9d02..29d592b5f5d3ae0aee8c5a32f5ac1e63
  
      public ServerExplosion(
          final ServerLevel level,
-@@ -389,6 +405,7 @@ public class ServerExplosion implements Explosion {
-         // Paper end - add yield
-         this.consistentExplosionRadius = level.localConfig().at(this.center).consistentExplosionRadius; // Sakura - consistent explosion radius
-         this.mechanicsTarget = source != null ? source.mechanicsTarget() : level.localConfig().at(this.center).mechanicsTarget; // Sakura - configure server mechanics
+@@ -395,6 +411,7 @@ public class ServerExplosion implements Explosion {
+         this.useSlowerRaycasts = this.mechanicsTarget.isServerType(me.samsuik.sakura.mechanics.ServerType.SAKE)
+             || this.mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_16);
+         // Sakura end - configure server mechanics
 +        this.durableMaterials = level.localConfig().at(this.center).durableMaterials; // Sakura - explosion durable blocks
      }
  
      private ExplosionDamageCalculator makeDamageCalculator(final @Nullable Entity source) {
-@@ -748,6 +765,14 @@ public class ServerExplosion implements Explosion {
+@@ -758,6 +775,14 @@ public class ServerExplosion implements Explosion {
                  }
              }
              // CraftBukkit end

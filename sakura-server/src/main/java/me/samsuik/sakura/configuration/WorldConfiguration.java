@@ -84,6 +84,7 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean avoidRedundantBlockSearches = false;
             public boolean reuseBlockCacheAcrossExplosions = false;
             public boolean batchExplosions = true;
+            public boolean reduceExposureRaycasts = false;
 
             public Map<Block, DurableMaterial> durableMaterials = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
                 map.put(Blocks.OBSIDIAN, new DurableMaterial(4, Blocks.COBBLESTONE.getExplosionResistance(), true));
