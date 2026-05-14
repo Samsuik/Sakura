@@ -29,6 +29,23 @@ index ece6db7b9a0dfd535141c0c756947c4898140503..1c3d78162befd402a8b8ed9c42764d0a
      // includes null (gravestone) elements
      public E[] getListRaw() {
          return this.listElements;
+diff --git a/src/main/java/io/papermc/paper/command/subcommands/EntityCommand.java b/src/main/java/io/papermc/paper/command/subcommands/EntityCommand.java
+index a4212e9b0df55580b60666bc306d812d6f9531ba..81587d65631ac627f84cdab8e0b2443527c082fa 100644
+--- a/src/main/java/io/papermc/paper/command/subcommands/EntityCommand.java
++++ b/src/main/java/io/papermc/paper/command/subcommands/EntityCommand.java
+@@ -113,7 +113,11 @@ public final class EntityCommand implements PaperSubcommand {
+                 ChunkPos chunk = e.chunkPosition();
+                 info.left++;
+                 info.right.put(chunk, info.right.getOrDefault(chunk, 0) + 1);
+-                if (!level.isPositionEntityTicking(e.blockPosition()) || (e instanceof net.minecraft.world.entity.Marker && !level.paperConfig().entities.markers.tick)) { // Paper - Configurable marker ticking
++                // Sakura start - optimise cannon entities
++                if (!level.isPositionEntityTicking(e.blockPosition())
++                    || (e instanceof net.minecraft.world.entity.Marker && !level.paperConfig().entities.markers.tick)
++                    || (e instanceof final me.samsuik.sakura.entity.SakuraEntity sakuraEntity && sakuraEntity.getSakuraEntityController().isSleeping())) { // Paper - Configurable marker ticking
++                    // Sakura end - optimise cannon entities
+                     nonEntityTicking.merge(key, 1, Integer::sum);
+                 }
+             });
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 index 6728a7f28384b2628a748e3fc3ffeef2b174c7b3..733a5c5c93ac872fa5d849bb4f6f4bac59ff7d5f 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
