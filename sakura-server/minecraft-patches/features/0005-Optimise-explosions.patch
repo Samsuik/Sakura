@@ -41,14 +41,16 @@ index 8e5d6cc4cf66be6e5dcf87b0736555221166a277..6087d66f6ba9c1389dd7997f53cf867f
  
 diff --git a/me/samsuik/sakura/explosion/ExplosionToSend.java b/me/samsuik/sakura/explosion/ExplosionToSend.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..81c5eacca480627d600512e078606a1de6b62bdc
+index 0000000000000000000000000000000000000000..41ebc4274994426fdee1ec66981f8c50d459d2b1
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/ExplosionToSend.java
-@@ -0,0 +1,6 @@
+@@ -0,0 +1,8 @@
 +package me.samsuik.sakura.explosion;
 +
 +import net.minecraft.world.phys.Vec3;
++import org.jspecify.annotations.NullMarked;
 +
++@NullMarked
 +public record ExplosionToSend(Vec3 center, int blockCount) {
 +}
 diff --git a/me/samsuik/sakura/explosion/ProtectionPluginProbeEvent.java b/me/samsuik/sakura/explosion/ProtectionPluginProbeEvent.java
@@ -238,17 +240,19 @@ index 0000000000000000000000000000000000000000..61df4306c7abef4dbe68786721ed9055
 +}
 diff --git a/me/samsuik/sakura/explosion/density/KnownObstruction.java b/me/samsuik/sakura/explosion/density/KnownObstruction.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..af33cf03d7745faaf3ad5961d1388d4175d0cca6
+index 0000000000000000000000000000000000000000..1087594cb544ee3d935737d779aad58a4982f3bb
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/density/KnownObstruction.java
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,50 @@
 +package me.samsuik.sakura.explosion.density;
 +
 +import me.samsuik.sakura.utils.AABBUtil;
 +import net.minecraft.world.phys.AABB;
 +import net.minecraft.world.phys.HitResult;
 +import net.minecraft.world.phys.Vec3;
++import org.jspecify.annotations.NullMarked;
 +
++@NullMarked
 +public final class KnownObstruction {
 +    private AABB explosionBox;
 +    private AABB entityBox;
@@ -310,16 +314,18 @@ index 0000000000000000000000000000000000000000..5ce6fd6f5fdf8772512db4fa9dcbfa90
 +}
 diff --git a/me/samsuik/sakura/explosion/density/SeenPercentRays.java b/me/samsuik/sakura/explosion/density/SeenPercentRays.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0985e700e57dd895c5366b4efb790d66a59a3935
+index 0000000000000000000000000000000000000000..ebd6c04e276b607077545f197bf326a7d8002e4f
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/density/SeenPercentRays.java
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,74 @@
 +package me.samsuik.sakura.explosion.density;
 +
 +import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 +import net.minecraft.world.phys.AABB;
 +import net.minecraft.world.phys.Vec3;
++import org.jspecify.annotations.NullMarked;
 +
++@NullMarked
 +public final class SeenPercentRays {
 +    private static final AABB BLOCK_ENTITY_BOX = new AABB(Vec3.ZERO, new Vec3(0.98f, 0.98f, 0.98f));
 +    public static final double[] SEEN_PERCENT_RAYS;
@@ -354,8 +360,8 @@ index 0000000000000000000000000000000000000000..0985e700e57dd895c5366b4efb790d66
 +
 +                    if (isCornerOrCenter(x, y, z, horizontalCount, verticalCount)) {
 +                        rays.add(0, fromX);
-+                        rays.add(0, fromY);
-+                        rays.add(0, fromZ);
++                        rays.add(1, fromY);
++                        rays.add(2, fromZ);
 +                    } else {
 +                        rays.add(fromX);
 +                        rays.add(fromY);
@@ -1040,7 +1046,7 @@ index 0000000000000000000000000000000000000000..ca9cdb3fe90f1f9224b5ff6afccb8194
 +    }
 +}
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 18894ffea9a1d1e379a02c71bbfe6086a86485b9..65e09f28d0527bca1a6f8582194166fbda1d3d58 100644
+index 420a85f773147e68657b3897abf2ec3e4283ea38..8be45e27209c0cfa33ad916cbda5b57c8186e21d 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2005,7 +2005,18 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
