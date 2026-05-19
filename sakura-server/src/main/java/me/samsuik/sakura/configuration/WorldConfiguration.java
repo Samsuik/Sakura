@@ -4,9 +4,11 @@ import io.papermc.paper.configuration.Configuration;
 import io.papermc.paper.configuration.ConfigurationPart;
 import io.papermc.paper.configuration.NestedSetting;
 import io.papermc.paper.configuration.PaperConfigurations;
+import io.papermc.paper.configuration.type.Duration;
 import io.papermc.paper.configuration.type.number.DoubleOr;
 import io.papermc.paper.configuration.type.number.IntOr;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+import me.samsuik.sakura.SakuraFeatureHooks;
 import me.samsuik.sakura.entity.merge.MergeLevel;
 import me.samsuik.sakura.explosion.durable.DurableMaterial;
 import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
@@ -18,6 +20,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import org.spongepowered.configurate.objectmapping.meta.Comment;
+import org.spongepowered.configurate.objectmapping.meta.PostProcess;
 import org.spongepowered.configurate.objectmapping.meta.Setting;
 
 import java.util.HashMap;
@@ -93,6 +96,8 @@ public final class WorldConfiguration extends ConfigurationPart {
                 map.put(Blocks.DAMAGED_ANVIL, new DurableMaterial(3, Blocks.END_STONE.getExplosionResistance(), true));
             });
 
+            public Duration durableMaterialsExpiration = Duration.of("1m");
+
             public boolean protectScaffoldingFromCreepers = false;
             public boolean destroyWaterloggedBlocks = false;
             public boolean explodeLava = false;
@@ -107,6 +112,11 @@ public final class WorldConfiguration extends ConfigurationPart {
                 "useful for protecting the nether roof when bedrock is a durable-material."
             )
             public IntOr.Disabled protectBlocksAboveY = IntOr.Disabled.DISABLED;
+
+            @PostProcess
+            private void postProcess() {
+                SakuraFeatureHooks.setDurableMaterialExpiration(WorldConfiguration.this.worldIdentifier, this.durableMaterialsExpiration);
+            }
         }
 
         public Mechanics mechanics = new Mechanics();

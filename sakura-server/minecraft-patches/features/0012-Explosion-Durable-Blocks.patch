@@ -4,12 +4,24 @@ Date: Wed, 15 Nov 2023 23:18:38 +0000
 Subject: [PATCH] Explosion Durable Blocks
 
 
+diff --git a/me/samsuik/sakura/SakuraFeatureHooks.java b/me/samsuik/sakura/SakuraFeatureHooks.java
+index e9b0c31437cf43d8a4561de2168cff2c6325f6b4..f84799e17764649cf943163de5e6dffdd1552b57 100644
+--- a/me/samsuik/sakura/SakuraFeatureHooks.java
++++ b/me/samsuik/sakura/SakuraFeatureHooks.java
+@@ -25,6 +25,7 @@ public final class SakuraFeatureHooks {
+     }
+ 
+     public static void setDurableMaterialExpiration(final Identifier worldIdentifier, final Duration duration) {
++        getLevel(worldIdentifier).ifPresent(level -> level.durabilityManager.updateExpirationTimer(duration.seconds(), TimeUnit.SECONDS)); // Sakura - explosion durable blocks
+     }
+ 
+     private static Optional<Level> getLevel(final Identifier worldIdentifier) {
 diff --git a/me/samsuik/sakura/explosion/DurableBlockManager.java b/me/samsuik/sakura/explosion/DurableBlockManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cf07fbc434ed02b5e2c3b4b9eb9095daef1c4a30
+index 0000000000000000000000000000000000000000..02f2944e78504d4be7857767a168c64c27c2f800
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/DurableBlockManager.java
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,60 @@
 +package me.samsuik.sakura.explosion;
 +
 +import com.google.common.cache.Cache;
@@ -22,10 +34,18 @@ index 0000000000000000000000000000000000000000..cf07fbc434ed02b5e2c3b4b9eb9095da
 +
 +@NullMarked
 +public final class DurableBlockManager {
-+    private final Cache<BlockPos, DurableBlock> durableBlocks = CacheBuilder.newBuilder()
-+            .expireAfterAccess(1, TimeUnit.MINUTES)
++    private Cache<BlockPos, DurableBlock> durableBlocks;
++
++    public DurableBlockManager() {
++        this.updateExpirationTimer(1, TimeUnit.MINUTES);
++    }
++
++    public void updateExpirationTimer(final long duration, final TimeUnit unit) {
++        this.durableBlocks = CacheBuilder.newBuilder()
++            .expireAfterAccess(duration, unit)
 +            .maximumSize(Short.MAX_VALUE)
 +            .build();
++    }
 +
 +    public boolean damage(final BlockPos blockPos, final DurableMaterial material) {
 +        DurableBlock block = this.durableBlocks.getIfPresent(blockPos);

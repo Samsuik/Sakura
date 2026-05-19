@@ -5,18 +5,20 @@ Subject: [PATCH] Client Visibility Settings
 
 
 diff --git a/me/samsuik/sakura/SakuraFeatureHooks.java b/me/samsuik/sakura/SakuraFeatureHooks.java
-index 16580d8e41124782eee7f072fdb66497d0ac2603..03fbd9470083bc947adafa7117e645336e31680d 100644
+index 090782bdc304c5e002e66a3dd2c69b3d9de9031f..e9b0c31437cf43d8a4561de2168cff2c6325f6b4 100644
 --- a/me/samsuik/sakura/SakuraFeatureHooks.java
 +++ b/me/samsuik/sakura/SakuraFeatureHooks.java
-@@ -1,10 +1,18 @@
+@@ -1,6 +1,9 @@
  package me.samsuik.sakura;
  
+ import io.papermc.paper.configuration.type.Duration;
 +import me.samsuik.sakura.command.subcommand.FPSCommand;
 +import me.samsuik.sakura.command.subcommand.VisualCommand;
 +import me.samsuik.sakura.player.visibility.VisibilityTypes;
- import org.bukkit.command.Command;
- 
- import java.util.Map;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
+@@ -14,6 +17,11 @@ import java.util.concurrent.TimeUnit;
  
  public final class SakuraFeatureHooks {
      public static void setupCommands(final Map<String, Command> commands) {
@@ -26,8 +28,8 @@ index 16580d8e41124782eee7f072fdb66497d0ac2603..03fbd9470083bc947adafa7117e64533
 +        commands.put("sandvisibility", new VisualCommand(VisibilityTypes.SAND, "sandtoggle"));
 +        // Sakura end - client visibility settings
      }
- }
-\ No newline at end of file
+ 
+     public static void setDurableMaterialExpiration(final Identifier worldIdentifier, final Duration duration) {
 diff --git a/me/samsuik/sakura/command/subcommand/FPSCommand.java b/me/samsuik/sakura/command/subcommand/FPSCommand.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..1147138817683351ac37ada4a7f5078060cc7151
@@ -532,7 +534,7 @@ index b1a81e0a6b3d0cde7f7bf67a4c542abc5f1392d4..87441a0345943ec843e55505f859b456
                  if (visibleToPlayer && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
                      visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 898a0059586dbc6750a4b3968e5f4ae31aa87121..30ec8cd216cce3cbde2d540cda3c0ed47bd66097 100644
+index 22a0509ea080be2909b94d2a5cd7771b196f45c0..0ebc62031beb1ceeed70fab1c175ea7679bcf170 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2011,6 +2011,24 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
