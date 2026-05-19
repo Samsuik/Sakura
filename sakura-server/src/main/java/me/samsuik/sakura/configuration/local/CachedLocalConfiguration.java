@@ -30,20 +30,20 @@ public final class CachedLocalConfiguration {
 
     public CachedLocalConfiguration(final Level level, final ConfigurationContainer container, final long sectionKey) {
         this.sectionKey = sectionKey;
-        this.mechanicsTarget = container.getOptional(ConfigurableKey.MECHANICS_TARGET)
+        this.mechanicsTarget = container.getOptional(ConfigurationKeys.MECHANICS_TARGET)
             .orElse(level.sakuraConfig().cannons.mechanics.mechanicsTarget);
-        this.durableMaterials = container.getOptional(ConfigurableKey.DURABLE_MATERIALS)
+        this.durableMaterials = container.getOptional(ConfigurationKeys.DURABLE_MATERIALS)
             .map(sealedContainer -> sealedContainer.open().contents().entrySet().stream()
                 .map(entry -> Map.entry(CraftBlockType.bukkitToMinecraftNew(entry.getKey()), entry.getValue()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
             .orElseGet(() -> level.sakuraConfig().cannons.explosion.durableMaterials);
-        this.redstoneBehaviour = container.getOptional(ConfigurableKey.REDSTONE_BEHAVIOUR)
+        this.redstoneBehaviour = container.getOptional(ConfigurationKeys.REDSTONE_BEHAVIOUR)
             .orElse(createDefaultRedstoneConfiguration(level));
-        this.consistentExplosionRadius = container.getOptional(ConfigurableKey.CONSISTENT_EXPLOSION_RADIUS)
+        this.consistentExplosionRadius = container.getOptional(ConfigurationKeys.CONSISTENT_EXPLOSION_RADIUS)
             .orElse(level.sakuraConfig().cannons.explosion.consistentRadius);
-        this.lavaFlowSpeed = container.getOptional(ConfigurableKey.LAVA_FLOW_SPEED)
+        this.lavaFlowSpeed = container.getOptional(ConfigurationKeys.LAVA_FLOW_SPEED)
             .orElse(30);
-        this.mergeLevel = container.getOptional(ConfigurableKey.MERGE_LEVEL)
+        this.mergeLevel = container.getOptional(ConfigurationKeys.MERGE_LEVEL)
             .orElse(level.sakuraConfig().cannons.mergeLevel);
     }
 

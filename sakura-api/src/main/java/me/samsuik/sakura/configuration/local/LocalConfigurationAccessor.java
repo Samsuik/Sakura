@@ -14,7 +14,7 @@ import java.util.List;
  */
 @NullMarked
 public interface LocalConfigurationAccessor {
-    default <V> void set(final BoundingBox area, final ConfigurableKey<V> key, final V value) {
+    default <V> void set(final BoundingBox area, final ConfigurationKey<V> key, final V value) {
         final ConfigurationContainer container = this.get(area);
         final ConfigurationContainer newContainer = container != null
             ? container.open()
@@ -23,7 +23,7 @@ public interface LocalConfigurationAccessor {
         this.set(area, newContainer.seal());
     }
 
-    default void remove(final BoundingBox area, final ConfigurableKey<?> key) {
+    default void remove(final BoundingBox area, final ConfigurationKey<?> key) {
         final ConfigurationContainer container = this.get(area);
         if (container != null) {
             final ConfigurationContainer newContainer = container.open();
@@ -32,7 +32,7 @@ public interface LocalConfigurationAccessor {
         }
     }
 
-    default <T> @Nullable T get(final BoundingBox area, final ConfigurableKey<T> key) {
+    default <T> @Nullable T get(final BoundingBox area, final ConfigurationKey<T> key) {
         final ConfigurationContainer container = this.get(area);
         return container == null ? null : container.get(key);
     }
@@ -43,12 +43,12 @@ public interface LocalConfigurationAccessor {
 
     @Nullable SealedConfigurationContainer get(final BoundingBox area);
 
-    default <T> @Nullable T getValue(final Vector vector, final ConfigurableKey<T> key) {
+    default <T> @Nullable T getValue(final Vector vector, final ConfigurationKey<T> key) {
         final ConfigurationContainer container = this.getContainer(vector);
         return container != null ? container.get(key) : null;
     }
 
-    default <T> @Nullable T getValue(final Position position, final ConfigurableKey<T> key) {
+    default <T> @Nullable T getValue(final Position position, final ConfigurationKey<T> key) {
         final ConfigurationContainer container = this.getContainer(position);
         return container != null ? container.get(key) : null;
     }

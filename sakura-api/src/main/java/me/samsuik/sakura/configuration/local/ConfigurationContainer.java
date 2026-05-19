@@ -13,51 +13,51 @@ import java.util.Optional;
  * A container for configuration values.
  */
 @NullMarked
-public sealed class ConfigurationContainer implements Container<ConfigurableKey<?>, Object> {
-    private final IdentityHashMap<ConfigurableKey<?>, Object> values = new IdentityHashMap<>();
+public sealed class ConfigurationContainer implements Container<ConfigurationKey<?>, Object> {
+    private final IdentityHashMap<ConfigurationKey<?>, Object> values = new IdentityHashMap<>();
 
     public static SealedConfigurationContainer sealedContainer(final Object... contents) {
         if (contents.length % 2 != 0) {
             throw new IllegalArgumentException("Expected an even number of contents, got " + contents.length);
         }
-        final IdentityHashMap<ConfigurableKey<?>, Object> values = new IdentityHashMap<>();
+        final IdentityHashMap<ConfigurationKey<?>, Object> values = new IdentityHashMap<>();
         for (int index = 0; index < contents.length; index += 2) {
             final Object key = contents[index];
             final Object value = contents[index + 1];
-            if (!(key instanceof ConfigurableKey<?> configurableKey)) {
+            if (!(key instanceof ConfigurationKey<?> configurationKey)) {
                 throw new IllegalArgumentException("Key at index " + index + " must be of type ConfigurableKey");
             }
-            values.put(configurableKey, configurableKey.validate(value));
+            values.put(configurationKey, configurationKey.validate(value));
         }
         return new SealedConfigurationContainer(values);
     }
 
-    private ConfigurationContainer(final IdentityHashMap<ConfigurableKey<?>, Object> values) {
+    private ConfigurationContainer(final IdentityHashMap<ConfigurationKey<?>, Object> values) {
         this.values.putAll(values);
     }
 
     public ConfigurationContainer() {}
 
-    public <V> @Nullable V set(final ConfigurableKey<V> key, final V value) {
+    public <V> @Nullable V set(final ConfigurationKey<V> key, final V value) {
         Preconditions.checkNotNull(value, "Value cannot be null");
         return key.conform(this.values.put(key, value));
     }
 
-    public <V> @Nullable V remove(final ConfigurableKey<V> key) {
+    public <V> @Nullable V remove(final ConfigurationKey<V> key) {
         return key.conform(this.values.remove(key));
     }
 
-    public final <V> @Nullable V get(final ConfigurableKey<V> key) {
+    public final <V> @Nullable V get(final ConfigurationKey<V> key) {
         return key.conform(this.values.get(key));
     }
 
-    public final <V> Optional<V> getOptional(final ConfigurableKey<V> key) {
+    public final <V> Optional<V> getOptional(final ConfigurationKey<V> key) {
         return Optional.ofNullable(this.get(key));
     }
 
     @ApiStatus.Internal
     public final void fillAbsentValues(final ConfigurationContainer container) {
-        for (final Map.Entry<ConfigurableKey<?>, Object> entry : container.values.entrySet()) {
+        for (final Map.Entry<ConfigurationKey<?>, Object> entry : container.values.entrySet()) {
             this.values.putIfAbsent(entry.getKey(), entry.getValue());
         }
     }
@@ -67,7 +67,7 @@ public sealed class ConfigurationContainer implements Container<ConfigurableKey<
     }
 
     @Override
-    public final Map<ConfigurableKey<?>, Object> contents() {
+    public final Map<ConfigurationKey<?>, Object> contents() {
         return Map.copyOf(this.values);
     }
 
@@ -84,17 +84,17 @@ public sealed class ConfigurationContainer implements Container<ConfigurableKey<
     }
 
     public static final class SealedConfigurationContainer extends ConfigurationContainer {
-        private SealedConfigurationContainer(final IdentityHashMap<ConfigurableKey<?>, Object> values) {
+        private SealedConfigurationContainer(final IdentityHashMap<ConfigurationKey<?>, Object> values) {
             super(values);
         }
 
         @Override
-        public <V> V set(final ConfigurableKey<V> key, final V value) {
+        public <V> V set(final ConfigurationKey<V> key, final V value) {
             throw new UnsupportedOperationException("Container is sealed");
         }
 
         @Override
-        public <V> V remove(final ConfigurableKey<V> key) {
+        public <V> V remove(final ConfigurationKey<V> key) {
             throw new UnsupportedOperationException("Container is sealed");
         }
 
