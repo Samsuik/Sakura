@@ -55,14 +55,13 @@ index 0000000000000000000000000000000000000000..41ebc4274994426fdee1ec66981f8c50
 +}
 diff --git a/me/samsuik/sakura/explosion/ProtectionPluginProbeEvent.java b/me/samsuik/sakura/explosion/ProtectionPluginProbeEvent.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..61e1c18c75375b6e9fe2e255537a30928e98442c
+index 0000000000000000000000000000000000000000..4e5a86f568ea0560465b25c64ecd6e086a2c53f0
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/ProtectionPluginProbeEvent.java
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,35 @@
 +package me.samsuik.sakura.explosion;
 +
 +import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-+import org.bukkit.Bukkit;
 +import org.bukkit.ExplosionResult;
 +import org.bukkit.Location;
 +import org.bukkit.block.Block;
@@ -70,10 +69,12 @@ index 0000000000000000000000000000000000000000..61e1c18c75375b6e9fe2e255537a3092
 +import org.bukkit.event.entity.EntityExplodeEvent;
 +import org.jspecify.annotations.NullMarked;
 +
++import java.util.List;
++
 +@NullMarked
 +public final class ProtectionPluginProbeEvent extends EntityExplodeEvent {
 +    public ProtectionPluginProbeEvent(final Entity entity) {
-+        super(entity, entity.getLocation(), new ProbeList(entity), 0.0f, ExplosionResult.DESTROY);
++        super(entity, entity.getLocation(), probeList(entity), 0.0f, ExplosionResult.DESTROY);
 +    }
 +
 +    @Override
@@ -81,16 +82,16 @@ index 0000000000000000000000000000000000000000..61e1c18c75375b6e9fe2e255537a3092
 +        return super.callEvent() && !this.blockList().isEmpty();
 +    }
 +
-+    private static final class ProbeList extends ObjectArrayList<Block> {
-+        public ProbeList(final Entity entity) {
-+            final Location location = entity.getLocation();
-+            final int maxHeight = location.getWorld().getMaxHeight();
++    private static List<Block> probeList(final Entity entity) {
++        final Location location = entity.getLocation();
++        final int maxHeight = location.getWorld().getMaxHeight();
 +
-+            // TNT protection plugins look below blocks for any whitelisted blocks.
-+            // If the plugin finds one of those blocks then it clears the block list.
-+            // We are using an out of bounds block to try probe for these plugins.
-+            this.add(location.set(0.0, maxHeight, 0.0).getBlock());
-+        }
++        // TNT protection plugins look below blocks for any whitelisted blocks.
++        // If the plugin finds one of those blocks then it clears the block list.
++        // We are using an out of bounds block to try probe for these plugins.
++        final List<Block> list = new ObjectArrayList<>();
++        list.add(location.set(0.0, maxHeight, 0.0).getBlock());
++        return list;
 +    }
 +}
 diff --git a/me/samsuik/sakura/explosion/SortExplosionRays.java b/me/samsuik/sakura/explosion/SortExplosionRays.java
@@ -394,10 +395,10 @@ index 0000000000000000000000000000000000000000..ebd6c04e276b607077545f197bf326a7
 +}
 diff --git a/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..502e1a73d985c75cf9caae123e62235b7af3b148
+index 0000000000000000000000000000000000000000..00f004f3b5e58a88a5fd7d3687859b29a9fd3d21
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
-@@ -0,0 +1,504 @@
+@@ -0,0 +1,505 @@
 +package me.samsuik.sakura.explosion.specialised;
 +
 +import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
@@ -438,6 +439,7 @@ index 0000000000000000000000000000000000000000..502e1a73d985c75cf9caae123e62235b
 +    private static final double SAFE_DISPATCH_DISTANCE_SQR = 16.0 * 16.0;
 +    private static final int ALL_DIRECTIONS = 0b111;
 +    private static final int FOUND_ALL_BLOCKS = ALL_DIRECTIONS + 12;
++    private static final int REDUCED_SEEN_PERCENT_RAYS = 9 * 3;
 +
 +    private final E cause;
 +    private final Vec3 originalPosition;
@@ -810,7 +812,7 @@ index 0000000000000000000000000000000000000000..502e1a73d985c75cf9caae123e62235b
 +        final double baseZ = entityBox.minZ;
 +
 +        final double[] rayCoords = SeenPercentRays.SEEN_PERCENT_RAYS;
-+        int end = Math.min(27, rayCoords.length);
++        int end = Math.min(REDUCED_SEEN_PERCENT_RAYS, rayCoords.length);
 +
 +        int totalRays = 0;
 +        int missedRays = 0;
