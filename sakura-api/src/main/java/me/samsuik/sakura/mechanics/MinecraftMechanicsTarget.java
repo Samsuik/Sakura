@@ -8,12 +8,20 @@ import java.util.Locale;
  * The targeted Minecraft version and server type for cannon mechanics.
  */
 @NullMarked
-public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
+public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType, short properties) {
     private static final MinecraftMechanicsTarget LATEST = new MinecraftMechanicsTarget(MechanicVersion.LATEST, ServerType.PAPER);
     private static final MinecraftMechanicsTarget LEGACY = new MinecraftMechanicsTarget(MechanicVersion.v1_8_2, ServerType.PAPER);
 
+    public MinecraftMechanicsTarget(final short mechanicVersion, final byte serverType) {
+        this(mechanicVersion, serverType, (short) 0);
+    }
+
     public boolean isServerType(final byte type) {
         return this.serverType == type;
+    }
+
+    public boolean hasProperties(final short properties) {
+        return (this.properties & properties) == properties;
     }
 
     public boolean is(final short version) {
@@ -60,6 +68,23 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
         return this.serverType == ServerType.PAPER || this.serverType == ServerType.SAKE;
     }
 
+    public String mechanicVersionName() {
+        return MechanicVersion.name(this.mechanicVersion);
+    }
+
+    public String serverTypeName() {
+        return ServerType.name(this.serverType);
+    }
+
+    public String serverTypeAndProperties() {
+        String serverTypeAndProperties = this.serverTypeName();
+        if (this.properties > 0) {
+            serverTypeAndProperties += "." + this.properties;
+        }
+
+        return serverTypeAndProperties;
+    }
+
     public static MinecraftMechanicsTarget latest() {
         return LATEST;
     }
@@ -97,7 +122,12 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
             default -> MinecraftVersionEncoding.fromString(version);
         };
 
-        final String serverPart = parts.length == 2 ? parts[1] : "";
+        final String remainingPart = parts.length == 2 ? parts[1] : "";
+        final String[] serverAndPropertyParts = remainingPart.split("\\.");
+        final String serverPart = serverAndPropertyParts.length == 2
+            ? serverAndPropertyParts[0]
+            : remainingPart;
+
         final byte serverType = switch (serverPart.toLowerCase(Locale.ENGLISH)) {
             case "vanilla" -> ServerType.VANILLA;
             case "spigot"  -> ServerType.SPIGOT;
@@ -105,11 +135,24 @@ public record MinecraftMechanicsTarget(short mechanicVersion, byte serverType) {
             default        -> ServerType.PAPER;
         };
 
-        return new MinecraftMechanicsTarget(mechanicVersion, serverType);
+        final short properties = serverAndPropertyParts.length == 2
+            ? Short.parseShort(serverAndPropertyParts[1])
+            : 0;
+
+        return new MinecraftMechanicsTarget(mechanicVersion, serverType, properties);
     }
 
     @Override
     public String toString() {
-        return MechanicVersion.name(this.mechanicVersion) + "+" + ServerType.name(this.serverType);
+        final StringBuilder builder = new StringBuilder()
+            .append(MechanicVersion.name(this.mechanicVersion))
+            .append("+")
+            .append(ServerType.name(this.serverType));
+
+        if (this.properties > 0) {
+            builder.append(".").append(this.properties);
+        }
+
+        return builder.toString();
     }
 }

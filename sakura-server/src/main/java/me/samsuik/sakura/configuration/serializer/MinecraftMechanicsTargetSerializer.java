@@ -36,7 +36,7 @@ public final class MinecraftMechanicsTargetSerializer implements TypeSerializer<
             mechanicsTarget = MinecraftMechanicsTarget.latest();
         }
 
-        root.node(MECHANIC_VERSION).set(MechanicVersion.name(mechanicsTarget.mechanicVersion()));
-        root.node(SERVER_TYPE).set(ServerType.name(mechanicsTarget.serverType()));
+        root.node(MECHANIC_VERSION).set(mechanicsTarget.mechanicVersionName());
+        root.node(SERVER_TYPE).set(mechanicsTarget.serverTypeAndProperties());
     }
 }

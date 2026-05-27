@@ -155,7 +155,7 @@ index 3242025d231b5e492f918c779a5dd2b3dbd906ad..edc8fbf37c7bfd67c3e09de83e5832b5
      }
 diff --git a/me/samsuik/sakura/mechanics/BlockFormation.java b/me/samsuik/sakura/mechanics/BlockFormation.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..417ad75a8c2c59524892b7880210450de7c84fa2
+index 0000000000000000000000000000000000000000..f8d04ad994c3424bfcd6533ee5452d279eb25397
 --- /dev/null
 +++ b/me/samsuik/sakura/mechanics/BlockFormation.java
 @@ -0,0 +1,34 @@
@@ -176,7 +176,7 @@ index 0000000000000000000000000000000000000000..417ad75a8c2c59524892b7880210450d
 +        final MinecraftMechanicsTarget mechanicsTarget
 +    ) {
 +        // In legacy-paper and versions since 1.16, liquids should always solidify.
-+        if (mechanicsTarget.atLeast(MechanicVersion.v1_16) || mechanicsTarget.before(MechanicVersion.v1_10) && mechanicsTarget.isServerType(ServerType.PAPER)) {
++        if (mechanicsTarget.atLeast(MechanicVersion.v1_16) || mechanicsTarget.before(MechanicVersion.v1_10) && mechanicsTarget.isPaperOrDerivative()) {
 +            return true;
 +        }
 +
@@ -281,10 +281,10 @@ index 0000000000000000000000000000000000000000..43a9bae3d5114e7f702cd9ce17c1653a
 +}
 diff --git a/me/samsuik/sakura/mechanics/ExplosionBehaviour.java b/me/samsuik/sakura/mechanics/ExplosionBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4796a0871c04655e991d933484199d15fb1cfb3d
+index 0000000000000000000000000000000000000000..3b6689f44d3e52ee266e64281fa14bcb7126c68a
 --- /dev/null
 +++ b/me/samsuik/sakura/mechanics/ExplosionBehaviour.java
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,43 @@
 +package me.samsuik.sakura.mechanics;
 +
 +import me.samsuik.sakura.mechanics.legacy.LegacyExplosionBlockClipping;
@@ -299,6 +299,10 @@ index 0000000000000000000000000000000000000000..4796a0871c04655e991d933484199d15
 +@NullMarked
 +public final class ExplosionBehaviour {
 +    private static final double LEGACY_EXPLOSION_HEIGHT = (double) 0.98f * 0.0625D;
++
++    public static boolean useSingleRaycast(final MinecraftMechanicsTarget mechanicsTarget) {
++        return mechanicsTarget.isServerType(ServerType.SAKE) && mechanicsTarget.hasProperties(ServerProperties.SINGLE_RAY_CAST);
++    }
 +
 +    public static double getY(final PrimedTnt tnt) {
 +        return tnt.mechanicsTarget().atLeast(MechanicVersion.v1_10)
@@ -1801,7 +1805,7 @@ index 42770c49394f6fdc7b3b6392c40f31b134cc3029..2ee334c2612ab09e6a38f40c8df77179
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index bb06f3c25c3884c7eb33861798bbd3d3053c8995..2e53bd361f958430fb2e1c9ce11af138b5b6bf4b 100644
+index bb06f3c25c3884c7eb33861798bbd3d3053c8995..9e7b6e0a1d5e3ecbc71caa2daa1e0a31ddb503d4 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -347,6 +347,25 @@ public class ServerExplosion implements Explosion {
@@ -1818,7 +1822,7 @@ index bb06f3c25c3884c7eb33861798bbd3d3053c8995..2e53bd361f958430fb2e1c9ce11af138
 +        final @org.jetbrains.annotations.Nullable me.samsuik.sakura.explosion.density.KnownObstruction obstruction
 +    ) {
 +        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
-+        if (mechanicsTarget.isServerType(me.samsuik.sakura.mechanics.ServerType.SAKE)) {
++        if (me.samsuik.sakura.mechanics.ExplosionBehaviour.useSingleRaycast(mechanicsTarget)) {
 +            return me.samsuik.sakura.mechanics.ExplosionBehaviour.getSeenPercentSingleRaycast(center, entity, mechanicsTarget);
 +        } else if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_16)) {
 +            return this.getSeenFraction(center, entity, this.directMappedBlockCache, this.mutablePos, obstruction); // Sakura - optimise explosions // Paper - collision optimisations
@@ -1836,7 +1840,7 @@ index bb06f3c25c3884c7eb33861798bbd3d3053c8995..2e53bd361f958430fb2e1c9ce11af138
          this.consistentExplosionRadius = level.localConfig().at(this.center).consistentExplosionRadius; // Sakura - consistent explosion radius
 +        // Sakura start - configure server mechanics
 +        this.mechanicsTarget = source != null ? source.mechanicsTarget() : level.localConfig().at(this.center).mechanicsTarget;
-+        this.useSlowerRaycasts = this.mechanicsTarget.isServerType(me.samsuik.sakura.mechanics.ServerType.SAKE)
++        this.useSlowerRaycasts = me.samsuik.sakura.mechanics.ExplosionBehaviour.useSingleRaycast(this.mechanicsTarget)
 +            || this.mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_16);
 +        // Sakura end - configure server mechanics
      }
