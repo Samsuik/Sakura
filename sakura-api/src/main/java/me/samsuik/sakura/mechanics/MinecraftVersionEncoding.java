@@ -11,7 +11,6 @@ package me.samsuik.sakura.mechanics;
  * <b>
  * <p>The legacy snapshot format [year]w[week][numeral] is unsupported. This would require mappings to
  * map legacy snapshots to a target release to be used with the modern snapshot format.
- *
  */
 public final class MinecraftVersionEncoding {
     private static final int SIGNIFICANT_BITS = 4;
