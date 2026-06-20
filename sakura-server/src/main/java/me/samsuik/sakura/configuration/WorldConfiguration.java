@@ -271,6 +271,7 @@ public final class WorldConfiguration extends ConfigurationPart {
             public double horizontalSpeed = 1.0;
             public double verticalSpeed = 1.0;
             public boolean allowBreakingInsideEntities = false;
+            public boolean disableRelativePotionVelocity = false;
         }
 
         public EnderPearl enderPearl = new EnderPearl();

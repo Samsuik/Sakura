@@ -18,6 +18,28 @@
      protected void setOwner(final @Nullable EntityReference<Entity> owner) {
          this.owner = owner;
      }
+@@ -161,7 +_,20 @@
+         if (!sourceMovement.isFinite()) {
+             sourceMovement = Vec3.ZERO;
+         }
+-        if (!source.level().paperConfig().misc.disableRelativeProjectileVelocity) {
++
++        // Sakura start - relative potion velocity
++        boolean relativeVelocity = true;
++        if (source.level().paperConfig().misc.disableRelativeProjectileVelocity) {
++            relativeVelocity = false;
++        }
++
++        if (source.level().sakuraConfig().entity.thrownPotion.disableRelativePotionVelocity
++            && this instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.AbstractThrownPotion) {
++            relativeVelocity = false;
++        }
++
++        if (relativeVelocity) {
++            // Sakura end - relative potion velocity
+         this.setDeltaMovement(this.getDeltaMovement().add(sourceMovement.x, source.onGround() ? 0.0 : sourceMovement.y, sourceMovement.z));
+         }
+         // Paper end - allow disabling relative velocity
 @@ -425,7 +_,7 @@
                  }
              }
