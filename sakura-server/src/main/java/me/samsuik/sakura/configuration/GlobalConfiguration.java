@@ -70,6 +70,7 @@ public final class GlobalConfiguration extends ConfigurationPart {
         public Combat combat = new Combat();
         public final class Combat extends ConfigurationPart {
             public boolean blockWithSwords = false;
+            public boolean spearsHaveExtraAttackRange = true;
         }
 
         public IntOr.Default bucketStackSize = IntOr.Default.USE_DEFAULT;
