@@ -14,17 +14,19 @@ public final class MilkBucketItem extends Item {
     }
 
     @Override
-    public DataComponentMap components() {
-        final DataComponentMap components = super.components();
-        return stackableMilkBuckets()
-            ? DataComponentHelper.updateBucketMaxStackSize(components)
-            : components;
+    public DataComponentMap modifyBaseComponents(final DataComponentMap components) {
+        final int stackSize = DataComponentHelper.bucketMaxStackSize();
+        if (stackSize != -1) {
+            return DataComponentHelper.modify(components, builder -> builder.set(DataComponents.MAX_STACK_SIZE, stackSize));
+        }
+        return components;
     }
 
     @Override
     public void modifyComponentsSentToClient(final PatchedDataComponentMap components) {
-        if (stackableMilkBuckets()) {
-            components.sakura$patchComponent(DataComponents.MAX_STACK_SIZE, DataComponentHelper.bucketMaxStackSize());
+        final int stackSize = DataComponentHelper.bucketMaxStackSize();
+        if (stackSize != -1 && stackableMilkBuckets()) {
+            components.sakura$patchComponent(DataComponents.MAX_STACK_SIZE, stackSize);
         }
     }
 

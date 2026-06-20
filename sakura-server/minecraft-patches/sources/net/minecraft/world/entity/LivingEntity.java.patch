@@ -85,18 +85,6 @@
                      if (!blocked) {
                          this.indicateDamage(xd, zd);
                      }
-@@ -1631,6 +_,11 @@
-             if (blockingWith == null) {
-                 return false;
-             } else {
-+                // Sakura start - shield damage reduction & allow blocking with swords
-+                if (blockingWith.getItem() instanceof final me.samsuik.sakura.player.item.BlockableSwordItem swordItem && swordItem.isSafeToOverrideBlocking(blockingWith)) {
-+                    return true;
-+                }
-+                // Sakura end - shield damage reduction & allow blocking with swords
-                 BlocksAttacks blocksAttacks = blockingWith.get(DataComponents.BLOCKS_ATTACKS);
-                 if (blocksAttacks != null && !blocksAttacks.bypassedBy().map(t -> t.contains(source.typeHolder())).orElse(false)) {
-                     if (source.getDirectEntity() instanceof AbstractArrow abstractArrow && abstractArrow.getPierceLevel() > 0) {
 @@ -1657,6 +_,12 @@
              acos = (float) Math.PI;
          }
@@ -258,17 +246,3 @@
                      break;
                  }
  
-@@ -4401,6 +_,13 @@
-         if (!this.isUsingItem()) {
-             return null;
-         } else {
-+            // Sakura start - allow blocking with swords
-+            final ItemStack usingItem = this.useItem;
-+            if (usingItem.getItem() instanceof me.samsuik.sakura.player.item.BlockableSwordItem swordItem && swordItem.isSafeToOverrideBlocking(usingItem)) {
-+                return usingItem;
-+            }
-+            // Sakura end - allow blocking with swords
-+
-             BlocksAttacks blocksAttacks = this.useItem.get(DataComponents.BLOCKS_ATTACKS);
-             if (blocksAttacks != null) {
-                 int elapsedTicks = this.useItem.getItem().getUseDuration(this.useItem, this) - this.useItemRemaining;

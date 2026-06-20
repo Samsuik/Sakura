@@ -759,7 +759,7 @@ index 627380c746175e1f6dfb6351a8a3766eef0dd62e..eb3ea11b48c0512d2980021317f95802
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 05ece98629a36bde63041ed52518201eaaa7c3e1..898a0059586dbc6750a4b3968e5f4ae31aa87121 100644
+index a35cfe020ffb16d6e56a78ef0d59d02bee55504e..22a0509ea080be2909b94d2a5cd7771b196f45c0 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -738,6 +738,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -976,7 +976,7 @@ index e59787c1698e96df98ef4cf98d62b4a67c4e95dc..62ad0d316404fd80808a6cdcbf7413ed
      }
  
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 7c78bcf8bcbdc470dddd9ebe3660e690a38aa85f..04f4bca4395f947f3242bf85e622ba2ad2bd8652 100644
+index 28e0382deafd9ff96511495fd51b2b1a1bae2d85..40c80838e4a40c4008b94c5fd9bc6a9ac86a189d 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -100,7 +100,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -988,10 +988,10 @@ index 7c78bcf8bcbdc470dddd9ebe3660e690a38aa85f..04f4bca4395f947f3242bf85e622ba2a
      private static final List<Component> OP_NBT_WARNING = List.of(
          Component.translatable("item.op_warning.line1").withStyle(ChatFormatting.RED, ChatFormatting.BOLD),
          Component.translatable("item.op_warning.line2").withStyle(ChatFormatting.RED),
-@@ -259,6 +259,19 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
-         return stackCopy;
+@@ -266,6 +266,19 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+         return itemHolder.value().modifyBaseComponents(itemHolder.components());
      }
-     // Sakura end - modify components sent to the client
+     // Sakura end - modify data components
 +    // Sakura start - implement state watchers and tick scheduler
 +    private final me.samsuik.sakura.tracking.ChangeWatchers<ItemStack> watchers = new me.samsuik.sakura.tracking.ChangeWatchers<>();
 +
@@ -1008,7 +1008,7 @@ index 7c78bcf8bcbdc470dddd9ebe3660e690a38aa85f..04f4bca4395f947f3242bf85e622ba2a
  
      public ItemStack(final ItemLike item, final int count) {
          this(item.asItem().builtInRegistryHolder(), count);
-@@ -989,11 +1002,16 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -996,11 +1009,16 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      // CraftBukkit start
      public void restorePatch(DataComponentPatch datacomponentpatch) {
          this.components.restorePatch(datacomponentpatch);
@@ -1026,7 +1026,7 @@ index 7c78bcf8bcbdc470dddd9ebe3660e690a38aa85f..04f4bca4395f947f3242bf85e622ba2a
      }
  
      public <T> @Nullable T set(final TypedDataComponent<T> value) {
-@@ -1014,7 +1032,11 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1021,7 +1039,11 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      }
  
      public <T> @Nullable T remove(final DataComponentType<? extends T> type) {
@@ -1039,7 +1039,7 @@ index 7c78bcf8bcbdc470dddd9ebe3660e690a38aa85f..04f4bca4395f947f3242bf85e622ba2a
      }
  
      public void applyComponentsAndValidate(final DataComponentPatch patch) {
-@@ -1332,6 +1354,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1339,6 +1361,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
  
      public void setCount(final int count) {
          this.count = count;

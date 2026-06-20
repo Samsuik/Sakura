@@ -1,18 +1,52 @@
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
-@@ -251,6 +_,15 @@
+@@ -251,6 +_,22 @@
          return !this.isEmpty() && this.components.hasNonDefault(type);
      }
  
-+    // Sakura start - modify components sent to the client
++    // Sakura start - modify data components
 +    public ItemStack copyForPacket() {
 +        final ItemStack stackCopy = this.copy();
 +        final Item item = stackCopy.getItem();
 +        item.modifyComponentsSentToClient(stackCopy.components);
 +        return stackCopy;
 +    }
-+    // Sakura end - modify components sent to the client
++
++    private static DataComponentMap modifiedItemComponents(final Holder<Item> itemHolder) {
++        // todo: figure out a better way to handle modifying components
++        // The global config loads too late to modify the item properties, and for some
++        // reason modifying the registry while post processing doesn't seem to work.
++        return itemHolder.value().modifyBaseComponents(itemHolder.components());
++    }
++    // Sakura end - modify data components
 +
      public ItemStack(final ItemLike item, final int count) {
          this(item.asItem().builtInRegistryHolder(), count);
+     }
+@@ -260,7 +_,7 @@
+     }
+ 
+     public ItemStack(final Holder<Item> item, final int count) {
+-        this(item, count, new PatchedDataComponentMap(item.components()));
++        this(item, count, new PatchedDataComponentMap(modifiedItemComponents(item))); // Sakura - modify data components
+     }
+ 
+     public ItemStack(final Holder<Item> item) {
+@@ -268,7 +_,7 @@
+     }
+ 
+     public ItemStack(final Holder<Item> item, final int count, final DataComponentPatch components) {
+-        this(item, count, PatchedDataComponentMap.fromPatch(item.components(), components));
++        this(item, count, PatchedDataComponentMap.fromPatch(modifiedItemComponents(item), components)); // Sakura - modify data components
+     }
+ 
+     private ItemStack(final Holder<Item> item, final int count, final PatchedDataComponentMap components) {
+@@ -1270,7 +_,7 @@
+         this.item = item.builtInRegistryHolder();
+         // Paper start - change base component prototype
+         final DataComponentPatch patch = this.getComponentsPatch();
+-        this.components = new PatchedDataComponentMap(this.item.components());
++        this.components = new PatchedDataComponentMap(modifiedItemComponents(this.item)); // Sakura - modify data components
+         this.applyComponents(patch);
+         // Paper end - change base component prototype
      }
