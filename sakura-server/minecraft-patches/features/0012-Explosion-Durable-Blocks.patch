@@ -5,7 +5,7 @@ Subject: [PATCH] Explosion Durable Blocks
 
 
 diff --git a/me/samsuik/sakura/SakuraFeatureHooks.java b/me/samsuik/sakura/SakuraFeatureHooks.java
-index 5f19d9e19cf78e03dcf1e32e292285434987993e..8a144371d1948bef4d3f8aa2412f2e67a357de73 100644
+index 3f2d4a9d4cb78fb4b3b203fe232b7dfa4a2dbd97..9690f5168ac2a626709dba4413c66b5a22499ddb 100644
 --- a/me/samsuik/sakura/SakuraFeatureHooks.java
 +++ b/me/samsuik/sakura/SakuraFeatureHooks.java
 @@ -27,6 +27,7 @@ public final class SakuraFeatureHooks {
@@ -18,10 +18,10 @@ index 5f19d9e19cf78e03dcf1e32e292285434987993e..8a144371d1948bef4d3f8aa2412f2e67
      private static Optional<Level> getLevel(final Identifier worldIdentifier) {
 diff --git a/me/samsuik/sakura/explosion/DurableBlockManager.java b/me/samsuik/sakura/explosion/DurableBlockManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..02f2944e78504d4be7857767a168c64c27c2f800
+index 0000000000000000000000000000000000000000..424108cc66f042e113f0c568f135ed454e2d7b94
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/DurableBlockManager.java
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,61 @@
 +package me.samsuik.sakura.explosion;
 +
 +import com.google.common.cache.Cache;
@@ -34,6 +34,7 @@ index 0000000000000000000000000000000000000000..02f2944e78504d4be7857767a168c64c
 +
 +@NullMarked
 +public final class DurableBlockManager {
++    private static final int MAX_DURABLE_BLOCKS = 65535;
 +    private Cache<BlockPos, DurableBlock> durableBlocks;
 +
 +    public DurableBlockManager() {
@@ -43,7 +44,7 @@ index 0000000000000000000000000000000000000000..02f2944e78504d4be7857767a168c64c
 +    public void updateExpirationTimer(final long duration, final TimeUnit unit) {
 +        this.durableBlocks = CacheBuilder.newBuilder()
 +            .expireAfterAccess(duration, unit)
-+            .maximumSize(Short.MAX_VALUE)
++            .maximumSize(MAX_DURABLE_BLOCKS)
 +            .build();
 +    }
 +
