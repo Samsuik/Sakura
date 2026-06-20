@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/item/enchantment/Enchantment.java
++++ b/net/minecraft/world/item/enchantment/Enchantment.java
+@@ -364,6 +_,20 @@
+                     level = event.getLungePower();
+                 }
+ 
++                // Sakura start - configure lunge enchantment
++                if (user instanceof final net.minecraft.server.level.ServerPlayer player) {
++                    final long millis = System.currentTimeMillis();
++                    final long sinceLastLunge = millis - player.lastLungeMillis;
++
++                    final int cooldown = serverLevel.sakuraConfig().players.combat.lungeCooldown.or(-1);
++                    if (cooldown == -1 || sinceLastLunge < cooldown) {
++                        return;
++                    }
++
++                    player.lastLungeMillis = millis;
++                }
++                // Sakura end - configure lunge enchantment
++
+                 e.apply(serverLevel, level, item, user, user.position());
+             }
+             // Paper end - EntityLungeEvent

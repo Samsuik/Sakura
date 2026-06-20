@@ -25,6 +25,7 @@ import org.spongepowered.configurate.objectmapping.meta.Setting;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic", "RedundantSuppression"})
@@ -179,12 +180,27 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean fastHealthRegen = true;
 
             @Comment(
+                "A cooldown for the lunge enchantment in milliseconds.\n" +
+                "\"disabled\" disables the lunge enchantment, 0 is for no delay (vanilla)."
+            )
+            public IntOr.Disabled lungeCooldown = new IntOr.Disabled(OptionalInt.of(0));
+
+            @Comment(
                 "The maximum damage a player can take in a single hit.\n" +
                 "This can prevent arrows and maces instantly killing players."
             )
             public DoubleOr.Disabled maxDamage = DoubleOr.Disabled.DISABLED;
             public IntOr.Default maxArmourDamage = IntOr.Default.USE_DEFAULT;
             public Map<Item, Double> itemAttackDamageOverride = new HashMap<>();
+
+            @PostProcess
+            public void postProcess() {
+                // Nerf the lunge enchantment when legacy combat is enabled
+                if (this.lungeCooldown.enabled() && this.legacyCombatMechanics) {
+                    final int cooldown = Math.max(650, this.lungeCooldown.or(-1));
+                    this.lungeCooldown = new IntOr.Disabled(OptionalInt.of(cooldown));
+                }
+            }
         }
 
         public Knockback knockback = new Knockback();
