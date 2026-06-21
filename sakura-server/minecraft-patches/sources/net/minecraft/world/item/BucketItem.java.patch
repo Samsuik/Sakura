@@ -1,22 +1,7 @@
 --- a/net/minecraft/world/item/BucketItem.java
 +++ b/net/minecraft/world/item/BucketItem.java
-@@ -67,8 +_,13 @@
-                 if (dummyFluid.isEmpty()) return InteractionResult.FAIL; // Don't fire event if the bucket won't be filled.
-                 org.bukkit.event.player.PlayerBucketFillEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBucketFillEvent(level, player, pos, pos, hitResult.getDirection(), itemStack, dummyFluid.getItem(), hand);
- 
--                if (event.isCancelled()) {
-+                // Sakura start - modify bucket stack size
-+                if (event.isCancelled() || me.samsuik.sakura.configuration.GlobalConfiguration.get().players.bucketStackSize.value().isPresent()) {
-                     player.containerMenu.sendAllDataToRemote(); // SPIGOT-4541
-+                }
-+
-+                if (event.isCancelled()) {
-+                    // Sakura end - modify bucket stack size
-                     return InteractionResult.FAIL;
-                 }
-                 // CraftBukkit end
-@@ -96,6 +_,12 @@
-                     CriteriaTriggers.PLACED_BLOCK.trigger((ServerPlayer)player, placePos, itemStack);
+@@ -64,6 +_,12 @@
+                     CriteriaTriggers.PLACED_BLOCK.trigger(serverPlayer, placePos, itemStack);
                  }
  
 +                // Sakura start - modify bucket stack size
@@ -28,7 +13,22 @@
                  player.awardStat(Stats.ITEM_USED.get(this));
                  ItemStack emptyResult = ItemUtils.createFilledResult(itemStack, player, getEmptySuccessItem(itemStack, player));
                  return InteractionResult.SUCCESS.heldItemTransformedTo(emptyResult);
-@@ -152,7 +_,7 @@
+@@ -76,8 +_,13 @@
+                         if (dummyFluid.isEmpty()) return InteractionResult.FAIL; // Don't fire event if the bucket won't be filled.
+                         org.bukkit.event.player.PlayerBucketFillEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBucketFillEvent(level, player, pos, pos, hitResult.getDirection(), itemStack, dummyFluid.getItem(), hand);
+ 
+-                        if (event.isCancelled()) {
++                // Sakura start - modify bucket stack size
++                if (event.isCancelled() || me.samsuik.sakura.configuration.GlobalConfiguration.get().players.bucketStackSize.value().isPresent()) {
+                             player.containerMenu.sendAllDataToRemote(); // SPIGOT-4541
++                }
++
++                if (event.isCancelled()) {
++                    // Sakura end - modify bucket stack size
+                             return InteractionResult.FAIL;
+                         }
+                         // CraftBukkit end
+@@ -154,7 +_,7 @@
                  return hitResult != null && this.emptyContents(user, level, hitResult.getBlockPos().relative(hitResult.getDirection()), null, direction, clicked, itemStack, hand); // CraftBukkit
              }
  

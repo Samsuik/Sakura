@@ -1,9 +1,9 @@
 --- a/net/minecraft/world/item/SpawnEggItem.java
 +++ b/net/minecraft/world/item/SpawnEggItem.java
-@@ -100,6 +_,13 @@
-             return InteractionResult.FAIL;
-         }
- 
+@@ -91,6 +_,13 @@
+         final boolean tryMoveDown,
+         final boolean movedUp
+     ) {
 +        // Sakura start - prevent placing spawn eggs inside blocks
 +        if (level.sakuraConfig().players.preventPlacingSpawnEggsInsideBlocks
 +            && !level.noCollision(type.getSpawnAABB(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5))) {
@@ -11,6 +11,6 @@
 +        }
 +        // Sakura end - prevent placing spawn eggs inside blocks
 +
-         if (type.spawn((ServerLevel)level, itemStack, user, spawnPos, EntitySpawnReason.SPAWN_ITEM_USE, tryMoveDown, movedUp) != null) {
+         if (type.spawn(level, itemStack, user, spawnPos, EntitySpawnReason.SPAWN_ITEM_USE, tryMoveDown, movedUp) != null) {
              itemStack.consume(1, user);
              level.gameEvent(user, GameEvent.ENTITY_PLACE, spawnPos);

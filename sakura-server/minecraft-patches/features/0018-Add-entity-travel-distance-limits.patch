@@ -5,10 +5,10 @@ Subject: [PATCH] Add entity travel distance limits
 
 
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 65e09f28d0527bca1a6f8582194166fbda1d3d58..c64521af6f2fcf000072d8dd2f33d45d235083c0 100644
+index 6ef354586b0928e59299d590cc07773a76905bd0..1a1161e069e01981808f48a930502a0ca4c9c406 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1398,6 +1398,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1412,6 +1412,11 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              } else {entity.inactiveTick();} // Paper - EAR 2
          }
          // Sakura end - optimise cannon entities
@@ -21,10 +21,10 @@ index 65e09f28d0527bca1a6f8582194166fbda1d3d58..c64521af6f2fcf000072d8dd2f33d45d
  
          for (Entity passenger : entity.getPassengers()) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 6c7566b1974055072df03c77dfefe0fd76231f8d..b781c49989d8de8b8faa22da6ca113fba676f28e 100644
+index a8f62a76fccb09f895b6d8c9689698f46eb9b681..193b3554e6ec5371ca8396c2abb80412dbe48013 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -173,6 +173,18 @@ public abstract class Entity
+@@ -170,6 +170,18 @@ public abstract class Entity
      static boolean isLevelAtLeast(ValueInput input, int level) {
          return input.getIntOr("Bukkit.updateLevel", CURRENT_LEVEL) >= level;
      }
@@ -43,10 +43,10 @@ index 6c7566b1974055072df03c77dfefe0fd76231f8d..b781c49989d8de8b8faa22da6ca113fb
  
      // Paper start - Share random for entities to make them more random
      public static RandomSource SHARED_RANDOM = new RandomRandomSource();
-@@ -620,6 +632,7 @@ public abstract class Entity
+@@ -621,6 +633,7 @@ public abstract class Entity
          this.setPos(0.0, 0.0, 0.0);
          this.eyeHeight = this.dimensions.eyeHeight();
-         this.despawnTime = level == null || type == EntityType.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit
+         this.despawnTime = level == null || type == EntityTypes.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit
 +        this.travelDistanceLimit = level == null ? Integer.MAX_VALUE : Math.pow(level.sakuraConfig().entity.chunkTravelLimit.getOrDefault(type, Integer.MAX_VALUE) * 16.0, 2); // Sakura - entity travel distance limits
      }
  

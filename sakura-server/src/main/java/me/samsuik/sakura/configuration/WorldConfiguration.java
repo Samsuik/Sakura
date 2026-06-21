@@ -15,6 +15,7 @@ import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -263,7 +264,7 @@ public final class WorldConfiguration extends ConfigurationPart {
 
         @Comment("Entity travel distance limits")
         public Map<EntityType<?>, Integer> chunkTravelLimit = Util.make(new Reference2ObjectOpenHashMap<>(), map -> {
-            map.put(EntityType.ENDER_PEARL, 8);
+            map.put(EntityTypes.ENDER_PEARL, 8);
         });
 
         public ThrownPotion thrownPotion = new ThrownPotion();

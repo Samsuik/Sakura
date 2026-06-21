@@ -956,19 +956,19 @@ index 0000000000000000000000000000000000000000..3242025d231b5e492f918c779a5dd2b3
 +}
 diff --git a/me/samsuik/sakura/explosion/specialised/WindChargeExplosion.java b/me/samsuik/sakura/explosion/specialised/WindChargeExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8490be218afd72ac34b3eb347e683c24822c9053
+index 0000000000000000000000000000000000000000..02bdd15270c0f921aa5786c6468be74d75eb6674
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/specialised/WindChargeExplosion.java
 @@ -0,0 +1,40 @@
 +package me.samsuik.sakura.explosion.specialised;
 +
-+import edu.umd.cs.findbugs.annotations.Nullable;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.damagesource.DamageSource;
 +import net.minecraft.world.entity.projectile.hurtingprojectile.windcharge.AbstractWindCharge;
 +import net.minecraft.world.level.ExplosionDamageCalculator;
 +import net.minecraft.world.phys.Vec3;
 +import org.jspecify.annotations.NullMarked;
++import org.jspecify.annotations.Nullable;
 +
 +@NullMarked
 +public final class WindChargeExplosion extends SpecialisedExplosion<AbstractWindCharge> {
@@ -1048,10 +1048,10 @@ index 0000000000000000000000000000000000000000..ca9cdb3fe90f1f9224b5ff6afccb8194
 +    }
 +}
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 420a85f773147e68657b3897abf2ec3e4283ea38..8be45e27209c0cfa33ad916cbda5b57c8186e21d 100644
+index aceead7470d8bd844083965d7d3e7cd049673cdd..6ef354586b0928e59299d590cc07773a76905bd0 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2005,7 +2005,18 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2019,7 +2019,18 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              case STANDARD -> Explosion.BlockInteraction.DESTROY; // CraftBukkit - handle custom explosion type
          };
          Vec3 center = new Vec3(x, y, z);
@@ -1071,7 +1071,7 @@ index 420a85f773147e68657b3897abf2ec3e4283ea38..8be45e27209c0cfa33ad916cbda5b57c
          if (configurator != null) configurator.accept(explosion); // Paper - Allow explosions to damage source
          this.sakuraEntityManager.decoupleAllTickingEntities(); // Sakura - optimise cannon entities
          int blockCount = explosion.explode();
-@@ -2014,6 +2025,34 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2028,6 +2039,34 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              return explosion;
          }
          // CraftBukkit end
@@ -1106,7 +1106,7 @@ index 420a85f773147e68657b3897abf2ec3e4283ea38..8be45e27209c0cfa33ad916cbda5b57c
          ParticleOptions explosionParticle = explosion.isSmall() ? smallExplosionParticles : largeExplosionParticles;
  
          for (ServerPlayer player : this.players) {
-@@ -2041,7 +2080,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2055,7 +2094,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
          }
  
@@ -1116,10 +1116,10 @@ index 420a85f773147e68657b3897abf2ec3e4283ea38..8be45e27209c0cfa33ad916cbda5b57c
  
      private Explosion.BlockInteraction getDestroyType(final GameRule<Boolean> gameRule) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 6c1298644763dc0cea4ab8b0f21701aa0180eefb..8968974ae4fcdcb4abce2a4b528088b41805491b 100644
+index 69103f9aa527bb6349d722297350185791371de9..4ae4c4a417b369e162d7f38cb51a1ac9f6792946 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -63,6 +63,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -66,6 +66,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
  
      // Sakura start - optimise cannon entities
      private final me.samsuik.sakura.entity.SakuraEntityController sakuraEntityController;
@@ -1127,7 +1127,7 @@ index 6c1298644763dc0cea4ab8b0f21701aa0180eefb..8968974ae4fcdcb4abce2a4b528088b4
  
      @Override
      public final me.samsuik.sakura.entity.SakuraEntityController getSakuraEntityController() {
-@@ -196,7 +197,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -199,7 +200,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
      }
  
      private void explode() {
@@ -1137,10 +1137,10 @@ index 6c1298644763dc0cea4ab8b0f21701aa0180eefb..8968974ae4fcdcb4abce2a4b528088b4
              ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive) this.getBukkitEntity());
              if (event.isCancelled()) {
 diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java
-index 6f539ce6e3f2eddee7d8db3bae20172ace53991d..efe64ed87bb7b186dc92667afed5cf474de39834 100644
+index 9920a32ab58a6f0562fcc4f733b893cd028e21a0..39557c2ae0a8431d199df3952b36a2b3470271eb 100644
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java
-@@ -32,6 +32,8 @@ public abstract class AbstractWindCharge extends AbstractHurtingProjectile imple
+@@ -33,6 +33,8 @@ public abstract class AbstractWindCharge extends AbstractHurtingProjectile imple
      public static final double JUMP_SCALE = 0.25;
  
      // Sakura start - optimise cannon entities
@@ -1150,10 +1150,10 @@ index 6f539ce6e3f2eddee7d8db3bae20172ace53991d..efe64ed87bb7b186dc92667afed5cf47
      public final boolean canLink(final Entity entity) {
          return true;
 diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/BreezeWindCharge.java b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/BreezeWindCharge.java
-index 0d44c1222960c3bc85f6a1a728118e640506c49f..ee7a9d7f63e35451eb867f2e69ef8fae6ef50b3a 100644
+index 8477b19c67cafcc339719b97886dd77a346cbe3a..1cf14061e3eb7e09677e1ca0d67bcf1019756b3c 100644
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/BreezeWindCharge.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/BreezeWindCharge.java
-@@ -21,6 +21,7 @@ public class BreezeWindCharge extends AbstractWindCharge {
+@@ -22,6 +22,7 @@ public class BreezeWindCharge extends AbstractWindCharge {
  
      @Override
      public void explode(final Vec3 position) {
@@ -1162,10 +1162,10 @@ index 0d44c1222960c3bc85f6a1a728118e640506c49f..ee7a9d7f63e35451eb867f2e69ef8fae
          org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent(this, RADIUS, false);
          if (event.isCancelled()) {
 diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
-index eec4083d2cdd37f40532f00525f38882829049b4..5b97c64adc1feb7cb52e51ac7cfd5242bcfbe2a0 100644
+index 0f952be087c52ba5de78d1f91aed1c160ec5788d..7f79b85f3d2983c8fa7f5b9cab551adbd4a1160d 100644
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
-@@ -66,6 +66,7 @@ public class WindCharge extends AbstractWindCharge {
+@@ -67,6 +67,7 @@ public class WindCharge extends AbstractWindCharge {
  
      @Override
      public void explode(final Vec3 position) {
@@ -1174,10 +1174,10 @@ index eec4083d2cdd37f40532f00525f38882829049b4..5b97c64adc1feb7cb52e51ac7cfd5242
          org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent(this, RADIUS, false);
          if (event.isCancelled()) {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index febc29eb3a54957f218875a41ec943205fb5c948..42770c49394f6fdc7b3b6392c40f31b134cc3029 100644
+index baf51cf788e2c56787694f56fdc54ba8314f38cc..74e87b4ad2cfa473af7c641bea371eaa6710bc96 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -845,6 +845,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -846,6 +846,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      // Sakura end - implement state watchers and tick scheduler
      public final me.samsuik.sakura.player.visibility.MinimalVisibility minimalVisibility = new me.samsuik.sakura.player.visibility.MinimalVisibility(); // Sakura - client visibility settings
      public final me.samsuik.sakura.entity.SakuraEntityManager sakuraEntityManager = new me.samsuik.sakura.entity.SakuraEntityManager(); // Sakura - optimise cannon entities
@@ -1186,7 +1186,7 @@ index febc29eb3a54957f218875a41ec943205fb5c948..42770c49394f6fdc7b3b6392c40f31b1
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 8f1d918503df0f84fedb0f434fe661b6685d3ab3..bb06f3c25c3884c7eb33861798bbd3d3053c8995 100644
+index 3583317269a7ce6ddbd6ead2d902b4f6247226b9..98429414f243947fe2b2076f57febc7188ac9e2b 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -80,7 +80,7 @@ public class ServerExplosion implements Explosion {

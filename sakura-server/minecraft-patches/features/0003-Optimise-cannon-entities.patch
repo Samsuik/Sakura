@@ -241,7 +241,7 @@ index 0000000000000000000000000000000000000000..4ec0430c1bfd78a4446705c6e9f2885b
 +}
 diff --git a/me/samsuik/sakura/entity/SakuraEntityController.java b/me/samsuik/sakura/entity/SakuraEntityController.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3b807d15597096d140cd2c42f9430d84a3f26fdf
+index 0000000000000000000000000000000000000000..a2e0230c4aa5fbe54fb8be1ced29d96286cc96f5
 --- /dev/null
 +++ b/me/samsuik/sakura/entity/SakuraEntityController.java
 @@ -0,0 +1,242 @@
@@ -254,7 +254,7 @@ index 0000000000000000000000000000000000000000..3b807d15597096d140cd2c42f9430d84
 +import me.samsuik.sakura.entity.merge.MergeLevel;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.entity.Entity;
-+import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.entity.EntityTypes;
 +import net.minecraft.world.level.Level;
 +import org.jspecify.annotations.NullMarked;
 +import org.jspecify.annotations.Nullable;
@@ -367,7 +367,7 @@ index 0000000000000000000000000000000000000000..3b807d15597096d140cd2c42f9430d84
 +            return false;
 +        }
 +
-+        final boolean isFallingBlock = entity.getType() == EntityType.FALLING_BLOCK;
++        final boolean isFallingBlock = entity.getType() == EntityTypes.FALLING_BLOCK;
 +        return entityData.hasLinkedInThePast(otherSakuraEntity, isFallingBlock ? 100 : 0);
 +    }
 +
@@ -771,10 +771,10 @@ index 0000000000000000000000000000000000000000..86c24fd87be41aaa9c3073997ba8e3bc
 +    }
 +}
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 598ba7a6fe43ec09b20a167e0640d66ccc9276a8..e6af49340e981a80fbfca097ab972d1947efe1c5 100644
+index 3d12d0c008a2c0b2f688ad857eb9cd12815b619e..aceead7470d8bd844083965d7d3e7cd049673cdd 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1387,10 +1387,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -1401,10 +1401,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          profiler.push(entity.typeHolder()::getRegisteredName);
          profiler.incrementCounter("tickNonPassenger");
          final boolean isActive = io.papermc.paper.entity.activation.ActivationRange.checkIfActive(entity); // Paper - EAR 2
@@ -796,7 +796,7 @@ index 598ba7a6fe43ec09b20a167e0640d66ccc9276a8..e6af49340e981a80fbfca097ab972d19
          profiler.pop();
  
          for (Entity passenger : entity.getPassengers()) {
-@@ -2000,6 +2007,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2014,6 +2021,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          Vec3 center = new Vec3(x, y, z);
          ServerExplosion explosion = new ServerExplosion(this, source, damageSource, damageCalculator, center, r, fire, blockInteraction);
          if (configurator != null) configurator.accept(explosion); // Paper - Allow explosions to damage source
@@ -805,7 +805,7 @@ index 598ba7a6fe43ec09b20a167e0640d66ccc9276a8..e6af49340e981a80fbfca097ab972d19
          // CraftBukkit start
          if (explosion.wasCanceled) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 4934b12e02742d6ae2a65ee4abb553d4a76f86ad..ccdbafe65349def1d27de25ff7106f14244bd4a1 100644
+index f5216a5561686d4a868ed6f1b5ee785c19f5ba46..fb95057be780a24e7eae784fbd5e675f3830cd2d 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -550,6 +550,15 @@ public abstract class Entity
@@ -824,7 +824,7 @@ index 4934b12e02742d6ae2a65ee4abb553d4a76f86ad..ccdbafe65349def1d27de25ff7106f14
  
      public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -5130,6 +5139,12 @@ public abstract class Entity
+@@ -5205,6 +5214,12 @@ public abstract class Entity
              this.stopRiding();
          }
  
@@ -838,10 +838,10 @@ index 4934b12e02742d6ae2a65ee4abb553d4a76f86ad..ccdbafe65349def1d27de25ff7106f14
          this.levelCallback.onRemove(reason);
          this.onRemoval(reason);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index dec56a4a9d2d60a691624c086af7c3a43f5d0eaf..801e9ecf4e7af8a3087c2dc8787e6c871eb1598d 100644
+index 06969c82be37068bbff3bb29880c2d5f468dd60d..944e8d4f8be947ce74fd46e93c2e2720dc14d939 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -53,7 +53,7 @@ import net.minecraft.world.phys.Vec3;
+@@ -54,7 +54,7 @@ import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -850,7 +850,7 @@ index dec56a4a9d2d60a691624c086af7c3a43f5d0eaf..801e9ecf4e7af8a3087c2dc8787e6c87
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final BlockState DEFAULT_BLOCK_STATE = Blocks.SAND.defaultBlockState();
      private static final int DEFAULT_TIME = 0;
-@@ -101,12 +101,61 @@ public class FallingBlockEntity extends Entity {
+@@ -102,12 +102,61 @@ public class FallingBlockEntity extends Entity {
          return BlockPos.containing(this.getX(), this.getY() + 1.0e-12, this.getZ());
      }
      // Sakura end - fix falling block floating point errors
@@ -913,10 +913,10 @@ index dec56a4a9d2d60a691624c086af7c3a43f5d0eaf..801e9ecf4e7af8a3087c2dc8787e6c87
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index ac14f78097943ff3abb4d15ab842067ccd91d6eb..30c3a48460e89476415a54f3c2fb89ba182b8025 100644
+index 04f8b7435b1d316d19d5a70aa9fafab9515c67a3..8765bbc4e9c1895011e0bbd99660373995bee2cf 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -34,7 +34,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
+@@ -36,7 +36,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
  import org.bukkit.event.entity.ExplosionPrimeEvent;
  // CraftBukkit end
  
@@ -924,8 +924,8 @@ index ac14f78097943ff3abb4d15ab842067ccd91d6eb..30c3a48460e89476415a54f3c2fb89ba
 +public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sakura.entity.SakuraEntity { // Sakura - optimise cannon entities
      private static final EntityDataAccessor<Integer> DATA_FUSE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.INT);
      private static final EntityDataAccessor<BlockState> DATA_BLOCK_STATE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.BLOCK_STATE);
-     private static final short DEFAULT_FUSE_TIME = 80;
-@@ -61,10 +61,43 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+     public static final short DEFAULT_FUSE_TIME = 80;
+@@ -64,10 +64,43 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      public float explosionPower = 4.0F;
      public boolean isIncendiary = false; // CraftBukkit
  
@@ -1026,10 +1026,10 @@ index 84c07fb51e8321b32f8607a602dd1e417ce36af7..aae799df278a15885b23e9d66a40fc36
  
      protected AbstractHurtingProjectile(
 diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java
-index 09be94de0bee1fd706e1eb8e2beb92fdcca1b916..a0e2f3c02318c4f96890a1ec35804d654d327691 100644
+index 19552425af5ddfc649718ca91aff4fed57469934..9920a32ab58a6f0562fcc4f733b893cd028e21a0 100644
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/AbstractWindCharge.java
-@@ -31,6 +31,13 @@ public abstract class AbstractWindCharge extends AbstractHurtingProjectile imple
+@@ -32,6 +32,13 @@ public abstract class AbstractWindCharge extends AbstractHurtingProjectile imple
      );
      public static final double JUMP_SCALE = 0.25;
  
@@ -1044,10 +1044,10 @@ index 09be94de0bee1fd706e1eb8e2beb92fdcca1b916..a0e2f3c02318c4f96890a1ec35804d65
          super(type, level);
          this.accelerationPower = 0.0;
 diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
-index 5fe01466a4fd1c31a379f0e7a3865b25a8249bda..eec4083d2cdd37f40532f00525f38882829049b4 100644
+index c91adb74bfdc93c5e163b37f7517f530703f6ad5..0f952be087c52ba5de78d1f91aed1c160ec5788d 100644
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
-@@ -27,6 +27,13 @@ public class WindCharge extends AbstractWindCharge {
+@@ -28,6 +28,13 @@ public class WindCharge extends AbstractWindCharge {
      private static final float MIN_CAMERA_DISTANCE_SQUARED = Mth.square(3.5F);
      private int noDeflectTicks = 5;
  
@@ -1062,10 +1062,10 @@ index 5fe01466a4fd1c31a379f0e7a3865b25a8249bda..eec4083d2cdd37f40532f00525f38882
          super(type, level);
      }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index a07e2787d5bce46f1779a45975a845b31cc4a050..be231caca83f6a8bba14f034ac5bd57353cad84d 100644
+index 66862cb2fc9a75dfffa61469bec65a21eec71752..baf51cf788e2c56787694f56fdc54ba8314f38cc 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -844,6 +844,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -845,6 +845,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      }
      // Sakura end - implement state watchers and tick scheduler
      public final me.samsuik.sakura.player.visibility.MinimalVisibility minimalVisibility = new me.samsuik.sakura.player.visibility.MinimalVisibility(); // Sakura - client visibility settings
@@ -1074,7 +1074,7 @@ index a07e2787d5bce46f1779a45975a845b31cc4a050..be231caca83f6a8bba14f034ac5bd573
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index c2fbf44e93e44c36423465d406b5e4d3db029a80..70c51511a479a6a2dd324e9f9623bdb54138013f 100644
+index f2d7c5fc0339a62c4fc56aa5871cd999e1136ca6..3e215d0e9ff378f2a5385ea550e674a9917d5ec0 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
 @@ -172,6 +172,12 @@ public abstract class BasePressurePlateBlock extends Block {

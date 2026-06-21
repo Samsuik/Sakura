@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 310dcd1a1a63ced2da6d077fb64bd2acaf698148..0cb1906c33589592ab42bef31569d55b5ffb9fd4 100644
+index ea7d73c9e02329f86a931078528f4d1b3e459376..cbc89218e747c3383390866831625e606f736ff8 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1904,6 +1904,7 @@ public final class CollisionUtil {
@@ -50,7 +50,7 @@ index 310dcd1a1a63ced2da6d077fb64bd2acaf698148..0cb1906c33589592ab42bef31569d55b
  
                  // bound y
 diff --git a/net/minecraft/server/level/TicketType.java b/net/minecraft/server/level/TicketType.java
-index 147cd0458d719be6679b6bac2b6617b48d98ce4c..e8f1aed9ddbf7569451e796d8b616ce645e37468 100644
+index fed2a68bf1a9e9a169c0235e129346b9b624170b..b4361dd056b9b8cc94d39e681206081bc8051125 100644
 --- a/net/minecraft/server/level/TicketType.java
 +++ b/net/minecraft/server/level/TicketType.java
 @@ -68,6 +68,7 @@ public final class TicketType<T> implements ca.spottedleaf.moonrise.patches.chun
@@ -59,10 +59,10 @@ index 147cd0458d719be6679b6bac2b6617b48d98ce4c..e8f1aed9ddbf7569451e796d8b616ce6
      public static final TicketType CHUNK_LOAD = register("chunk_load", NO_TIMEOUT, FLAG_LOADING); // Paper - moonrise
 +    public static final TicketType ENTITY_MOVEMENT = register("entity_movement", 200L, FLAG_LOADING | FLAG_SIMULATION); // Sakura - load chunks on movement
  
-     private static TicketType register(final String name, final long timeout, @TicketType.Flags final int flags) {
+     private static TicketType register(final String name, final long timeout, final @TicketType.Flags int flags) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 58a9b7bfbf234efefa7c875835b242e983be6eff..e76ce6bec48793b3a826885ef2511a8bfaa6a471 100644
+index d49a10c803c7a28be4b5bc8f9d13a068c5a12e80..5e1315fb0d0d05dc2bdc18e0f4476e865c44558e 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -570,6 +570,19 @@ public abstract class Entity
@@ -85,7 +85,7 @@ index 58a9b7bfbf234efefa7c875835b242e983be6eff..e76ce6bec48793b3a826885ef2511a8b
  
      public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -1695,7 +1708,7 @@ public abstract class Entity
+@@ -1760,7 +1773,7 @@ public abstract class Entity
              collisionBox,
              collisionsVoxel,
              collisionsBB,
@@ -94,7 +94,7 @@ index 58a9b7bfbf234efefa7c875835b242e983be6eff..e76ce6bec48793b3a826885ef2511a8b
              null
          );
  
-@@ -1779,7 +1792,7 @@ public abstract class Entity
+@@ -1844,7 +1857,7 @@ public abstract class Entity
  
          ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder(
              this.level, (Entity)(Object)this, initialCollisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
@@ -103,7 +103,7 @@ index 58a9b7bfbf234efefa7c875835b242e983be6eff..e76ce6bec48793b3a826885ef2511a8b
          );
          potentialCollisionsBB.addAll(entityAABBs);
          final Vec3 collided = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currentBox, potentialCollisionsVoxel, potentialCollisionsBB, this.mechanicsTarget); // Sakura - configure server mechanics
-@@ -5388,13 +5401,14 @@ public abstract class Entity
+@@ -5466,13 +5479,14 @@ public abstract class Entity
      @Override
      public boolean shouldBeSaved() {
          return (this.removalReason == null || this.removalReason.shouldSave())
@@ -120,10 +120,10 @@ index 58a9b7bfbf234efefa7c875835b242e983be6eff..e76ce6bec48793b3a826885ef2511a8b
  
      public boolean mayInteract(final ServerLevel level, final BlockPos pos) {
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index cc870f41c982bd1470f159b9fae23b415a67d3c8..7e0cb35ff046e58b7bba19b749a46c48d484470d 100644
+index 9ed84e8fe6bcc840a348722e5e2dbe4462c18cc4..050b34b2241c6898cc2a560439dc1cc6d0bd8cd1 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -178,6 +178,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -179,6 +179,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          this.updateMechanicsTarget();
          this.eyeHeight = this.mechanicsTarget().isLegacy() ? 0.49f : this.eyeHeight;
          // Sakura end - configure server mechanics
@@ -132,10 +132,10 @@ index cc870f41c982bd1470f159b9fae23b415a67d3c8..7e0cb35ff046e58b7bba19b749a46c48
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index cf8aa9066e573e4d0e117a303118d92801726aa6..5aba442151192d2cab33c21001555598a89f2948 100644
+index 58673daf6ceb15b7071cc73adc4b42f2f9882ad1..cdef06f8dd68e9fe368f05b027ca5847102ac955 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -122,6 +122,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -125,6 +125,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
          this.blocksBuilding = true;
          this.cannonEntity = true; // Sakura - add cannon entity field
          this.sakuraEntityController = level.sakuraEntityManager.createController(this); // Sakura - optimise cannon entities
@@ -144,7 +144,7 @@ index cf8aa9066e573e4d0e117a303118d92801726aa6..5aba442151192d2cab33c21001555598
  
      public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index c73b9871faa87493e081cb54e1bf1dce487359c6..5cae8de18aaea594748a067cd8e055c19adde303 100644
+index 28f703204afd834cd50335346ef065670d6b37ad..d652e16e394f6e314fba7cb194541b74d918fbb8 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
 @@ -134,6 +134,17 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeM

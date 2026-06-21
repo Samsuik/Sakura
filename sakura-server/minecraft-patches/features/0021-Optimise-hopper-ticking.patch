@@ -145,10 +145,10 @@ index 0000000000000000000000000000000000000000..822e29472b94c77ca93963110a69fab6
 +    }
 +}
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 8de058a7b3d6bb14d6c0759cb81d9a804a3524a2..9226721a6986ad780ed4a86c01aba2f7e7038fea 100644
+index 1b25ffdb1efb9c0be4f9689e3bfda278fe6b56b1..46ac43fe077f1b98c451cee86f760e53f0023b43 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1527,7 +1527,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1533,7 +1533,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          // Paper end - Fix MC-117075 use removeAll
              if (ticker.isRemoved()) {
                  toRemove.add(ticker); // Paper - Fix MC-117075 use removeAll
@@ -158,10 +158,10 @@ index 8de058a7b3d6bb14d6c0759cb81d9a804a3524a2..9226721a6986ad780ed4a86c01aba2f7
                  // Paper start - rewrite chunk system
                  if ((++tickedEntities & 7) == 0) {
 diff --git a/net/minecraft/world/level/block/HopperBlock.java b/net/minecraft/world/level/block/HopperBlock.java
-index e032b5289abe413009fe7c9068e71e788fab512a..593063ccb1fc41a6d29175cb4ac482ef4d7474e3 100644
+index 3932da81757ea0ab7a41617165f5b64dc44ea3eb..6b971c7bf59affc49ab3d45df9969025455ad20b 100644
 --- a/net/minecraft/world/level/block/HopperBlock.java
 +++ b/net/minecraft/world/level/block/HopperBlock.java
-@@ -123,6 +123,12 @@ public class HopperBlock extends BaseEntityBlock {
+@@ -124,6 +124,12 @@ public class HopperBlock extends BaseEntityBlock {
      private void checkPoweredState(final Level level, final BlockPos pos, final BlockState state) {
          boolean shouldBeOn = !level.hasNeighborSignal(pos);
          if (shouldBeOn != state.getValue(ENABLED)) {
@@ -175,7 +175,7 @@ index e032b5289abe413009fe7c9068e71e788fab512a..593063ccb1fc41a6d29175cb4ac482ef
          }
      }
 diff --git a/net/minecraft/world/level/block/entity/BlockEntity.java b/net/minecraft/world/level/block/entity/BlockEntity.java
-index 2c9fb60cae8065b1cd70d6ec53122cec9cf7f2a7..fce6cb35d6be59e31a187d1369680b5c077728b7 100644
+index ae0df53c3be7ebcf48886adbedfaa2c071a94023..8ecbe65f1ef02b795ce8a124be2cce3883fd55f0 100644
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
 @@ -53,6 +53,31 @@ public abstract class BlockEntity implements DebugValueSource, TypedInstance<Blo
@@ -211,7 +211,7 @@ index 2c9fb60cae8065b1cd70d6ec53122cec9cf7f2a7..fce6cb35d6be59e31a187d1369680b5c
          this.type = type;
          this.worldPosition = worldPosition.immutable();
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index ce6b64e00a0a13ebdceda56d975d79f60c26b86d..df345d4634fb4a9b282f837222f019980ff687e6 100644
+index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55c18c63ef 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,13 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -349,7 +349,7 @@ index ce6b64e00a0a13ebdceda56d975d79f60c26b86d..df345d4634fb4a9b282f837222f01998
 +    // Sakura end - optimise hopper ticking
  
      public HopperBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
-         super(BlockEntityType.HOPPER, worldPosition, blockState);
+         super(BlockEntityTypes.HOPPER, worldPosition, blockState);
 @@ -81,7 +194,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      @Override
      protected void loadAdditional(final ValueInput input) {
@@ -431,7 +431,7 @@ index ce6b64e00a0a13ebdceda56d975d79f60c26b86d..df345d4634fb4a9b282f837222f01998
          if (container != null) {
              Direction direction = Direction.DOWN;
              skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
-@@ -763,7 +865,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -761,7 +863,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
  
      @Override
      protected void setItems(final NonNullList<ItemStack> items) {
@@ -456,10 +456,10 @@ index 28e3b73507b988f7234cbf29c4024c88180d0aef..152969a1ad4caa102e675565fd5f086c
 +    // Sakura end - optimise hopper ticking
  }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index e1197ceee4648b14806a865a873f5a405625a184..cda2e4a971560b9092646494c7d0fd478f1520be 100644
+index 14604eb0c888506c39de3623d4680791831eadd9..2723066cbf8501cc12d90158a66afd090346a5ed 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -1005,6 +1005,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -1003,6 +1003,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
              return this.blockEntity.typeHolder().getRegisteredName();
          }
  
@@ -473,7 +473,7 @@ index e1197ceee4648b14806a865a873f5a405625a184..cda2e4a971560b9092646494c7d0fd47
          @Override
          public String toString() {
              return "Level ticker for " + this.getType() + "@" + this.getPos();
-@@ -1053,6 +1060,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -1051,6 +1058,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
              return this.ticker.getType();
          }
  

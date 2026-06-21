@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -72,9 +_,41 @@
+@@ -73,9 +_,41 @@
      public boolean forceTickAfterTeleportToDuplicate;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
@@ -42,7 +42,7 @@
      }
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
-@@ -166,8 +_,12 @@
+@@ -167,8 +_,12 @@
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
@@ -57,7 +57,7 @@
                  boolean isStuckInWater = isConcrete && this.level().getFluidState(pos).is(FluidTags.WATER);
                  double moveVec = this.getDeltaMovement().lengthSqr();
                  if (isConcrete && moveVec > 1.0) {
-@@ -183,7 +_,7 @@
+@@ -184,7 +_,7 @@
                      }
                  }
  
@@ -66,7 +66,7 @@
                      if ((this.time > 100 && this.autoExpire) && (pos.getY() <= this.level().getMinY() || pos.getY() > this.level().getMaxY()) || (this.time > 600 && this.autoExpire)) { // Paper - Expand FallingBlock API
                          if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
                              this.spawnAtLocation(serverLevel, block);
-@@ -201,7 +_,7 @@
+@@ -202,7 +_,7 @@
                              );
                              boolean wouldContinueFalling = FallingBlock.isFree(this.level().getBlockState(pos.below())) && (!isConcrete || !isStuckInWater);
                              boolean wouldSurvive = this.blockState.canSurvive(this.level(), pos) && !wouldContinueFalling;
@@ -75,7 +75,7 @@
                                  if (this.blockState.hasProperty(BlockStateProperties.WATERLOGGED) && this.level().getFluidState(pos).is(Fluids.WATER)) {
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
                                  }
-@@ -244,6 +_,10 @@
+@@ -245,6 +_,10 @@
                                      this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
                                      this.callOnBrokenAfterFall(block, pos);
                                      this.spawnAtLocation(serverLevel, block);
