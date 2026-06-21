@@ -747,10 +747,10 @@ index 0000000000000000000000000000000000000000..a5fa2dd230319dca30ba0e23b725d8ec
 +    }
 +}
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 627380c746175e1f6dfb6351a8a3766eef0dd62e..eb3ea11b48c0512d2980021317f95802b100ab5c 100644
+index 4dae8cdd56824125e9f764adb0ab06220c3b42af..3c9b92c41cb8d5f85be40039910c5c8ef6bb6846 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1889,6 +1889,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1880,6 +1880,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              profiler.pop();
              profiler.pop();
              level.explosionDensityCache.clear(); // Paper - Optimize explosions
@@ -759,7 +759,7 @@ index 627380c746175e1f6dfb6351a8a3766eef0dd62e..eb3ea11b48c0512d2980021317f95802
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index a35cfe020ffb16d6e56a78ef0d59d02bee55504e..22a0509ea080be2909b94d2a5cd7771b196f45c0 100644
+index c31fd1b04944951e6effbb107b687d3ef3f8d259..11738d20d85289a2dedcfbb3855b959c760fc98d 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -738,6 +738,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -800,10 +800,10 @@ index 42bf1a147b55a01dbbbd3d3ab94cdcfa873600a6..d070cd82cd0331e08e4ea8bf53e94812
      public CompoundContainer(final Container container1, final Container container2) {
          this.container1 = container1;
 diff --git a/net/minecraft/world/Container.java b/net/minecraft/world/Container.java
-index 52cb72d45dcd2606f6406b3525b30983b03d1104..a6f1e7e22b6bc9f810c45190e04626fc896f82b0 100644
+index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..9b66f811be3171015c71f47b5d8e1cbb9bda65f9 100644
 --- a/net/minecraft/world/Container.java
 +++ b/net/minecraft/world/Container.java
-@@ -17,7 +17,20 @@ import net.minecraft.world.level.Level;
+@@ -16,7 +16,20 @@ import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.BlockEntity;
  import org.jspecify.annotations.Nullable;
  
@@ -893,7 +893,7 @@ index 20041325ae77f16a5b77f5de7255788b52ebb3a5..3295903153a99f2d5e446b9b455aa63a
  
      // Paper start - EntityDeathEvent
 diff --git a/net/minecraft/world/entity/ai/attributes/AttributeInstance.java b/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
-index 57cf93806c666d2605960d673e5bbee497da35ea..4a848660a1efa216cc59dc509cb87b82737f4813 100644
+index 0ed3fea287c65da82a8823d1949828b0c55d29b2..4ce32974eed7054d45610f5ce25fa02b00e11075 100644
 --- a/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
 +++ b/net/minecraft/world/entity/ai/attributes/AttributeInstance.java
 @@ -17,7 +17,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
@@ -935,7 +935,7 @@ index 57cf93806c666d2605960d673e5bbee497da35ea..4a848660a1efa216cc59dc509cb87b82
  
      public void removeModifier(final AttributeModifier modifier) {
 diff --git a/net/minecraft/world/entity/ai/attributes/AttributeMap.java b/net/minecraft/world/entity/ai/attributes/AttributeMap.java
-index 0c8a719bdfb4932171a8f66d76b00cc499f5beb9..4ea9597045264e9c0e28719b647f953196bdd7bd 100644
+index 68bad6752bd313ca3ebde7fd4e3b2c46c5dee3ef..02955c0da4cc3e106676e97dc9aeb07cbca14ce4 100644
 --- a/net/minecraft/world/entity/ai/attributes/AttributeMap.java
 +++ b/net/minecraft/world/entity/ai/attributes/AttributeMap.java
 @@ -19,6 +19,12 @@ public class AttributeMap {
@@ -952,17 +952,17 @@ index 0c8a719bdfb4932171a8f66d76b00cc499f5beb9..4ea9597045264e9c0e28719b647f9531
          this.supplier = supplier;
      }
 diff --git a/net/minecraft/world/entity/player/Inventory.java b/net/minecraft/world/entity/player/Inventory.java
-index f004911c438e6f89d6e079437e3f4104d6cbacbd..6a59ae326e3c56503e64711daaf9ef6df4a0568a 100644
+index cd7714dffcd7e7b6d96d18a97e65fd0914a739d1..7c2251c9502cf70d5d7794002fdc5565a7b9b0d6 100644
 --- a/net/minecraft/world/entity/player/Inventory.java
 +++ b/net/minecraft/world/entity/player/Inventory.java
-@@ -145,6 +145,7 @@ public class Inventory implements Container, Nameable {
-         if (!isHotbarSlot(selected)) {
+@@ -146,6 +146,7 @@ public class Inventory implements Container, Nameable {
              throw new IllegalArgumentException("Invalid selected slot");
-         } else {
-+            this.equipment.changed(); // Sakura - implement state watchers and tick scheduler
-             this.selected = selected;
          }
+ 
++        this.equipment.changed(); // Sakura - implement state watchers and tick scheduler
+         this.selected = selected;
      }
+ 
 diff --git a/net/minecraft/world/entity/player/PlayerEquipment.java b/net/minecraft/world/entity/player/PlayerEquipment.java
 index e59787c1698e96df98ef4cf98d62b4a67c4e95dc..62ad0d316404fd80808a6cdcbf7413ed4d5f853d 100644
 --- a/net/minecraft/world/entity/player/PlayerEquipment.java
@@ -976,7 +976,7 @@ index e59787c1698e96df98ef4cf98d62b4a67c4e95dc..62ad0d316404fd80808a6cdcbf7413ed
      }
  
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 28e0382deafd9ff96511495fd51b2b1a1bae2d85..40c80838e4a40c4008b94c5fd9bc6a9ac86a189d 100644
+index 5237926f00c73e5c4eaab79595a5c2850e77fb71..7419b8fd4fa1bc7b8b7f4a2305daf3e0fa5870c7 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
 @@ -100,7 +100,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -1008,7 +1008,7 @@ index 28e0382deafd9ff96511495fd51b2b1a1bae2d85..40c80838e4a40c4008b94c5fd9bc6a9a
  
      public ItemStack(final ItemLike item, final int count) {
          this(item.asItem().builtInRegistryHolder(), count);
-@@ -996,11 +1009,16 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1004,11 +1017,16 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      // CraftBukkit start
      public void restorePatch(DataComponentPatch datacomponentpatch) {
          this.components.restorePatch(datacomponentpatch);
@@ -1026,7 +1026,7 @@ index 28e0382deafd9ff96511495fd51b2b1a1bae2d85..40c80838e4a40c4008b94c5fd9bc6a9a
      }
  
      public <T> @Nullable T set(final TypedDataComponent<T> value) {
-@@ -1021,7 +1039,11 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1029,7 +1047,11 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      }
  
      public <T> @Nullable T remove(final DataComponentType<? extends T> type) {
@@ -1039,7 +1039,7 @@ index 28e0382deafd9ff96511495fd51b2b1a1bae2d85..40c80838e4a40c4008b94c5fd9bc6a9a
      }
  
      public void applyComponentsAndValidate(final DataComponentPatch patch) {
-@@ -1339,6 +1361,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1347,6 +1369,7 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
  
      public void setCount(final int count) {
          this.count = count;
@@ -1048,7 +1048,7 @@ index 28e0382deafd9ff96511495fd51b2b1a1bae2d85..40c80838e4a40c4008b94c5fd9bc6a9a
  
      public void limitSize(final int maxStackSize) {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 2740205947cf12ca42f76d1be3c2ea4edfe29353..aa10a8cad6e24340d637988dedfa5765dfa9d870 100644
+index c5a6feabd1111e696466dbfc82f62f86e20156a9..a7dc68d11d151572ac00c1ab5fde1dade985b2ef 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -834,6 +834,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -1067,19 +1067,19 @@ index 2740205947cf12ca42f76d1be3c2ea4edfe29353..aa10a8cad6e24340d637988dedfa5765
  
      protected Level(
          final WritableLevelData levelData,
-@@ -1085,6 +1094,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
-         } else if (!this.isClientSide() && this.isDebug()) {
+@@ -1088,6 +1097,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              return false;
-         } else {
-+            this.blockStateRevisionCounter.incrementAndGet(); // Sakura - implement state watchers and tick scheduler
-             LevelChunk chunk = this.getChunkAt(pos);
-             Block block = blockState.getBlock();
-             // CraftBukkit start - capture blockstates
+         }
+ 
++        this.blockStateRevisionCounter.incrementAndGet(); // Sakura - implement state watchers and tick scheduler
+         LevelChunk chunk = this.getChunkAt(pos);
+         Block block = blockState.getBlock();
+         // CraftBukkit start - capture blockstates
 diff --git a/net/minecraft/world/level/block/ChestBlock.java b/net/minecraft/world/level/block/ChestBlock.java
-index d3f0680d59ec87990b54dc3dbce27706bfadf5f1..0e1651a1c9d94ce2103c143eacf2d6f807f39397 100644
+index 599a11344c5dcfe1122ec10a89628490602572af..02c32f684a77bb90e2d6c1996301531f1e6484d4 100644
 --- a/net/minecraft/world/level/block/ChestBlock.java
 +++ b/net/minecraft/world/level/block/ChestBlock.java
-@@ -144,6 +144,15 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+@@ -139,6 +139,15 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
          return CODEC;
      }
  
@@ -1095,7 +1095,7 @@ index d3f0680d59ec87990b54dc3dbce27706bfadf5f1..0e1651a1c9d94ce2103c143eacf2d6f8
      protected ChestBlock(
          final Supplier<BlockEntityType<? extends ChestBlockEntity>> blockEntityType,
          final SoundEvent openSound,
-@@ -186,9 +195,11 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+@@ -181,9 +190,11 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
                  && neighbourType != ChestType.SINGLE
                  && state.getValue(FACING) == neighbourState.getValue(FACING)
                  && getConnectedDirection(neighbourState) == directionToNeighbour.getOpposite()) {
@@ -1108,7 +1108,7 @@ index d3f0680d59ec87990b54dc3dbce27706bfadf5f1..0e1651a1c9d94ce2103c143eacf2d6f8
          }
  
 diff --git a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
-index de47d6143f72a27721cfcb25443cd9d8821c0ebb..7ba524aa31a43489345e4848683a6f1662a42ea7 100644
+index f52e4015ee880013a1f6f6ee42a2cd9545b6dbbc..197e01b9ef2eca1bb2a9f17a9b4af5ceae1c30ec 100644
 --- a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 @@ -30,6 +30,42 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
@@ -1155,10 +1155,10 @@ index de47d6143f72a27721cfcb25443cd9d8821c0ebb..7ba524aa31a43489345e4848683a6f16
          super(type, worldPosition, blockState);
      }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index a4b794781e66e6a054fb437bd0b66712b13320a4..21710c5acb1a5f12c303954b5d1249462cf5366d 100644
+index a9d781e2fcac4e2426b0e35e46bbc10c540f9fd9..e1197ceee4648b14806a865a873f5a405625a184 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -136,6 +136,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -135,6 +135,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
          return this.getBlockStateFinal(x, y, z);
      }
      // Paper end - get block chunk optimisation
@@ -1172,7 +1172,7 @@ index a4b794781e66e6a054fb437bd0b66712b13320a4..21710c5acb1a5f12c303954b5d124946
  
      public LevelChunk(final Level level, final ChunkPos pos) {
          this(level, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
-@@ -173,6 +180,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -172,6 +179,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
          this.debug = !empty && this.level.isDebug();
          this.defaultBlockState = empty ? VOID_AIR_BLOCKSTATE : AIR_BLOCKSTATE;
          // Paper end - get block chunk optimisation
@@ -1180,11 +1180,11 @@ index a4b794781e66e6a054fb437bd0b66712b13320a4..21710c5acb1a5f12c303954b5d124946
      }
  
      public LevelChunk(final ServerLevel level, final ProtoChunk protoChunk, final LevelChunk.@Nullable PostLoadProcessor postLoad) {
-@@ -422,6 +430,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
-                 if (!section.getBlockState(localX, localY, localZ).is(newBlock)) {
-                     return null;
-                 } else {
-+                    this.blockStateWatcher.blockChange(this.level, pos, state, oldState); // Sakura - implement state watchers and tick scheduler
-                     if (!this.level.isClientSide() && (flags & Block.UPDATE_SKIP_ON_PLACE) == 0 && (!this.level.captureBlockStates || newBlock instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
-                         state.onPlace(this.level, pos, oldState, movedByPiston);
-                     }
+@@ -424,6 +432,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+             return null;
+         }
+ 
++        this.blockStateWatcher.blockChange(this.level, pos, state, oldState); // Sakura - implement state watchers and tick scheduler
+         if (!this.level.isClientSide() && (flags & Block.UPDATE_SKIP_ON_PLACE) == 0 && (!this.level.captureBlockStates || newBlock instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
+             state.onPlace(this.level, pos, oldState, movedByPiston);
+         }

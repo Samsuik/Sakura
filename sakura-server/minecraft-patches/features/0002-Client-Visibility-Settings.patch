@@ -5,7 +5,7 @@ Subject: [PATCH] Client Visibility Settings
 
 
 diff --git a/me/samsuik/sakura/SakuraFeatureHooks.java b/me/samsuik/sakura/SakuraFeatureHooks.java
-index 0ddc4277300ff5e7cbe0f9b68a6f6de518baba59..5f19d9e19cf78e03dcf1e32e292285434987993e 100644
+index 568cc57e7f8b7fb63255964a86ddd0988f01bf08..3f2d4a9d4cb78fb4b3b203fe232b7dfa4a2dbd97 100644
 --- a/me/samsuik/sakura/SakuraFeatureHooks.java
 +++ b/me/samsuik/sakura/SakuraFeatureHooks.java
 @@ -1,6 +1,9 @@
@@ -491,7 +491,7 @@ index 0000000000000000000000000000000000000000..6fdea0a5d22b5656fa79257074b0abab
 +    }
 +}
 diff --git a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
-index 42bfd4b3b626ef66b0f2ef8438add5342b367800..1125b25fe9dd130f4666ea37245acdb9ae1f2004 100644
+index a52f93d0563f713b1d2b707cdb6ab74e4793a54d..98e2b8f98c95d61b497c6fbe20b64c24852aaa95 100644
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 +++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 @@ -31,7 +31,7 @@ public class ClientboundLevelChunkPacketData {
@@ -522,10 +522,10 @@ index 42bfd4b3b626ef66b0f2ef8438add5342b367800..1125b25fe9dd130f4666ea37245acdb9
  
          private BlockEntityInfo(final int packedXZ, final int y, final BlockEntityType<?> type, final @Nullable CompoundTag tag) {
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index b1a81e0a6b3d0cde7f7bf67a4c542abc5f1392d4..87441a0345943ec843e55505f859b456765c8aab 100644
+index d8bbee637a7cf4d55a01bd7883766342aaad481b..7d505061081b1ea698b0ca3164cc653a0c2ef1df 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1382,6 +1382,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1378,6 +1378,7 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
                      && this.entity.broadcastToPlayer(player)
                      && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x(), this.entity.chunkPosition().z());
                  // Paper end - Configurable entity tracking range by Y
@@ -534,7 +534,7 @@ index b1a81e0a6b3d0cde7f7bf67a4c542abc5f1392d4..87441a0345943ec843e55505f859b456
                  if (visibleToPlayer && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
                      visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 22a0509ea080be2909b94d2a5cd7771b196f45c0..0ebc62031beb1ceeed70fab1c175ea7679bcf170 100644
+index 11738d20d85289a2dedcfbb3855b959c760fc98d..598ba7a6fe43ec09b20a167e0640d66ccc9276a8 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2011,6 +2011,24 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -563,10 +563,10 @@ index 22a0509ea080be2909b94d2a5cd7771b196f45c0..0ebc62031beb1ceeed70fab1c175ea76
              }
          }
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index eb807af00ba960cfb0f8345eed56f1f62cdc3178..dc17919f1bd149ba2b965461ac63738029413a3e 100644
+index 4e9ed5eafd96b567fb842e8bccbbc5c03e3435e3..6682dbc00bfaa7214b6c102ffe9b6850fd400d7f 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -485,6 +485,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
+@@ -466,6 +466,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
      }
      // Paper end - rewrite chunk system
      public double trackingRangeModifier = 1.0; // Sakura - entity tracking range modifier api
@@ -575,7 +575,7 @@ index eb807af00ba960cfb0f8345eed56f1f62cdc3178..dc17919f1bd149ba2b965461ac637380
      public ServerPlayer(final MinecraftServer server, final ServerLevel level, final GameProfile gameProfile, final ClientInformation clientInformation) {
          super(level, gameProfile);
 diff --git a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 7ed50fc00c58c7781c958df1d828a67adf696f3e..f816ceb53ab72c22cabe782f3f20af43733090e1 100644
+index 8b194a59f79eea32c9e7a46227034942f6a6e816..61b08dcaca579763d947d289438041554acc5f1e 100644
 --- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -311,6 +311,17 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
@@ -597,7 +597,7 @@ index 7ed50fc00c58c7781c958df1d828a67adf696f3e..f816ceb53ab72c22cabe782f3f20af43
          if (packet.isTerminal()) {
              this.close();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index aa10a8cad6e24340d637988dedfa5765dfa9d870..4ec0bda340ca569d4bbf68b498317190f655d610 100644
+index a7dc68d11d151572ac00c1ab5fde1dade985b2ef..a07e2787d5bce46f1779a45975a845b31cc4a050 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -843,6 +843,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

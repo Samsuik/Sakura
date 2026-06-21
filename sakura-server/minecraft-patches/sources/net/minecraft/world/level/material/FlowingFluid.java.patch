@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/net/minecraft/world/level/material/FlowingFluid.java
-@@ -154,12 +_,12 @@
+@@ -153,12 +_,12 @@
      }
  
      protected void spread(final ServerLevel level, final BlockPos pos, final BlockState state, final FluidState fluidState) {
@@ -15,7 +15,7 @@
                  Fluid newBelowFluidType = newBelowFluid.getType();
                  if (belowFluid.canBeReplacedWith(level, belowPos, newBelowFluidType, Direction.DOWN)
                      && canHoldSpecificFluid(level, belowPos, belowState, newBelowFluidType)) {
-@@ -202,6 +_,11 @@
+@@ -201,6 +_,11 @@
                  BlockPos neighborPos = pos.relative(spread);
                  final BlockState neighborState = level.getBlockStateIfLoaded(neighborPos); // Paper - Prevent chunk loading from fluid flowing
                  if (neighborState == null) continue; // Paper - Prevent chunk loading from fluid flowing
@@ -27,7 +27,7 @@
                  // CraftBukkit start
                  org.bukkit.block.Block source = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
                  org.bukkit.event.block.BlockFromToEvent event = new org.bukkit.event.block.BlockFromToEvent(source, org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(spread));
-@@ -216,17 +_,83 @@
+@@ -215,17 +_,83 @@
          }
      }
  
@@ -113,7 +113,7 @@
                  if (fluidState.isSource()) {
                      neighbourSources++;
                  }
-@@ -239,19 +_,11 @@
+@@ -238,19 +_,11 @@
              BlockState belowState = level.getBlockState(mutablePos.setWithOffset(pos, Direction.DOWN));
              FluidState belowFluid = belowState.getFluidState();
              if (belowState.isSolid() || this.isSourceBlockOfThisType(belowFluid)) {
@@ -127,15 +127,15 @@
 -        FluidState aboveFluid = aboveState.getFluidState();
 -        if (!aboveFluid.isEmpty() && aboveFluid.getType().isSame(this) && canPassThroughWall(Direction.UP, level, pos, state, abovePos, aboveState)) {
 -            return this.getFlowing(8, true);
--        } else {
--            int amount = highestNeighbor - this.getDropOff(level);
--            return amount <= 0 ? Fluids.EMPTY.defaultFluidState() : this.getFlowing(amount, false);
 -        }
+-
+-        int amount = highestNeighbor - this.getDropOff(level);
+-        return amount <= 0 ? Fluids.EMPTY.defaultFluidState() : this.getFlowing(amount, false);
 +        return highestNeighbor; // Sakura - optimise new liquid level
      }
  
      // Paper start - fluid method optimisations
-@@ -433,7 +_,7 @@
+@@ -432,7 +_,7 @@
              if (testState == null) continue; // Paper - Prevent chunk loading from fluid flowing
              FluidState testFluidState = testState.getFluidState();
              if (this.canMaybePassThrough(level, pos, state, direction, testPos, testState, testFluidState)) {
@@ -144,7 +144,7 @@
                  if (canHoldSpecificFluid(level, testPos, testState, newFluid.getType())) {
                      if (context == null) {
                          context = new FlowingFluid.SpreadContext(level, pos);
-@@ -484,6 +_,13 @@
+@@ -483,6 +_,13 @@
      }
  
      private static boolean canHoldSpecificFluid(final BlockGetter level, final BlockPos pos, final BlockState state, final Fluid newFluid) {
@@ -158,7 +158,7 @@
          return !(state.getBlock() instanceof LiquidBlockContainer container) || container.canPlaceLiquid(null, level, pos, state, newFluid);
      }
  
-@@ -496,7 +_,7 @@
+@@ -495,7 +_,7 @@
      @Override
      public void tick(final ServerLevel level, final BlockPos pos, BlockState blockState, FluidState fluidState) {
          if (!fluidState.isSource()) {

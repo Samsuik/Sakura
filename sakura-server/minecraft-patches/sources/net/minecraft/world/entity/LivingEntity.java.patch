@@ -67,38 +67,38 @@
  
      protected LivingEntity(final EntityType<? extends LivingEntity> type, final Level level) {
          super(type, level);
-@@ -1528,8 +_,15 @@
-                         zd = Math.random() - Math.random();
-                     }
-                     // Paper end - Check distance in entity interactions
+@@ -1535,8 +_,15 @@
+                     zd = Math.random() - Math.random();
+                 }
+                 // Paper end - Check distance in entity interactions
 -
--                    this.knockback(0.4F, xd, zd, source.getDirectEntity(), source.getDirectEntity() == null ? io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.DAMAGE : io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK); // CraftBukkit // Paper - knockback events
-+                    // Sakura start - configure entity knockback
-+                    this.knockback(
-+                        (float) this.level().sakuraConfig().players.knockback.baseKnockback,
-+                        xd,
-+                        zd,
-+                        source.getDirectEntity(), // CraftBukkit
-+                        source.getDirectEntity() == null ? io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.DAMAGE : io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK // Paper - knockback events
-+                    );
-+                    // Sakura end - configure entity knockback
-                     if (!blocked) {
-                         this.indicateDamage(xd, zd);
-                     }
-@@ -1657,6 +_,12 @@
-             acos = (float) Math.PI;
+-                this.knockback(0.4F, xd, zd, source.getDirectEntity(), source.getDirectEntity() == null ? io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.DAMAGE : io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK); // CraftBukkit // Paper - knockback events
++                // Sakura start - configure entity knockback
++                this.knockback(
++                    (float) this.level().sakuraConfig().players.knockback.baseKnockback,
++                    xd,
++                    zd,
++                    source.getDirectEntity(), // CraftBukkit
++                    source.getDirectEntity() == null ? io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.DAMAGE : io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK // Paper - knockback events
++                );
++                // Sakura end - configure entity knockback
+                 if (!blocked) {
+                     this.indicateDamage(xd, zd);
+                 }
+@@ -1663,6 +_,12 @@
+             angle = (float) Math.PI;
          }
  
 +        // Sakura start - shield damage reduction & allow blocking with swords
 +        if (me.samsuik.sakura.player.combat.CombatUtil.overrideBlockingAndHalveDamage(this.getItemBlockingWith(), this)) {
-+            final boolean facingTowardsSource = acos <= (float) (Math.PI / 180.0) * 90.0;
-+            return facingTowardsSource ? damageAmount * 0.5f : 0.0f;
++            final boolean facingTowardsSource = angle <= (float) (Math.PI / 180.0) * 90.0;
++            return facingTowardsSource ? damage * 0.5f : 0.0f;
 +        }
 +        // Sakura end - shield damage reduction & allow blocking with swords
          BlocksAttacks blocksAttacks = this.getItemBlockingWith().get(DataComponents.BLOCKS_ATTACKS);
-         return blocksAttacks.resolveBlockedDamage(damageSource, damageAmount, acos);
+         return blocksAttacks.resolveBlockedDamage(source, damage, angle);
      }
-@@ -1723,7 +_,15 @@
+@@ -1729,7 +_,15 @@
      }
  
      protected void blockedByItem(final LivingEntity defender) {
@@ -115,7 +115,7 @@
      }
  
      private boolean checkTotemDeathProtection(final DamageSource killingDamage) {
-@@ -1879,6 +_,12 @@
+@@ -1885,6 +_,12 @@
  
              // Paper start
              if (this.dead) { // Paper
@@ -128,7 +128,7 @@
                  this.level().broadcastEntityEvent(this, EntityEvent.DEATH);
  
              this.setPose(Pose.DYING);
-@@ -2084,7 +_,7 @@
+@@ -2090,7 +_,7 @@
      }
  
      public void knockback(double power, double xd, double zd, @Nullable Entity attacker, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause eventCause) { // Paper - knockback events
@@ -137,7 +137,7 @@
          if (true || !(power <= 0.0)) { // CraftBukkit - Call event even when force is 0
              // this.needsSync = true; // CraftBukkit - Move down
              Vec3 deltaMovement = this.getDeltaMovement();
-@@ -2095,10 +_,18 @@
+@@ -2101,10 +_,18 @@
              }
  
              Vec3 deltaVector = new Vec3(xd, 0.0, zd).normalize().scale(power);
@@ -157,7 +157,7 @@
                  deltaMovement.z / 2.0 - deltaVector.z
              );
              Vec3 diff = finalVelocity.subtract(deltaMovement);
-@@ -2304,8 +_,14 @@
+@@ -2310,8 +_,14 @@
          this.currentImpulseImpactPos = null;
      }
  
@@ -171,9 +171,9 @@
 +        if (this.isFallDamageImmune()) {
 +            // Sakura end - configure iron golems taking fall damage
              return 0;
-         } else {
-             double baseDamage = this.calculateFallPower(fallDistance);
-@@ -2363,6 +_,11 @@
+         }
+ 
+@@ -2369,6 +_,11 @@
      protected float getDamageAfterArmorAbsorb(final DamageSource damageSource, float damage) {
          if (!damageSource.is(DamageTypeTags.BYPASSES_ARMOR)) {
              // this.hurtArmor(damageSource, damage); // CraftBukkit - actuallyHurt(DamageSource, float, EntityDamageEvent) for damage handling
@@ -185,7 +185,7 @@
              damage = CombatRules.getDamageAfterAbsorb(
                  this, damage, damageSource, this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
              );
-@@ -2525,6 +_,12 @@
+@@ -2533,6 +_,12 @@
                  armorDamage += (float)event.getDamage(DamageModifier.BLOCKING);
                  armorDamage += (float)event.getDamage(DamageModifier.FREEZING);
                  armorDamage += (float)event.getDamage(DamageModifier.HARD_HAT);
@@ -198,19 +198,19 @@
                  this.hurtArmor(source, armorDamage);
              }
  
-@@ -3611,6 +_,11 @@
+@@ -3620,6 +_,11 @@
                      if (this.level() instanceof ServerLevel serverLevel) {
-                         EnchantmentHelper.runLocationChangedEffects(serverLevel, current, this, slotx);
+                         EnchantmentHelper.runLocationChangedEffects(serverLevel, current, this, slot);
                      }
 +                    // Sakura start - legacy combat mechanics
-+                    if (this instanceof ServerPlayer && slotx == EquipmentSlot.MAINHAND) {
++                    if (this instanceof ServerPlayer && slot == EquipmentSlot.MAINHAND) {
 +                        this.updateAttackSpeedModifier();
 +                    }
 +                    // Sakura end - legacy combat mechanics
                  }
              }
  
-@@ -3811,7 +_,7 @@
+@@ -3820,7 +_,7 @@
              }
          }
          // Paper end - Add EntityMoveEvent
@@ -219,7 +219,7 @@
              this.hurtServer(serverLevel, this.damageSources().drown(), 1.0F);
          }
      }
-@@ -3881,7 +_,13 @@
+@@ -3890,7 +_,13 @@
          }
  
          int maxCramming = ((ServerLevel) this.level()).getGameRules().get(GameRules.MAX_ENTITY_CRAMMING);
@@ -234,13 +234,13 @@
              return;
          }
          // Paper end - don't run getEntities if we're not going to use its result
-@@ -3905,9 +_,9 @@
+@@ -3914,9 +_,9 @@
              }
  
              // Paper start - Cap entity collisions
 -            this.numCollisions = Math.max(0, this.numCollisions - this.level().paperConfig().collisions.maxEntityCollisions);
 +            this.numCollisions = Math.max(0, this.numCollisions - maxEntityCollisions); // Sakura - configure nerfed mobs pushing entities
-             for (Entity entityx : pushableEntities) {
+             for (Entity entity : pushableEntities) {
 -                if (this.numCollisions >= this.level().paperConfig().collisions.maxEntityCollisions) {
 +                if (this.numCollisions >= maxEntityCollisions) { // Sakura - configure nerfed mobs pushing entities
                      break;

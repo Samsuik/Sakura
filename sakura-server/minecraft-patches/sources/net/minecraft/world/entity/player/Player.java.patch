@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -184,6 +_,36 @@
+@@ -183,6 +_,36 @@
          return (org.bukkit.craftbukkit.entity.CraftHumanEntity) super.getBukkitEntity();
      }
      // CraftBukkit end
@@ -37,7 +37,7 @@
  
      public Player(final Level level, final GameProfile gameProfile) {
          super(EntityType.PLAYER, level);
-@@ -356,7 +_,7 @@
+@@ -359,7 +_,7 @@
          return new ItemCooldowns();
      }
  
@@ -46,7 +46,7 @@
          if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
              Pose desiredPose = this.getDesiredPose();
              Pose actualPose;
-@@ -699,6 +_,10 @@
+@@ -702,6 +_,10 @@
      public boolean isInvulnerableTo(final ServerLevel level, final DamageSource source) {
          if (super.isInvulnerableTo(level, source)) {
              return true;
@@ -57,9 +57,9 @@
          } else if (source.is(DamageTypeTags.IS_DROWNING)) {
              return !level.getGameRules().get(GameRules.DROWNING_DAMAGE);
          } else if (source.is(DamageTypeTags.IS_FALL)) {
-@@ -736,6 +_,12 @@
-                     }
-                 }
+@@ -743,6 +_,12 @@
+             }
+         }
  
 +                // Sakura start - configure the max damage a player can take
 +                final double maxDamage = level.sakuraConfig().players.combat.maxDamage.or(-1.0);
@@ -67,10 +67,10 @@
 +                    damage = Math.min(damage, (float) maxDamage);
 +                }
 +                // Sakura end - configure the max damage a player can take
-                 // return damage != 0.0F && super.hurtServer(level, source, damage);
-                 // CraftBukkit start - Don't filter out 0 damage
-                 boolean damaged = super.hurtServer(level, source, damage);
-@@ -1020,19 +_,28 @@
+         // return damage != 0.0F && super.hurtServer(level, source, damage);
+         // CraftBukkit start - Don't filter out 0 damage
+         boolean damaged = super.hurtServer(level, source, damage);
+@@ -1028,19 +_,28 @@
  
          if (playerAttackEntityEvent.callEvent() && willAttack) { // Logic moved to willAttack local variable.
          // Paper end - PlayerAttackEntityEvent
@@ -102,7 +102,7 @@
                          this.playServerSideSound(SoundEvents.PLAYER_ATTACK_KNOCKBACK);
                          knockbackAttack = true;
                      } else {
-@@ -1057,8 +_,11 @@
+@@ -1065,8 +_,11 @@
                      Vec3 oldMovement = entity.getDeltaMovement();
                      boolean wasHurt = entity.hurtOrSimulate(damageSource, totalDamage);
                      if (wasHurt) {
@@ -116,7 +116,7 @@
                              this.doSweepAttack(entity, baseDamage, damageSource, attackStrengthScale);
                          }
  
-@@ -1109,7 +_,7 @@
+@@ -1117,7 +_,7 @@
              && !this.isMobilityRestricted()
              && !this.isPassenger()
              && entity instanceof LivingEntity
@@ -125,7 +125,7 @@
      }
  
      private boolean isSweepAttack(final boolean fullStrengthAttack, final boolean criticalAttack, final boolean knockbackAttack) {
-@@ -1150,7 +_,7 @@
+@@ -1158,7 +_,7 @@
          if (entity instanceof LivingEntity) {
              float actualDamage = oldLivingEntityHealth - ((LivingEntity)entity).getHealth();
              this.awardStat(Stats.DAMAGE_DEALT, Math.round(actualDamage * 10.0F));
@@ -134,7 +134,7 @@
                  int count = (int)(actualDamage * 0.5);
                  ((ServerLevel)this.level())
                      .sendParticles(ParticleTypes.DAMAGE_INDICATOR, entity.getX(), entity.getY(0.5), entity.getZ(), count, 0.1, 0.0, 0.1, 0.2);
-@@ -1192,8 +_,32 @@
+@@ -1200,8 +_,32 @@
  
      @Override
      public void causeExtraKnockback(final Entity entity, final float knockbackAmount, final Vec3 oldMovement) {
@@ -168,7 +168,7 @@
                  livingTarget.knockback(knockbackAmount, Mth.sin(this.getYRot() * Mth.DEG_TO_RAD), -Mth.cos(this.getYRot() * Mth.DEG_TO_RAD), this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK); // Paper - knockback events
              } else {
                  entity.push(-Mth.sin(this.getYRot() * Mth.DEG_TO_RAD) * knockbackAmount, 0.1, Mth.cos(this.getYRot() * Mth.DEG_TO_RAD) * knockbackAmount, this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
-@@ -1252,7 +_,15 @@
+@@ -1260,7 +_,15 @@
                      nearby.lastDamageCancelled = false;
                      if (nearby.hurtServer(serverLevel, damageSource.knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK), enchantedDamage) && !nearby.lastDamageCancelled) {
                          // Paper end - Only apply knockback if the event is not canceled
@@ -185,7 +185,7 @@
                          EnchantmentHelper.doPostAttackEffects(serverLevel, nearby, damageSource);
                      }
                  }
-@@ -1281,6 +_,7 @@
+@@ -1289,6 +_,7 @@
          return 0.2F + attackStrengthScale * attackStrengthScale * 0.8F;
      }
  
@@ -193,7 +193,7 @@
      @Override
      public boolean stabAttack(
          final EquipmentSlot slot, final Entity target, float baseDamage, final boolean dealsDamage, final boolean dealsKnockback, final boolean dismounts
-@@ -1678,6 +_,11 @@
+@@ -1686,6 +_,11 @@
  
      // Paper start - send while respecting visibility
      private static void sendSoundEffect(Player fromEntity, double x, double y, double z, SoundEvent soundEffect, SoundSource soundCategory, float volume, float pitch) {
