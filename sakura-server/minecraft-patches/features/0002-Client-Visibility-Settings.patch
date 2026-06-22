@@ -95,10 +95,10 @@ index 0000000000000000000000000000000000000000..6450f2013eb71b956fcdfb2aa8ba0050
 +}
 diff --git a/me/samsuik/sakura/player/visibility/FilterOrModifyPackets.java b/me/samsuik/sakura/player/visibility/FilterOrModifyPackets.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9a56cd6efcf15ff70017508d9c95a3d804ae0ed5
+index 0000000000000000000000000000000000000000..3cc3b047cdd871e5f80ccd8b65c4b9fb0582f7bb
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/FilterOrModifyPackets.java
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,109 @@
 +package me.samsuik.sakura.player.visibility;
 +
 +import net.minecraft.network.protocol.Packet;
@@ -153,6 +153,8 @@ index 0000000000000000000000000000000000000000..9a56cd6efcf15ff70017508d9c95a3d8
 +            type = VisibilityTypes.SAND;
 +        } else if (entityType == EntityTypes.WIND_CHARGE || entityType == EntityTypes.BREEZE_WIND_CHARGE) {
 +            type = VisibilityTypes.WIND_CHARGE;
++        } else if (entityType == EntityTypes.SULFUR_CUBE) {
++            type = VisibilityTypes.SULFUR_CUBE;
 +        } else {
 +            return true;
 +        }
@@ -326,7 +328,7 @@ index 0000000000000000000000000000000000000000..5239478c397169f82206fcaefb77f71d
 +}
 diff --git a/me/samsuik/sakura/player/visibility/VisibilityGui.java b/me/samsuik/sakura/player/visibility/VisibilityGui.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3dca28b1533d128e87ea01f7baa558875db5afd5
+index 0000000000000000000000000000000000000000..84184ec247b1a2268a935f58f7ffd6440d35859c
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/VisibilityGui.java
 @@ -0,0 +1,100 @@
@@ -382,7 +384,7 @@ index 0000000000000000000000000000000000000000..3dca28b1533d128e87ea01f7baa55887
 +        final IntArrayFIFOQueue slots = this.availableSlots();
 +        this.updateToggleButton(settings, player, inventory);
 +
-+        for (final VisibilityType type : VisibilityTypes.types()) {
++        for (final VisibilityType type : VisibilityGuiItems.BUTTON_ORDER) {
 +            final VisibilityState state = settings.get(type);
 +            final int index = type.states().indexOf(state);
 +            final int slot = slots.dequeueInt();
@@ -421,7 +423,7 @@ index 0000000000000000000000000000000000000000..3dca28b1533d128e87ea01f7baa55887
 +        final IntArrayFIFOQueue slots = new IntArrayFIFOQueue();
 +        for (int row = 1; row < 4; ++row) {
 +            for (int column = 3; column < 6; ++column) {
-+                if (row == 1 || (column + row) % 2 == 0) {
++                if ((row % 2) == 1 || (column + row) % 2 == 0) {
 +                    slots.enqueue((row * 9) + column);
 +                }
 +            }
@@ -432,12 +434,13 @@ index 0000000000000000000000000000000000000000..3dca28b1533d128e87ea01f7baa55887
 +}
 diff --git a/me/samsuik/sakura/player/visibility/VisibilityGuiItems.java b/me/samsuik/sakura/player/visibility/VisibilityGuiItems.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6fdea0a5d22b5656fa79257074b0abab4808db8b
+index 0000000000000000000000000000000000000000..6dafd5095629ced8ef2ef9fffbf135ac7de85839
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/VisibilityGuiItems.java
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,69 @@
 +package me.samsuik.sakura.player.visibility;
 +
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 +import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 +import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 +import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
@@ -449,21 +452,34 @@ index 0000000000000000000000000000000000000000..6fdea0a5d22b5656fa79257074b0abab
 +import org.bukkit.inventory.ItemStack;
 +import org.jspecify.annotations.NullMarked;
 +
++import java.util.List;
 +import java.util.Locale;
 +
 +@NullMarked
 +public final class VisibilityGuiItems {
 +    static final Reference2ObjectMap<VisibilityType, ObjectImmutableList<ItemStack>> GUI_ITEMS = new Reference2ObjectOpenHashMap<>();
 +    static final Reference2ObjectMap<VisibilityState, ItemStack> TOGGLE_BUTTON_ITEMS = new Reference2ObjectOpenHashMap<>();
++    static final List<VisibilityType> BUTTON_ORDER = new ObjectArrayList<>();
 +
 +    static {
 +        final Reference2ObjectMap<VisibilityType, ItemStack> items = new Reference2ObjectOpenHashMap<>();
 +        items.put(VisibilityTypes.TNT, ItemStackUtil.itemWithName(Material.TNT, Component.text("Tnt", NamedTextColor.RED)));
 +        items.put(VisibilityTypes.WIND_CHARGE, ItemStackUtil.itemWithName(Material.WIND_CHARGE, Component.text("Wind Charge", NamedTextColor.GRAY)));
 +        items.put(VisibilityTypes.SAND, ItemStackUtil.itemWithName(Material.SAND, Component.text("Sand", NamedTextColor.YELLOW)));
++        items.put(VisibilityTypes.SULFUR_CUBE, ItemStackUtil.itemWithName(Material.SULFUR_BRICKS, Component.text("Sulfur Cube", NamedTextColor.YELLOW)));
 +        items.put(VisibilityTypes.EXPLOSIONS, ItemStackUtil.itemWithName(Material.COBWEB, Component.text("Explosions", NamedTextColor.WHITE)));
 +        items.put(VisibilityTypes.SPAWNERS, ItemStackUtil.itemWithName(Material.SPAWNER, Component.text("Spawners", NamedTextColor.DARK_GRAY)));
 +        items.put(VisibilityTypes.PISTONS, ItemStackUtil.itemWithName(Material.PISTON, Component.text("Pistons", NamedTextColor.GOLD)));
++
++        BUTTON_ORDER.addAll(List.of(
++            VisibilityTypes.TNT,
++            VisibilityTypes.WIND_CHARGE,
++            VisibilityTypes.SAND,
++            VisibilityTypes.SULFUR_CUBE,
++            VisibilityTypes.PISTONS,
++            VisibilityTypes.EXPLOSIONS,
++            VisibilityTypes.SPAWNERS
++        ));
 +
 +        for (final VisibilityType type : VisibilityTypes.types()) {
 +            final ItemStack item = items.get(type);
@@ -535,7 +551,7 @@ index 6e150beab056aefa785a5a8f0c89fe14c3bdb9a8..555c7c0b4feda269c96a227d4bf49913
                  if (visibleToPlayer && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
                      visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 575a319dbf47d65377280e79d72143324247d568..3d12d0c008a2c0b2f688ad857eb9cd12815b619e 100644
+index d31fe66b623c573d97bb7a82e5837ec9142ca01d..477430b01474f8d84fbe55060c7ba0bc5bb3f4c1 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2025,6 +2025,24 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -564,7 +580,7 @@ index 575a319dbf47d65377280e79d72143324247d568..3d12d0c008a2c0b2f688ad857eb9cd12
              }
          }
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index e386e24255df8d73ea137641f95f8742957436fe..c925fcd10258218c8b669ba67e0d296a1774257c 100644
+index 02e90ad1157babf23e1274e0eea9090de5bbc823..5809c0a50bb0e4a5221ca519260b5ceb78dfdcb0 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -472,6 +472,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc

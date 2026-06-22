@@ -12,6 +12,7 @@ public final class VisibilityTypes {
 
     public static final VisibilityType TNT = create("tnt", true);
     public static final VisibilityType WIND_CHARGE = create("wind_charge", true);
+    public static final VisibilityType SULFUR_CUBE = create("sulfur_cube", true);
     public static final VisibilityType SAND = create("sand", true);
     public static final VisibilityType EXPLOSIONS = create("explosions", true);
     public static final VisibilityType SPAWNERS = create("spawners", false);
