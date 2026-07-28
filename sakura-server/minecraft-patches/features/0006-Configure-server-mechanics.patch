@@ -1332,7 +1332,7 @@ index 162d7890f204315b0476467e757de5c9dd84aeca..d718bfb1714cb3a5554cecc4dc1ae0cf
                  PrimedTnt tnt = new PrimedTnt(level, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), null); // CraftBukkit
                  level.addFreshEntity(tnt);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 7e562db55edb18f1158998c759514983412fbe34..af3bad53d37574be54744e496ad888fdf65fd719 100644
+index 469f4858711bb8b19bf87bd7c7e31bee590acc49..8853e92ca64ec0e9b7b187eb74121de208946dff 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -559,6 +559,17 @@ public abstract class Entity
@@ -1560,7 +1560,7 @@ index 7e562db55edb18f1158998c759514983412fbe34..af3bad53d37574be54744e496ad888fd
                              try {
                                  boolean isPrecise = movedFar || deflatedBoundingBoxAtTarget.intersects(blockIntersection);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index c3ab6a065906cb1561bd4c804dfad4f5a765354a..e95bbaf2bda47c323bd42c12675c84369aa60e6b 100644
+index c3ab6a065906cb1561bd4c804dfad4f5a765354a..1eb8d60cd91d2f65f9b1d31a5f94667392c72d94 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -78,7 +78,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -1591,18 +1591,14 @@ index c3ab6a065906cb1561bd4c804dfad4f5a765354a..e95bbaf2bda47c323bd42c12675c8436
  
      public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
-@@ -166,6 +178,10 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
-         this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
-         this.cannonEntity = true; // Sakura - add cannon entity field
-         this.sakuraEntityController = level.sakuraEntityManager.createController(this); // Sakura - optimise cannon entities
+@@ -178,18 +190,33 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+         this.yo = y;
+         this.zo = z;
+         this.setStartPos(this.blockPosition());
 +        // Sakura start - configure server mechanics
 +        this.updateMechanicsTarget();
 +        this.eyeHeight = this.mechanicsTarget().isLegacy() ? 0.49f : this.eyeHeight;
 +        // Sakura end - configure server mechanics
-     }
- 
-     public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
-@@ -181,15 +197,26 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
      }
  
      public static FallingBlockEntity fall(final Level level, final BlockPos pos, final BlockState state) {
@@ -1858,7 +1854,7 @@ index 2a4c928281c7e455d6f210aeb599881855d328f8..3e52336853f1948cddb64e19b04746c4
                  return false;
              }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 74e87b4ad2cfa473af7c641bea371eaa6710bc96..3e1e09503023c0dff064b4bcca51688741a06b35 100644
+index 266023ae0fa1437a7ee1fe2e2d19196ed40d93ac..68233cbf5f120e17fd0349cb796e8614de1c5a34 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -847,6 +847,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
