@@ -81,6 +81,8 @@ public final class WorldConfiguration extends ConfigurationPart {
             @NestedSetting({"prevent-stacking", "world-height"})
             public boolean preventAtWorldHeight = false;
             public boolean dropItems = true;
+
+            public boolean replaceBlocksWithoutCollision = false;
         }
 
         public Explosion explosion = new Explosion();

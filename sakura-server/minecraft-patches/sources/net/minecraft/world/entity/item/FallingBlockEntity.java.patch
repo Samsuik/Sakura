@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -73,9 +_,41 @@
+@@ -73,9 +_,48 @@
      public boolean forceTickAfterTeleportToDuplicate;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
@@ -33,6 +33,13 @@
 +        return BlockPos.containing(this.getX(), this.getY() + 1.0e-12, this.getZ());
 +    }
 +    // Sakura end - fix falling block floating point errors
++    // Sakura start - replace blocks without collision
++    private boolean canReplaceBlock(final BlockState state) {
++        return this.level().sakuraConfig().cannons.sand.replaceBlocksWithoutCollision
++            && state.moonrise$emptyCollisionShape()
++            && this.getBlockStateOn().is(this.blockState.getBlock());
++    }
++    // Sakura end - replace blocks without collision
  
      public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
@@ -66,8 +73,11 @@
                      if ((this.time > 100 && this.autoExpire) && (pos.getY() <= this.level().getMinY() || pos.getY() > this.level().getMaxY()) || (this.time > 600 && this.autoExpire)) { // Paper - Expand FallingBlock API
                          if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
                              this.spawnAtLocation(serverLevel, block);
-@@ -202,7 +_,7 @@
+@@ -200,9 +_,10 @@
+                             boolean mayReplace = currentState.canBeReplaced(
+                                 new DirectionalPlaceContext(this.level(), pos, Direction.DOWN, ItemStack.EMPTY, Direction.UP)
                              );
++                            mayReplace = mayReplace || this.canReplaceBlock(currentState); // Sakura - replace blocks without collision
                              boolean wouldContinueFalling = FallingBlock.isFree(this.level().getBlockState(pos.below())) && (!isConcrete || !isStuckInWater);
                              boolean wouldSurvive = this.blockState.canSurvive(this.level(), pos) && !wouldContinueFalling;
 -                            if (mayReplace && wouldSurvive) {

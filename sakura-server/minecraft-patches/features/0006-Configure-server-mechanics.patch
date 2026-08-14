@@ -1560,7 +1560,7 @@ index 469f4858711bb8b19bf87bd7c7e31bee590acc49..8853e92ca64ec0e9b7b187eb74121de2
                              try {
                                  boolean isPrecise = movedFar || deflatedBoundingBoxAtTarget.intersects(blockIntersection);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index c3ab6a065906cb1561bd4c804dfad4f5a765354a..1eb8d60cd91d2f65f9b1d31a5f94667392c72d94 100644
+index bd48add57befd3ae38e8e609e9317e58926188ac..e085354a41927fe1905d12486f6b9e94006cb642 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -78,7 +78,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -1572,7 +1572,7 @@ index c3ab6a065906cb1561bd4c804dfad4f5a765354a..1eb8d60cd91d2f65f9b1d31a5f946673
      }
      // Sakura end - falling block height parity api
      // Sakura start - falling block stacking restrictions
-@@ -159,6 +159,18 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -166,6 +166,18 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          return this.sakura$collide(movement);
      }
      // Sakura end - optimise cannon entity movement
@@ -1591,7 +1591,7 @@ index c3ab6a065906cb1561bd4c804dfad4f5a765354a..1eb8d60cd91d2f65f9b1d31a5f946673
  
      public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
-@@ -178,18 +190,33 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -185,18 +197,33 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          this.yo = y;
          this.zo = z;
          this.setStartPos(this.blockPosition());
@@ -1627,7 +1627,7 @@ index c3ab6a065906cb1561bd4c804dfad4f5a765354a..1eb8d60cd91d2f65f9b1d31a5f946673
          level.addFreshEntity(entity);
          return entity;
      }
-@@ -233,7 +260,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -240,7 +267,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
  
      @Override
      protected double getDefaultGravity() {
@@ -1636,7 +1636,7 @@ index c3ab6a065906cb1561bd4c804dfad4f5a765354a..1eb8d60cd91d2f65f9b1d31a5f946673
      }
  
      @Override
-@@ -242,6 +269,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -249,6 +276,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
              Block block = this.blockState.getBlock();
@@ -1649,7 +1649,7 @@ index c3ab6a065906cb1561bd4c804dfad4f5a765354a..1eb8d60cd91d2f65f9b1d31a5f946673
              this.time++;
              this.applyGravity();
              this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -256,9 +289,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -263,9 +296,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              }
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
@@ -1665,7 +1665,7 @@ index c3ab6a065906cb1561bd4c804dfad4f5a765354a..1eb8d60cd91d2f65f9b1d31a5f946673
                      ? this.patchedBlockPosition()
                      : this.blockPosition();
                  // Sakura end - fix falling block floating point errors
-@@ -288,8 +326,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -295,8 +333,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
@@ -1681,7 +1681,7 @@ index c3ab6a065906cb1561bd4c804dfad4f5a765354a..1eb8d60cd91d2f65f9b1d31a5f946673
                          if (!this.cancelDrop) {
                              boolean mayReplace = currentState.canBeReplaced(
                                  new DirectionalPlaceContext(this.level(), pos, Direction.DOWN, ItemStack.EMPTY, Direction.UP)
-@@ -359,7 +402,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -367,7 +410,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                  }
              }
  
@@ -1854,7 +1854,7 @@ index 2a4c928281c7e455d6f210aeb599881855d328f8..3e52336853f1948cddb64e19b04746c4
                  return false;
              }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 266023ae0fa1437a7ee1fe2e2d19196ed40d93ac..68233cbf5f120e17fd0349cb796e8614de1c5a34 100644
+index e4e6133147accd82e94bd1c188f94c4f9cd716a4..dc8176645c89655e3f527ed6813fae5d3f3104af 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -847,6 +847,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

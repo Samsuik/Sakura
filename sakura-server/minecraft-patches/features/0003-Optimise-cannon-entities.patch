@@ -852,7 +852,7 @@ index 57eefeb78c500d6f306aa066e55ef5306511d2e7..7e3afb31103d3d83e7f50a7e79b8ee3f
          this.levelCallback.onRemove(reason);
          this.onRemoval(reason);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 637d811325bd4c2614281a7b087636db9270e537..a6d9e875afae199a96a548a43d8a544526d0a27a 100644
+index 1533a22a5756c3d4d2538a6b29da008696882c04..66735980e7ee2f9b8f2887a898763b5ef0e015f9 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -54,7 +54,7 @@ import net.minecraft.world.phys.Vec3;
@@ -864,10 +864,10 @@ index 637d811325bd4c2614281a7b087636db9270e537..a6d9e875afae199a96a548a43d8a5445
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final BlockState DEFAULT_BLOCK_STATE = Blocks.SAND.defaultBlockState();
      private static final int DEFAULT_TIME = 0;
-@@ -102,12 +102,64 @@ public class FallingBlockEntity extends Entity {
-         return BlockPos.containing(this.getX(), this.getY() + 1.0e-12, this.getZ());
+@@ -109,12 +109,64 @@ public class FallingBlockEntity extends Entity {
+             && this.getBlockStateOn().is(this.blockState.getBlock());
      }
-     // Sakura end - fix falling block floating point errors
+     // Sakura end - replace blocks without collision
 +    // Sakura start - optimise cannon entities
 +    private final me.samsuik.sakura.entity.SakuraEntityController sakuraEntityController;
 +
@@ -1176,7 +1176,7 @@ index c91adb74bfdc93c5e163b37f7517f530703f6ad5..0f952be087c52ba5de78d1f91aed1c16
          super(type, level);
      }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 77182637fe992d4f3f9d178fdfc82d6d20f68f88..26b44bcc6bdc55336c4feea1ad462a2fb45cb4b6 100644
+index 4d3122779a15521270630f46ee334f6d9f228084..17ed97203d10eb2b3119247ee1a467b8ad3006e0 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -845,6 +845,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
