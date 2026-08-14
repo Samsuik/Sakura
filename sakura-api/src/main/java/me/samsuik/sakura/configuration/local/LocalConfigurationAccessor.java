@@ -72,4 +72,12 @@ public interface LocalConfigurationAccessor {
     }
 
     List<BoundingBox> getAreas(final int x, final int y, final int z);
+
+    List<BoundingBox> getAllAreas();
+
+    default void removeAll(final int x, final int y, final int z) {
+        this.getAreas(x, y, z).forEach(this::remove);
+    }
+
+    void removeAll();
 }

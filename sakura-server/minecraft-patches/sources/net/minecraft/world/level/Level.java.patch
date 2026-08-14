@@ -20,8 +20,8 @@
 +    }
 +    // Sakura end - sakura configuration files
 +    // Sakura start - local config api
-+    private final me.samsuik.sakura.configuration.local.LocalConfiguration localConfig = new me.samsuik.sakura.configuration.local.LocalConfiguration(this);
-+    public final me.samsuik.sakura.configuration.local.LocalConfiguration localConfig() {
++    private final me.samsuik.sakura.configuration.local.LocalConfigurationManager localConfig;
++    public final me.samsuik.sakura.configuration.local.LocalConfigurationManager localConfig() {
 +        return this.localConfig;
 +    }
 +    // Sakura end - local config api
@@ -36,11 +36,12 @@
          java.util.concurrent.Executor executor // Paper - Anti-Xray
      ) {
          // Paper start - getblock optimisations - cache world height/sections
-@@ -853,6 +_,7 @@
+@@ -853,6 +_,8 @@
          final org.bukkit.NamespacedKey worldKey = CraftNamespacedKey.fromMinecraft(dimension.identifier()); // Paper
          this.spigotConfig = new org.spigotmc.SpigotWorldConfig(bukkitName, worldKey); // Spigot
          this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
 +        this.sakuraConfig = sakuraWorldConfigCreator.get(); // Sakura - sakura configuration files
++        this.localConfig = new me.samsuik.sakura.configuration.local.LocalConfigurationManager(this); // Sakura - local config api
          this.generator = generator;
          this.world = new CraftWorld((ServerLevel) this, worldKey, biomeProvider, environment);
  
