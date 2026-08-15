@@ -23,6 +23,7 @@ public final class ConfigurationKeys {
     public static final ConfigurationKey<Boolean> HEIGHT_PARITY = create("height_parity", Boolean.class);
     public static final ConfigurationKey<Boolean> FLOATING_POINT_FIX = create("floating_point_fix", Boolean.class);
     public static final ConfigurationKey<Boolean> BROKEN_PAPER_EXPLOSION_BEHAVIOUR = create("broken_paper_explosion_behaviour", Boolean.class);
+    public static final ConfigurationKey<Integer> HEIGHT_LIMIT = create("height_limit", Integer.class);
 
     private static <T> ConfigurationKey<T> create(final @KeyPattern.Value String name, final Class<T> clazz) {
         return new ConfigurationKey<>(Key.key("sakura", name), clazz);

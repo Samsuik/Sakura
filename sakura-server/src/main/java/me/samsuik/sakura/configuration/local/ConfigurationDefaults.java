@@ -16,6 +16,7 @@ public final class ConfigurationDefaults {
         container.set(ConfigurationKeys.HEIGHT_PARITY, level.sakuraConfig().cannons.mechanics.heightParity);
         container.set(ConfigurationKeys.FLOATING_POINT_FIX, level.sakuraConfig().cannons.mechanics.floatingPointFix);
         container.set(ConfigurationKeys.BROKEN_PAPER_EXPLOSION_BEHAVIOUR, level.sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(level));
+        container.set(ConfigurationKeys.HEIGHT_LIMIT, level.sakuraConfig().cannons.mechanics.heightLimit.or(Integer.MIN_VALUE));
         return container.seal();
     }
 }

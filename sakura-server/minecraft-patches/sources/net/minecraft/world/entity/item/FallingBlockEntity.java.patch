@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -74,8 +_,52 @@
+@@ -74,8 +_,55 @@
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
  
@@ -41,8 +41,11 @@
 +    @Override
 +    public final void sakura$addedToWorld() {
 +        final me.samsuik.sakura.configuration.local.CachedLocalConfiguration config = this.level().localConfig().at(this.blockPosition());
-+        this.heightParity = config.heightParity; // Sakura - falling block height parity
-+        this.floatingPointFix = config.floatingPointFix; // Sakura - fix falling block floating point errors
++        if (!this.heightParity) { // default
++            this.heightParity = config.heightParity;
++        }
++
++        this.floatingPointFix = config.floatingPointFix;
 +    }
 +    // Sakura end - configure cannon mechanics
 +

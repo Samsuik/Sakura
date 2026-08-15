@@ -24,6 +24,7 @@ public final class CachedLocalConfiguration {
     public final boolean heightParity;
     public final boolean floatingPointFix;
     public final boolean brokenPaperExplosionBehaviour;
+    public final int heightLimit;
 
     CachedLocalConfiguration(final long sectionKey, final ConfigurationContainer container) {
         this.sectionKey = sectionKey;
@@ -38,6 +39,7 @@ public final class CachedLocalConfiguration {
         this.heightParity = container.get(ConfigurationKeys.HEIGHT_PARITY);
         this.floatingPointFix = container.get(ConfigurationKeys.FLOATING_POINT_FIX);
         this.brokenPaperExplosionBehaviour = container.get(ConfigurationKeys.BROKEN_PAPER_EXPLOSION_BEHAVIOUR);
+        this.heightLimit = container.get(ConfigurationKeys.HEIGHT_LIMIT);
     }
 
     public WorldConfiguration.Misc.RedstoneImplementation paperRedstoneImplementation() {

@@ -852,7 +852,7 @@ index ba64032ba8da792b3f8134b199c2688f7d02207a..689c7e35b60bc716ea3e650684a8c3b5
          this.levelCallback.onRemove(reason);
          this.onRemoval(reason);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 08a7c90108581da958a7b41137dfa34b6e4d711a..0d7f3af1deb785aa41c03ad6809016bc9b40282c 100644
+index f133241f1e421af2690da38801bd467ff7222a95..e37a21cfc8ea0b7c1387ac1d7ef3419bd0297c9a 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -54,7 +54,7 @@ import net.minecraft.world.phys.Vec3;
@@ -864,8 +864,8 @@ index 08a7c90108581da958a7b41137dfa34b6e4d711a..0d7f3af1deb785aa41c03ad6809016bc
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final BlockState DEFAULT_BLOCK_STATE = Blocks.SAND.defaultBlockState();
      private static final int DEFAULT_TIME = 0;
-@@ -115,11 +115,63 @@ public class FallingBlockEntity extends Entity {
-         this.floatingPointFix = config.floatingPointFix; // Sakura - fix falling block floating point errors
+@@ -118,11 +118,63 @@ public class FallingBlockEntity extends Entity {
+         this.floatingPointFix = config.floatingPointFix;
      }
      // Sakura end - configure cannon mechanics
 +    // Sakura start - optimise cannon entities
@@ -929,7 +929,7 @@ index 08a7c90108581da958a7b41137dfa34b6e4d711a..0d7f3af1deb785aa41c03ad6809016bc
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 700592dcd3acd352a8304d0726550aabbd69d6cb..da4ea195d2283b428216ade70cda3a51fd8a9310 100644
+index 7a99ed348a3075cb9e2add368895199e33ff9170..0be565ad19e336a32a840b3e17bc781d77742a2c 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -36,7 +36,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
@@ -941,8 +941,8 @@ index 700592dcd3acd352a8304d0726550aabbd69d6cb..da4ea195d2283b428216ade70cda3a51
      private static final EntityDataAccessor<Integer> DATA_FUSE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.INT);
      private static final EntityDataAccessor<BlockState> DATA_BLOCK_STATE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.BLOCK_STATE);
      public static final short DEFAULT_FUSE_TIME = 80;
-@@ -75,11 +75,49 @@ public class PrimedTnt extends Entity implements TraceableEntity {
-         this.pushedByFluid = config.tntFlowsInWater;
+@@ -78,11 +78,49 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+         }
      }
      // Sakura end - configure cannon mechanics
 +    // Sakura start - optimise cannon entities
@@ -992,7 +992,7 @@ index 700592dcd3acd352a8304d0726550aabbd69d6cb..da4ea195d2283b428216ade70cda3a51
  
      public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
 diff --git a/net/minecraft/world/entity/monster/cubemob/SulfurCube.java b/net/minecraft/world/entity/monster/cubemob/SulfurCube.java
-index 8951caaf944a988520c8c9ae1ca290cc65c4f709..8559ff57686809a8f089b9d9a42084e541ae5b30 100644
+index e22fdfb391faa3610fc84a8c0aa7ee04bfc8e706..c7356fbf10caf21e2117d6f9a46937d75da1e255 100644
 --- a/net/minecraft/world/entity/monster/cubemob/SulfurCube.java
 +++ b/net/minecraft/world/entity/monster/cubemob/SulfurCube.java
 @@ -77,7 +77,7 @@ import net.minecraft.world.phys.Vec2;
@@ -1004,8 +1004,8 @@ index 8951caaf944a988520c8c9ae1ca290cc65c4f709..8559ff57686809a8f089b9d9a42084e5
      public static final int SPLIT_COUNT = 2;
      public static final int MAX_SIZE = 2;
      public static final int MIN_SIZE = 1;
-@@ -117,11 +117,53 @@ public class SulfurCube extends AbstractCubeMob implements Bucketable, Shearable
-         this.heightParity = this.level().localConfig().at(this.blockPosition()).heightParity;
+@@ -120,11 +120,53 @@ public class SulfurCube extends AbstractCubeMob implements Bucketable, Shearable
+         }
      }
      // Sakura end - sulfur cube height parity
 +    // Sakura start - optimise cannon entities
@@ -1058,7 +1058,7 @@ index 8951caaf944a988520c8c9ae1ca290cc65c4f709..8559ff57686809a8f089b9d9a42084e5
      }
  
      @Override
-@@ -436,7 +478,14 @@ public class SulfurCube extends AbstractCubeMob implements Bucketable, Shearable
+@@ -439,7 +481,14 @@ public class SulfurCube extends AbstractCubeMob implements Bucketable, Shearable
              this.soundSettings = SulfurCubeArchetype.DEFAULT_SOUND_SETTINGS;
              this.cannonEntity = false; // Sakura - add cannon entity field
  
@@ -1074,7 +1074,7 @@ index 8951caaf944a988520c8c9ae1ca290cc65c4f709..8559ff57686809a8f089b9d9a42084e5
                  if (archetype.buoyant()) {
                      this.floatsInLiquids = true;
                  }
-@@ -898,6 +947,7 @@ public class SulfurCube extends AbstractCubeMob implements Bucketable, Shearable
+@@ -901,6 +950,7 @@ public class SulfurCube extends AbstractCubeMob implements Bucketable, Shearable
      @Override
      public void knockback(final double power, double xd, double zd, final DamageSource source, final float damage, final boolean comesFromEffect, @Nullable Entity attacker, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause eventCause) { // Paper - knockback events
          if (source.getEntity() != null && this.hasBodyItem()) {

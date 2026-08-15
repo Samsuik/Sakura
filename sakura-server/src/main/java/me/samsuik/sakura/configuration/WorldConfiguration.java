@@ -125,6 +125,7 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean tntFlowsInWater = true;
             public boolean heightParity = false;
             public boolean floatingPointFix = false;
+            public IntOr.Disabled heightLimit = IntOr.Disabled.DISABLED;
             public MinecraftMechanicsTarget mechanicsTarget = MinecraftMechanicsTarget.latest();
 
             @Comment(
