@@ -1,6 +1,21 @@
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -67,6 +_,7 @@
+@@ -64,9 +_,22 @@
+     public float explosionPower = 4.0F;
+     public boolean isIncendiary = false; // CraftBukkit
+ 
++    // Sakura start - configure cannon mechanics
++    @Override
++    public final void sakura$addedToWorld() {
++        final me.samsuik.sakura.configuration.local.CachedLocalConfiguration config = this.level().localConfig().at(this.blockPosition());
++        switch (config.tntSpread) {
++            case NONE -> this.setDeltaMovement(0.0, 0.0, 0.0);
++            case Y -> this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 0.0));
++        }
++        this.pushedByFluid = config.tntFlowsInWater;
++    }
++    // Sakura end - configure cannon mechanics
++
      public PrimedTnt(final EntityType<? extends PrimedTnt> type, final Level level) {
          super(type, level);
          this.blocksBuilding = true;
@@ -8,20 +23,6 @@
      }
  
      public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
-@@ -79,6 +_,13 @@
-         this.yo = y;
-         this.zo = z;
-         this.owner = EntityReference.of(owner);
-+        // Sakura start - configure tnt spread
-+        switch (level.localConfig().at(this.blockPosition()).tntSpread) {
-+            case NONE -> this.setDeltaMovement(0.0, 0.0, 0.0);
-+            case Y -> this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 0.0));
-+        }
-+        // Sakura end - configure tnt spread
-+        this.pushedByFluid = level.localConfig().at(this.blockPosition()).tntFlowsInWater; // Sakura - configure tnt flowing in water
-     }
- 
-     @Override
 @@ -104,7 +_,7 @@
  
      @Override

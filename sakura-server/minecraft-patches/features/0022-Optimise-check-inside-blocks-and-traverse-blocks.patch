@@ -5,10 +5,10 @@ Subject: [PATCH] Optimise check inside blocks and traverse blocks
 
 
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 980091e75371812894d458a172301b88554ecb06..9e504197f8e445eb9170ea4bf8277a8b01b12292 100644
+index 555f63ecf6ce7ec5ec2b26830f27d1d65a7537ae..9ea64591f42799a01468ca3ad8890c9b38163433 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -2077,6 +2077,7 @@ public abstract class Entity
+@@ -2074,6 +2074,7 @@ public abstract class Entity
          if (this.isAffectedByBlocks()) {
              LongSet visitedBlocks = this.visitedBlocks;
              final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget; // Sakura - configure server mechanics
@@ -16,7 +16,7 @@ index 980091e75371812894d458a172301b88554ecb06..9e504197f8e445eb9170ea4bf8277a8b
  
              for (Entity.Movement movement : movements) {
                  Vec3 pos = movement.from;
-@@ -2094,7 +2095,7 @@ public abstract class Entity
+@@ -2091,7 +2092,7 @@ public abstract class Entity
                          double axisMove = delta.get(axis);
                          if (axisMove != 0.0) {
                              Vec3 to = pos.relative(axis.getPositive(), axisMove);
@@ -25,7 +25,7 @@ index 980091e75371812894d458a172301b88554ecb06..9e504197f8e445eb9170ea4bf8277a8b
                              if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_9)) {
                                  maxMovementIterations -= stepsTaken;
                              }
-@@ -2102,12 +2103,12 @@ public abstract class Entity
+@@ -2099,12 +2100,12 @@ public abstract class Entity
                          }
                      }
                  } else if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_2)) {
@@ -40,7 +40,7 @@ index 980091e75371812894d458a172301b88554ecb06..9e504197f8e445eb9170ea4bf8277a8b
                  }
              }
  
-@@ -2120,7 +2121,8 @@ public abstract class Entity
+@@ -2117,7 +2118,8 @@ public abstract class Entity
          final Vec3 to,
          final InsideBlockEffectApplier.StepBasedCollector effectCollector,
          final LongSet visitedBlocks,
@@ -50,7 +50,7 @@ index 980091e75371812894d458a172301b88554ecb06..9e504197f8e445eb9170ea4bf8277a8b
      ) {
          // Sakura start - configure server mechanics
          final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
-@@ -2154,7 +2156,20 @@ public abstract class Entity
+@@ -2151,7 +2153,20 @@ public abstract class Entity
                  }
  
                  iterations.set(iteration);

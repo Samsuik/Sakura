@@ -1,5 +1,26 @@
 --- a/net/minecraft/world/entity/monster/cubemob/SulfurCube.java
 +++ b/net/minecraft/world/entity/monster/cubemob/SulfurCube.java
+@@ -104,6 +_,20 @@
+     private static final float EXTRA_KNOCKBACK_DAMPENING = 0.25F;
+     private static final Predicate<ItemEntity> ALLOWED_ITEMS = e -> !e.hasPickUpDelay() && e.isAlive() && isSwallowableItem(e.getItem());
+ 
++    // Sakura start - sulfur cube height parity
++    public boolean heightParity;
++
++    @Override
++    public double getEyeY() {
++        return this.heightParity ? this.getY() : super.getEyeY();
++    }
++
++    @Override
++    public final void sakura$addedToWorld() {
++        this.heightParity = this.level().localConfig().at(this.blockPosition()).heightParity;
++    }
++    // Sakura end - sulfur cube height parity
++
+     public SulfurCube(final EntityType<? extends SulfurCube> type, final Level level) {
+         super(type, level);
+         this.lookControl = new SulfurCube.SulfurCubeLookControl();
 @@ -420,6 +_,7 @@
              this.contactDamages.clear();
              this.knockbackModifier = SulfurCubeArchetype.DEFAULT_KNOCKBACK_MODIFIERS;
