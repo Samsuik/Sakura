@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/block/DispenserBlock.java
++++ b/net/minecraft/world/level/block/DispenserBlock.java
+@@ -139,7 +_,10 @@
+         boolean shouldTrigger = level.hasNeighborSignal(pos) || level.hasNeighborSignal(pos.above());
+         boolean isTriggered = state.getValue(TRIGGERED);
+         if (shouldTrigger && !isTriggered) {
+-            level.scheduleTick(pos, this, 4);
++            // Sakura start - pre dispense event
++            final int delay = me.samsuik.sakura.event.SakuraEvents.preDispense(level, pos, TRIGGER_DURATION);
++            level.scheduleTick(pos, this, delay);
++            // Sakura end - pre dispense event
+             level.setBlock(pos, state.setValue(TRIGGERED, true), Block.UPDATE_CLIENTS);
+         } else if (!shouldTrigger && isTriggered) {
+             level.setBlock(pos, state.setValue(TRIGGERED, false), Block.UPDATE_CLIENTS);
