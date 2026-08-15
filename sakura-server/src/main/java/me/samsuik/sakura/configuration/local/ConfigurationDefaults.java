@@ -13,8 +13,8 @@ public final class ConfigurationDefaults {
         container.set(ConfigurationKeys.MERGE_LEVEL, level.sakuraConfig().cannons.mergeLevel);
         container.set(ConfigurationKeys.TNT_SPREAD, level.sakuraConfig().cannons.mechanics.tntSpread);
         container.set(ConfigurationKeys.TNT_FLOWS_IN_WATER, level.sakuraConfig().cannons.mechanics.tntFlowsInWater);
-        container.set(ConfigurationKeys.HEIGHT_PARITY, level.sakuraConfig().cannons.mechanics.fallingBlockParity);
-        container.set(ConfigurationKeys.FLOATING_POINT_FIX, level.sakuraConfig().cannons.mechanics.fallingBlockFloatingPointFix);
+        container.set(ConfigurationKeys.HEIGHT_PARITY, level.sakuraConfig().cannons.mechanics.heightParity);
+        container.set(ConfigurationKeys.FLOATING_POINT_FIX, level.sakuraConfig().cannons.mechanics.floatingPointFix);
         container.set(ConfigurationKeys.BROKEN_PAPER_EXPLOSION_BEHAVIOUR, level.sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(level));
         return container.seal();
     }

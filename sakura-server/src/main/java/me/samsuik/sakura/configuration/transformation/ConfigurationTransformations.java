@@ -34,6 +34,7 @@ public final class ConfigurationTransformations {
         V10_DurableMaterialOnlyDamagedByTnt.apply(versionedBuilder);
         V11_RemovePhysicsVersion.apply(versionedBuilder);
         V12_RenameUseBlockCacheAcrossExplosions.apply(versionedBuilder);
+        V13_CleanupConfigNames.apply(versionedBuilder);
         // ADD FUTURE VERSIONED TRANSFORMS TO versionedBuilder HERE
         versionedBuilder.build().apply(node);
     }
@@ -66,6 +67,10 @@ public final class ConfigurationTransformations {
             }
             return null;
         };
+    }
+
+    public static TransformAction flip() {
+        return newValue(node -> !node.getBoolean());
     }
 
     public static TransformAction move(final NodePath path) {
