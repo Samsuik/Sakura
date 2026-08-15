@@ -27,6 +27,20 @@
              if (this.spawnDelay < -tickDelay) { // Paper - Configurable mob spawner tick rate
                  this.delay(level, pos);
              }
+@@ -103,6 +_,13 @@
+             if (this.spawnDelay > 0) {
+                 this.spawnDelay -= tickDelay; // Paper - Configurable mob spawner tick rate
+             } else {
++                // Sakura start - pre spawner tick event
++                if (!me.samsuik.sakura.event.SakuraEvents.preSpawnerTick(pos, level)) {
++                    this.delay(level, pos);
++                    return;
++                }
++                // Sakura end - pre spawner tick event
++
+                 boolean delay = false;
+                 RandomSource random = level.getRandom();
+                 SpawnData nextSpawnData = this.getOrCreateNextSpawnData(level, random, pos);
 @@ -135,7 +_,7 @@
                                  if (!customSpawnRules.isValidPosition(spawnBlockPos, level)) {
                                      continue;
