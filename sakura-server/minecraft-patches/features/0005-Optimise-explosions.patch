@@ -395,10 +395,10 @@ index 0000000000000000000000000000000000000000..ebd6c04e276b607077545f197bf326a7
 +}
 diff --git a/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e5ed59be7d9be36f5de09cd4bcd6c773be9e7721
+index 0000000000000000000000000000000000000000..ad5cf60b4a865c6089bf2dbca0325e717fdffa65
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
-@@ -0,0 +1,506 @@
+@@ -0,0 +1,520 @@
 +package me.samsuik.sakura.explosion.specialised;
 +
 +import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
@@ -550,9 +550,16 @@ index 0000000000000000000000000000000000000000..e5ed59be7d9be36f5de09cd4bcd6c773
 +
 +                // The source velocity has to be calculated before nextExplosion as it clears the blockCache
 +                this.impactEntity(explodingEntity, this.center, 1, doubleRadius);
-+
 +                this.nextExplosion(blocksToExplode, destroyedBlocks);
-+                this.tickExplodableEntity(explodingEntity, doubleRadius, destroyedBlocks);
++
++                if (!this.tickExplodableEntity(explodingEntity, doubleRadius, destroyedBlocks)) {
++                    if (!this.bufferedExplosions.isEmpty()) {
++                        this.bufferedExplosions.removeLast();
++                    }
++
++                    this.locateAndImpactEntitiesInBounds(doubleRadius);
++                    return 0;
++                }
 +            }
 +        }
 +
@@ -645,7 +652,7 @@ index 0000000000000000000000000000000000000000..e5ed59be7d9be36f5de09cd4bcd6c773
 +        }
 +    }
 +
-+    private void tickExplodableEntity(final E explodableEntity, final double doubleRadius, final boolean destroyedBlocks) {
++    private boolean tickExplodableEntity(final E explodableEntity, final double doubleRadius, final boolean destroyedBlocks) {
 +        final SakuraEntityController controller = explodableEntity.getSakuraEntityController();
 +        final Vec3 oldMovement = controller.getEntityState().movement();
 +        final boolean hasMoved;
@@ -666,6 +673,11 @@ index 0000000000000000000000000000000000000000..e5ed59be7d9be36f5de09cd4bcd6c773
 +        if (destroyedBlocks || hasMoved) {
 +            this.preventEntityExploding(explodableEntity);
 +            controller.tickEntity();
++
++            if (explodableEntity.isRemoved()) {
++                return false;
++            }
++
 +            this.center = this.explosionPosition(explodableEntity);
 +            this.moved |= !this.center.equals(this.originalPosition);
 +        }
@@ -679,6 +691,8 @@ index 0000000000000000000000000000000000000000..e5ed59be7d9be36f5de09cd4bcd6c773
 +        } else {
 +            this.swinging = ALL_DIRECTIONS;
 +        }
++
++        return true;
 +    }
 +
 +    private void impactEntity(final Entity entity, final Vec3 explosionPos, final int potential, final double doubleRadius) {
