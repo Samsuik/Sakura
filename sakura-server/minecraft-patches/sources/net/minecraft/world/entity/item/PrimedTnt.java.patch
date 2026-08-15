@@ -8,16 +8,17 @@
      }
  
      public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
-@@ -79,6 +_,12 @@
+@@ -79,6 +_,13 @@
          this.yo = y;
          this.zo = z;
          this.owner = EntityReference.of(owner);
-+        // Sakura start - configure cannon mechanics
-+        switch (level.sakuraConfig().cannons.mechanics.tntSpread) {
++        // Sakura start - configure tnt spread
++        switch (level.localConfig().at(this.blockPosition()).tntSpread) {
 +            case NONE -> this.setDeltaMovement(0.0, 0.0, 0.0);
 +            case Y -> this.setDeltaMovement(this.getDeltaMovement().multiply(0.0, 1.0, 0.0));
 +        }
-+        // Sakura end - configure cannon mechanics
++        // Sakura end - configure tnt spread
++        this.pushedByFluid = level.localConfig().at(this.blockPosition()).tntFlowsInWater; // Sakura - configure tnt flowing in water
      }
  
      @Override
@@ -48,12 +49,3 @@
              this.hurtMarked = true;
              this.needsSync = true;
          }
-@@ -241,7 +_,7 @@
-     // Paper start - Option to prevent TNT from moving in water
-     @Override
-     public boolean isPushedByFluid() {
--        return !this.level().paperConfig().fixes.preventTntFromMovingInWater && super.isPushedByFluid();
-+        return !this.level().paperConfig().fixes.preventTntFromMovingInWater && this.level().sakuraConfig().cannons.mechanics.tntFlowsInWater  && super.isPushedByFluid(); // Sakura - configure cannon mechanics
-     }
-     // Paper end - Option to prevent TNT from moving in water
- }

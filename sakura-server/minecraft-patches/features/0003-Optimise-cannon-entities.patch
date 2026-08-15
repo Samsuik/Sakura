@@ -852,7 +852,7 @@ index 57eefeb78c500d6f306aa066e55ef5306511d2e7..7e3afb31103d3d83e7f50a7e79b8ee3f
          this.levelCallback.onRemove(reason);
          this.onRemoval(reason);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 1533a22a5756c3d4d2538a6b29da008696882c04..66735980e7ee2f9b8f2887a898763b5ef0e015f9 100644
+index 3e730b0a314b3352f4260717510c258242a2d2c8..4f7cd3f14b65daa3f253b23356096a4d4a5f9cc4 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -54,7 +54,7 @@ import net.minecraft.world.phys.Vec3;
@@ -864,10 +864,10 @@ index 1533a22a5756c3d4d2538a6b29da008696882c04..66735980e7ee2f9b8f2887a898763b5e
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final BlockState DEFAULT_BLOCK_STATE = Blocks.SAND.defaultBlockState();
      private static final int DEFAULT_TIME = 0;
-@@ -109,12 +109,64 @@ public class FallingBlockEntity extends Entity {
+@@ -108,11 +108,63 @@ public class FallingBlockEntity extends Entity {
              && this.getBlockStateOn().is(this.blockState.getBlock());
      }
-     // Sakura end - replace blocks without collision
+     // Sakura end
 +    // Sakura start - optimise cannon entities
 +    private final me.samsuik.sakura.entity.SakuraEntityController sakuraEntityController;
 +
@@ -923,14 +923,13 @@ index 1533a22a5756c3d4d2538a6b29da008696882c04..66735980e7ee2f9b8f2887a898763b5e
      public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
          this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
-         this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
          this.cannonEntity = true; // Sakura - add cannon entity field
 +        this.sakuraEntityController = level.sakuraEntityManager.createController(this); // Sakura - optimise cannon entities
      }
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 04f8b7435b1d316d19d5a70aa9fafab9515c67a3..ae3cb9d612b3a21d3275c6be990931f09094d58f 100644
+index cd23ac7a04c9c5eb57511f351953c92d0cc30b91..0afabd565c4aa951712fb6b18ba7511ef0924c04 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -36,7 +36,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;

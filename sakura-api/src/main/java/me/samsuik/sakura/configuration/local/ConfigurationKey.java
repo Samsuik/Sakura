@@ -1,5 +1,7 @@
 package me.samsuik.sakura.configuration.local;
 
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.key.Keyed;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -7,7 +9,7 @@ import org.jspecify.annotations.Nullable;
  * A key for a configurable value.
  */
 @NullMarked
-public record ConfigurationKey<T>(Class<T> expectedType) {
+public record ConfigurationKey<T>(Key key, Class<T> expectedType) implements Keyed {
     public T validate(@Nullable final Object value) {
         final T casted = this.conform(value);
         if (casted == null) {

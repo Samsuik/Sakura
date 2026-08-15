@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
-@@ -54,6 +_,7 @@
+@@ -54,6 +_,8 @@
      public float yield;
      // CraftBukkit end
      public boolean excludeSourceFromDamage = true; // Paper - Allow explosions to damage source
 +    private final boolean consistentExplosionRadius; // Sakura - consistent explosion radius
++    protected final boolean brokenPaperBehaviour; // Sakura - broken paper explosion behaviour
      // Paper start - collisions optimisations
      private static final double[] CACHED_RAYS;
      static {
@@ -17,11 +18,12 @@
                                                                                                      final long key, final boolean calculateResistance) {
          ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache ret = this.blockCache.get(key);
          if (ret != null) {
-@@ -320,6 +_,7 @@
+@@ -320,6 +_,8 @@
          this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F;
          this.yield = Double.isFinite(this.yield) ? this.yield : 0; // Paper - Don't allow infinite default yields
          // Paper end - add yield
 +        this.consistentExplosionRadius = level.localConfig().at(this.center).consistentExplosionRadius; // Sakura - consistent explosion radius
++        this.brokenPaperBehaviour = level.localConfig().at(this.center).brokenPaperExplosionBehaviour; // Sakura - broken paper explosion behaviour
      }
  
      private ExplosionDamageCalculator makeDamageCalculator(final @Nullable Entity source) {
@@ -61,7 +63,7 @@
      // Paper start - Optimize explosions
      protected float getBlockDensity(Vec3 vec3d, Entity entity) {
 -        if (!this.level.paperConfig().environment.optimizeExplosions) {
-+        if (!this.level.sakuraConfig().cannons.mechanics.useBrokenPaperExplosionBehaviour(this.level)) {
++        if (!this.brokenPaperBehaviour) { // Sakura - broken paper explosion behaviour
              return this.getSeenFraction(vec3d, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
          }
          CacheKey key = new CacheKey(this, entity.getBoundingBox());

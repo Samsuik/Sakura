@@ -9,6 +9,7 @@ import io.papermc.paper.configuration.type.number.DoubleOr;
 import io.papermc.paper.configuration.type.number.IntOr;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import me.samsuik.sakura.SakuraFeatureHooks;
+import me.samsuik.sakura.entity.TntSpread;
 import me.samsuik.sakura.entity.merge.MergeLevel;
 import me.samsuik.sakura.explosion.durable.DurableMaterial;
 import me.samsuik.sakura.mechanics.MinecraftMechanicsTarget;
@@ -125,7 +126,7 @@ public final class WorldConfiguration extends ConfigurationPart {
 
         public Mechanics mechanics = new Mechanics();
         public final class Mechanics extends ConfigurationPart {
-            public TNTSpread tntSpread = TNTSpread.ALL;
+            public TntSpread tntSpread = TntSpread.ALL;
             public boolean tntFlowsInWater = true;
             public boolean fallingBlockParity = false;
             public MinecraftMechanicsTarget mechanicsTarget = MinecraftMechanicsTarget.latest();
@@ -140,10 +141,6 @@ public final class WorldConfiguration extends ConfigurationPart {
             public boolean useBrokenPaperExplosionBehaviour(final Level level) {
                 return level.paperConfig().environment.optimizeExplosions && this.mechanicsTarget.isLegacy()
                     || this.brokenPaperExplosionBehaviour;
-            }
-
-            public enum TNTSpread {
-                ALL, Y, NONE;
             }
         }
     }

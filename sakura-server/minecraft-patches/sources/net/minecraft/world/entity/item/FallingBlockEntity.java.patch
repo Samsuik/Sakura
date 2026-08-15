@@ -1,18 +1,18 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -73,9 +_,48 @@
-     public boolean forceTickAfterTeleportToDuplicate;
+@@ -74,8 +_,45 @@
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
-+    public boolean heightParity; // Sakura - falling block height parity api
+ 
++    // Sakura start
++    public boolean heightParity;
++    public boolean floatingPointFix;
 +
-+    // Sakura start - falling block height parity api
 +    @Override
 +    public double getEyeY() {
 +        return this.heightParity ? this.getY() : super.getEyeY();
 +    }
-+    // Sakura end - falling block height parity api
-+    // Sakura start - falling block stacking restrictions
++
 +    private static boolean isFallingBlockInBounds(final Level level, final BlockPos pos) {
 +        // Prevent stacking one block below build limit
 +        if (level.sakuraConfig().cannons.sand.preventAtWorldHeight && pos.getY() >= level.getMaxY() - 1) {
@@ -24,42 +24,44 @@
 +        return !level.sakuraConfig().cannons.sand.preventAgainstBorder
 +            || level.getWorldBorder().isWithinBounds(center.x(), center.z(), -1.0);
 +    }
-+    // Sakura end - falling block stacking restrictions
-+    // Sakura start - fix falling block floating point errors
++
 +    private BlockPos patchedBlockPosition() {
 +        // Mitigates MC-261789 - falling blocks breaking when landing on a block below y 0
 +        // This fix allows some tech that uses "indirect clipping" to still function.
 +        // L stackers and midairs may still encounter issues if they shoot too high.
 +        return BlockPos.containing(this.getX(), this.getY() + 1.0e-12, this.getZ());
 +    }
-+    // Sakura end - fix falling block floating point errors
-+    // Sakura start - replace blocks without collision
++
 +    private boolean canReplaceBlock(final BlockState state) {
 +        return this.level().sakuraConfig().cannons.sand.replaceBlocksWithoutCollision
 +            && state.moonrise$emptyCollisionShape()
 +            && this.getBlockStateOn().is(this.blockState.getBlock());
 +    }
-+    // Sakura end - replace blocks without collision
- 
++    // Sakura end
++
      public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
 +        this.dropItem = level.sakuraConfig().cannons.sand.dropItems; // Sakura - configure falling blocks dropping items
-+        this.heightParity = level.sakuraConfig().cannons.mechanics.fallingBlockParity; // Sakura - configure cannon mechanics
 +        this.cannonEntity = true; // Sakura - add cannon entity field
      }
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
-@@ -167,8 +_,12 @@
+@@ -88,6 +_,8 @@
+         this.yo = y;
+         this.zo = z;
+         this.setStartPos(this.blockPosition());
++        this.heightParity = level.localConfig().at(this.blockPosition()).heightParity; // Sakura - falling block height parity
++        this.floatingPointFix = level.localConfig().at(this.blockPosition()).floatingPointFix; // Sakura - fix falling block floating point errors
+     }
+ 
+     public static FallingBlockEntity fall(final Level level, final BlockPos pos, final BlockState state) {
+@@ -167,8 +_,8 @@
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
 -                BlockPos pos = this.blockPosition();
 -                boolean isConcrete = this.blockState.getBlock() instanceof ConcretePowderBlock;
-+                // Sakura start - fix falling block floating point errors
-+                BlockPos pos = serverLevel.sakuraConfig().cannons.mechanics.fallingBlockFloatingPointFix
-+                    ? this.patchedBlockPosition()
-+                    : this.blockPosition();
-+                // Sakura end - fix falling block floating point errors
++                BlockPos pos = this.floatingPointFix ? this.patchedBlockPosition() : this.blockPosition(); // Sakura - fix falling block floating point errors
 +                boolean isConcrete = serverLevel.sakuraConfig().cannons.sand.concreteSolidifyInWater && this.blockState.getBlock() instanceof ConcretePowderBlock; // Sakura - configure concrete solidifying in water
                  boolean isStuckInWater = isConcrete && this.level().getFluidState(pos).is(FluidTags.WATER);
                  double moveVec = this.getDeltaMovement().lengthSqr();
