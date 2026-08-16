@@ -1332,10 +1332,10 @@ index 162d7890f204315b0476467e757de5c9dd84aeca..d718bfb1714cb3a5554cecc4dc1ae0cf
                  PrimedTnt tnt = new PrimedTnt(level, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), null); // CraftBukkit
                  level.addFreshEntity(tnt);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120b51b934d 100644
+index c5a58a1c0b5d239797c2dd1198360dd2d172fc94..1c244706c443e6c9d5d1126b0a0c5a28034aeea9 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -560,6 +560,13 @@ public abstract class Entity
+@@ -561,6 +561,13 @@ public abstract class Entity
          return this.deltaMovement;
      }
      // Sakura end - optimise cannon entities
@@ -1349,7 +1349,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
  
      public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -1112,7 +1119,7 @@ public abstract class Entity
+@@ -1113,7 +1120,7 @@ public abstract class Entity
      }
  
      protected void checkSupportingBlock(final boolean onGround, final @Nullable Vec3 movement) {
@@ -1358,7 +1358,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
              AABB boundingBox = this.getBoundingBox();
              AABB testArea = new AABB(boundingBox.minX, boundingBox.minY - 1.0E-6, boundingBox.minZ, boundingBox.maxX, boundingBox.minY, boundingBox.maxZ);
              Optional<BlockPos> supportingBlock = this.level.findSupportingBlock(this, testArea);
-@@ -1166,7 +1173,10 @@ public abstract class Entity
+@@ -1167,7 +1174,10 @@ public abstract class Entity
              this.verticalCollisionBelow = false;
              this.minorHorizontalCollision = false;
          } else {
@@ -1370,7 +1370,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
                  delta = this.limitPistonMovement(delta);
                  // Paper start - EAR 2
                  this.activatedTick = Math.max(this.activatedTick, net.minecraft.server.MinecraftServer.currentTick + 20);
-@@ -1180,7 +1190,7 @@ public abstract class Entity
+@@ -1181,7 +1191,7 @@ public abstract class Entity
              ProfilerFiller profiler = Profiler.get();
              profiler.push("move");
              if (this.stuckSpeedMultiplier.lengthSqr() > 1.0E-7) {
@@ -1379,7 +1379,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
                      delta = delta.multiply(this.stuckSpeedMultiplier);
                  }
  
-@@ -1198,10 +1208,22 @@ public abstract class Entity
+@@ -1199,10 +1209,22 @@ public abstract class Entity
              delta = this.maybeBackOffFromEdge(delta, moverType);
              Vec3 movement = this.collide(delta);
              double movementLength = movement.lengthSqr();
@@ -1406,7 +1406,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
                      BlockHitResult hitResult = this.level()
                          .clip(new ClipContext(this.position(), checkTo, ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
                      if (hitResult.getType() != HitResult.Type.MISS) {
-@@ -1210,9 +1232,15 @@ public abstract class Entity
+@@ -1211,9 +1233,15 @@ public abstract class Entity
                  }
  
                  Vec3 pos = this.position();
@@ -1425,7 +1425,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
              }
  
              profiler.pop();
-@@ -1242,9 +1270,17 @@ public abstract class Entity
+@@ -1243,9 +1271,17 @@ public abstract class Entity
              if (this.isRemoved()) {
                  profiler.pop();
              } else {
@@ -1445,7 +1445,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
                  // CraftBukkit start
                  if (this.horizontalCollision && this.getBukkitEntity() instanceof org.bukkit.entity.Vehicle) {
                      org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
-@@ -1397,7 +1433,7 @@ public abstract class Entity
+@@ -1398,7 +1434,7 @@ public abstract class Entity
          this.finalMovementsThisTick.clear();
          this.finalMovementsThisTick.addAll(this.movementThisTick);
          this.movementThisTick.clear();
@@ -1454,7 +1454,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
              this.finalMovementsThisTick.add(new Entity.Movement(this.oldPosition(), this.position()));
          } else if (this.finalMovementsThisTick.getLast().to.distanceToSqr(this.position()) > 9.9999994E-11F) {
              this.finalMovementsThisTick.add(new Entity.Movement(this.finalMovementsThisTick.getLast().to, this.position()));
-@@ -1679,7 +1715,7 @@ public abstract class Entity
+@@ -1680,7 +1716,7 @@ public abstract class Entity
          double y = movement.y;
          double z = movement.z;
  
@@ -1463,7 +1463,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
          if (y != 0.0) {
              y = this.scanY(currentBox, y, collisionsVoxel, collisionsBB);
              if (y != 0.0) {
-@@ -1808,7 +1844,7 @@ public abstract class Entity
+@@ -1809,7 +1845,7 @@ public abstract class Entity
              ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER, null
          );
          potentialCollisionsBB.addAll(entityAABBs);
@@ -1472,7 +1472,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
  
          final boolean collidedX = collided.x != movement.x;
          final boolean collidedY = collided.y != movement.y;
-@@ -1956,25 +1992,37 @@ public abstract class Entity
+@@ -1957,25 +1993,37 @@ public abstract class Entity
      private void checkInsideBlocks(final List<Entity.Movement> movements, final InsideBlockEffectApplier.StepBasedCollector effectCollector) {
          if (this.isAffectedByBlocks()) {
              LongSet visitedBlocks = this.visitedBlocks;
@@ -1515,7 +1515,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
                      this.checkInsideBlocks(movement.to(), movement.to(), effectCollector, visitedBlocks, 1);
                  }
              }
-@@ -1990,8 +2038,20 @@ public abstract class Entity
+@@ -1991,8 +2039,20 @@ public abstract class Entity
          final LongSet visitedBlocks,
          final int maxMovementIterations
      ) {
@@ -1538,7 +1538,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
          boolean debugEntityBlockIntersections = this.level instanceof ServerLevel serverLevel
              && serverLevel.getServer().debugSubscribers().hasAnySubscriberFor(DebugSubscriptions.ENTITY_BLOCK_INTERSECTIONS);
          AtomicInteger iterations = new AtomicInteger();
-@@ -1999,6 +2059,7 @@ public abstract class Entity
+@@ -2000,6 +2060,7 @@ public abstract class Entity
              from,
              to,
              deflatedBoundingBoxAtTarget,
@@ -1546,7 +1546,7 @@ index eee07f171ce0636d301782d89125d58848d72bfc..0f97d73f57559032b52cfc0e52d78120
              (blockIntersection, iteration) -> {
                  if (!this.isAlive()) {
                      return false;
-@@ -2021,7 +2082,7 @@ public abstract class Entity
+@@ -2022,7 +2083,7 @@ public abstract class Entity
                      boolean insideBlock = intersectShape == Shapes.block()
                          || this.collidedWithShapeMovingFrom(from, to, intersectShape.move(new Vec3(blockIntersection)).toAabbs());
                      boolean insideFluid = this.collidedWithFluid(state.getFluidState(), blockIntersection, from, to);

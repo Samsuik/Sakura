@@ -5,23 +5,23 @@ Subject: [PATCH] Reduce entity tracker player updates
 
 
 diff --git a/net/minecraft/server/level/ChunkMap.java b/net/minecraft/server/level/ChunkMap.java
-index 100fcf5324d108bc52cb601c2a396eab896ec390..fb343924446ed348aa9957a73ebf1ead752cac3c 100644
+index 28297f97fa7b3c7cadb34069d252384bbd9fc2f1..5ecfdaa50602e9bcd3a9167628280c8aa2894132 100644
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -1052,7 +1052,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
-             if (tracker == null) {
-                 continue;
-             }
--            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
-+            // Sakura start - reduce entity tracker player updates
-+            if (tracker.shouldUpdatePlayers()) {
-+                ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
-+            }
-+            // Sakura end - reduce entity tracker player updates
-             if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
-                 || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
-                 tracker.serverEntity.sendChanges();
-@@ -1296,12 +1300,30 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+@@ -1071,7 +1071,11 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
+                 if (tracker == null) {
+                     continue;
+                 }
+-                ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
++                // Sakura start - reduce entity tracker player updates
++                if (tracker.shouldUpdatePlayers()) {
++                    ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
++                }
++                // Sakura end - reduce entity tracker player updates
+                 if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
+                     || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
+                     tracker.serverEntity.sendChanges();
+@@ -1318,12 +1322,30 @@ public class ChunkMap extends SimpleRegionStorage implements ChunkHolder.PlayerP
              return !this.seenBy.isEmpty();
          }
          // Paper end - optimise entity tracker
