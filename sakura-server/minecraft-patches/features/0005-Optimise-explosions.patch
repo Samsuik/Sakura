@@ -5,7 +5,7 @@ Subject: [PATCH] Optimise explosions
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
-index 8e5d6cc4cf66be6e5dcf87b0736555221166a277..6087d66f6ba9c1389dd7997f53cf867f07a6744d 100644
+index 82b30996d6568ee8d8b3e58c5cebd00c34dff459..565d9aba69b84f5df9d8cc9f692171b458240746 100644
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/entity/ChunkEntitySlices.java
 @@ -77,6 +77,12 @@ public final class ChunkEntitySlices {
@@ -395,10 +395,10 @@ index 0000000000000000000000000000000000000000..ebd6c04e276b607077545f197bf326a7
 +}
 diff --git a/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ad5cf60b4a865c6089bf2dbca0325e717fdffa65
+index 0000000000000000000000000000000000000000..e5ed59be7d9be36f5de09cd4bcd6c773be9e7721
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
-@@ -0,0 +1,520 @@
+@@ -0,0 +1,506 @@
 +package me.samsuik.sakura.explosion.specialised;
 +
 +import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
@@ -550,16 +550,9 @@ index 0000000000000000000000000000000000000000..ad5cf60b4a865c6089bf2dbca0325e71
 +
 +                // The source velocity has to be calculated before nextExplosion as it clears the blockCache
 +                this.impactEntity(explodingEntity, this.center, 1, doubleRadius);
++
 +                this.nextExplosion(blocksToExplode, destroyedBlocks);
-+
-+                if (!this.tickExplodableEntity(explodingEntity, doubleRadius, destroyedBlocks)) {
-+                    if (!this.bufferedExplosions.isEmpty()) {
-+                        this.bufferedExplosions.removeLast();
-+                    }
-+
-+                    this.locateAndImpactEntitiesInBounds(doubleRadius);
-+                    return 0;
-+                }
++                this.tickExplodableEntity(explodingEntity, doubleRadius, destroyedBlocks);
 +            }
 +        }
 +
@@ -652,7 +645,7 @@ index 0000000000000000000000000000000000000000..ad5cf60b4a865c6089bf2dbca0325e71
 +        }
 +    }
 +
-+    private boolean tickExplodableEntity(final E explodableEntity, final double doubleRadius, final boolean destroyedBlocks) {
++    private void tickExplodableEntity(final E explodableEntity, final double doubleRadius, final boolean destroyedBlocks) {
 +        final SakuraEntityController controller = explodableEntity.getSakuraEntityController();
 +        final Vec3 oldMovement = controller.getEntityState().movement();
 +        final boolean hasMoved;
@@ -673,11 +666,6 @@ index 0000000000000000000000000000000000000000..ad5cf60b4a865c6089bf2dbca0325e71
 +        if (destroyedBlocks || hasMoved) {
 +            this.preventEntityExploding(explodableEntity);
 +            controller.tickEntity();
-+
-+            if (explodableEntity.isRemoved()) {
-+                return false;
-+            }
-+
 +            this.center = this.explosionPosition(explodableEntity);
 +            this.moved |= !this.center.equals(this.originalPosition);
 +        }
@@ -691,8 +679,6 @@ index 0000000000000000000000000000000000000000..ad5cf60b4a865c6089bf2dbca0325e71
 +        } else {
 +            this.swinging = ALL_DIRECTIONS;
 +        }
-+
-+        return true;
 +    }
 +
 +    private void impactEntity(final Entity entity, final Vec3 explosionPos, final int potential, final double doubleRadius) {
@@ -1063,7 +1049,7 @@ index 0000000000000000000000000000000000000000..ca9cdb3fe90f1f9224b5ff6afccb8194
 +    }
 +}
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 5a2834738a2beecafaa7367ca8685f275687ab52..86650bfc69d8a4feb74747b016c05c81acd2d8ab 100644
+index ed7bd10fd636a5e4eac9fdcc09df8f93bc5b8441..7ea97482c343d5f9efd7ffee759d5c7034b6dc9a 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2020,7 +2020,18 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -1131,10 +1117,10 @@ index 5a2834738a2beecafaa7367ca8685f275687ab52..86650bfc69d8a4feb74747b016c05c81
  
      private Explosion.BlockInteraction getDestroyType(final GameRule<Boolean> gameRule) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 8768f895e25703a96b60f5c420e6a9ca962adb0a..c5de96c83b3a44d51e821cdad1ea7cff598e939c 100644
+index 692233673ec59fec1fdf0b3a7f8ec1b5779fa1af..d5b42f3390cbb8308e1dee53b7df08c5d2c51291 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -80,6 +80,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -87,6 +87,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
      // Sakura end - configure cannon mechanics
      // Sakura start - optimise cannon entities
      private final me.samsuik.sakura.entity.SakuraEntityController sakuraEntityController;
@@ -1142,7 +1128,7 @@ index 8768f895e25703a96b60f5c420e6a9ca962adb0a..c5de96c83b3a44d51e821cdad1ea7cff
  
      @Override
      public final me.samsuik.sakura.entity.SakuraEntityController getSakuraEntityController() {
-@@ -213,7 +214,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -220,7 +221,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
      }
  
      private void explode() {
