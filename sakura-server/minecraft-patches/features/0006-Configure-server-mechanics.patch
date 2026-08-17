@@ -87,7 +87,7 @@ index 15568f598b8c61cf92563b6a7f8cae526b84484e..ea7d73c9e02329f86a931078528f4d1b
                                                  continue;
                                              }
 diff --git a/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
-index ad5cf60b4a865c6089bf2dbca0325e717fdffa65..e863d2c4dbc24d8c6847f4cc9beb1cc52cce168a 100644
+index bdc71bf7b41ee3e06f9403180cf380b8dd4d8c2e..a940761e2fea119efb0e1b59037657ebc7f0bc44 100644
 --- a/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
 +++ b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
 @@ -11,6 +11,8 @@ import me.samsuik.sakura.entity.EntityState;
@@ -99,7 +99,7 @@ index ad5cf60b4a865c6089bf2dbca0325e717fdffa65..e863d2c4dbc24d8c6847f4cc9beb1cc5
  import me.samsuik.sakura.utils.AABBUtil;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -314,11 +316,19 @@ public abstract class SpecialisedExplosion<E extends Entity & SakuraEntity> exte
+@@ -322,11 +324,19 @@ public abstract class SpecialisedExplosion<E extends Entity & SakuraEntity> exte
          double distanceFromBottom = Math.sqrt(entity.distanceToSqr(explosionPos)) / radius;
          if (distanceFromBottom <= 1.0) {
              double x = entity.getX() - explosionPos.x;
@@ -121,7 +121,7 @@ index ad5cf60b4a865c6089bf2dbca0325e717fdffa65..e863d2c4dbc24d8c6847f4cc9beb1cc5
                  x /= distance;
                  y /= distance;
                  z /= distance;
-@@ -413,9 +423,10 @@ public abstract class SpecialisedExplosion<E extends Entity & SakuraEntity> exte
+@@ -421,9 +431,10 @@ public abstract class SpecialisedExplosion<E extends Entity & SakuraEntity> exte
          // For now, we only support skipping ray casts on the edges for block-like entities
          if (!level.sakuraConfig().cannons.explosion.reduceExposureRaycasts
              || obstruction != null
@@ -1556,10 +1556,10 @@ index c5a58a1c0b5d239797c2dd1198360dd2d172fc94..1c244706c443e6c9d5d1126b0a0c5a28
                              try {
                                  boolean isPrecise = movedFar || deflatedBoundingBoxAtTarget.intersects(blockIntersection);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba891766a3 100644
+index e21126fd7e44520fd6ba200d0b1c634ae7ba1e32..57a442bc307dc7342bc02c74ada3d95d93763bfa 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -80,7 +80,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -81,7 +81,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
  
      @Override
      public double getEyeY() {
@@ -1568,10 +1568,10 @@ index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba
      }
  
      private static boolean isFallingBlockInBounds(final Level level, final BlockPos pos) {
-@@ -116,6 +116,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -121,6 +121,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+         if (this.heightLimit == Integer.MIN_VALUE) {
+             this.heightLimit = this.level().paperConfig().fixes.tntEntityHeightNerf.or(Integer.MIN_VALUE);
          }
- 
-         this.floatingPointFix = config.floatingPointFix;
 +
 +        // Sakura start - configure server mechanics
 +        this.mechanicsTarget = config.mechanicsTarget;
@@ -1581,7 +1581,7 @@ index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba
      }
      // Sakura end - configure cannon mechanics
      // Sakura start - optimise cannon entities
-@@ -175,6 +181,18 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -180,6 +186,18 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
          return this.sakura$collide(movement);
      }
      // Sakura end - optimise cannon entity movement
@@ -1600,7 +1600,7 @@ index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba
  
      public FallingBlockEntity(final EntityType<? extends FallingBlockEntity> type, final Level level) {
          super(type, level);
-@@ -196,15 +214,26 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -201,15 +219,26 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
      }
  
      public static FallingBlockEntity fall(final Level level, final BlockPos pos, final BlockState state) {
@@ -1629,7 +1629,7 @@ index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba
          level.addFreshEntity(entity);
          return entity;
      }
-@@ -248,7 +277,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -253,7 +282,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
  
      @Override
      protected double getDefaultGravity() {
@@ -1638,7 +1638,7 @@ index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba
      }
  
      @Override
-@@ -257,6 +286,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -262,6 +291,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
              Block block = this.blockState.getBlock();
@@ -1651,7 +1651,7 @@ index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba
              this.time++;
              this.applyGravity();
              this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -271,6 +306,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -276,6 +311,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              }
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
@@ -1663,7 +1663,7 @@ index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
                  BlockPos pos = this.floatingPointFix ? this.patchedBlockPosition() : this.blockPosition(); // Sakura - fix falling block floating point errors
                  boolean isConcrete = serverLevel.sakuraConfig().cannons.sand.concreteSolidifyInWater && this.blockState.getBlock() instanceof ConcretePowderBlock; // Sakura - configure concrete solidifying in water
-@@ -299,8 +339,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -304,8 +344,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
@@ -1679,7 +1679,7 @@ index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba
                          if (!this.cancelDrop) {
                              boolean mayReplace = currentState.canBeReplaced(
                                  new DirectionalPlaceContext(this.level(), pos, Direction.DOWN, ItemStack.EMPTY, Direction.UP)
-@@ -371,7 +416,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -376,7 +421,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                  }
              }
  
@@ -1696,12 +1696,12 @@ index 259ab113690cc66ea78b6962ed4350870b4c69e6..dc6ea15a5c6b921c37150fd385eb20ba
      }
  
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index c5de96c83b3a44d51e821cdad1ea7cff598e939c..f2e760f97604035bc3f7c36c709e531a9481f169 100644
+index d5b42f3390cbb8308e1dee53b7df08c5d2c51291..58d25bb71c1b3dc4de183872f6ed67bdb61fc384 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -76,6 +76,16 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
-         if (this.pushedByFluid) { // default
-             this.pushedByFluid = config.tntFlowsInWater;
+@@ -83,6 +83,16 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+         if (this.heightLimit == Integer.MIN_VALUE) {
+             this.heightLimit = this.level().paperConfig().fixes.tntEntityHeightNerf.or(Integer.MIN_VALUE);
          }
 +
 +        // Sakura start - configure server mechanics
@@ -1716,7 +1716,7 @@ index c5de96c83b3a44d51e821cdad1ea7cff598e939c..f2e760f97604035bc3f7c36c709e531a
      }
      // Sakura end - configure cannon mechanics
      // Sakura start - optimise cannon entities
-@@ -122,6 +132,23 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -129,6 +139,23 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
          return this.sakura$collide(movement);
      }
      // Sakura end - optimise cannon entity movement
@@ -1740,7 +1740,7 @@ index c5de96c83b3a44d51e821cdad1ea7cff598e939c..f2e760f97604035bc3f7c36c709e531a
  
      public PrimedTnt(final EntityType<? extends PrimedTnt> type, final Level level) {
          super(type, level);
-@@ -160,7 +187,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -167,7 +194,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
  
      @Override
      protected double getDefaultGravity() {
@@ -1749,7 +1749,7 @@ index c5de96c83b3a44d51e821cdad1ea7cff598e939c..f2e760f97604035bc3f7c36c709e531a
      }
  
      @Override
-@@ -176,14 +203,26 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -183,14 +210,26 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
              return;
          }
          // Paper end - Configurable TNT height nerf
@@ -1779,7 +1779,7 @@ index c5de96c83b3a44d51e821cdad1ea7cff598e939c..f2e760f97604035bc3f7c36c709e531a
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              //this.discard();
              if (!this.level().isClientSide()) {
-@@ -227,7 +266,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -234,7 +273,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
                      Explosion.getDefaultDamageSource(this.level(), this),
                      this.usedPortal ? USED_PORTAL_DAMAGE_CALCULATOR : null,
                      this.getX(),

@@ -1,12 +1,13 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -74,8 +_,55 @@
+@@ -74,8 +_,60 @@
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
  
 +    // Sakura start - configure cannon mechanics
 +    public boolean heightParity;
 +    public boolean floatingPointFix;
++    public int heightLimit;
 +
 +    @Override
 +    public double getEyeY() {
@@ -46,6 +47,10 @@
 +        }
 +
 +        this.floatingPointFix = config.floatingPointFix;
++        this.heightLimit = config.heightLimit;
++        if (this.heightLimit == Integer.MIN_VALUE) {
++            this.heightLimit = this.level().paperConfig().fixes.tntEntityHeightNerf.or(Integer.MIN_VALUE);
++        }
 +    }
 +    // Sakura end - configure cannon mechanics
 +
@@ -56,6 +61,15 @@
      }
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
+@@ -157,7 +_,7 @@
+             this.move(MoverType.SELF, this.getDeltaMovement());
+             this.applyEffectsFromBlocks();
+             // Paper start - Configurable falling blocks height nerf
+-            if (this.level().paperConfig().fixes.fallingBlockHeightNerf.test(v -> this.getY() > v)) {
++            if (this.heightLimit != Integer.MIN_VALUE && this.getY() > this.heightLimit) { // Sakura - configure cannon mechanics
+                 if (this.dropItem && this.level() instanceof final ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
+                     this.spawnAtLocation(serverLevel, block);
+                 }
 @@ -167,8 +_,8 @@
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
