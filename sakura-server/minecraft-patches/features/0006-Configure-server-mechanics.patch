@@ -1556,7 +1556,7 @@ index c5a58a1c0b5d239797c2dd1198360dd2d172fc94..1c244706c443e6c9d5d1126b0a0c5a28
                              try {
                                  boolean isPrecise = movedFar || deflatedBoundingBoxAtTarget.intersects(blockIntersection);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index fa2248729a472571780b08ff4d6a7eee18c90897..d8676241e30fe799b0bb2d77d6ab70c96e1dc71d 100644
+index fa2248729a472571780b08ff4d6a7eee18c90897..33676ac21ebc6880e52f3eb89c29ec8b60eb9922 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -81,7 +81,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -1638,7 +1638,7 @@ index fa2248729a472571780b08ff4d6a7eee18c90897..d8676241e30fe799b0bb2d77d6ab70c9
      }
  
      @Override
-@@ -262,6 +291,12 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -262,10 +291,22 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
              Block block = this.blockState.getBlock();
@@ -1647,11 +1647,22 @@ index fa2248729a472571780b08ff4d6a7eee18c90897..d8676241e30fe799b0bb2d77d6ab70c9
 +            if (this.time == 0 && mechanicsTarget.before(me.samsuik.sakura.mechanics.MechanicVersion.v1_18_2)) {
 +                me.samsuik.sakura.mechanics.FallingBlockBehaviour.removeBlockOnFall(this, block);
 +            }
-+            // Sakura end - configure server mechanics
              this.time++;
              this.applyGravity();
++            final boolean effectsBeforeMovement = mechanicsTarget.isLegacy();
++            if (effectsBeforeMovement) {
++                this.applyEffectsFromBlocks();
++            }
              this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -276,6 +311,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+-            this.applyEffectsFromBlocks();
++            if (!effectsBeforeMovement) {
++                this.applyEffectsFromBlocks();
++            }
++            // Sakura end - configure server mechanics
+             // Paper start - Configurable falling blocks height nerf
+             if (this.heightLimit != Integer.MIN_VALUE && this.getY() > this.heightLimit) { // Sakura - configure cannon mechanics
+                 if (this.dropItem && this.level() instanceof final ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
+@@ -276,6 +317,11 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
              }
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
@@ -1663,7 +1674,7 @@ index fa2248729a472571780b08ff4d6a7eee18c90897..d8676241e30fe799b0bb2d77d6ab70c9
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
                  BlockPos pos = this.floatingPointFix ? this.patchedBlockPosition() : this.blockPosition(); // Sakura - fix falling block floating point errors
                  boolean isConcrete = serverLevel.sakuraConfig().cannons.sand.concreteSolidifyInWater && this.blockState.getBlock() instanceof ConcretePowderBlock; // Sakura - configure concrete solidifying in water
-@@ -304,8 +344,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -304,8 +350,13 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
@@ -1679,7 +1690,7 @@ index fa2248729a472571780b08ff4d6a7eee18c90897..d8676241e30fe799b0bb2d77d6ab70c9
                          if (!this.cancelDrop) {
                              boolean mayReplace = currentState.canBeReplaced(
                                  new DirectionalPlaceContext(this.level(), pos, Direction.DOWN, ItemStack.EMPTY, Direction.UP)
-@@ -376,7 +421,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -376,7 +427,14 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
                  }
              }
  
@@ -1696,7 +1707,7 @@ index fa2248729a472571780b08ff4d6a7eee18c90897..d8676241e30fe799b0bb2d77d6ab70c9
      }
  
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index d5b42f3390cbb8308e1dee53b7df08c5d2c51291..58d25bb71c1b3dc4de183872f6ed67bdb61fc384 100644
+index d5b42f3390cbb8308e1dee53b7df08c5d2c51291..c44f719c9582c49eb732715cf749d299dda7a6d8 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -83,6 +83,16 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -1749,13 +1760,30 @@ index d5b42f3390cbb8308e1dee53b7df08c5d2c51291..58d25bb71c1b3dc4de183872f6ed67bd
      }
  
      @Override
-@@ -183,14 +210,26 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -175,22 +202,42 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+         // Sakura - remove max tnt per tick
+         this.handlePortal();
+         this.applyGravity();
++        // Sakura start - configure server mechanics
++        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
++        final boolean effectsBeforeMovement = mechanicsTarget.isLegacy();
++        if (effectsBeforeMovement) {
++            this.applyEffectsFromBlocks();
++        }
+         this.move(MoverType.SELF, this.getDeltaMovement());
+-        this.applyEffectsFromBlocks();
++        if (!effectsBeforeMovement) {
++            this.applyEffectsFromBlocks();
++        }
++        // Sakura end - configure server mechanics
+         // Paper start - Configurable TNT height nerf
+         if (this.heightLimit != Integer.MIN_VALUE && this.getY() > this.heightLimit) { // Sakura - configure cannon mechanics
+             this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
              return;
          }
          // Paper end - Configurable TNT height nerf
 -        this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
 +        // Sakura start - configure server mechanics
-+        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = this.mechanicsTarget;
 +        if (mechanicsTarget.atLeast(me.samsuik.sakura.mechanics.MechanicVersion.v1_12)) {
 +            final double drag = mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_14, me.samsuik.sakura.mechanics.MechanicVersion.v26_2)
 +                ? 0.98
@@ -1779,7 +1807,7 @@ index d5b42f3390cbb8308e1dee53b7df08c5d2c51291..58d25bb71c1b3dc4de183872f6ed67bd
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
              //this.discard();
              if (!this.level().isClientSide()) {
-@@ -234,7 +273,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -234,7 +281,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
                      Explosion.getDefaultDamageSource(this.level(), this),
                      this.usedPortal ? USED_PORTAL_DAMAGE_CALCULATOR : null,
                      this.getX(),
@@ -2226,7 +2254,7 @@ index f8caa0b3c21766dbad73c524c1680346e4257188..43b518724d8295447b45041f51f0d569
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index 7b2a684d6db0b1ceb9d7c70ac171a95f2dd79ea7..6f00e3c109f3b4ba12ac52002a6f5af96db39c74 100644
+index 7b2a684d6db0b1ceb9d7c70ac171a95f2dd79ea7..8737e04f440b03c5d9e732d193b2fd57a3942468 100644
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 @@ -51,6 +51,51 @@ public class PistonMovingBlockEntity extends BlockEntity {
@@ -2294,19 +2322,34 @@ index 7b2a684d6db0b1ceb9d7c70ac171a95f2dd79ea7..6f00e3c109f3b4ba12ac52002a6f5af9
                      for (AABB shapeAabb : shapeAabbs) {
                          AABB movingAABB = PistonMath.getMovementArea(moveByPositionAndProgress(pos, shapeAabb, self), movement, deltaProgress);
                          AABB entityAabb = entity.getBoundingBox();
-@@ -202,6 +253,11 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -201,9 +252,24 @@ public class PistonMovingBlockEntity extends BlockEntity {
+     private static void moveEntityByPiston(final Direction pistonDirection, final Entity entity, final double delta, final Direction movement) {
          NOCLIP.set(pistonDirection);
          Vec3 previousPos = entity.position();
-         entity.move(MoverType.PISTON, new Vec3(delta * movement.getStepX(), delta * movement.getStepY(), delta * movement.getStepZ()));
 +        // Sakura start - configure server mechanics
++        final me.samsuik.sakura.mechanics.MinecraftMechanicsTarget mechanicsTarget = entity.mechanicsTarget();
++        final boolean effectsBeforeMovement = mechanicsTarget.isLegacy();
++        if (effectsBeforeMovement) {
++            entity.applyEffectsFromBlocks(previousPos, entity.position());
++            entity.removeLatestMovementRecording();
++        }
+         entity.move(MoverType.PISTON, new Vec3(delta * movement.getStepX(), delta * movement.getStepY(), delta * movement.getStepZ()));
+-        entity.applyEffectsFromBlocks(previousPos, entity.position());
+-        entity.removeLatestMovementRecording();
++
 +        if (entity.mechanicsTarget().before(me.samsuik.sakura.mechanics.MechanicVersion.v1_21_5)) {
 +            previousPos = entity.position();
 +        }
++
++        if (!effectsBeforeMovement) {
++            entity.applyEffectsFromBlocks(previousPos, entity.position());
++            entity.removeLatestMovementRecording();
++        }
 +        // Sakura end - configure server mechanics
-         entity.applyEffectsFromBlocks(previousPos, entity.position());
-         entity.removeLatestMovementRecording();
          NOCLIP.set(null);
-@@ -317,12 +373,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
+     }
+ 
+@@ -317,12 +383,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
      }
  
      public static void tick(final Level level, final BlockPos pos, final BlockState state, final PistonMovingBlockEntity entity) {
@@ -2328,7 +2371,7 @@ index 7b2a684d6db0b1ceb9d7c70ac171a95f2dd79ea7..6f00e3c109f3b4ba12ac52002a6f5af9
                  level.removeBlockEntity(pos);
                  entity.setRemoved();
                  if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-@@ -342,12 +407,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -342,12 +417,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
              }
          } else {
              float newProgress = entity.progress + 0.5F;
