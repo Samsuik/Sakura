@@ -129,7 +129,7 @@ index 0075164bf057271d63a8b97473aa5c41c03eac91..f3c64700c02d307fc08376e0f4efca87
          public DataItem(final EntityDataAccessor<T> accessor, final T initialValue) {
              this.accessor = accessor;
 diff --git a/net/minecraft/server/level/ServerEntity.java b/net/minecraft/server/level/ServerEntity.java
-index 60af82925d2f7e605bf7340cf01f1a5668f4d725..8597280fbc49c7d74bec872a62355dbfbf44042b 100644
+index 60af82925d2f7e605bf7340cf01f1a5668f4d725..d4292040eb6aad1b92c42a3e3ec94e626000e912 100644
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
 @@ -142,7 +142,7 @@ public class ServerEntity {
@@ -141,10 +141,11 @@ index 60af82925d2f7e605bf7340cf01f1a5668f4d725..8597280fbc49c7d74bec872a62355dbf
              byte yRotn = Mth.packDegrees(this.entity.getYRot());
              byte xRotn = Mth.packDegrees(this.entity.getXRot());
              boolean shouldSendRotation = Math.abs(yRotn - this.lastSentYRot) >= 1 || Math.abs(xRotn - this.lastSentXRot) >= 1;
-@@ -399,6 +399,15 @@ public class ServerEntity {
+@@ -398,7 +398,15 @@ public class ServerEntity {
+         List<SynchedEntityData.DataValue<?>> packedValues = entityData.packDirty();
          if (packedValues != null) {
              this.trackedDataValues = entityData.getNonDefaultValues();
-             this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundSetEntityDataPacket(this.entity.getId(), packedValues));
+-            this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundSetEntityDataPacket(this.entity.getId(), packedValues));
 +            // Slice start - packet obfuscation and reduction
 +            if (!(this.entity instanceof ServerPlayer)) {
 +                packedValues = entityData.packForeignDirty(packedValues);
@@ -184,7 +185,7 @@ index 33676ac21ebc6880e52f3eb89c29ec8b60eb9922..b1480f863af4f1724ba11e7f31902b9c
  
      public BlockPos getStartPos() {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index c44f719c9582c49eb732715cf749d299dda7a6d8..3b5d169672a56d9c51d7cfa7675ecf97cf08c9ac 100644
+index c44f719c9582c49eb732715cf749d299dda7a6d8..1f855e19f5f9ae9800c477290687bb0de8b7fe64 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -323,7 +323,11 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -193,8 +194,8 @@ index c44f719c9582c49eb732715cf749d299dda7a6d8..3b5d169672a56d9c51d7cfa7675ecf97
      public void setFuse(final int time) {
 -        this.entityData.set(DATA_FUSE_ID, time);
 +        // Slice start - packet obfuscation and reduction; obfuscate tnt fuse
-+        final int phase = ((time / 10) & 1) == 0 ? 10 : 0;
-+        final int obfuscatedFuse = 80 + phase - 9;
++        final int phase = (((time - 1) / 10) & 1) == 0 ? 0 : 10;
++        final int obfuscatedFuse = 80 - phase - 1;
 +        this.entityData.set(DATA_FUSE_ID, time, obfuscatedFuse);
 +        // Slice end - packet obfuscation and reduction; obfuscate tnt fuse
      }
