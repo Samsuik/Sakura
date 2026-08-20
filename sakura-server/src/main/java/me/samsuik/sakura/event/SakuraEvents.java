@@ -18,7 +18,7 @@ public final class SakuraEvents {
         final BlockPreDispenseEvent event = new BlockPreDispenseEvent(block, delay);
         event.callEvent();
 
-        return Math.min(event.getDelay(), 1);
+        return Math.max(event.getDelay(), 1);
     }
 
     public static boolean preSpawnerTick(final BlockPos pos, final ServerLevel level) {
