@@ -18,15 +18,13 @@ public final class LocalConfigurationManager implements LocalConfigurationAccess
     private final Map<ConfigurationBounds, SealedConfigurationContainer> containers = new HashMap<>();
     private final ConfigurationSpatialMap configurationSpatialMap = new ConfigurationSpatialMap();
     private final Level level;
-    private final SealedConfigurationContainer defaultContainer;
     private long lastGameTime;
     private final Long2ObjectOpenHashMap<CachedLocalConfiguration> cachedConfiguration = new Long2ObjectOpenHashMap<>();
     private final CachedLocalConfiguration[] recentlyAccessed = new CachedLocalConfiguration[8];
 
     public LocalConfigurationManager(final Level level) {
         this.level = level;
-        this.defaultContainer = ConfigurationDefaults.levelDefaults(level);
-        Arrays.fill(this.recentlyAccessed, new CachedLocalConfiguration(Integer.MIN_VALUE, this.defaultContainer));
+        Arrays.fill(this.recentlyAccessed, this.defaultCachedConfiguration());
     }
 
     @Override
@@ -70,11 +68,12 @@ public final class LocalConfigurationManager implements LocalConfigurationAccess
 
     public ConfigurationContainer getContainerWithDefaults(final int x, final int y, final int z) {
         final ConfigurationContainer container = this.getContainer(x, y, z);
+        final SealedConfigurationContainer defaultContainer = ConfigurationDefaults.levelDefaults(level);
         if (container == null) {
-            return this.defaultContainer;
+            return defaultContainer;
         }
 
-        container.fillAbsentValues(this.defaultContainer);
+        container.fillAbsentValues(defaultContainer);
         return container;
     }
 
@@ -99,9 +98,13 @@ public final class LocalConfigurationManager implements LocalConfigurationAccess
         this.clearCache();
     }
 
-    private void clearCache() {
+    public void clearCache() {
         this.cachedConfiguration.clear();
-        Arrays.fill(this.recentlyAccessed, new CachedLocalConfiguration(Integer.MIN_VALUE, this.defaultContainer));
+        Arrays.fill(this.recentlyAccessed, this.defaultCachedConfiguration());
+    }
+
+    private CachedLocalConfiguration defaultCachedConfiguration() {
+        return new CachedLocalConfiguration(Integer.MIN_VALUE, ConfigurationDefaults.levelDefaults(this.level));
     }
 
     public CachedLocalConfiguration at(final Vec3 vec3) {
@@ -118,7 +121,7 @@ public final class LocalConfigurationManager implements LocalConfigurationAccess
 
     private CachedLocalConfiguration getCachedContainer(final int x, final int y, final int z) {
         if (!MCUtil.isMainThread()) {
-            return new CachedLocalConfiguration(Integer.MIN_VALUE, this.defaultContainer);
+            return this.defaultCachedConfiguration();
         }
 
         final long sectionKey = SectionPos.asLong(x, y, z);

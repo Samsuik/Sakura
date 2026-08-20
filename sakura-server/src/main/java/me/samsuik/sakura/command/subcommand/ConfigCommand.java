@@ -4,6 +4,7 @@ import me.samsuik.sakura.command.BaseSubCommand;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.Level;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.CraftServer;
 import org.jspecify.annotations.NullMarked;
@@ -23,6 +24,10 @@ public final class ConfigCommand extends BaseSubCommand {
         final MinecraftServer server = ((CraftServer) sender.getServer()).getServer();
         server.sakuraConfigurations.reloadConfigs(server);
         server.server.reloadCount++;
+
+        for (final Level level : server.getAllLevels()) {
+            level.localConfig().clearCache();
+        }
 
         sender.sendMessage(Component.text("Sakura config reload complete.", NamedTextColor.GREEN));
     }
