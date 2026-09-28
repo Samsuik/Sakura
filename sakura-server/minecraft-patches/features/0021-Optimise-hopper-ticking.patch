@@ -211,7 +211,7 @@ index ae0df53c3be7ebcf48886adbedfaa2c071a94023..8ecbe65f1ef02b795ce8a124be2cce38
          this.type = type;
          this.worldPosition = worldPosition.immutable();
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55c18c63ef 100644
+index fef616d7b92454a721f7a14941b62a8963080cc5..301f03ade9891ec253275dc91e85f4152b33123d 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,13 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -230,7 +230,7 @@ index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55
      public int cooldownTime = -1;
      private long tickedGameTime;
      private Direction facing;
-@@ -72,6 +72,119 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -72,6 +72,122 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          this.maxStack = size;
      }
      // CraftBukkit end
@@ -300,12 +300,13 @@ index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55
 +        }
 +
 +        sourceContainer = getSourceContainer(level, hopper, pos, state);
++        if (!(sourceContainer instanceof BlockEntity)) {
++            return sourceContainer;
++        }
++
 +        hbe.listenForContainerChanges(sourceContainer, SOURCE_CONTAINER);
 +        hbe.containers[0] = sourceContainer;
-+
-+        if (sourceContainer != null) {
-+            sourceContainer.watch(hbe);
-+        }
++        sourceContainer.watch(hbe);
 +
 +        return sourceContainer;
 +    }
@@ -325,12 +326,14 @@ index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55
 +        }
 +
 +        attachedContainer = getAttachedContainer(level, pos, hbe);
++        if (!(attachedContainer instanceof BlockEntity)) {
++
++            return attachedContainer;
++        }
++
 +        hbe.listenForContainerChanges(attachedContainer, ATTACHED_CONTAINER);
 +        hbe.containers[1] = attachedContainer;
-+
-+        if (attachedContainer != null) {
-+            attachedContainer.watch(hbe);
-+        }
++        attachedContainer.watch(hbe);
 +
 +        return attachedContainer;
 +    }
@@ -350,7 +353,7 @@ index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55
  
      public HopperBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
          super(BlockEntityTypes.HOPPER, worldPosition, blockState);
-@@ -81,7 +194,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -81,7 +197,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      @Override
      protected void loadAdditional(final ValueInput input) {
          super.loadAdditional(input);
@@ -359,7 +362,7 @@ index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55
          if (!this.tryLoadLootTable(input)) {
              ContainerHelper.loadAllItems(input, this.items);
          }
-@@ -150,32 +263,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -150,32 +266,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      private static int getFullState(final HopperBlockEntity hopper) {
          hopper.unpackLootTable(null);
  
@@ -400,7 +403,7 @@ index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55
      }
      // Paper end - Perf: Optimize Hoppers
  
-@@ -202,6 +298,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -202,6 +301,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
                  setChanged(level, pos, state);
                  return true;
              }
@@ -413,7 +416,7 @@ index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55
          }
  
          return false;
-@@ -418,7 +520,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -418,7 +523,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      // Paper end - Perf: Optimize Hoppers
  
      private static boolean ejectItems(final Level level, final BlockPos blockPos, final HopperBlockEntity self) {
@@ -422,7 +425,7 @@ index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55
          if (container == null) {
              return false;
          }
-@@ -478,7 +580,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -478,7 +583,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      public static boolean suckInItems(final Level level, final Hopper hopper) {
          BlockPos blockPos = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
          BlockState blockState = level.getBlockState(blockPos);
@@ -431,7 +434,7 @@ index fef616d7b92454a721f7a14941b62a8963080cc5..620196fbf068961eb6aef145c96c8a55
          if (container != null) {
              Direction direction = Direction.DOWN;
              skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
-@@ -761,7 +863,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -761,7 +866,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
  
      @Override
      protected void setItems(final NonNullList<ItemStack> items) {
