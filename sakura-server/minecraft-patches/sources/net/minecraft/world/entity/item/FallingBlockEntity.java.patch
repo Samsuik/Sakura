@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -74,8 +_,60 @@
+@@ -76,8 +_,60 @@
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
      public boolean autoExpire = true; // Paper - Expand FallingBlock API
  
@@ -61,7 +61,7 @@
      }
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
-@@ -157,7 +_,7 @@
+@@ -159,7 +_,7 @@
              this.move(MoverType.SELF, this.getDeltaMovement());
              this.applyEffectsFromBlocks();
              // Paper start - Configurable falling blocks height nerf
@@ -70,7 +70,7 @@
                  if (this.dropItem && this.level() instanceof final ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
                      this.spawnAtLocation(serverLevel, block);
                  }
-@@ -167,8 +_,8 @@
+@@ -169,8 +_,8 @@
              // Paper end - Configurable falling blocks height nerf
              this.handlePortal();
              if (this.level() instanceof ServerLevel serverLevel && (this.isAlive() || this.forceTickAfterTeleportToDuplicate)) {
@@ -81,7 +81,7 @@
                  boolean isStuckInWater = isConcrete && this.level().getFluidState(pos).is(FluidTags.WATER);
                  double moveVec = this.getDeltaMovement().lengthSqr();
                  if (isConcrete && moveVec > 1.0) {
-@@ -184,7 +_,7 @@
+@@ -186,7 +_,7 @@
                      }
                  }
  
@@ -90,7 +90,7 @@
                      if ((this.time > 100 && this.autoExpire) && (pos.getY() <= this.level().getMinY() || pos.getY() > this.level().getMaxY()) || (this.time > 600 && this.autoExpire)) { // Paper - Expand FallingBlock API
                          if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
                              this.spawnAtLocation(serverLevel, block);
-@@ -200,9 +_,10 @@
+@@ -202,9 +_,10 @@
                              boolean mayReplace = currentState.canBeReplaced(
                                  new DirectionalPlaceContext(this.level(), pos, Direction.DOWN, ItemStack.EMPTY, Direction.UP)
                              );
@@ -102,7 +102,7 @@
                                  if (this.blockState.hasProperty(BlockStateProperties.WATERLOGGED) && this.level().getFluidState(pos).is(Fluids.WATER)) {
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
                                  }
-@@ -245,6 +_,10 @@
+@@ -250,6 +_,10 @@
                                      this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
                                      this.callOnBrokenAfterFall(block, pos);
                                      this.spawnAtLocation(serverLevel, block);

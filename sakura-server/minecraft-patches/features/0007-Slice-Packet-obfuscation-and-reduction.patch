@@ -19,7 +19,7 @@ The current packets modified/obfuscated are the following:
     # with packets instead of every single player within tracking distance
 
 diff --git a/net/minecraft/network/syncher/SynchedEntityData.java b/net/minecraft/network/syncher/SynchedEntityData.java
-index 0075164bf057271d63a8b97473aa5c41c03eac91..f3c64700c02d307fc08376e0f4efca87659aba98 100644
+index bdb4f9f5052fa5c919783b9cbe744c4c55cf9cae..27354aac209a55b46f830e6b0f349a018ea50970 100644
 --- a/net/minecraft/network/syncher/SynchedEntityData.java
 +++ b/net/minecraft/network/syncher/SynchedEntityData.java
 @@ -20,6 +20,30 @@ public class SynchedEntityData {
@@ -129,19 +129,19 @@ index 0075164bf057271d63a8b97473aa5c41c03eac91..f3c64700c02d307fc08376e0f4efca87
          public DataItem(final EntityDataAccessor<T> accessor, final T initialValue) {
              this.accessor = accessor;
 diff --git a/net/minecraft/server/level/ServerEntity.java b/net/minecraft/server/level/ServerEntity.java
-index 60af82925d2f7e605bf7340cf01f1a5668f4d725..d4292040eb6aad1b92c42a3e3ec94e626000e912 100644
+index e46f95b19da1c14f240ec6697f22b5e220e0a835..b3f1c39f3c764d2f9100c712409beddda9824bb9 100644
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
-@@ -142,7 +142,7 @@ public class ServerEntity {
+@@ -154,7 +154,7 @@ public class ServerEntity {
              this.entity.syncPosition = false;
          }
  
--        if (this.forceStateResync || this.tickCount % this.updateInterval == 0 || this.entity.needsSync || this.entity.getEntityData().isDirty()) { // Paper - fix desync when a player is added to the tracker
-+        if (this.forceStateResync || this.tickCount % this.updateInterval == 0 || this.entity.needsSync || this.entity.getEntityData().isForeignDirty()) { // Slice - packet obfuscation and reduction // Paper - fix desync when a player is added to the tracker
+-        if (this.forceStateResync || this.entity.needsSync || this.updateInterval.test(this.tickCount) || this.entity.getEntityData().isDirty()) { // Paper - fix desync when a player is added to the tracker
++        if (this.forceStateResync || this.entity.needsSync || this.updateInterval.test(this.tickCount) || this.entity.getEntityData().isForeignDirty()) { // Slice - packet obfuscation and reductio // Paper - fix desync when a player is added to the tracker
              byte yRotn = Mth.packDegrees(this.entity.getYRot());
              byte xRotn = Mth.packDegrees(this.entity.getXRot());
              boolean shouldSendRotation = Math.abs(yRotn - this.lastSentYRot) >= 1 || Math.abs(xRotn - this.lastSentXRot) >= 1;
-@@ -398,7 +398,15 @@ public class ServerEntity {
+@@ -434,7 +434,15 @@ public class ServerEntity {
          List<SynchedEntityData.DataValue<?>> packedValues = entityData.packDirty();
          if (packedValues != null) {
              this.trackedDataValues = entityData.getNonDefaultValues();
@@ -159,10 +159,10 @@ index 60af82925d2f7e605bf7340cf01f1a5668f4d725..d4292040eb6aad1b92c42a3e3ec94e62
  
          if (this.entity instanceof LivingEntity livingEntity) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 1c244706c443e6c9d5d1126b0a0c5a28034aeea9..a9e24f2472709382e55790a8cb787a4f42901695 100644
+index 4acf33fc91b6a6ff655eb277add2277efa33b8f3..22bf845a737c436d9ac0ed13c424aba9482724ca 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -4016,7 +4016,7 @@ public abstract class Entity
+@@ -4110,7 +4110,7 @@ public abstract class Entity
              }
              return;
          }
@@ -172,10 +172,10 @@ index 1c244706c443e6c9d5d1126b0a0c5a28034aeea9..a9e24f2472709382e55790a8cb787a4f
      }
  
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 33676ac21ebc6880e52f3eb89c29ec8b60eb9922..b1480f863af4f1724ba11e7f31902b9c2c511f7c 100644
+index 09bef02614bb5cc3ed4e8210f18fc366849011a8..9dc63f15cd42b854371aab6e0ffd1372036dc311 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -258,7 +258,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
+@@ -260,7 +260,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
      }
  
      public void setStartPos(final BlockPos pos) {
@@ -185,10 +185,10 @@ index 33676ac21ebc6880e52f3eb89c29ec8b60eb9922..b1480f863af4f1724ba11e7f31902b9c
  
      public BlockPos getStartPos() {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index c44f719c9582c49eb732715cf749d299dda7a6d8..1f855e19f5f9ae9800c477290687bb0de8b7fe64 100644
+index 5678d95fb63209ae5a345b8de58534c8fa39afe3..acd7c8b4add7889d409af949a8cad38281624310 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -323,7 +323,11 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -326,7 +326,11 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
      }
  
      public void setFuse(final int time) {
@@ -202,7 +202,7 @@ index c44f719c9582c49eb732715cf749d299dda7a6d8..1f855e19f5f9ae9800c477290687bb0d
  
      public int getFuse() {
 diff --git a/net/minecraft/world/entity/player/Player.java b/net/minecraft/world/entity/player/Player.java
-index 9cd2631cd2c8c539c9be44fd5bbcd0d8c5b7be00..5ef7f78d2186c1768ac8540e03d4be02bfc385c5 100644
+index 0a00db3ab04f2d787bc93cc79127cd1278a50334..f8d7f5bfb162a2aae9650f3871c958f52bc9743d 100644
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
 @@ -573,7 +573,7 @@ public abstract class Player extends Avatar implements ContainerUser {

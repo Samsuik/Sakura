@@ -84,7 +84,7 @@ index 0000000000000000000000000000000000000000..424108cc66f042e113f0c568f135ed45
 +    }
 +}
 diff --git a/net/minecraft/world/item/BlockItem.java b/net/minecraft/world/item/BlockItem.java
-index b94c4f0a6908a37d8a07dba6ff3ece7193aca1b5..261df07b2d9fc54310961a5778e2490e56cf6beb 100644
+index 68f1e9483b93ef071877a4c99f4bd14e0d363145..8906bbec41b036e2bd11404a3b51ccb15a26dd50 100644
 --- a/net/minecraft/world/item/BlockItem.java
 +++ b/net/minecraft/world/item/BlockItem.java
 @@ -37,8 +37,30 @@ public class BlockItem extends Item {
@@ -116,13 +116,13 @@ index b94c4f0a6908a37d8a07dba6ff3ece7193aca1b5..261df07b2d9fc54310961a5778e2490e
 +        }
 +        // Sakura end - explosion durable blocks
          InteractionResult placeResult = this.place(new BlockPlaceContext(context));
-         return !placeResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
-             ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
+         if (placeResult.consumesAction()) {
+             return placeResult;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 626db5106ddbe68cd3099d170774e347610191e0..909f4a0c87505ec82229c55a81eda7dca5f05d08 100644
+index d7c2d0ab3528fd32d3d156ab13c75a1c602eea6b..5fba1679988729fd6865de343bebe1a36cd77add 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -848,6 +848,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -846,6 +846,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      public final me.samsuik.sakura.entity.SakuraEntityManager sakuraEntityManager = new me.samsuik.sakura.entity.SakuraEntityManager(); // Sakura - optimise cannon entities
      public final me.samsuik.sakura.explosion.density.ExplosionObstructionCache obstructionCache = new me.samsuik.sakura.explosion.density.ExplosionObstructionCache(); // Sakura - optimise explosions
      public final me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler dispenseRelocationHandler = new me.samsuik.sakura.mechanics.sake.DispenseRelocationHandler(this); // Sakura - configure server mechanics
@@ -131,7 +131,7 @@ index 626db5106ddbe68cd3099d170774e347610191e0..909f4a0c87505ec82229c55a81eda7dc
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index 48ad6878a1c748e8b9828486fe1ee3301942a15d..ba724551eb1984415cb006f4d9c5b57ed821d502 100644
+index e8ddac3cde8858b713a7ddb9f91b9fa337c2a527..0386405834ffeb3bb3c0aa6c1f5c4e6014c383af 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -126,7 +126,7 @@ public class ServerExplosion implements Explosion {

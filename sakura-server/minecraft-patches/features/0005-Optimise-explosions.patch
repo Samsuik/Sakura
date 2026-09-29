@@ -1049,10 +1049,10 @@ index 0000000000000000000000000000000000000000..ca9cdb3fe90f1f9224b5ff6afccb8194
 +    }
 +}
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index ed7bd10fd636a5e4eac9fdcc09df8f93bc5b8441..7ea97482c343d5f9efd7ffee759d5c7034b6dc9a 100644
+index 7669a4d5b88049874157774735ec537888db0438..701cd7268962bf1641f6cf22896cc378d48748f9 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2020,7 +2020,18 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2024,7 +2024,18 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              case STANDARD -> Explosion.BlockInteraction.DESTROY; // CraftBukkit - handle custom explosion type
          };
          Vec3 center = new Vec3(x, y, z);
@@ -1072,13 +1072,14 @@ index ed7bd10fd636a5e4eac9fdcc09df8f93bc5b8441..7ea97482c343d5f9efd7ffee759d5c70
          if (configurator != null) configurator.accept(explosion); // Paper - Allow explosions to damage source
          this.sakuraEntityManager.decoupleAllTickingEntities(); // Sakura - optimise cannon entities
          int blockCount = explosion.explode();
-@@ -2029,6 +2040,34 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2033,6 +2044,36 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              return explosion;
          }
          // CraftBukkit end
 +        // Sakura start - optimise explosions
 +        for (final me.samsuik.sakura.explosion.ExplosionToSend explosionToSend : explosion.getToSend()) {
 +            this.notifyPlayersOfExplosion(
++                source,
 +                explosion,
 +                explosionToSend.center(),
 +                explosionToSend.blockCount(),
@@ -1094,6 +1095,7 @@ index ed7bd10fd636a5e4eac9fdcc09df8f93bc5b8441..7ea97482c343d5f9efd7ffee759d5c70
 +    }
 +
 +    private void notifyPlayersOfExplosion(
++        final @Nullable Entity source,
 +        final ServerExplosion explosion,
 +        final Vec3 center,
 +        final int blockCount,
@@ -1107,7 +1109,7 @@ index ed7bd10fd636a5e4eac9fdcc09df8f93bc5b8441..7ea97482c343d5f9efd7ffee759d5c70
          ParticleOptions explosionParticle = explosion.isSmall() ? smallExplosionParticles : largeExplosionParticles;
  
          for (ServerPlayer player : this.players) {
-@@ -2056,7 +2095,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2065,7 +2106,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
              }
          }
  
@@ -1117,10 +1119,10 @@ index ed7bd10fd636a5e4eac9fdcc09df8f93bc5b8441..7ea97482c343d5f9efd7ffee759d5c70
  
      private Explosion.BlockInteraction getDestroyType(final GameRule<Boolean> gameRule) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 692233673ec59fec1fdf0b3a7f8ec1b5779fa1af..d5b42f3390cbb8308e1dee53b7df08c5d2c51291 100644
+index 9204a183de1b686fe403f96628fe229700cac302..cebbc7e9c6f6bf92c85940a4249c7c4dd3d9cb72 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -87,6 +87,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -88,6 +88,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
      // Sakura end - configure cannon mechanics
      // Sakura start - optimise cannon entities
      private final me.samsuik.sakura.entity.SakuraEntityController sakuraEntityController;
@@ -1128,7 +1130,7 @@ index 692233673ec59fec1fdf0b3a7f8ec1b5779fa1af..d5b42f3390cbb8308e1dee53b7df08c5
  
      @Override
      public final me.samsuik.sakura.entity.SakuraEntityController getSakuraEntityController() {
-@@ -220,7 +221,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
+@@ -223,7 +224,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
      }
  
      private void explode() {
@@ -1163,10 +1165,10 @@ index 8477b19c67cafcc339719b97886dd77a346cbe3a..1cf14061e3eb7e09677e1ca0d67bcf10
          org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent(this, RADIUS, false);
          if (event.isCancelled()) {
 diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
-index 0f952be087c52ba5de78d1f91aed1c160ec5788d..7f79b85f3d2983c8fa7f5b9cab551adbd4a1160d 100644
+index 8c3c4532e16d697b692d5e44a17bda1f3a376dc2..fa62294a416a95456fa6fbf6071996c69dae466a 100644
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
-@@ -67,6 +67,7 @@ public class WindCharge extends AbstractWindCharge {
+@@ -68,6 +68,7 @@ public class WindCharge extends AbstractWindCharge {
  
      @Override
      public void explode(final Vec3 position) {
@@ -1175,10 +1177,10 @@ index 0f952be087c52ba5de78d1f91aed1c160ec5788d..7f79b85f3d2983c8fa7f5b9cab551adb
          org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent(this, RADIUS, false);
          if (event.isCancelled()) {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 17ed97203d10eb2b3119247ee1a467b8ad3006e0..e4e6133147accd82e94bd1c188f94c4f9cd716a4 100644
+index 3bf66b6ba172a9bf559e3e305cebfe1d984e881b..b380461320c7239cf65693b3e6422c25550a6631 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -846,6 +846,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -844,6 +844,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      // Sakura end - implement state watchers and tick scheduler
      public final me.samsuik.sakura.player.visibility.MinimalVisibility minimalVisibility = new me.samsuik.sakura.player.visibility.MinimalVisibility(); // Sakura - client visibility settings
      public final me.samsuik.sakura.entity.SakuraEntityManager sakuraEntityManager = new me.samsuik.sakura.entity.SakuraEntityManager(); // Sakura - optimise cannon entities
@@ -1187,7 +1189,7 @@ index 17ed97203d10eb2b3119247ee1a467b8ad3006e0..e4e6133147accd82e94bd1c188f94c4f
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/ServerExplosion.java b/net/minecraft/world/level/ServerExplosion.java
-index ed8358bc18ffdb8f05ff2b259ffc59ca79e5fb55..9871af05f596828bbdccaca229eab8f884ed0982 100644
+index 290ea8b2b0c08a3646fb542ff417e5dab5906751..c1eef6e73e3d4700fee68a816b8bc1d0565dd6cb 100644
 --- a/net/minecraft/world/level/ServerExplosion.java
 +++ b/net/minecraft/world/level/ServerExplosion.java
 @@ -81,7 +81,7 @@ public class ServerExplosion implements Explosion {
@@ -1414,7 +1416,7 @@ index ed8358bc18ffdb8f05ff2b259ffc59ca79e5fb55..9871af05f596828bbdccaca229eab8f8
                          float knockbackMultiplier = this.damageCalculator.getKnockbackMultiplier(entity);
 -                        float exposure = !shouldDamageEntity && knockbackMultiplier == 0.0F ? 0.0F : this.getBlockDensity(this.center, entity); // Paper - Optimize explosions
 +                        float exposure = !shouldDamageEntity && knockbackMultiplier == 0.0F ? 0.0F : this.getBlockDensity(explosionPos, entity); // Sakura - optimise explosions // Paper - Optimize explosions
-                         if (shouldDamageEntity) {
+                         if (shouldDamageEntity && (this.source == null || this.source.doTeamsAllowDamage(entity))) {
                              // CraftBukkit start
  
 @@ -502,7 +595,7 @@ public class ServerExplosion implements Explosion {
@@ -1475,16 +1477,16 @@ index ed8358bc18ffdb8f05ff2b259ffc59ca79e5fb55..9871af05f596828bbdccaca229eab8f8
          this.chunkPosCache = null;
 @@ -750,12 +847,12 @@ public class ServerExplosion implements Explosion {
      // Paper start - Optimize explosions
-     protected float getBlockDensity(Vec3 vec3d, Entity entity) {
+     protected float getBlockDensity(Vec3 center, Entity entity) {
          if (!this.brokenPaperBehaviour) { // Sakura - broken paper explosion behaviour
--            return this.getSeenFraction(vec3d, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
-+            return this.getSeenFraction(vec3d, entity, this.directMappedBlockCache, this.mutablePos, null); // Sakura - optimise explosions // Paper - collision optimisations
+-            return this.getSeenFraction(center, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
++            return this.getSeenFraction(center, entity, this.directMappedBlockCache, this.mutablePos, null); // Sakura - optimise explosions // Paper - collision optimisations
          }
          CacheKey key = new CacheKey(this, entity.getBoundingBox());
          Float blockDensity = this.level.explosionDensityCache.get(key);
          if (blockDensity == null) {
--            blockDensity = this.getSeenFraction(vec3d, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
-+            blockDensity = this.getSeenFraction(vec3d, entity, this.directMappedBlockCache, this.mutablePos, null); // Sakura - optimise explosions // Paper - collision optimisations
+-            blockDensity = this.getSeenFraction(center, entity, this.directMappedBlockCache, this.mutablePos); // Paper - collision optimisations
++            blockDensity = this.getSeenFraction(center, entity, this.directMappedBlockCache, this.mutablePos, null); // Sakura - optimise explosions // Paper - collision optimisations
              this.level.explosionDensityCache.put(key, blockDensity);
          }
  

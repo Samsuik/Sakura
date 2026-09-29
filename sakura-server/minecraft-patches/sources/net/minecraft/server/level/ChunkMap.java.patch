@@ -1,17 +1,17 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -139,7 +_,7 @@
+@@ -138,7 +_,7 @@
+     private final ChunkStatusUpdateListener chunkStatusListener;
      private final ChunkMap.DistanceManager distanceManager;
-     private final String storageName;
      private final PlayerMap playerMap = new PlayerMap();
 -    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new Int2ObjectOpenHashMap<>();
 +    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new me.samsuik.sakura.utils.collections.TrackedEntityChunkMap(); // Sakura - optimised tracked entity map
      private final Long2ByteMap chunkTypeCache = new Long2ByteOpenHashMap();
      // Paper - rewrite chunk system
      public int serverViewDistance;
-@@ -1385,7 +_,10 @@
+@@ -1414,7 +_,10 @@
                  double deltaToPlayerZ = player.getZ() - this.entity.getZ();
-                 // Paper end - remove allocation of Vec3D here
+                 // Paper end - remove allocation of Vec3 here
                  int playerViewDistance = ChunkMap.this.getPlayerViewDistance(player);
 -                double visibleRange = Math.min(this.getEffectiveRange(), playerViewDistance * 16);
 +                // Sakura start - entity tracking range modifier api

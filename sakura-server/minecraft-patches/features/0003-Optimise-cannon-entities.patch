@@ -785,12 +785,12 @@ index 0000000000000000000000000000000000000000..86c24fd87be41aaa9c3073997ba8e3bc
 +    }
 +}
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index d0ee419e2bb853d8c97145b1145e684a89eb0ba4..ed7bd10fd636a5e4eac9fdcc09df8f93bc5b8441 100644
+index 6bea327386ee3fea6788365edc62e5634bc826dd..7669a4d5b88049874157774735ec537888db0438 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1402,10 +1402,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
-         profiler.push(entity.typeHolder()::getRegisteredName);
+@@ -1408,10 +1408,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          profiler.incrementCounter("tickNonPassenger");
+         entity.commonTick();
          final boolean isActive = io.papermc.paper.entity.activation.ActivationRange.checkIfActive(entity); // Paper - EAR 2
 -        if (isActive) { // Paper - EAR 2
 -        entity.tick();
@@ -810,7 +810,7 @@ index d0ee419e2bb853d8c97145b1145e684a89eb0ba4..ed7bd10fd636a5e4eac9fdcc09df8f93
          profiler.pop();
  
          for (Entity passenger : entity.getPassengers()) {
-@@ -2015,6 +2022,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -2019,6 +2026,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          Vec3 center = new Vec3(x, y, z);
          ServerExplosion explosion = new ServerExplosion(this, source, damageSource, damageCalculator, center, r, fire, blockInteraction);
          if (configurator != null) configurator.accept(explosion); // Paper - Allow explosions to damage source
@@ -819,10 +819,10 @@ index d0ee419e2bb853d8c97145b1145e684a89eb0ba4..ed7bd10fd636a5e4eac9fdcc09df8f93
          // CraftBukkit start
          if (explosion.wasCanceled) {
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 749ee80f32a2e35d1b718a55c55ed8469afce647..26835155be02d276c582ca46ea72fbadb6c69e6b 100644
+index c2fe32f61298d2c93de441a4dce129388cf87edb..dcabdaa17e07f8f47653522c7fff69324cecae2b 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -552,6 +552,15 @@ public abstract class Entity
+@@ -557,6 +557,15 @@ public abstract class Entity
      public boolean pushedByFluid = true; // Sakura - entity pushed by fluid api
      public boolean cannonEntity = false; // Sakura - add cannon entity field
      public void sakura$addedToWorld() {} // Sakura - added to world helper method
@@ -838,7 +838,7 @@ index 749ee80f32a2e35d1b718a55c55ed8469afce647..26835155be02d276c582ca46ea72fbad
  
      public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -5216,6 +5225,12 @@ public abstract class Entity
+@@ -5362,6 +5371,12 @@ public abstract class Entity
              this.stopRiding();
          }
  
@@ -852,10 +852,10 @@ index 749ee80f32a2e35d1b718a55c55ed8469afce647..26835155be02d276c582ca46ea72fbad
          this.levelCallback.onRemove(reason);
          this.onRemoval(reason);
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index d5165f1d5379b55915f81cdf9fbc6b7d367d16a1..085e25ae5dcacdde7540cda53e0d50a246749d8e 100644
+index 857a976816286d0e65d9e5cb6eb6cbfecf30290e..bf94fff45f87d3b2043d787e285561ef19df9a91 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -54,7 +54,7 @@ import net.minecraft.world.phys.Vec3;
+@@ -56,7 +56,7 @@ import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -864,7 +864,7 @@ index d5165f1d5379b55915f81cdf9fbc6b7d367d16a1..085e25ae5dcacdde7540cda53e0d50a2
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final BlockState DEFAULT_BLOCK_STATE = Blocks.SAND.defaultBlockState();
      private static final int DEFAULT_TIME = 0;
-@@ -123,11 +123,63 @@ public class FallingBlockEntity extends Entity {
+@@ -125,11 +125,63 @@ public class FallingBlockEntity extends Entity {
          }
      }
      // Sakura end - configure cannon mechanics
@@ -929,10 +929,10 @@ index d5165f1d5379b55915f81cdf9fbc6b7d367d16a1..085e25ae5dcacdde7540cda53e0d50a2
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index d87db8974180ee6b1ee7a5ea366e154a56a07143..7d43e403622bfaac967e8bdde7ecebd402d0106c 100644
+index 0f84eb08aa342ac83f3a61ab19e596ce825e7aa4..942ad537ddc18c5dcbc8049272ee7c6a01df5779 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -36,7 +36,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
+@@ -37,7 +37,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
  import org.bukkit.event.entity.ExplosionPrimeEvent;
  // CraftBukkit end
  
@@ -941,7 +941,7 @@ index d87db8974180ee6b1ee7a5ea366e154a56a07143..7d43e403622bfaac967e8bdde7ecebd4
      private static final EntityDataAccessor<Integer> DATA_FUSE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.INT);
      private static final EntityDataAccessor<BlockState> DATA_BLOCK_STATE_ID = SynchedEntityData.defineId(PrimedTnt.class, EntityDataSerializers.BLOCK_STATE);
      public static final short DEFAULT_FUSE_TIME = 80;
-@@ -85,11 +85,49 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -86,11 +86,49 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          }
      }
      // Sakura end - configure cannon mechanics
@@ -992,7 +992,7 @@ index d87db8974180ee6b1ee7a5ea366e154a56a07143..7d43e403622bfaac967e8bdde7ecebd4
  
      public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
 diff --git a/net/minecraft/world/entity/monster/cubemob/SulfurCube.java b/net/minecraft/world/entity/monster/cubemob/SulfurCube.java
-index 19d6cf31af925d1b3dd4046dd2f459e787f8561f..2a567612258f49c09e2516eef755bcfda6839d18 100644
+index 7a198268c42244d2c995448913c9c0548501e92a..ee90fe4cb699db12b659798580bf06879dadb1ac 100644
 --- a/net/minecraft/world/entity/monster/cubemob/SulfurCube.java
 +++ b/net/minecraft/world/entity/monster/cubemob/SulfurCube.java
 @@ -77,7 +77,7 @@ import net.minecraft.world.phys.Vec2;
@@ -1074,7 +1074,7 @@ index 19d6cf31af925d1b3dd4046dd2f459e787f8561f..2a567612258f49c09e2516eef755bcfd
                  if (archetype.buoyant()) {
                      this.floatsInLiquids = true;
                  }
-@@ -915,6 +964,7 @@ public class SulfurCube extends AbstractCubeMob implements Bucketable, Shearable
+@@ -918,6 +967,7 @@ public class SulfurCube extends AbstractCubeMob implements Bucketable, Shearable
      @Override
      public void knockback(final double power, double xd, double zd, final DamageSource source, final float damage, final boolean comesFromEffect, @Nullable Entity attacker, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause eventCause) { // Paper - knockback events
          if (source.getEntity() != null && this.hasBodyItem()) {
@@ -1083,10 +1083,10 @@ index 19d6cf31af925d1b3dd4046dd2f459e787f8561f..2a567612258f49c09e2516eef755bcfd
              float verticalHitAngleScale = 0.5F;
              float verticalPositionAngleScale = 0.8F;
 diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java b/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java
-index 84c07fb51e8321b32f8607a602dd1e417ce36af7..bdbb4e02a3cad9e7e139fdf69a998f5b3ccbf815 100644
+index 84c07fb51e8321b32f8607a602dd1e417ce36af7..97e6b54176d1c4133822c180dc360a29dd9fef20 100644
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/AbstractHurtingProjectile.java
-@@ -18,15 +18,50 @@ import net.minecraft.world.phys.HitResult;
+@@ -18,15 +18,51 @@ import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -1113,12 +1113,13 @@ index 84c07fb51e8321b32f8607a602dd1e417ce36af7..bdbb4e02a3cad9e7e139fdf69a998f5b
 +    @Override
 +    public boolean deflect(
 +        final net.minecraft.world.entity.projectile.ProjectileDeflection deflection,
-+        final Entity entity,
-+        final net.minecraft.world.entity.EntityReference<Entity> owner,
-+        final boolean deflectedByPlayer
++        final @Nullable Entity deflectingEntity,
++        final net.minecraft.world.entity.EntityReference<Entity> newOwner,
++        final boolean byAttack,
++        final Vec3 power
 +    ) {
 +        this.sakuraEntityController.decouple();
-+        return super.deflect(deflection, entity, owner, deflectedByPlayer);
++        return super.deflect(deflection, deflectingEntity, newOwner, byAttack, power);
 +    }
 +
 +    @Override
@@ -1157,7 +1158,7 @@ index 19552425af5ddfc649718ca91aff4fed57469934..9c466764d2008010684d7bae23b288d1
          super(type, level);
          this.accelerationPower = 0.0;
 diff --git a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
-index c91adb74bfdc93c5e163b37f7517f530703f6ad5..0f952be087c52ba5de78d1f91aed1c160ec5788d 100644
+index ce87c750d10cd173e95d8fbec71dfcd62c17a17c..8c3c4532e16d697b692d5e44a17bda1f3a376dc2 100644
 --- a/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
 +++ b/net/minecraft/world/entity/projectile/hurtingprojectile/windcharge/WindCharge.java
 @@ -28,6 +28,13 @@ public class WindCharge extends AbstractWindCharge {
@@ -1175,10 +1176,10 @@ index c91adb74bfdc93c5e163b37f7517f530703f6ad5..0f952be087c52ba5de78d1f91aed1c16
          super(type, level);
      }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 4d3122779a15521270630f46ee334f6d9f228084..17ed97203d10eb2b3119247ee1a467b8ad3006e0 100644
+index 9692b57cc3693d25a2386cfe36bc98fa05a0f83d..3bf66b6ba172a9bf559e3e305cebfe1d984e881b 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -845,6 +845,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -843,6 +843,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
      }
      // Sakura end - implement state watchers and tick scheduler
      public final me.samsuik.sakura.player.visibility.MinimalVisibility minimalVisibility = new me.samsuik.sakura.player.visibility.MinimalVisibility(); // Sakura - client visibility settings
@@ -1187,10 +1188,10 @@ index 4d3122779a15521270630f46ee334f6d9f228084..17ed97203d10eb2b3119247ee1a467b8
      protected Level(
          final WritableLevelData levelData,
 diff --git a/net/minecraft/world/level/block/BasePressurePlateBlock.java b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index f2d7c5fc0339a62c4fc56aa5871cd999e1136ca6..3e215d0e9ff378f2a5385ea550e674a9917d5ec0 100644
+index f77e9bc43fbaa9286f921bbd775f7f2025772ea3..7c02ffe22794f2d668df2c57bc582ca6569c5ce1 100644
 --- a/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/BasePressurePlateBlock.java
-@@ -172,6 +172,12 @@ public abstract class BasePressurePlateBlock extends Block {
+@@ -168,6 +168,12 @@ public abstract class BasePressurePlateBlock extends Block {
  
      protected abstract int getSignalStrength(Level level, BlockPos pos);
  
@@ -1204,10 +1205,10 @@ index f2d7c5fc0339a62c4fc56aa5871cd999e1136ca6..3e215d0e9ff378f2a5385ea550e674a9
  
      protected abstract BlockState setSignalForState(BlockState state, int signal);
 diff --git a/net/minecraft/world/level/block/WeightedPressurePlateBlock.java b/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
-index e26385eb25338e7f0770b9154a542273b651c2f4..7bf6c015716c237836b42ee5049a66fc2e55065f 100644
+index 47e5291925e1a7ee69d120b79651c71a856d15d5..8fe9d45d970aae1b97bbe34f24a31963963f6fe6 100644
 --- a/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
 +++ b/net/minecraft/world/level/block/WeightedPressurePlateBlock.java
-@@ -37,8 +37,15 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+@@ -21,8 +21,15 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
          this.maxWeight = maxWeight;
      }
  
@@ -1223,7 +1224,7 @@ index e26385eb25338e7f0770b9154a542273b651c2f4..7bf6c015716c237836b42ee5049a66fc
          // CraftBukkit start
          // int min = Math.min(getEntityCount(level, TOUCH_AABB.move(pos), Entity.class), this.maxWeight);
          int count = 0;
-@@ -54,6 +61,12 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
+@@ -38,6 +45,12 @@ public class WeightedPressurePlateBlock extends BasePressurePlateBlock {
  
              // We only want to block turning the plate on if all events are cancelled
              if (!cancellable.isCancelled()) {

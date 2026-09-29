@@ -747,10 +747,10 @@ index 0000000000000000000000000000000000000000..a5fa2dd230319dca30ba0e23b725d8ec
 +    }
 +}
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index e3af9663b747e3c623e3a4512a8f65e4e383ba6a..7f9eca187034b95155d1229ba1175836b19a7509 100644
+index b4a9bcfd7d72aa0b5a961d9cc865ac35fb29f288..c099adabeeac17cd247d805607000f04dc0dcea6 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -1854,6 +1854,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1836,6 +1836,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              profiler.pop();
              profiler.pop();
              level.explosionDensityCache.clear(); // Paper - Optimize explosions
@@ -759,10 +759,10 @@ index e3af9663b747e3c623e3a4512a8f65e4e383ba6a..7f9eca187034b95155d1229ba1175836
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index e1ce7d68f1985f06dd1af90d02ade908dedfee2b..e37841f02d68e7ce70e329df214f7b8f2f1c2e1d 100644
+index b1383b7eed869bb32b59bf0c674f372e54ccffe5..b8367ef9a3f87b411a18721151623afe972959f4 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -742,6 +742,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
+@@ -744,6 +744,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
          this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
          // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
@@ -826,11 +826,11 @@ index 6e08d50794c4af4405f3e164a3fd46f376b3f78f..9b66f811be3171015c71f47b5d8e1cbb
  
      int getContainerSize();
 diff --git a/net/minecraft/world/entity/EntityEquipment.java b/net/minecraft/world/entity/EntityEquipment.java
-index 20041325ae77f16a5b77f5de7255788b52ebb3a5..3295903153a99f2d5e446b9b455aa63a3a955c5f 100644
+index 1aa888376784dfc9ddd9c4e2493031ff2a564b59..6dd6ca5830f7293c4770f0e44b75be5a6dca0b7d 100644
 --- a/net/minecraft/world/entity/EntityEquipment.java
 +++ b/net/minecraft/world/entity/EntityEquipment.java
-@@ -7,7 +7,7 @@ import java.util.Objects;
- import java.util.Map.Entry;
+@@ -8,7 +8,7 @@ import java.util.Map.Entry;
+ import net.minecraft.world.entity.item.ItemEntity;
  import net.minecraft.world.item.ItemStack;
  
 -public class EntityEquipment {
@@ -838,7 +838,7 @@ index 20041325ae77f16a5b77f5de7255788b52ebb3a5..3295903153a99f2d5e446b9b455aa63a
      public static final Codec<EntityEquipment> CODEC = Codec.unboundedMap(EquipmentSlot.CODEC, ItemStack.CODEC).xmap(items -> {
          EnumMap<EquipmentSlot, ItemStack> map = new EnumMap<>(EquipmentSlot.class);
          map.putAll((Map<? extends EquipmentSlot, ? extends ItemStack>)items);
-@@ -19,6 +19,24 @@ public class EntityEquipment {
+@@ -20,6 +20,24 @@ public class EntityEquipment {
      });
      private final EnumMap<EquipmentSlot, ItemStack> items;
  
@@ -863,7 +863,7 @@ index 20041325ae77f16a5b77f5de7255788b52ebb3a5..3295903153a99f2d5e446b9b455aa63a
      private EntityEquipment(final EnumMap<EquipmentSlot, ItemStack> items) {
          this.items = items;
      }
-@@ -28,7 +46,11 @@ public class EntityEquipment {
+@@ -29,7 +47,11 @@ public class EntityEquipment {
      }
  
      public ItemStack set(final EquipmentSlot slot, final ItemStack itemStack) {
@@ -876,7 +876,7 @@ index 20041325ae77f16a5b77f5de7255788b52ebb3a5..3295903153a99f2d5e446b9b455aa63a
      }
  
      public ItemStack get(final EquipmentSlot slot) {
-@@ -57,6 +79,7 @@ public class EntityEquipment {
+@@ -58,6 +80,7 @@ public class EntityEquipment {
      public void setAll(final EntityEquipment equipment) {
          this.items.clear();
          this.items.putAll(equipment.items);
@@ -884,7 +884,7 @@ index 20041325ae77f16a5b77f5de7255788b52ebb3a5..3295903153a99f2d5e446b9b455aa63a
      }
  
      public void dropAll(final LivingEntity dropper) {
-@@ -69,6 +92,7 @@ public class EntityEquipment {
+@@ -73,6 +96,7 @@ public class EntityEquipment {
  
      public void clear() {
          this.items.replaceAll((s, v) -> ItemStack.EMPTY);
@@ -952,10 +952,10 @@ index 68bad6752bd313ca3ebde7fd4e3b2c46c5dee3ef..02955c0da4cc3e106676e97dc9aeb07c
          this.supplier = supplier;
      }
 diff --git a/net/minecraft/world/entity/player/Inventory.java b/net/minecraft/world/entity/player/Inventory.java
-index cd7714dffcd7e7b6d96d18a97e65fd0914a739d1..7c2251c9502cf70d5d7794002fdc5565a7b9b0d6 100644
+index 59dc40b542b537ef08b06cf1209a2b9866358431..625dbd49464a4ded2810760be282b956f333f07f 100644
 --- a/net/minecraft/world/entity/player/Inventory.java
 +++ b/net/minecraft/world/entity/player/Inventory.java
-@@ -146,6 +146,7 @@ public class Inventory implements Container, Nameable {
+@@ -148,6 +148,7 @@ public class Inventory implements Container, Nameable {
              throw new IllegalArgumentException("Invalid selected slot");
          }
  
@@ -976,10 +976,10 @@ index e59787c1698e96df98ef4cf98d62b4a67c4e95dc..62ad0d316404fd80808a6cdcbf7413ed
      }
  
 diff --git a/net/minecraft/world/item/ItemStack.java b/net/minecraft/world/item/ItemStack.java
-index 7f383fa36658d5b6027d8a048001c1095ace458b..284c07aa87833e11155bad78f9bfa0f0e7f361f8 100644
+index 6f72fc090d0475cb2ae334e5b70612a79a0ecb5b..a7c7fb2d9d10301a257851600ab664245c5ac572 100644
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
-@@ -99,7 +99,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
+@@ -100,7 +100,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -988,7 +988,7 @@ index 7f383fa36658d5b6027d8a048001c1095ace458b..284c07aa87833e11155bad78f9bfa0f0
      private static final List<Component> OP_NBT_WARNING = List.of(
          Component.translatable("item.op_warning.line1").withStyle(ChatFormatting.RED, ChatFormatting.BOLD),
          Component.translatable("item.op_warning.line2").withStyle(ChatFormatting.RED),
-@@ -265,6 +265,19 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -266,6 +266,19 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
          return itemHolder.value().modifyBaseComponents(itemHolder.components());
      }
      // Sakura end - modify data components
@@ -1008,7 +1008,7 @@ index 7f383fa36658d5b6027d8a048001c1095ace458b..284c07aa87833e11155bad78f9bfa0f0
  
      public ItemStack(final ItemLike item, final int count) {
          this(item.asItem().builtInRegistryHolder(), count);
-@@ -976,11 +989,16 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -982,11 +995,16 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      // CraftBukkit start
      public void restorePatch(DataComponentPatch datacomponentpatch) {
          this.components.restorePatch(datacomponentpatch);
@@ -1026,7 +1026,7 @@ index 7f383fa36658d5b6027d8a048001c1095ace458b..284c07aa87833e11155bad78f9bfa0f0
      }
  
      public <T> @Nullable T set(final TypedDataComponent<T> value) {
-@@ -1001,7 +1019,11 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
+@@ -1007,7 +1025,11 @@ public final class ItemStack implements DataComponentHolder, ItemInstance {
      }
  
      public <T> @Nullable T remove(final DataComponentType<? extends T> type) {
@@ -1048,10 +1048,10 @@ index 7f383fa36658d5b6027d8a048001c1095ace458b..284c07aa87833e11155bad78f9bfa0f0
  
      public void limitSize(final int maxStackSize) {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index a527277c5eeec828dd8d9bc50cfdad5a2e1afbc9..6a7dad0b57bbe5662005e3d540e7e94b5c40da79 100644
+index 8a96ef30e295d1e1e7f22db4341747d8cd9b37c5..f13c5cc87304c894db31c6cdd3219a04e2600019 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -835,6 +835,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -833,6 +833,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
          return chunk != null ? chunk.getNoiseBiome(x, y, z) : this.getUncachedNoiseBiome(x, y, z);
      }
      // Paper end - optimise random ticking
@@ -1067,7 +1067,7 @@ index a527277c5eeec828dd8d9bc50cfdad5a2e1afbc9..6a7dad0b57bbe5662005e3d540e7e94b
  
      protected Level(
          final WritableLevelData levelData,
-@@ -1093,6 +1102,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+@@ -1086,6 +1095,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
              return false;
          }
  
@@ -1076,12 +1076,12 @@ index a527277c5eeec828dd8d9bc50cfdad5a2e1afbc9..6a7dad0b57bbe5662005e3d540e7e94b
          Block block = blockState.getBlock();
          // CraftBukkit start - capture blockstates
 diff --git a/net/minecraft/world/level/block/ChestBlock.java b/net/minecraft/world/level/block/ChestBlock.java
-index 4bd84b80199c7f625475ca62da02266d871a8639..334f47b10f981868fb17ce0ff96c23db0f4194c1 100644
+index 4b3f5c92f3caf6d68f60b906d1f7eb552698ef05..3704edbf7d59618c9c2be012eccd7b170f09faf4 100644
 --- a/net/minecraft/world/level/block/ChestBlock.java
 +++ b/net/minecraft/world/level/block/ChestBlock.java
-@@ -140,6 +140,15 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
-         return CODEC;
-     }
+@@ -126,6 +126,15 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+         }
+     };
  
 +    // Sakura start - implement state watchers and tick scheduler
 +    private void changedBlockState(final LevelReader level, final BlockPos pos) {
@@ -1095,7 +1095,7 @@ index 4bd84b80199c7f625475ca62da02266d871a8639..334f47b10f981868fb17ce0ff96c23db
      protected ChestBlock(
          final Supplier<BlockEntityType<? extends ChestBlockEntity>> blockEntityType,
          final SoundEvent openSound,
-@@ -182,9 +191,11 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+@@ -168,9 +177,11 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
                  && neighbourType != ChestType.SINGLE
                  && state.getValue(FACING) == neighbourState.getValue(FACING)
                  && getConnectedDirection(neighbourState) == directionToNeighbour.getOpposite()) {
@@ -1108,10 +1108,10 @@ index 4bd84b80199c7f625475ca62da02266d871a8639..334f47b10f981868fb17ce0ff96c23db
          }
  
 diff --git a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
-index 0e594121b60aa5a01b5bbe94b80350f2fc698b1a..c611dfd3904f3029256fb07302f0aacb752c8ded 100644
+index c2f8479eef826efca3ed2993973b2cfc2c51ed00..35a0ce78e3b8646a1a132948673608b11c5a2640 100644
 --- a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
-@@ -30,6 +30,42 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
+@@ -36,6 +36,42 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
      public LockCode lockKey = LockCode.NO_LOCK;
      public @Nullable Component name;
  
@@ -1155,10 +1155,10 @@ index 0e594121b60aa5a01b5bbe94b80350f2fc698b1a..c611dfd3904f3029256fb07302f0aacb
          super(type, worldPosition, blockState);
      }
 diff --git a/net/minecraft/world/level/chunk/LevelChunk.java b/net/minecraft/world/level/chunk/LevelChunk.java
-index a52c31cb4e20ec46a040e67d1441a2eaed8c0f8d..4443bdba89806869b9514a668cf758af8b8acbf1 100644
+index bd4044c7402c654314d8f3bfe4981dcf96bd74db..0c252d6bcbf04d2de9250965a070432c8459b79d 100644
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -135,6 +135,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -134,6 +134,13 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
          return this.getBlockStateFinal(x, y, z);
      }
      // Paper end - get block chunk optimisation
@@ -1172,7 +1172,7 @@ index a52c31cb4e20ec46a040e67d1441a2eaed8c0f8d..4443bdba89806869b9514a668cf758af
  
      public LevelChunk(final Level level, final ChunkPos pos) {
          this(level, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
-@@ -172,6 +179,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -171,6 +178,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
          this.debug = !empty && this.level.isDebug();
          this.defaultBlockState = empty ? VOID_AIR_BLOCKSTATE : AIR_BLOCKSTATE;
          // Paper end - get block chunk optimisation
@@ -1180,7 +1180,7 @@ index a52c31cb4e20ec46a040e67d1441a2eaed8c0f8d..4443bdba89806869b9514a668cf758af
      }
  
      public LevelChunk(final ServerLevel level, final ProtoChunk protoChunk, final LevelChunk.@Nullable PostLoadProcessor postLoad) {
-@@ -424,6 +432,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
+@@ -423,6 +431,7 @@ public class LevelChunk extends ChunkAccess implements DebugValueSource, ca.spot
              return null;
          }
  

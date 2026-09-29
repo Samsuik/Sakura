@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/BucketItem.java
 +++ b/net/minecraft/world/item/BucketItem.java
-@@ -64,6 +_,12 @@
+@@ -66,6 +_,12 @@
                      CriteriaTriggers.PLACED_BLOCK.trigger(serverPlayer, placePos, itemStack);
                  }
  
@@ -13,7 +13,7 @@
                  player.awardStat(Stats.ITEM_USED.get(this));
                  ItemStack emptyResult = ItemUtils.createFilledResult(itemStack, player, getEmptySuccessItem(itemStack, player));
                  return InteractionResult.SUCCESS.heldItemTransformedTo(emptyResult);
-@@ -76,8 +_,13 @@
+@@ -78,8 +_,13 @@
                          if (dummyFluid.isEmpty()) return InteractionResult.FAIL; // Don't fire event if the bucket won't be filled.
                          org.bukkit.event.player.PlayerBucketFillEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBucketFillEvent(level, player, pos, pos, hitResult.getDirection(), itemStack, dummyFluid.getItem(), hand);
  
@@ -28,12 +28,12 @@
                              return InteractionResult.FAIL;
                          }
                          // CraftBukkit end
-@@ -154,7 +_,7 @@
-                 return hitResult != null && this.emptyContents(user, level, hitResult.getBlockPos().relative(hitResult.getDirection()), null, direction, clicked, itemStack, hand); // CraftBukkit
-             }
- 
--            if (level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos) && this.content.is(FluidTags.WATER)) {
-+            if (!level.sakuraConfig().environment.allowWaterInTheNether && level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos) && this.content.is(FluidTags.WATER)) { // Sakura - allow water in the nether
-                 int x = pos.getX();
-                 int y = pos.getY();
-                 int z = pos.getZ();
+@@ -153,7 +_,7 @@
+                     itemLeftInHandAfterPlayerBucketEmptyEvent = event.getItemStack() != null ? event.getItemStack().equals(org.bukkit.inventory.ItemStack.of(org.bukkit.Material.BUCKET)) ? null : org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItemStack()) : ItemStack.EMPTY; // Paper - Fix PlayerBucketEmptyEvent result itemstack
+                 }
+                 // CraftBukkit end
+-                if (level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos) && this.content.is(FluidTags.WATER)) {
++                if (!level.sakuraConfig().environment.allowWaterInTheNether && level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos) && this.content.is(FluidTags.WATER)) { // Sakura - allow water in the nether
+                     int x = pos.getX();
+                     int y = pos.getY();
+                     int z = pos.getZ();

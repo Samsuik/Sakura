@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -321,12 +_,23 @@
-         final BiomeResolver biomeResolver, final Climate.Sampler sampler, final int quartMinX, final int quartMinY, final int quartMinZ
-     ) {
+@@ -318,12 +_,22 @@
+ 
+     public void fillBiomesFromNoise(final BiomeResolver biomeResolver, final int quartMinX, final int quartMinY, final int quartMinZ) {
          PalettedContainer<Holder<Biome>> newBiomes = this.biomes.recreate();
 +        Holder<Biome> biome = null; // Sakura - calculate biome noise for each chunk section
          int size = 4;
@@ -10,14 +10,13 @@
          for (int x = 0; x < 4; x++) {
              for (int y = 0; y < 4; y++) {
                  for (int z = 0; z < 4; z++) {
--                    newBiomes.getAndSetUnchecked(x, y, z, biomeResolver.getNoiseBiome(quartMinX + x, quartMinY + y, quartMinZ + z, sampler));
+-                    newBiomes.getAndSetUnchecked(x, y, z, biomeResolver.getNoiseBiome(quartMinX + x, quartMinY + y, quartMinZ + z));
 +                    // Sakura start - calculate biome noise once for each chunk section
 +                    if (biome == null || !me.samsuik.sakura.configuration.GlobalConfiguration.get().environment.calculateBiomeNoiseOncePerChunkSection) {
 +                        biome = biomeResolver.getNoiseBiome(
 +                            quartMinX + x,
 +                            quartMinY + y,
-+                            quartMinZ + z,
-+                            sampler
++                            quartMinZ + z
 +                        );
 +                    }
 +                    newBiomes.getAndSetUnchecked(x, y, z, biome);

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -64,9 +_,32 @@
+@@ -65,9 +_,32 @@
      public float explosionPower = 4.0F;
      public boolean isIncendiary = false; // CraftBukkit
  
@@ -33,7 +33,7 @@
      }
  
      public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
-@@ -104,13 +_,13 @@
+@@ -105,13 +_,13 @@
  
      @Override
      public void tick() {
@@ -49,10 +49,10 @@
              this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
              return;
          }
-@@ -136,8 +_,16 @@
-                 this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
-             }
+@@ -139,8 +_,16 @@
          }
+ 
+         this.setRequiresPrecisePosition(this.horizontalCollision || this.verticalCollision);
 +        // Sakura start - configure force position updates
 +        if (this.level().sakuraConfig().cannons.tnt.forcePositionUpdates) {
 +            this.forcePositionUpdateInWater();
@@ -64,6 +64,6 @@
          // Paper start - Option to prevent TNT from moving in water
 -        if (!this.isRemoved() && this.wasTouchingWater && this.level().paperConfig().fixes.preventTntFromMovingInWater) {
 +        if (!this.isRemoved() && this.wasTouchingWater && !this.isPushedByFluid()) { // Sakura - correctly check if this entity is pushed by water
-             this.hurtMarked = true;
+             this.syncVelocity = true;
              this.needsSync = true;
          }

@@ -5,10 +5,10 @@ Subject: [PATCH] Cache attributes and watch equipment changes
 
 
 diff --git a/net/minecraft/world/entity/LivingEntity.java b/net/minecraft/world/entity/LivingEntity.java
-index 885a1a29daf64c6f3b1717a172a3affe81bc2016..ebba443d3876eb3eb4df9bd87eb53d95c65cfda9 100644
+index 1d48bd6ff386a627abeb3f55c64912f5649b7f06..e1a7261d60956cf54550183e82be32199a34edbe 100644
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
-@@ -366,6 +366,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -365,6 +365,13 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          return (float) damage;
      }
      // Sakura end - legacy combat mechanics & attack damage override
@@ -22,7 +22,7 @@ index 885a1a29daf64c6f3b1717a172a3affe81bc2016..ebba443d3876eb3eb4df9bd87eb53d95
  
      protected LivingEntity(final EntityType<? extends LivingEntity> type, final Level level) {
          super(type, level);
-@@ -379,6 +386,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -378,6 +385,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
          this.setYRot(this.random.nextFloat() * (float) (Math.PI * 2));
          this.yHeadRot = this.getYRot();
          this.brain = this.makeBrain(Brain.Packed.EMPTY);
@@ -35,7 +35,7 @@ index 885a1a29daf64c6f3b1717a172a3affe81bc2016..ebba443d3876eb3eb4df9bd87eb53d95
      }
  
      @Override
-@@ -600,7 +613,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -601,7 +614,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
  
      @Override
      protected float getBlockSpeedFactor() {
@@ -44,7 +44,7 @@ index 885a1a29daf64c6f3b1717a172a3affe81bc2016..ebba443d3876eb3eb4df9bd87eb53d95
      }
  
      private static float computeModifiedFriction(final float friction, final float modifier) {
-@@ -3163,7 +3176,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3154,7 +3167,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
  
      @Override
      protected double getDefaultGravity() {
@@ -53,7 +53,7 @@ index 885a1a29daf64c6f3b1717a172a3affe81bc2016..ebba443d3876eb3eb4df9bd87eb53d95
      }
  
      @Override
-@@ -3261,7 +3274,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3253,7 +3266,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
      protected void travelInWater(final Vec3 input, final double baseGravity, final boolean isFalling, final double oldY) {
          float slowDown = this.isSprinting() ? 0.9F : this.getWaterSlowDown();
          float speed = 0.02F;
@@ -62,7 +62,7 @@ index 885a1a29daf64c6f3b1717a172a3affe81bc2016..ebba443d3876eb3eb4df9bd87eb53d95
          if (!this.onGround()) {
              waterWalker *= 0.5F;
          }
-@@ -3541,7 +3554,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3536,7 +3549,12 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
                  }
              }
  
@@ -76,7 +76,7 @@ index 885a1a29daf64c6f3b1717a172a3affe81bc2016..ebba443d3876eb3eb4df9bd87eb53d95
              if (this.tickCount % 20 == 0) {
                  this.getCombatTracker().recheckStatus();
              }
-@@ -3817,7 +3835,11 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -3814,7 +3832,11 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
              this.lerpHeadSteps--;
          }
  
@@ -89,7 +89,7 @@ index 885a1a29daf64c6f3b1717a172a3affe81bc2016..ebba443d3876eb3eb4df9bd87eb53d95
          Vec3 movement = this.getDeltaMovement();
          double dx = movement.x;
          double dy = movement.y;
-@@ -5019,7 +5041,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
+@@ -5080,7 +5102,7 @@ public abstract class LivingEntity extends Entity implements Attackable, Waypoin
  
      @Override
      public boolean isTransmittingWaypoint() {
@@ -99,10 +99,10 @@ index 885a1a29daf64c6f3b1717a172a3affe81bc2016..ebba443d3876eb3eb4df9bd87eb53d95
  
      @Override
 diff --git a/net/minecraft/world/item/enchantment/EnchantmentHelper.java b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
-index ed84782f4fcaec8f12ab68641a42ad6e09079875..0cce257948104bc213c66fb040f1613c1e0de5db 100644
+index 9c667a09fcea23b4072c0616837b685e256e0462..d7c4a42b3aaacca5c5ca1b53ee64f3788831550b 100644
 --- a/net/minecraft/world/item/enchantment/EnchantmentHelper.java
 +++ b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
-@@ -157,6 +157,7 @@ public class EnchantmentHelper {
+@@ -156,6 +156,7 @@ public class EnchantmentHelper {
      }
  
      private static void runIterationOnEquipment(final LivingEntity owner, final EnchantmentHelper.EnchantmentInSlotVisitor method) {
