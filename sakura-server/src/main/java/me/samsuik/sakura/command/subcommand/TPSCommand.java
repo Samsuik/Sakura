@@ -43,7 +43,8 @@ public final class TPSCommand extends BaseSubCommand {
         final BuiltComponentCanvas canvas = graph.plot();
 
         // Add the sidebars, header and footer
-        canvas.appendLeft(Component.text(":", NamedTextColor.BLACK));
+        final int[] counter = new int[1];
+        canvas.appendLeft(() -> Component.text(sideBarCharacter(counter), NamedTextColor.BLACK));
         canvas.appendRight(Component.text(":", NamedTextColor.BLACK));
         canvas.header(this.createHeaderComponent(tickInformation, identifier));
         canvas.footer(Component.text("*", NamedTextColor.DARK_GRAY)
@@ -53,6 +54,10 @@ public final class TPSCommand extends BaseSubCommand {
         for (final Component component : canvas.components()) {
             sender.sendMessage(component);
         }
+    }
+
+    private static String sideBarCharacter(final int[] counter) {
+        return counter[0]++ % 2 == 0 ? ":" : ";";
     }
 
     private double dynamicScale(final long identifier) {
