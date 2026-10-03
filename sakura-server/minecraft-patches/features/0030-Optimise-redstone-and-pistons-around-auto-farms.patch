@@ -1,0 +1,233 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sat, 3 Oct 2026 13:20:42 +0100
+Subject: [PATCH] Optimise redstone and pistons around auto farms
+
+
+diff --git a/me/samsuik/sakura/redstone/AutoFarmTracker.java b/me/samsuik/sakura/redstone/AutoFarmTracker.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0d4fc8a22d062f508cd1fabd6c88f47a04e82950
+--- /dev/null
++++ b/me/samsuik/sakura/redstone/AutoFarmTracker.java
+@@ -0,0 +1,41 @@
++package me.samsuik.sakura.redstone;
++
++import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.SectionPos;
++import net.minecraft.world.level.Level;
++import org.jspecify.annotations.NullMarked;
++
++@NullMarked
++public final class AutoFarmTracker {
++    private static final int ACTIVE_FARM_TICKS = 60 * 5 * 20; // 5 minutes
++
++    private final Long2LongOpenHashMap activeSections = new Long2LongOpenHashMap();
++    private final Level level;
++    private long lastCleanUp;
++
++    public AutoFarmTracker(final Level level) {
++        this.level = level;
++    }
++
++    public void newGrowth(final BlockPos pos) {
++        final long gameTime = this.level.getGameTime();
++        if (gameTime - this.lastCleanUp > ACTIVE_FARM_TICKS) {
++            this.activeSections.values().removeIf(lastGrowthTick -> gameTime - lastGrowthTick >= ACTIVE_FARM_TICKS);
++            this.lastCleanUp = gameTime;
++        }
++
++        final long sectionPos = SectionPos.asLong(pos);
++        this.activeSections.put(sectionPos, gameTime);
++    }
++
++    public boolean isTrackedAutoFarm(final BlockPos pos) {
++        if (!this.level.sakuraConfig().technical.optimiseAutoFarms) {
++            return false;
++        }
++
++        final long sectionPos = SectionPos.asLong(pos);
++        final long lastGrowthTick = this.activeSections.get(sectionPos);
++        return this.level.getGameTime() - lastGrowthTick < ACTIVE_FARM_TICKS;
++    }
++}
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 658620e23096b33c3c5cdad4338d792f15ba6229..2d34f94c0032dd1643e5b097d0b28be143a063cc 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -854,6 +854,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     public final me.samsuik.sakura.explosion.DurableBlockManager durabilityManager = new me.samsuik.sakura.explosion.DurableBlockManager(); // Sakura - explosion durable blocks
+     public final me.samsuik.sakura.redstone.RedstoneWireCache redstoneWireCache = new me.samsuik.sakura.redstone.RedstoneWireCache(); // Sakura - cache vanilla and eigencraft wires
+     public final me.samsuik.sakura.entity.FallingBlockColumnLimits fallingBlockColumnLimits = new me.samsuik.sakura.entity.FallingBlockColumnLimits(); // Sakura - limit instant block falling
++    public final me.samsuik.sakura.redstone.AutoFarmTracker autoFarmTracker = new me.samsuik.sakura.redstone.AutoFarmTracker(this); // Sakura - optimise redstone and pistons around auto farms
+ 
+     protected Level(
+         final WritableLevelData levelData,
+diff --git a/net/minecraft/world/level/block/Block.java b/net/minecraft/world/level/block/Block.java
+index 1b89d481168347f8edd078a8ac190b38a4390a6f..03f088527622f2d8adcf87e2cfbf5fcfc2643da8 100644
+--- a/net/minecraft/world/level/block/Block.java
++++ b/net/minecraft/world/level/block/Block.java
+@@ -398,6 +398,19 @@ public class Block extends BlockBehaviour implements ItemLike {
+ 
+     // Paper start - Add BlockBreakBlockEvent
+     public static boolean dropResources(final BlockState state, final Level level, final BlockPos pos, final @Nullable BlockEntity blockEntity, final BlockPos source) {
++        // Sakura start - optimise redstone and pistons around auto farms
++        return dropResources(state, level, pos, blockEntity, source, false);
++    }
++
++    public static boolean dropResources(
++        final BlockState state,
++        final Level level,
++        final BlockPos pos,
++        final @Nullable BlockEntity blockEntity,
++        final BlockPos source,
++        final boolean withoutVelocity
++    ) {
++        // Sakura end - optimise redstone and pistons around auto farms
+         if (level instanceof ServerLevel serverLevel) {
+             List<org.bukkit.inventory.ItemStack> items = new java.util.ArrayList<>();
+             for (ItemStack drop : Block.getDrops(state, serverLevel, pos, blockEntity)) {
+@@ -408,7 +421,14 @@ public class Block extends BlockBehaviour implements ItemLike {
+             event.setExpToDrop(block.getExpDrop(state, serverLevel, pos, net.minecraft.world.item.ItemStack.EMPTY, true)); // Paper - Properly handle xp dropping
+             event.callEvent();
+             for (org.bukkit.inventory.ItemStack drop : event.getDrops()) {
+-                popResource(serverLevel, pos, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop));
++                // Sakura start - optimise redstone and pistons around auto farms
++                final ItemStack itemToDrop = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop);
++                if (withoutVelocity) {
++                    popResourceWithoutVelocity(serverLevel, pos, itemToDrop);
++                } else {
++                    popResource(serverLevel, pos, itemToDrop);
++                }
++                // Sakura end - optimise redstone and pistons around auto farms
+             }
+             state.spawnAfterBreak(serverLevel, pos, ItemStack.EMPTY, false); // Paper - Properly handle xp dropping
+             block.popExperience(serverLevel, pos, event.getExpToDrop()); // Paper - Properly handle xp dropping
+@@ -452,6 +472,17 @@ public class Block extends BlockBehaviour implements ItemLike {
+         }
+     }
+ 
++    // Sakura start - optimise redstone and pistons around auto farms
++    public static void popResourceWithoutVelocity(final Level level, final BlockPos pos, final ItemStack itemStack) {
++        double halfHeight = EntityTypes.ITEM.getHeight() / 2.0;
++        RandomSource random = level.getRandom();
++        double x = pos.getX() + 0.5 + Mth.nextDouble(random, -0.25, 0.25);
++        double y = pos.getY() + 0.5 + Mth.nextDouble(random, -0.25, 0.25) - halfHeight;
++        double z = pos.getZ() + 0.5 + Mth.nextDouble(random, -0.25, 0.25);
++        popResource(level, () -> new ItemEntity(level, x, y, z, itemStack, 0.0, 0.2, 0.0), itemStack);
++    }
++    // Sakura end - optimise redstone and pistons around auto farms
++
+     public static void popResource(final Level level, final BlockPos pos, final ItemStack itemStack) {
+         double halfHeight = EntityTypes.ITEM.getHeight() / 2.0;
+         RandomSource random = level.getRandom();
+diff --git a/net/minecraft/world/level/block/RedstoneWireBlock.java b/net/minecraft/world/level/block/RedstoneWireBlock.java
+index f4555085e643298c4b0ae0796641952b4dff7c46..f01f9db4d7facaf810398bd4f9869330f9a746f0 100644
+--- a/net/minecraft/world/level/block/RedstoneWireBlock.java
++++ b/net/minecraft/world/level/block/RedstoneWireBlock.java
+@@ -307,7 +307,7 @@ public class RedstoneWireBlock extends Block {
+                 level.neighborUpdater.getUpdateDepth(),
+                 oldPower,
+                 newPower,
+-                false
++                level.autoFarmTracker.isTrackedAutoFarm(pos) // Sakura - optimise redstone and pistons around auto farms
+             );
+ 
+             if (level.localConfig().at(pos).redstoneBehaviour.cache() && redstoneWireCache.cache(level, sourceKey)) {
+diff --git a/net/minecraft/world/level/block/StemBlock.java b/net/minecraft/world/level/block/StemBlock.java
+index 45596c309bd6200794fb578e937e2331b7c30a16..235ce1b9bb2b4e980ab734520a429a9970e218d7 100644
+--- a/net/minecraft/world/level/block/StemBlock.java
++++ b/net/minecraft/world/level/block/StemBlock.java
+@@ -84,6 +84,11 @@ public class StemBlock extends VegetationBlock implements BonemealableBlock {
+                                 return;
+                             }
+                             // CraftBukkit end
++                            // Sakura start - optimise redstone and pistons around auto farms
++                            if (level.sakuraConfig().technical.optimiseAutoFarms) {
++                                level.autoFarmTracker.newGrowth(pos);
++                            }
++                            // Sakura end - optimise redstone and pistons around auto farms
+                             level.setBlockAndUpdate(pos, stem.get().defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, direction));
+                         }
+                     }
+diff --git a/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+index c0e1aca261bec37ad1d63c8a5c1cb7da8a3fbb23..424f26541933562471f5f1ad4ad9f1f91094c0d9 100644
+--- a/net/minecraft/world/level/block/piston/PistonBaseBlock.java
++++ b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+@@ -91,9 +91,63 @@ public class PistonBaseBlock extends DirectionalBlock {
+         return this.defaultBlockState().setValue(FACING, context.getNearestLookingDirection().getOpposite()).setValue(EXTENDED, false);
+     }
+ 
++    // Sakura start - optimise redstone and pistons around auto farms
++    private boolean destroyBlockAndMoveItems(final Level level, final BlockPos pos, final BlockState state) {
++        final Direction facing = state.getValue(FACING);
++        final BlockPos posFacingTowards = pos.relative(facing);
++        final BlockState blockToDestroy = level.getBlockState(posFacingTowards);
++        final BlockPos airGapPos = pos.relative(facing, 2);
++        final BlockState blockWithoutCollision = level.getBlockState(airGapPos);
++
++        if ((blockToDestroy.isAir() || blockToDestroy.getPistonPushReaction() == PushReaction.POPPED)
++            && blockWithoutCollision.moonrise$emptyCollisionShape()) {
++            // drop items
++            final BlockEntity blockEntity = blockToDestroy.hasBlockEntity()
++                ? level.getBlockEntity(posFacingTowards)
++                : null;
++
++            dropResources(blockToDestroy, level, airGapPos, blockEntity, pos, true);
++
++            // update piston
++            level.setBlock(pos, state.setValue(EXTENDED, true), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
++            level.setBlock(posFacingTowards, Blocks.PISTON_HEAD.defaultBlockState().setValue(FACING, facing), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
++            level.gameEvent(GameEvent.BLOCK_ACTIVATE, pos, GameEvent.Context.of(state));
++            return true;
++        }
++
++        return false;
++    }
++
++    private boolean retractNonSticky(final Level level, final BlockPos pos, final BlockState state) {
++        final Direction facing = state.getValue(FACING);
++        final BlockPos pistonHeadPos = pos.relative(facing);
++
++        if (level.getBlockState(pistonHeadPos).is(Blocks.PISTON_HEAD)) {
++            level.setBlock(pos, state.setValue(EXTENDED, false), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
++            level.setBlock(pistonHeadPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
++            level.gameEvent(GameEvent.BLOCK_DEACTIVATE, pos, GameEvent.Context.of(state));
++            return true;
++        }
++
++        return false;
++    }
++    // Sakura end - optimise redstone and pistons around auto farms
++
+     private void checkIfExtend(final Level level, final BlockPos pos, final BlockState state) {
+         Direction direction = state.getValue(FACING);
+         boolean extend = this.getNeighborSignal(level, pos, direction);
++        // Sakura start - optimise redstone and pistons around auto farms
++        if (extend != state.getValue(EXTENDED) && level.autoFarmTracker.isTrackedAutoFarm(pos)) {
++            if (extend && this.destroyBlockAndMoveItems(level, pos, state)) {
++                return;
++            }
++
++            if (!extend && state.is(Blocks.PISTON) && this.retractNonSticky(level, pos, state)) {
++                return;
++            }
++        }
++        // Sakura end - optimise redstone and pistons around auto farms
++
+         if (extend && !state.getValue(EXTENDED)) {
+             if (new PistonStructureResolver(level, pos, direction, true).resolve()) {
+                 level.blockEvent(pos, this, TRIGGER_EXTEND, direction.get3DDataValue());
+diff --git a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
+index 3aec51349fd3813d1a701116e1c8a30999960632..aabb5856405f0630dbaefc82d592d40954b8be44 100644
+--- a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
++++ b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
+@@ -36,7 +36,7 @@ public class DefaultRedstoneWireEvaluator extends RedstoneWireEvaluator {
+                 level.neighborUpdater.getUpdateDepth(),
+                 previousStrength,
+                 targetStrength,
+-                false
++                level.autoFarmTracker.isTrackedAutoFarm(pos) // Sakura - optimise redstone and pistons around auto farms
+             );
+ 
+             if (level.localConfig().at(pos).redstoneBehaviour.cache() && redstoneWireCache.cache(level, sourceKey)) {

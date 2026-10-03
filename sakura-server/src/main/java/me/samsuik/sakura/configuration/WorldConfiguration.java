@@ -161,6 +161,12 @@ public final class WorldConfiguration extends ConfigurationPart {
             "This exists so servers can enable TNT duplication without reintroducing the other forms of piston duplication."
         )
         public boolean allowTntDuplication = false;
+
+        @Comment(
+            "Reduces redstone and piston updates around auto farms.\n" +
+            "This changes the redstone update order and improves the efficiency of auto farms."
+        )
+        public boolean optimiseAutoFarms = false;
     }
 
     public Players players;
