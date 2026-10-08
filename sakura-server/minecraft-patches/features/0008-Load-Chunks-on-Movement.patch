@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index a85c98a2c421e5e68cc58c308b35cf8416e0f15c..b8c272381a79e8b461f3efc432a53d8648b32e27 100644
+index c8e66d630b239a5bc5e886192ecf2c8da714a9bc..410c8974d837a4741127287c6bc91c038f52d52f 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1904,6 +1904,7 @@ public final class CollisionUtil {
@@ -62,7 +62,7 @@ index fed2a68bf1a9e9a169c0235e129346b9b624170b..b4361dd056b9b8cc94d39e681206081b
      private static TicketType register(final String name, final long timeout, final @TicketType.Flags int flags) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 22bf845a737c436d9ac0ed13c424aba9482724ca..bdddc7d113235a2cfb840a52560949eb6e1f0a7c 100644
+index a3e4a8bb1c9493ddb99e2d4f60146e9b95ed0d4f..fa550d288c8ae4798670ff208f32bc965090b08a 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -573,6 +573,19 @@ public abstract class Entity
@@ -144,13 +144,13 @@ index acd7c8b4add7889d409af949a8cad38281624310..f9fe979468b16d24bc40147ae0cb58b9
  
      public PrimedTnt(final Level level, final double x, final double y, final double z, final @Nullable LivingEntity owner) {
 diff --git a/net/minecraft/world/level/chunk/ChunkAccess.java b/net/minecraft/world/level/chunk/ChunkAccess.java
-index d0d435f53683bae1a4c333aed18cc36c9797a188..f97e5d1875dd59311d64662a33c948fdea033ea5 100644
+index 39ea7198f3bbe4525e686504887e0074de80854d..853b46df9f80825d4c51e8cb7966fa9c14a03821 100644
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -132,6 +132,17 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeR
-     private final int minSection;
-     private final int maxSection;
-     // Paper end - get block chunk optimisation
+@@ -140,6 +140,17 @@ public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeR
+     private final int maxSectionY;
+     private final int sectionsCount;
+     // Paper end - getblock optimisations - cache world height/sections
 +    // Sakura start - load chunks on movement
 +    private long lastMovementLoadTicket = 0;
 +
