@@ -1,0 +1,78 @@
+--- a/net/minecraft/world/ticks/LevelChunkTicks.java
++++ b/net/minecraft/world/ticks/LevelChunkTicks.java
+@@ -16,9 +_,9 @@
+ 
+ public class LevelChunkTicks<T> implements TickContainerAccess<T>, SerializableTickContainer<T>, ca.spottedleaf.moonrise.patches.chunk_system.ticks.ChunkSystemLevelChunkTicks { // Paper - rewrite chunk system
+     private static final Comparator<ScheduledTick<?>> SUB_TICK_ORDERING = Comparator.comparingLong(ScheduledTick::subTickOrder);
+-    private final Queue<ScheduledTick<T>> tickQueue = new PriorityQueue<>(ScheduledTick.DRAIN_ORDER);
++    private final Queue<ScheduledTick<T>> tickQueue = new me.samsuik.sakura.utils.collections.ScheduledTickQueue<>(); // Sakura - optimise tick scheduling
+     private @Nullable List<SavedTick<T>> pendingTicks;
+-    private final Set<ScheduledTick<?>> ticksPerPosition = new ObjectOpenCustomHashSet<>(ScheduledTick.UNIQUE_TICK_HASH);
++    // Sakura - optimise tick scheduling; removed
+     private @Nullable BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> onTickAdded;
+ 
+     // Paper start - rewrite chunk system
+@@ -52,9 +_,26 @@
+         this.pendingTicks = pendingTicks;
+ 
+         for (SavedTick<T> pendingTick : pendingTicks) {
+-            this.ticksPerPosition.add(ScheduledTick.probe(pendingTick.type(), pendingTick.pos()));
++            this.sakura$ticksPerPosition.add(uniqueTickHash(pendingTick.type(), pendingTick.pos())); // Sakura - optimise tick scheduling
+         }
+     }
++
++    // Sakura start - optimise tick scheduling
++    private final it.unimi.dsi.fastutil.longs.LongOpenHashSet sakura$ticksPerPosition = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
++
++    private long uniqueTickHash(final ScheduledTick<T> scheduledTick) {
++        return this.uniqueTickHash(scheduledTick.type(), scheduledTick.pos());
++    }
++
++    private long uniqueTickHash(final T type, final BlockPos pos) {
++        final int x = pos.getX() & 15;
++        final int y = pos.getY() & 4095;
++        final int z = pos.getZ() & 15;
++        final int packedPos = y << 16 | x << 8 | z;
++
++        return ((long) packedPos << 32) | (long) type.hashCode();
++    }
++    // Sakura end - optimise tick scheduling
+ 
+     public void setOnTickAdded(final @Nullable BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> onTickAdded) {
+         this.onTickAdded = onTickAdded;
+@@ -67,7 +_,7 @@
+     public @Nullable ScheduledTick<T> poll() {
+         ScheduledTick<T> result = this.tickQueue.poll();
+         if (result != null) {
+-            this.ticksPerPosition.remove(result); this.dirty = true; // Paper - rewrite chunk system
++            this.sakura$ticksPerPosition.remove(uniqueTickHash(result)); this.dirty = true; // Sakura - optimise tick scheduling // Paper - rewrite chunk system
+         }
+ 
+         return result;
+@@ -75,7 +_,7 @@
+ 
+     @Override
+     public void schedule(final ScheduledTick<T> tick) {
+-        if (this.ticksPerPosition.add(tick)) {
++        if (this.sakura$ticksPerPosition.add(uniqueTickHash(tick))) { // Sakura - optimise tick scheduling
+             this.scheduleUnchecked(tick); this.dirty = true; // Paper - rewrite chunk system
+         }
+     }
+@@ -89,7 +_,7 @@
+ 
+     @Override
+     public boolean hasScheduledTick(final BlockPos pos, final T type) {
+-        return this.ticksPerPosition.contains(ScheduledTick.probe(type, pos));
++        return this.sakura$ticksPerPosition.contains(uniqueTickHash(type, pos)); // Sakura - optimise tick scheduling
+     }
+ 
+     public void removeIf(final Predicate<ScheduledTick<T>> test) {
+@@ -99,7 +_,7 @@
+             ScheduledTick<T> tick = iterator.next();
+             if (test.test(tick)) {
+                 iterator.remove(); this.dirty = true; // Paper - rewrite chunk system
+-                this.ticksPerPosition.remove(tick);
++                this.sakura$ticksPerPosition.remove(uniqueTickHash(tick)); // Sakura - optimise tick scheduling
+             }
+         }
+     }
