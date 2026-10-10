@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Sat, 10 Oct 2026 23:32:33 +0100
+Subject: [PATCH] Use fastutil collections in getEntities
+
+
+diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
+index 2d34f94c0032dd1643e5b097d0b28be143a063cc..7af6fa02d07139b76d8b87f9fcd9f8162300bd53 100644
+--- a/net/minecraft/world/level/Level.java
++++ b/net/minecraft/world/level/Level.java
+@@ -1808,7 +1808,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     public List<Entity> getEntities(final @Nullable Entity except, final AABB bb, final Predicate<? super Entity> selector) {
+         Profiler.get().incrementCounter("getEntities");
+         // Paper start - rewrite chunk system
+-        final List<Entity> ret = new java.util.ArrayList<>();
++        final List<Entity> ret = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(); // Sakura - use fastutil collections in getEntities
+ 
+         ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(except, bb, ret, selector);
+ 
+@@ -1820,7 +1820,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+ 
+     @Override
+     public <T extends Entity> List<T> getEntities(final EntityTypeTest<Entity, T> type, final AABB bb, final Predicate<? super T> selector) {
+-        List<T> output = Lists.newArrayList();
++        List<T> output = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(); // Sakura - use fastutil collections in getEntities
+         this.getEntities(type, bb, selector, output);
+         return output;
+     }
