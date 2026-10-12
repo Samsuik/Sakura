@@ -1,26 +1,15 @@
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -316,12 +_,22 @@
+@@ -323,6 +_,12 @@
+         final Holder<Biome> first = biomeResolver.getNoiseBiome(quartMinX, quartMinY, quartMinZ);
+         final PalettedContainer<Holder<Biome>> newBiomes = new PalettedContainer<>(first, this.biomes.strategy, null); // Paper - Anti-Xray
  
-     public void fillBiomesFromNoise(final BiomeResolver biomeResolver, final int quartMinX, final int quartMinY, final int quartMinZ) {
-         PalettedContainer<Holder<Biome>> newBiomes = this.biomes.recreate();
-+        Holder<Biome> biome = null; // Sakura - calculate biome noise for each chunk section
-         int size = 4;
- 
-         for (int x = 0; x < 4; x++) {
-             for (int y = 0; y < 4; y++) {
-                 for (int z = 0; z < 4; z++) {
--                    newBiomes.getAndSetUnchecked(x, y, z, biomeResolver.getNoiseBiome(quartMinX + x, quartMinY + y, quartMinZ + z));
-+                    // Sakura start - calculate biome noise once for each chunk section
-+                    if (biome == null || !me.samsuik.sakura.configuration.GlobalConfiguration.get().environment.calculateBiomeNoiseOncePerChunkSection) {
-+                        biome = biomeResolver.getNoiseBiome(
-+                            quartMinX + x,
-+                            quartMinY + y,
-+                            quartMinZ + z
-+                        );
-+                    }
-+                    newBiomes.getAndSetUnchecked(x, y, z, biome);
-+                    // Sakura end - calculate biome noise once for each chunk section
-                 }
-             }
-         }
++        // Sakura start - calculate biome noise once for each chunk section
++        if (me.samsuik.sakura.configuration.GlobalConfiguration.get().environment.calculateBiomeNoiseOncePerChunkSection) {
++            return;
++        }
++        // Sakura end - calculate biome noise once for each chunk section
++
+         for (int y = 0; y < 4; ++y) {
+             for (int z = 0; z < 4; ++z) {
+                 // Skip (0, 0, 0): the initial value already fills it, so do not sample it again.
