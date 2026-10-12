@@ -1,5 +1,98 @@
 --- a/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+@@ -56,6 +_,45 @@
+         this.isSticky = isSticky;
+     }
+ 
++    // Sakura start - optimise piston entity movement
++    private void shareMovingBlockEntities(final List<BlockEntity> movingBlockEntities, final Direction direction) {
++        int minX = Integer.MAX_VALUE;
++        int minY = Integer.MAX_VALUE;
++        int minZ = Integer.MAX_VALUE;
++
++        int maxX = Integer.MIN_VALUE;
++        int maxY = Integer.MIN_VALUE;
++        int maxZ = Integer.MIN_VALUE;
++
++        for (final BlockEntity blockEntity : movingBlockEntities) {
++            final BlockPos blockPos = blockEntity.getBlockPos();
++            minX = Math.min(minX, blockPos.getX());
++            minY = Math.min(minY, blockPos.getY());
++            minZ = Math.min(minZ, blockPos.getZ());
++            maxX = Math.max(maxX, blockPos.getX());
++            maxY = Math.max(maxY, blockPos.getY());
++            maxZ = Math.max(maxZ, blockPos.getZ());
++        }
++
++        if (direction.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
++            maxX += direction.getStepX();
++            maxY += direction.getStepY();
++            maxZ += direction.getStepZ();
++        } else {
++            minX += direction.getStepX();
++            minY += direction.getStepY();
++            minZ += direction.getStepZ();
++        }
++
++        final net.minecraft.world.phys.AABB sharedBounds = new net.minecraft.world.phys.AABB(minX, minY, minZ, maxX + 1.0, maxY + 1.50001, maxZ + 1.0);
++        final me.samsuik.sakura.utils.SharedEntities entities = new me.samsuik.sakura.utils.SharedEntities(sharedBounds);
++
++        for (final BlockEntity blockEntity : movingBlockEntities) {
++            ((PistonMovingBlockEntity) blockEntity).sharedEntities = entities;
++        }
++    }
++    // Sakura end - optimise piston entity movement
++
+     @Override
+     protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
+         return state.getValue(EXTENDED) ? SHAPES.get(state.getValue(FACING)) : Shapes.block();
+@@ -184,11 +_,15 @@
+             }
+             // Paper end - Fix sticky pistons and BlockPistonRetractEvent
+             level.setBlock(pos, movingPistonState, Block.UPDATE_NONE | Block.UPDATE_KNOWN_SHAPE);
+-            level.setBlockEntity(
+-                MovingPistonBlock.newMovingBlockEntity(
++            // Sakura start - optimise piston entity movement
++            final List<BlockEntity> movingBlockEntities = Lists.newArrayList();
++            final BlockEntity pistonBaseBlockEntity = MovingPistonBlock.newMovingBlockEntity(
+                     pos, movingPistonState, this.defaultBlockState().setValue(FACING, Direction.from3DDataValue(b1 & 7)), direction, false, true // Paper - Protect Bedrock and End Portal/Frames from being destroyed; diff on change
+-                )
+             );
++
++            movingBlockEntities.add(pistonBaseBlockEntity);
++            level.setBlockEntity(pistonBaseBlockEntity);
++            // Sakura end - optimise piston entity movement
+             level.updateNeighborsAt(pos, movingPistonState.getBlock());
+             movingPistonState.updateNeighbourShapes(level, pos, Block.UPDATE_CLIENTS);
+             if (this.isSticky) {
+@@ -219,7 +_,7 @@
+                         // Paper end - Fix sticky pistons and BlockPistonRetractEvent
+                         level.removeBlock(pos.relative(direction), false);
+                     } else {
+-                        this.moveBlocks(level, pos, direction, false);
++                        this.sakura$moveBlocks(level, pos, direction, false, movingBlockEntities); // Sakura - optimise piston entity movement
+                     }
+                 }
+             } else {
+@@ -285,6 +_,18 @@
+     }
+ 
+     private boolean moveBlocks(final Level level, final BlockPos pistonPos, final Direction direction, final boolean extending) {
++        // Sakura start - optimise piston entity movement
++        return this.sakura$moveBlocks(level, pistonPos, direction, extending, Lists.newArrayList());
++    }
++
++    private boolean sakura$moveBlocks(
++        final Level level,
++        final BlockPos pistonPos,
++        final Direction direction,
++        final boolean extending,
++        final List<BlockEntity> movingBlockEntities
++    ) {
++        // Sakura end - optimise piston entity movement
+         BlockPos armPos = pistonPos.relative(direction);
+         if (!extending && level.getBlockState(armPos).is(Blocks.PISTON_HEAD)) {
+             level.setBlock(armPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_NONE | Block.UPDATE_KNOWN_SHAPE);
 @@ -373,6 +_,14 @@
          for (int i = toPush.size() - 1; i >= 0; i--) {
              // Paper start - fix a variety of piston desync dupes
@@ -15,3 +108,40 @@
              BlockPos oldPos = toPush.get(i);
              BlockPos pos = oldPos;
              BlockState blockState = allowDesync ? level.getBlockState(oldPos) : null;
+@@ -386,9 +_,14 @@
+                 blockState = level.getBlockState(oldPos);
+                 deleteAfterMove.replace(oldPos, blockState);
+             }
+-            level.setBlockEntity(
+-                MovingPistonBlock.newMovingBlockEntity(pos, actualState, allowDesync ? toPushShapes.get(i) : blockState, direction, extending, false)
++            // Sakura start - optimise piston entity movement
++            final BlockEntity movingBlock = MovingPistonBlock.newMovingBlockEntity(
++                pos, actualState, allowDesync ? toPushShapes.get(i) : blockState, direction, extending, false
+             );
++
++            movingBlockEntities.add(movingBlock);
++            level.setBlockEntity(movingBlock);
++            // Sakura end - optimise piston entity movement
+             if (!allowDesync) {
+                 level.setBlock(oldPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_MOVE_BY_PISTON | Block.UPDATE_SKIP_ON_PLACE); // set air to prevent later physics updates from seeing this block
+             }
+@@ -405,8 +_,18 @@
+                 .setValue(MovingPistonBlock.TYPE, this.isSticky ? PistonType.STICKY : PistonType.DEFAULT);
+             deleteAfterMove.remove(armPos);
+             level.setBlock(armPos, blockState, Block.UPDATE_NONE | Block.UPDATE_MOVE_BY_PISTON);
+-            level.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(armPos, blockState, state, direction, true, true));
++
++            // Sakura start - optimise piston entity movement
++            final BlockEntity pistonHeadBlockEntity = MovingPistonBlock.newMovingBlockEntity(
++                armPos, blockState, state, direction, true, true
++            );
++
++            movingBlockEntities.add(pistonHeadBlockEntity);
++            level.setBlockEntity(pistonHeadBlockEntity);
+         }
++
++        this.shareMovingBlockEntities(movingBlockEntities, direction);
++        // Sakura end - optimise piston entity movement
+ 
+         BlockState air = Blocks.AIR.defaultBlockState();
+ 

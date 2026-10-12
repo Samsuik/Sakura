@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-@@ -44,6 +_,11 @@
+@@ -44,6 +_,23 @@
      private float progressO = 0.0F;
      private long lastTicked;
      private int deathTicks;
@@ -9,9 +9,39 @@
 +    private @org.jspecify.annotations.Nullable Direction shapeDirection = null;
 +    private float shapeProgress = Float.MIN_VALUE;
 +    // Sakura end - cache moving block entity collision shape
++    // Sakura start - optimise piston entity movement
++    public me.samsuik.sakura.utils.SharedEntities sharedEntities = null;
++
++    public final List<Entity> getEntities(final Level level, final AABB aabb, final java.util.function.Predicate<? super Entity> selector) {
++        //noinspection ConstantValue
++        if (this.sharedEntities == null) {
++            return level.getEntities((Entity) null, aabb, selector);
++        } else {
++            return this.sharedEntities.getEntities(level, aabb, selector);
++        }
++    }
++    // Sakura end - optimise piston entity movement
  
      public PistonMovingBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
          super(BlockEntityTypes.PISTON, worldPosition, blockState);
+@@ -121,7 +_,7 @@
+         VoxelShape shape = self.getCollisionRelatedBlockState().getCollisionShape(level, pos);
+         if (!shape.isEmpty()) {
+             AABB aabb = moveByPositionAndProgress(pos, shape.bounds(), self);
+-            List<Entity> entities = level.getEntities(null, PistonMath.getMovementArea(aabb, movement, deltaProgress).minmax(aabb));
++            List<Entity> entities = self.getEntities(level, PistonMath.getMovementArea(aabb, movement, deltaProgress).minmax(aabb), null); // Sakura - optimise piston entity movement
+             if (!entities.isEmpty()) {
+                 List<AABB> shapeAabbs = shape.toAabbs();
+                 boolean causeBounce = self.movedState.is(Blocks.SLIME_BLOCK);
+@@ -194,7 +_,7 @@
+                 AABB aabb = moveByPositionAndProgress(pos, new AABB(0.0, stickyTop, 0.0, 1.0, 1.5000010000000001, 1.0), self);
+                 double deltaProgress = newProgress - self.progress;
+ 
+-                for (Entity entity : level.getEntities((Entity)null, aabb, entityx -> matchesStickyCritera(aabb, entityx, pos))) {
++                for (Entity entity : self.getEntities(level, aabb, entityx -> matchesStickyCritera(aabb, entityx, pos))) { // Sakura - optimise piston entity movement
+                     moveEntityByPiston(movement, entity, deltaProgress, movement);
+                 }
+             }
 @@ -352,6 +_,18 @@
      }
  

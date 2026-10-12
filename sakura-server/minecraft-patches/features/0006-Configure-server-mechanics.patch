@@ -5,7 +5,7 @@ Subject: [PATCH] Configure server mechanics
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index 54b2492c3ab6bf9ff52cec53dc4635f725f9eb4f..a85c98a2c421e5e68cc58c308b35cf8416e0f15c 100644
+index 11d4f2d5caba52b492b8e130faa4701f3980b0f1..c8e66d630b239a5bc5e886192ecf2c8da714a9bc 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1774,6 +1774,13 @@ public final class CollisionUtil {
@@ -434,10 +434,10 @@ index 0000000000000000000000000000000000000000..200032836081807dc2f5b398a1efdcf6
 +}
 diff --git a/me/samsuik/sakura/mechanics/PistonBehaviour.java b/me/samsuik/sakura/mechanics/PistonBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f68eba06e7b8eb494e1273607bb5f421ece35175
+index 0000000000000000000000000000000000000000..3976a9cfd23480317abbcf1f184d06aae60dcc7a
 --- /dev/null
 +++ b/me/samsuik/sakura/mechanics/PistonBehaviour.java
-@@ -0,0 +1,153 @@
+@@ -0,0 +1,155 @@
 +package me.samsuik.sakura.mechanics;
 +
 +import net.minecraft.core.BlockPos;
@@ -447,6 +447,7 @@ index 0000000000000000000000000000000000000000..f68eba06e7b8eb494e1273607bb5f421
 +import net.minecraft.world.level.BlockGetter;
 +import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.piston.PistonMovingBlockEntity;
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.phys.AABB;
 +import net.minecraft.world.phys.Vec3;
@@ -521,9 +522,10 @@ index 0000000000000000000000000000000000000000..f68eba06e7b8eb494e1273607bb5f421
 +        final AABB movingBlockBox,
 +        final Direction direction,
 +        final float relativeProgress,
-+        final boolean pushingSlime
++        final boolean pushingSlime,
++        final PistonMovingBlockEntity self
 +    ) {
-+        for (final Entity entity : level.getEntities(null, movingBlockBox)) {
++        for (final Entity entity : self.getEntities(level, movingBlockBox, null)) {
 +            if (pushingSlime) {
 +                final Vec3 movement = entity.getDeltaMovement();
 +                double moveX = movement.x;
@@ -1332,7 +1334,7 @@ index c650f26d3ecdeb94a4d0f40637c07c59a6cbdfa6..ff0e4028457a09bf5010a339117312ab
                  PrimedTnt tnt = new PrimedTnt(level, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), null); // CraftBukkit
                  level.addFreshEntity(tnt);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 7fe7f3a8be841fcad8c40236d7dca93d9cca20d3..4acf33fc91b6a6ff655eb277add2277efa33b8f3 100644
+index cf0757b6e1ae255520d07a8aa488d9f02f84ca77..3b345120e5156567d64c132ee0e88dfdea634c4c 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -566,6 +566,13 @@ public abstract class Entity
@@ -2211,10 +2213,10 @@ index f2824c8d16036b6e0baa4d41b83d2ddfa614eb30..962016294aae94d01ad5e296dc669f9e
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-index 0727c1c0cc76e8e0398d9a0f404380ce574ad7ea..c0e1aca261bec37ad1d63c8a5c1cb7da8a3fbb23 100644
+index 32e52fb757583ccf289ed0d0c05787d94248d4be..0f354ba2fb95a3378598527c13e6912f695ee6a6 100644
 --- a/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-@@ -110,6 +110,11 @@ public class PistonBaseBlock extends DirectionalBlock {
+@@ -149,6 +149,11 @@ public class PistonBaseBlock extends DirectionalBlock {
                  event = 2;
              }
  
@@ -2254,13 +2256,13 @@ index c00cbfa4d0238ae42a91023a29d674ae98de6400..91994fa436d30ee105998f4179aa683a
      }
  
 diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index 3f1891eb5a593886f12d4f5e83087098032945a2..e1b9004316d1574fa6fbbcda903f4613107fc6a0 100644
+index c775f6af65f8231dafb7d25ec933745b60ab8024..69cb060c62ba33916e1975ef7b6c81554d9ccd83 100644
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-@@ -49,6 +49,51 @@ public class PistonMovingBlockEntity extends BlockEntity {
-     private @org.jspecify.annotations.Nullable Direction shapeDirection = null;
-     private float shapeProgress = Float.MIN_VALUE;
-     // Sakura end - cache moving block entity collision shape
+@@ -61,6 +61,51 @@ public class PistonMovingBlockEntity extends BlockEntity {
+         }
+     }
+     // Sakura end - optimise piston entity movement
 +    // Sakura start - configure server mechanics
 +    public final VoxelShape getCollisionShapeFromProgress(final BlockGetter level, final BlockPos pos) {
 +        float progress = this.getProgress(0.0f);
@@ -2302,14 +2304,14 @@ index 3f1891eb5a593886f12d4f5e83087098032945a2..e1b9004316d1574fa6fbbcda903f4613
 +
 +        final boolean isPushingSlime = movedState.is(Blocks.SLIME_BLOCK) && this.extending;
 +        me.samsuik.sakura.mechanics.PistonBehaviour.moveEntitiesWithProgress(
-+            level, movingBlockBox, direction, relativeProgress, isPushingSlime
++            level, movingBlockBox, direction, relativeProgress, isPushingSlime, this
 +        );
 +    }
 +    // Sakura end - configure server mechanics
  
      public PistonMovingBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
          super(BlockEntityTypes.PISTON, worldPosition, blockState);
-@@ -158,6 +203,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -170,6 +215,12 @@ public class PistonMovingBlockEntity extends BlockEntity {
  
                          double delta = 0.0;
  
@@ -2322,7 +2324,7 @@ index 3f1891eb5a593886f12d4f5e83087098032945a2..e1b9004316d1574fa6fbbcda903f4613
                          for (AABB shapeAabb : shapeAabbs) {
                              AABB movingAABB = PistonMath.getMovementArea(moveByPositionAndProgress(pos, shapeAabb, self), movement, deltaProgress);
                              AABB entityAabb = entity.getBoundingBox();
-@@ -185,9 +236,24 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -197,9 +248,24 @@ public class PistonMovingBlockEntity extends BlockEntity {
      private static void moveEntityByPiston(final Direction pistonDirection, final Entity entity, final double delta, final Direction movement) {
          NOCLIP.set(pistonDirection);
          Vec3 previousPos = entity.position();
@@ -2349,7 +2351,7 @@ index 3f1891eb5a593886f12d4f5e83087098032945a2..e1b9004316d1574fa6fbbcda903f4613
          NOCLIP.set(null);
      }
  
-@@ -301,12 +367,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -313,12 +379,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
      }
  
      public static void tick(final Level level, final BlockPos pos, final BlockState state, final PistonMovingBlockEntity entity) {
@@ -2371,7 +2373,7 @@ index 3f1891eb5a593886f12d4f5e83087098032945a2..e1b9004316d1574fa6fbbcda903f4613
                  level.removeBlockEntity(pos);
                  entity.setRemoved();
                  if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-@@ -326,12 +401,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -338,12 +413,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
              }
          } else {
              float newProgress = entity.progress + 0.5F;
