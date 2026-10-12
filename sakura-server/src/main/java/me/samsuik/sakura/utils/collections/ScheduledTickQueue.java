@@ -18,7 +18,7 @@ public final class ScheduledTickQueue<T extends ScheduledTick<?>> extends Abstra
     private int size;
     private int mask;
 
-    private boolean sorted = false;
+    private boolean sorted = true;
 
     @Override
     public int size() {
@@ -56,11 +56,9 @@ public final class ScheduledTickQueue<T extends ScheduledTick<?>> extends Abstra
         return this.elements[this.head];
     }
 
-    private void grow() {
+    private void resizeCompact(final int newSize) {
         final @Nullable T[] elements = this.elements;
-        final int newLength = Math.max(8, elements.length << 1);
-        final T[] newElements = (T[]) new ScheduledTick[newLength];
-
+        final T[] newElements = (T[]) new ScheduledTick[newSize];
         if (this.head < this.tail) {
             System.arraycopy(elements, this.head, newElements, 0, this.size);
         } else {
@@ -71,20 +69,22 @@ public final class ScheduledTickQueue<T extends ScheduledTick<?>> extends Abstra
 
         this.elements = newElements;
         this.head = 0;
-        this.tail = this.size;
-        this.mask = newLength - 1;
+        this.mask = newElements.length - 1;
+        this.tail = this.size & this.mask;
+    }
+
+    private void grow() {
+        this.resizeCompact(Math.max(8, this.elements.length << 1));
     }
 
     private void sort() {
-        if (this.tail < this.head) {
+        if (this.tail < this.head || this.head == this.tail) {
             // compact before sorting
-            System.arraycopy(this.elements, this.head, this.elements, this.tail, this.elements.length - this.head);
-            Arrays.fill(this.elements, this.size, this.elements.length, null);
-            this.head = 0;
-            this.tail = this.size;
+            this.resizeCompact(this.elements.length);
         }
 
-        ObjectArrays.quickSort(this.elements, this.head, this.tail, ScheduledTick.DRAIN_ORDER);
+        final int sortUpTo = this.head + this.size;
+        ObjectArrays.quickSort(this.elements, this.head, sortUpTo, ScheduledTick.DRAIN_ORDER);
         this.sorted = true;
     }
 
@@ -163,7 +163,6 @@ public final class ScheduledTickQueue<T extends ScheduledTick<?>> extends Abstra
             ScheduledTickQueue.this.removeAt(this.lastRet);
 
             this.cursor = (this.cursor - 1) & ScheduledTickQueue.this.mask;
-            this.count++;
             this.lastRet = -1;
         }
     }
