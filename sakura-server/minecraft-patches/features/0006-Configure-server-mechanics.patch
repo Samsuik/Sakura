@@ -87,7 +87,7 @@ index 11d4f2d5caba52b492b8e130faa4701f3980b0f1..c8e66d630b239a5bc5e886192ecf2c8d
                                                  continue;
                                              }
 diff --git a/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
-index e5ed59be7d9be36f5de09cd4bcd6c773be9e7721..bf71361675a1910d8a0c0b33df5cb4c913ca873c 100644
+index 06897c708c0756feeb8ead75a2ea49ae7579646f..894882d7fc08ba8a97e5b9459b19d0eb68988b79 100644
 --- a/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
 +++ b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
 @@ -11,6 +11,8 @@ import me.samsuik.sakura.entity.EntityState;
@@ -99,7 +99,7 @@ index e5ed59be7d9be36f5de09cd4bcd6c773be9e7721..bf71361675a1910d8a0c0b33df5cb4c9
  import me.samsuik.sakura.utils.AABBUtil;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -300,11 +302,19 @@ public abstract class SpecialisedExplosion<E extends Entity & SakuraEntity> exte
+@@ -301,11 +303,19 @@ public abstract class SpecialisedExplosion<E extends Entity & SakuraEntity> exte
          double distanceFromBottom = Math.sqrt(entity.distanceToSqr(explosionPos)) / radius;
          if (distanceFromBottom <= 1.0) {
              double x = entity.getX() - explosionPos.x;
@@ -121,7 +121,7 @@ index e5ed59be7d9be36f5de09cd4bcd6c773be9e7721..bf71361675a1910d8a0c0b33df5cb4c9
                  x /= distance;
                  y /= distance;
                  z /= distance;
-@@ -399,9 +409,10 @@ public abstract class SpecialisedExplosion<E extends Entity & SakuraEntity> exte
+@@ -400,9 +410,10 @@ public abstract class SpecialisedExplosion<E extends Entity & SakuraEntity> exte
          // For now, we only support skipping ray casts on the edges for block-like entities
          if (!level.sakuraConfig().cannons.explosion.reduceExposureRaycasts
              || obstruction != null
@@ -195,10 +195,10 @@ index 0000000000000000000000000000000000000000..f8d04ad994c3424bfcd6533ee5452d27
 +}
 diff --git a/me/samsuik/sakura/mechanics/EntityBehaviour.java b/me/samsuik/sakura/mechanics/EntityBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9421951a119c36b8d627e05d701e25482bef204a
+index 0000000000000000000000000000000000000000..5c8a548974928c2c078a86b2858a79beef9b534c
 --- /dev/null
 +++ b/me/samsuik/sakura/mechanics/EntityBehaviour.java
-@@ -0,0 +1,134 @@
+@@ -0,0 +1,126 @@
 +package me.samsuik.sakura.mechanics;
 +
 +import ca.spottedleaf.moonrise.patches.collisions.CollisionUtil;
@@ -222,14 +222,6 @@ index 0000000000000000000000000000000000000000..9421951a119c36b8d627e05d701e2548
 +
 +@NullMarked
 +public final class EntityBehaviour {
-+    public static void applyAirDrag(final Entity entity, final MinecraftMechanicsTarget mechanicsTarget) {
-+//        if (mechanicsTarget.between(MechanicVersion.v1_14, MechanicVersion.v26_2)) {
-+//            return 0.98;
-+//        }
-+//
-+//        return entity.;
-+    }
-+
 +    public static void handleCollisions(
 +        final Entity entity,
 +        final BlockState effectState,
@@ -384,10 +376,10 @@ index 0000000000000000000000000000000000000000..3b6689f44d3e52ee266e64281fa14bcb
 +}
 diff --git a/me/samsuik/sakura/mechanics/FallingBlockBehaviour.java b/me/samsuik/sakura/mechanics/FallingBlockBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..200032836081807dc2f5b398a1efdcf61d6b50b9
+index 0000000000000000000000000000000000000000..127670bb8ddf8671acaaa221064cfbcef8df2f49
 --- /dev/null
 +++ b/me/samsuik/sakura/mechanics/FallingBlockBehaviour.java
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,45 @@
 +package me.samsuik.sakura.mechanics;
 +
 +import net.minecraft.core.BlockPos;
@@ -395,23 +387,25 @@ index 0000000000000000000000000000000000000000..200032836081807dc2f5b398a1efdcf6
 +import net.minecraft.world.entity.item.FallingBlockEntity;
 +import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.block.Block;
-+import net.minecraft.world.level.block.Blocks;
 +import net.minecraft.world.level.block.FallingBlock;
 +import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.event.entity.EntityRemoveEvent;
 +import org.jspecify.annotations.NullMarked;
 +
 +@NullMarked
 +public final class FallingBlockBehaviour {
 +    public static boolean isAbleToStackOnBlock(final FallingBlockEntity fallingBlock, final MinecraftMechanicsTarget mechanicsTarget) {
-+        if (!mechanicsTarget.between(me.samsuik.sakura.mechanics.MechanicVersion.v1_9, me.samsuik.sakura.mechanics.MechanicVersion.v1_14)) {
++        if (!mechanicsTarget.between(MechanicVersion.v1_9, MechanicVersion.v1_14)) {
 +            return true;
 +        }
 +        // This is patched by default on Paper.
 +        if (mechanicsTarget.isPaperOrDerivative()) {
 +            return true;
 +        }
-+        // todo: Entity#getOnPos might be a good alternative to this
-+        final BlockPos blockPos = BlockPos.containing(fallingBlock.getX(), fallingBlock.getY() - 0.001f, fallingBlock.getZ());
++
++        final BlockPos blockPos = BlockPos.containing(
++            fallingBlock.getX(), fallingBlock.getY() - 0.001f, fallingBlock.getZ()
++        );
 +        final BlockState state = fallingBlock.level().getBlockState(blockPos);
 +        return !FallingBlock.isFree(state);
 +    }
@@ -421,14 +415,13 @@ index 0000000000000000000000000000000000000000..200032836081807dc2f5b398a1efdcf6
 +        final BlockPos blockPos = fallingBlock.blockPosition();
 +        final BlockState state = level.getBlockState(blockPos);
 +
-+        // todo: Do we need to call the event here? This event is already called in the fall method that spawns the falling block entity.
-+        if (state.is(block) && org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(fallingBlock, blockPos, Blocks.AIR.defaultBlockState())) {
++        if (state.is(block)) {
 +            level.removeBlock(blockPos, false);
 +        } else {
 +            if (state.is(block)) {
 +                ((ServerLevel) level).getChunkSource().blockChanged(blockPos);
 +            }
-+            fallingBlock.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
++            fallingBlock.discard(EntityRemoveEvent.Cause.DESPAWN);
 +        }
 +    }
 +}
@@ -1334,7 +1327,7 @@ index c650f26d3ecdeb94a4d0f40637c07c59a6cbdfa6..ff0e4028457a09bf5010a339117312ab
                  PrimedTnt tnt = new PrimedTnt(level, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), null); // CraftBukkit
                  level.addFreshEntity(tnt);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 858daf05845bbe7a8fc5b5864c361a2b3ac278c5..8aeac82916f593bb27534ed31a243ad1c8e7edf9 100644
+index 3ac9ef37106f369a99381a74b9021e18116c7201..4babed0abfdc147b02384705f6ecef27007b210e 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -566,6 +566,13 @@ public abstract class Entity
@@ -1876,7 +1869,7 @@ index 2a4c928281c7e455d6f210aeb599881855d328f8..3e52336853f1948cddb64e19b04746c4
                  return false;
              }
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index b380461320c7239cf65693b3e6422c25550a6631..6cdb4b5d2541e7acc46a53b213def73db384a189 100644
+index 3bf4b6513f0f33aa8195407616463d99064d67d6..a9e544121d7b8e1ba64f0d78e0908251748151d9 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -845,6 +845,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

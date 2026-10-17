@@ -395,10 +395,10 @@ index 0000000000000000000000000000000000000000..ebd6c04e276b607077545f197bf326a7
 +}
 diff --git a/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e5ed59be7d9be36f5de09cd4bcd6c773be9e7721
+index 0000000000000000000000000000000000000000..06897c708c0756feeb8ead75a2ea49ae7579646f
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/specialised/SpecialisedExplosion.java
-@@ -0,0 +1,506 @@
+@@ -0,0 +1,507 @@
 +package me.samsuik.sakura.explosion.specialised;
 +
 +import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
@@ -435,6 +435,7 @@ index 0000000000000000000000000000000000000000..e5ed59be7d9be36f5de09cd4bcd6c773
 +import java.util.*;
 +import java.util.function.Consumer;
 +
++@SuppressWarnings("unchecked")
 +@NullMarked
 +public abstract class SpecialisedExplosion<E extends Entity & SakuraEntity> extends ServerExplosion {
 +    private static final double SAFE_DISPATCH_DISTANCE_SQR = 16.0 * 16.0;
@@ -1049,7 +1050,7 @@ index 0000000000000000000000000000000000000000..ca9cdb3fe90f1f9224b5ff6afccb8194
 +    }
 +}
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index 7669a4d5b88049874157774735ec537888db0438..701cd7268962bf1641f6cf22896cc378d48748f9 100644
+index 2872b214cb458446b344a40a040af7089bb5b497..b220edcf8c46dd3f055120a2423c3f7d59f06c5c 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2024,7 +2024,18 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -1119,7 +1120,7 @@ index 7669a4d5b88049874157774735ec537888db0438..701cd7268962bf1641f6cf22896cc378
  
      private Explosion.BlockInteraction getDestroyType(final GameRule<Boolean> gameRule) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 9204a183de1b686fe403f96628fe229700cac302..cebbc7e9c6f6bf92c85940a4249c7c4dd3d9cb72 100644
+index 38602edc126f079fbf652c5dc6bc1181cb943cb9..3c3e652074ef0c0116767ce2364f8d480f7b0125 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -88,6 +88,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
@@ -1177,7 +1178,7 @@ index 8c3c4532e16d697b692d5e44a17bda1f3a376dc2..fa62294a416a95456fa6fbf6071996c6
          org.bukkit.event.entity.ExplosionPrimeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callExplosionPrimeEvent(this, RADIUS, false);
          if (event.isCancelled()) {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 3bf66b6ba172a9bf559e3e305cebfe1d984e881b..b380461320c7239cf65693b3e6422c25550a6631 100644
+index 379c7e31173f16a7ef5b12a6060187cd4d97d51b..3bf4b6513f0f33aa8195407616463d99064d67d6 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -844,6 +844,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

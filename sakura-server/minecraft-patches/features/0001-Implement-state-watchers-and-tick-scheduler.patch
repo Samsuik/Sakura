@@ -210,7 +210,7 @@ index 0000000000000000000000000000000000000000..bd989d3089581c012382e2d8796faa2c
 +}
 diff --git a/me/samsuik/sakura/scheduler/TickTask.java b/me/samsuik/sakura/scheduler/TickTask.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f3d7e40cdb393f388e80bbed0d6b244c7ba89d00
+index 0000000000000000000000000000000000000000..d89bfc5ca4d538942d918568f9e18de84a49831e
 --- /dev/null
 +++ b/me/samsuik/sakura/scheduler/TickTask.java
 @@ -0,0 +1,13 @@
@@ -222,7 +222,7 @@ index 0000000000000000000000000000000000000000..f3d7e40cdb393f388e80bbed0d6b244c
 +@NullMarked
 +public interface TickTask {
 +    static TickTask wrap(final Runnable task) {
-+        return (tick, level) -> task.run();
++        return (_, _) -> task.run();
 +    }
 +
 +    void run(final long tick, final ServerLevel level);
@@ -317,7 +317,7 @@ index 0000000000000000000000000000000000000000..59133e8538c0de588b349b1b680d5223
 +}
 diff --git a/me/samsuik/sakura/tracking/block_change/BlockFilter.java b/me/samsuik/sakura/tracking/block_change/BlockFilter.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..27c6be86d09efc8d1ebc888d3a331b1b29ecd8ea
+index 0000000000000000000000000000000000000000..a1753aacfe89367700f9943760e4e049efb5c48b
 --- /dev/null
 +++ b/me/samsuik/sakura/tracking/block_change/BlockFilter.java
 @@ -0,0 +1,39 @@
@@ -333,11 +333,11 @@ index 0000000000000000000000000000000000000000..27c6be86d09efc8d1ebc888d3a331b1b
 +
 +@NullMarked
 +public interface BlockFilter {
-+    BlockFilter ANY = (level, pos, newBlock, oldBlock) -> true;
++    BlockFilter ANY = (_, _, _, _) -> true;
 +
-+    BlockFilter BLOCK_TYPE = (level, pos, newBlock, oldBlock) -> !oldBlock.is(newBlock.getBlock());
++    BlockFilter BLOCK_TYPE = (_, _, newBlock, oldBlock) -> !oldBlock.is(newBlock.getBlock());
 +
-+    BlockFilter MOVING_BLOCK = (level, pos, newBlock, oldBlock) -> newBlock.is(Blocks.MOVING_PISTON);
++    BlockFilter MOVING_BLOCK = (_, _, newBlock, _) -> newBlock.is(Blocks.MOVING_PISTON);
 +
 +    BlockFilter COLLISION = (level, pos, newBlock, oldBlock) -> {
 +        if (oldBlock.is(newBlock.getBlock())) {
@@ -470,7 +470,7 @@ index 0000000000000000000000000000000000000000..d97c73c95b7e4a61bd4b10453453f456
 +}
 diff --git a/me/samsuik/sakura/tracking/block_change/ChunkBlockStateWatcher.java b/me/samsuik/sakura/tracking/block_change/ChunkBlockStateWatcher.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8fc91ad65c00c2ff53f7837773c21b94f1c552f8
+index 0000000000000000000000000000000000000000..e24545929c1766a7daaaec3758bd592ac1dc59e3
 --- /dev/null
 +++ b/me/samsuik/sakura/tracking/block_change/ChunkBlockStateWatcher.java
 @@ -0,0 +1,52 @@
@@ -513,7 +513,7 @@ index 0000000000000000000000000000000000000000..8fc91ad65c00c2ff53f7837773c21b94
 +
 +    public void startListening(final ListeningToPositions listener) {
 +        for (final BlockPos pos : listener.positions()) {
-+            this.positionListeners.computeIfAbsent(pos, p -> new CopyOnWriteArrayList<>()).add(listener);
++            this.positionListeners.computeIfAbsent(pos, _ -> new CopyOnWriteArrayList<>()).add(listener);
 +        }
 +    }
 +
@@ -662,10 +662,10 @@ index 0000000000000000000000000000000000000000..4a5505733d7e1da90f6267286009d8cd
 +}
 diff --git a/me/samsuik/sakura/tracking/watchers/AnyChangeWatcher.java b/me/samsuik/sakura/tracking/watchers/AnyChangeWatcher.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..bc4e0de39d3df4bd6ef0dbc21252973a0500b7cd
+index 0000000000000000000000000000000000000000..ef0bdac9938338c3fd0cf2f8039b9d4153a1c290
 --- /dev/null
 +++ b/me/samsuik/sakura/tracking/watchers/AnyChangeWatcher.java
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,33 @@
 +package me.samsuik.sakura.tracking.watchers;
 +
 +import me.samsuik.sakura.tracking.ChangeListener;
@@ -687,6 +687,12 @@ index 0000000000000000000000000000000000000000..bc4e0de39d3df4bd6ef0dbc21252973a
 +        this.changed = true;
 +    }
 +
++    @Override
++    public void removed(final T watchable) {
++        this.watchable.unwatch(this);
++        this.changed = true;
++    }
++
 +    public boolean hasChanged() {
 +        final boolean hasChanges = this.changed;
 +        this.changed = false;
@@ -695,10 +701,10 @@ index 0000000000000000000000000000000000000000..bc4e0de39d3df4bd6ef0dbc21252973a
 +}
 diff --git a/me/samsuik/sakura/tracking/watchers/AttributeValueWatcher.java b/me/samsuik/sakura/tracking/watchers/AttributeValueWatcher.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a5fa2dd230319dca30ba0e23b725d8ece4e979ae
+index 0000000000000000000000000000000000000000..fc3bbf153907fbc0b6b5eb8f43f79a9e3cd23587
 --- /dev/null
 +++ b/me/samsuik/sakura/tracking/watchers/AttributeValueWatcher.java
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,59 @@
 +package me.samsuik.sakura.tracking.watchers;
 +
 +import me.samsuik.sakura.tracking.ChangeListener;
@@ -727,6 +733,14 @@ index 0000000000000000000000000000000000000000..a5fa2dd230319dca30ba0e23b725d8ec
 +        this.changed = true;
 +    }
 +
++    @Override
++    public void removed(final AttributeInstance watchable) {
++        if (this.instance != null) {
++            this.instance.unwatch(this);
++            this.changed = true;
++        }
++    }
++
 +    public double getValue() {
 +        if (!this.changed) {
 +            return this.value;
@@ -735,6 +749,10 @@ index 0000000000000000000000000000000000000000..a5fa2dd230319dca30ba0e23b725d8ec
 +        final AttributeInstance instance = this.attributes.getInstance(this.holder);
 +        if (instance == null) {
 +            return this.attributes.supplyDefaultValue(this.holder);
++        }
++
++        if (this.instance != null) {
++            this.instance.unwatch(this);
 +        }
 +
 +        this.instance = instance;
@@ -759,7 +777,7 @@ index b4a9bcfd7d72aa0b5a961d9cc865ac35fb29f288..c099adabeeac17cd247d805607000f04
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b1383b7eed869bb32b59bf0c674f372e54ccffe5..b8367ef9a3f87b411a18721151623afe972959f4 100644
+index 2f4e4f41ec0efbc4a15ceb72281c494a78029a60..f39a2b99d6a2a02982a3079c2bb81fbd04b4ae1d 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -744,6 +744,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -1048,7 +1066,7 @@ index 6f72fc090d0475cb2ae334e5b70612a79a0ecb5b..a7c7fb2d9d10301a257851600ab66424
  
      public void limitSize(final int maxStackSize) {
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index 8a96ef30e295d1e1e7f22db4341747d8cd9b37c5..f13c5cc87304c894db31c6cdd3219a04e2600019 100644
+index 4af13f6d69c68bbe31399fafb3b7067d7998935d..7860357d8e64b72778190cd95402bfdc2f63d214 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -833,6 +833,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

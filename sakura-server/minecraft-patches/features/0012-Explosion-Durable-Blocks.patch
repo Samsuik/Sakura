@@ -18,10 +18,10 @@ index 3f2d4a9d4cb78fb4b3b203fe232b7dfa4a2dbd97..9690f5168ac2a626709dba4413c66b5a
      private static Optional<Level> getLevel(final Identifier worldIdentifier) {
 diff --git a/me/samsuik/sakura/explosion/DurableBlockManager.java b/me/samsuik/sakura/explosion/DurableBlockManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..424108cc66f042e113f0c568f135ed454e2d7b94
+index 0000000000000000000000000000000000000000..8cfb77f9efd7ae7ad8228ca82a0ca293d14ded0a
 --- /dev/null
 +++ b/me/samsuik/sakura/explosion/DurableBlockManager.java
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,62 @@
 +package me.samsuik.sakura.explosion;
 +
 +import com.google.common.cache.Cache;
@@ -30,6 +30,7 @@ index 0000000000000000000000000000000000000000..424108cc66f042e113f0c568f135ed45
 +import net.minecraft.core.BlockPos;
 +import org.jspecify.annotations.NullMarked;
 +
++import java.time.Duration;
 +import java.util.concurrent.TimeUnit;
 +
 +@NullMarked
@@ -43,7 +44,7 @@ index 0000000000000000000000000000000000000000..424108cc66f042e113f0c568f135ed45
 +
 +    public void updateExpirationTimer(final long duration, final TimeUnit unit) {
 +        this.durableBlocks = CacheBuilder.newBuilder()
-+            .expireAfterAccess(duration, unit)
++            .expireAfterAccess(Duration.of(duration, unit.toChronoUnit()))
 +            .maximumSize(MAX_DURABLE_BLOCKS)
 +            .build();
 +    }
@@ -119,7 +120,7 @@ index 68f1e9483b93ef071877a4c99f4bd14e0d363145..8906bbec41b036e2bd11404a3b51ccb1
          if (placeResult.consumesAction()) {
              return placeResult;
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index d7c2d0ab3528fd32d3d156ab13c75a1c602eea6b..5fba1679988729fd6865de343bebe1a36cd77add 100644
+index 136ec255d6ea51db1df56ba89f874b270141d1d3..be9c46e7ebe60412661f622ba94e142dfa4d161a 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -846,6 +846,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl

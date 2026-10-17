@@ -6,7 +6,7 @@ Subject: [PATCH] Optimise hopper ticking
 
 diff --git a/me/samsuik/sakura/utils/collections/SlotCountingItemList.java b/me/samsuik/sakura/utils/collections/SlotCountingItemList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..93e403754cd28070298f665406164da373b18385
+index 0000000000000000000000000000000000000000..2b6b47edf541bfef01f1ee7fa14397158a93eb28
 --- /dev/null
 +++ b/me/samsuik/sakura/utils/collections/SlotCountingItemList.java
 @@ -0,0 +1,134 @@
@@ -26,7 +26,7 @@ index 0000000000000000000000000000000000000000..93e403754cd28070298f665406164da3
 + */
 +@NullMarked
 +public final class SlotCountingItemList extends NonNullList<ItemStack> {
-+    public static SlotCountingItemList withSize(final int size, final ItemStack defaultItem) {
++    public static SlotCountingItemList withSize(final int size, final @Nullable ItemStack defaultItem) {
 +        final ItemStack[] items = new ItemStack[size];
 +        Arrays.fill(items, defaultItem);
 +        return new SlotCountingItemList(Arrays.asList(items), defaultItem);
@@ -211,7 +211,7 @@ index ddda24a55201de2136fc6dd2cb863d609925d0ca..9ab5c9b77a3259e77761dabd559742d8
          this.type = type;
          this.worldPosition = worldPosition.immutable();
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e4369f295 100644
+index 803e36f33c706d8484739cb21af25b9289dc8808..0e4f1e4fb127eab95c646b7d1f63d990752f7c68 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,13 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -230,7 +230,7 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e
      public int cooldownTime = -1;
      private long tickedGameTime;
      private Direction facing;
-@@ -72,6 +72,122 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -72,6 +72,121 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          this.maxStack = size;
      }
      // CraftBukkit end
@@ -327,7 +327,6 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e
 +
 +        attachedContainer = getAttachedContainer(level, pos, hbe);
 +        if (!(attachedContainer instanceof BlockEntity)) {
-+
 +            return attachedContainer;
 +        }
 +
@@ -342,18 +341,18 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e
 +        if (isValidContainer(container)) {
 +            this.knownContainers |= type; // set
 +        } else if ((this.knownContainers & type) != 0) {
-+            this.knownContainers ^= type; // unset
++            this.knownContainers &= ~type; // unset
 +        }
 +    }
 +
-+    private static boolean isValidContainer(@Nullable final Container container) {
++    private static boolean isValidContainer(final @Nullable Container container) {
 +        return container != null && !container.sakura$isRemoved();
 +    }
 +    // Sakura end - optimise hopper ticking
  
      public HopperBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
          super(BlockEntityTypes.HOPPER, worldPosition, blockState);
-@@ -81,7 +197,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -81,7 +196,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      @Override
      protected void loadAdditional(final ValueInput input) {
          super.loadAdditional(input);
@@ -362,7 +361,7 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e
          if (!this.tryLoadLootTable(input)) {
              ContainerHelper.loadAllItems(input, this.items);
          }
-@@ -150,32 +266,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -150,32 +265,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      private static int getFullState(final HopperBlockEntity hopper) {
          hopper.unpackLootTable(null);
  
@@ -403,7 +402,7 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e
      }
      // Paper end - Perf: Optimize Hoppers
  
-@@ -202,6 +301,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -202,6 +300,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
                  setChanged(level, pos, state);
                  return true;
              }
@@ -416,7 +415,7 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e
          }
  
          return false;
-@@ -410,7 +515,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -410,7 +514,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      // Paper end - Perf: Optimize Hoppers
  
      private static boolean ejectItems(final Level level, final BlockPos blockPos, final HopperBlockEntity self) {
@@ -425,7 +424,7 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e
          if (container == null) {
              return false;
          }
-@@ -502,7 +607,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -502,7 +606,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      public static boolean suckInItems(final Level level, final Hopper hopper) {
          BlockPos blockPos = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
          BlockState blockState = level.getBlockState(blockPos);
@@ -434,7 +433,7 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e
          if (container != null) {
              Direction direction = Direction.DOWN;
              skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
-@@ -787,7 +892,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -787,7 +891,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
  
      @Override
      protected void setItems(final NonNullList<ItemStack> items) {

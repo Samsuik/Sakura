@@ -11,13 +11,13 @@ import java.util.Collections;
 import java.util.List;
 
 @NullMarked
-public final class ItemSwitch implements GuiComponent {
+public final class ItemList implements GuiComponent {
     private final List<ItemStack> items;
     private final int slot;
     private final int selected;
     private final GuiClickEvent whenClicked;
 
-    public ItemSwitch(final List<ItemStack> items, final int slot, final int selected, final GuiClickEvent whenClicked) {
+    public ItemList(final List<ItemStack> items, final int slot, final int selected, final GuiClickEvent whenClicked) {
         Preconditions.checkArgument(!items.isEmpty());
         this.items = Collections.unmodifiableList(items);
         this.slot = slot;
@@ -29,8 +29,8 @@ public final class ItemSwitch implements GuiComponent {
     public boolean interaction(final InventoryClickEvent event, final FeatureGuiInventory featureInventory) {
         if (this.slot == event.getSlot()) {
             final int next = (this.selected + 1) % this.items.size();
-            final ItemSwitch itemSwitch = new ItemSwitch(this.items, this.slot, next, this.whenClicked);
-            featureInventory.replaceComponent(this, itemSwitch);
+            final ItemList itemList = new ItemList(this.items, this.slot, next, this.whenClicked);
+            featureInventory.replaceComponent(this, itemList);
             this.whenClicked.doSomething(event, featureInventory);
             return true;
         }

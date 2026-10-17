@@ -328,7 +328,7 @@ index 0000000000000000000000000000000000000000..5239478c397169f82206fcaefb77f71d
 +}
 diff --git a/me/samsuik/sakura/player/visibility/VisibilityGui.java b/me/samsuik/sakura/player/visibility/VisibilityGui.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..84184ec247b1a2268a935f58f7ffd6440d35859c
+index 0000000000000000000000000000000000000000..f232d5f63c2f91bba8ccd660ac5e75b61380427a
 --- /dev/null
 +++ b/me/samsuik/sakura/player/visibility/VisibilityGui.java
 @@ -0,0 +1,100 @@
@@ -339,7 +339,7 @@ index 0000000000000000000000000000000000000000..84184ec247b1a2268a935f58f7ffd644
 +import me.samsuik.sakura.player.gui.FeatureGui;
 +import me.samsuik.sakura.player.gui.FeatureGuiInventory;
 +import me.samsuik.sakura.player.gui.components.ItemButton;
-+import me.samsuik.sakura.player.gui.components.ItemSwitch;
++import me.samsuik.sakura.player.gui.components.ItemList;
 +import net.kyori.adventure.text.Component;
 +import org.bukkit.Material;
 +import org.bukkit.NamespacedKey;
@@ -390,7 +390,7 @@ index 0000000000000000000000000000000000000000..84184ec247b1a2268a935f58f7ffd644
 +            final int slot = slots.dequeueInt();
 +
 +            // Switch between the visibility states
-+            final ItemSwitch itemSwitch = new ItemSwitch(
++            final ItemList itemList = new ItemList(
 +                VisibilityGuiItems.GUI_ITEMS.get(type),
 +                slot, index,
 +                (_, clickedInventory) -> {
@@ -399,7 +399,7 @@ index 0000000000000000000000000000000000000000..84184ec247b1a2268a935f58f7ffd644
 +                }
 +            );
 +
-+            inventory.addComponent(itemSwitch, MENU_ITEMS_KEY);
++            inventory.addComponent(itemList, MENU_ITEMS_KEY);
 +        }
 +    }
 +
@@ -533,7 +533,7 @@ index f3f391ccf9c02aa8122abc80de68317ea87db35d..f16166dd781f70d159a3120017f1ae03
                  if (visibleToPlayer && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
                      visibleToPlayer = false;
 diff --git a/net/minecraft/server/level/ServerLevel.java b/net/minecraft/server/level/ServerLevel.java
-index b8367ef9a3f87b411a18721151623afe972959f4..6bea327386ee3fea6788365edc62e5634bc826dd 100644
+index f39a2b99d6a2a02982a3079c2bb81fbd04b4ae1d..92e77c536ef1922b62705fdc010dd9334646db78 100644
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
 @@ -2030,6 +2030,24 @@ public class ServerLevel extends Level implements WorldGenLevel, ServerEntityGet
@@ -562,7 +562,7 @@ index b8367ef9a3f87b411a18721151623afe972959f4..6bea327386ee3fea6788365edc62e563
                      .send(
                          new ClientboundExplodePacket(
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 9676e69b02d7cd9ac2a39be54b05af227958836c..c5e66ed1a10604c117f1dddf84d298f5ee210315 100644
+index 0b9268ee1bf0932179f0a92e06b20aff9e69caa7..cb5ae1d92fc1e9bd277143de9f4f0522a4ddbdff 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -477,6 +477,7 @@ public class ServerPlayer extends Player implements ca.spottedleaf.moonrise.patc
@@ -596,7 +596,7 @@ index 5dbb2849f32ac3418f8fdf76c04022d7e9dc165b..9ce2d5bcc40dfeee2f9a6912c551b11b
          if (packet.isTerminal()) {
              this.close();
 diff --git a/net/minecraft/world/level/Level.java b/net/minecraft/world/level/Level.java
-index f13c5cc87304c894db31c6cdd3219a04e2600019..9692b57cc3693d25a2386cfe36bc98fa05a0f83d 100644
+index 7860357d8e64b72778190cd95402bfdc2f63d214..cbd79d454536bb5a9e4c98ba086d70856e40ca8b 100644
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
 @@ -842,6 +842,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
