@@ -4,13 +4,13 @@ Date: Mon, 12 Aug 2024 15:35:57 +0100
 Subject: [PATCH] Optimise hopper ticking
 
 
-diff --git a/me/samsuik/sakura/container/SlotCountingItemList.java b/me/samsuik/sakura/container/SlotCountingItemList.java
+diff --git a/me/samsuik/sakura/utils/collections/SlotCountingItemList.java b/me/samsuik/sakura/utils/collections/SlotCountingItemList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..822e29472b94c77ca93963110a69fab6872f4032
+index 0000000000000000000000000000000000000000..93e403754cd28070298f665406164da373b18385
 --- /dev/null
-+++ b/me/samsuik/sakura/container/SlotCountingItemList.java
++++ b/me/samsuik/sakura/utils/collections/SlotCountingItemList.java
 @@ -0,0 +1,134 @@
-+package me.samsuik.sakura.container;
++package me.samsuik.sakura.utils.collections;
 +
 +import me.samsuik.sakura.tracking.ChangeListener;
 +import net.minecraft.core.NonNullList;
@@ -211,7 +211,7 @@ index ddda24a55201de2136fc6dd2cb863d609925d0ca..9ab5c9b77a3259e77761dabd559742d8
          this.type = type;
          this.worldPosition = worldPosition.immutable();
 diff --git a/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 803e36f33c706d8484739cb21af25b9289dc8808..9d9e6d2c8a3791e6a9e6e976be6a92bf1290faa9 100644
+index 803e36f33c706d8484739cb21af25b9289dc8808..d62041f799daf70e1aff98ef21c2ec7e4369f295 100644
 --- a/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -28,13 +28,13 @@ import net.minecraft.world.level.storage.ValueOutput;
@@ -226,7 +226,7 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..9d9e6d2c8a3791e6a9e6e976be6a92bf
      private static final int NO_COOLDOWN_TIME = -1;
      private static final Component DEFAULT_NAME = Component.translatable("container.hopper");
 -    private NonNullList<ItemStack> items = NonNullList.withSize(5, ItemStack.EMPTY);
-+    private me.samsuik.sakura.container.SlotCountingItemList items = me.samsuik.sakura.container.SlotCountingItemList.withSize(5, ItemStack.EMPTY); // Sakura - optimise hopper ticking
++    private me.samsuik.sakura.utils.collections.SlotCountingItemList items = me.samsuik.sakura.utils.collections.SlotCountingItemList.withSize(5, ItemStack.EMPTY); // Sakura - optimise hopper ticking
      public int cooldownTime = -1;
      private long tickedGameTime;
      private Direction facing;
@@ -358,7 +358,7 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..9d9e6d2c8a3791e6a9e6e976be6a92bf
      protected void loadAdditional(final ValueInput input) {
          super.loadAdditional(input);
 -        this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
-+        this.items = me.samsuik.sakura.container.SlotCountingItemList.withSize(this.getContainerSize(), ItemStack.EMPTY); // Sakura - optimise hopper ticking
++        this.items = me.samsuik.sakura.utils.collections.SlotCountingItemList.withSize(this.getContainerSize(), ItemStack.EMPTY); // Sakura - optimise hopper ticking
          if (!this.tryLoadLootTable(input)) {
              ContainerHelper.loadAllItems(input, this.items);
          }
@@ -439,7 +439,7 @@ index 803e36f33c706d8484739cb21af25b9289dc8808..9d9e6d2c8a3791e6a9e6e976be6a92bf
      @Override
      protected void setItems(final NonNullList<ItemStack> items) {
 -        this.items = items;
-+        this.items = me.samsuik.sakura.container.SlotCountingItemList.copy(items); // Sakura - optimise hopper ticking
++        this.items = me.samsuik.sakura.utils.collections.SlotCountingItemList.copy(items); // Sakura - optimise hopper ticking
      }
  
      public static void entityInside(final Level level, final BlockPos pos, final BlockState blockState, final Entity entity, final HopperBlockEntity hopper) {
