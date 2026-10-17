@@ -6,6 +6,10 @@ import org.bukkit.event.block.BlockEvent;
 import org.jetbrains.annotations.Range;
 import org.jspecify.annotations.NullMarked;
 
+/**
+ * @deprecated Conflicting event name. Replaced with {@link DispenserPreTickEvent}
+ */
+@Deprecated(forRemoval = true)
 @NullMarked
 public final class BlockPreDispenseEvent extends BlockEvent {
     private static final HandlerList HANDLER_LIST = new HandlerList();

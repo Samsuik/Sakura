@@ -1,6 +1,7 @@
 package me.samsuik.sakura.event;
 
 import me.samsuik.sakura.event.block.BlockPreDispenseEvent;
+import me.samsuik.sakura.event.block.DispenserPreTickEvent;
 import me.samsuik.sakura.event.entity.PreSpawnerTickEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -15,7 +16,10 @@ import org.jspecify.annotations.NullMarked;
 public final class SakuraEvents {
     public static int preDispense(final LevelAccessor level, final BlockPos pos, final int delay) {
         final Block block = CraftBlock.at(level, pos);
-        final BlockPreDispenseEvent event = new BlockPreDispenseEvent(block, delay);
+        final BlockPreDispenseEvent oldEvent = new BlockPreDispenseEvent(block, delay);
+        oldEvent.callEvent();
+
+        final DispenserPreTickEvent event = new DispenserPreTickEvent(block, oldEvent.getDelay());
         event.callEvent();
 
         return Math.max(event.getDelay(), 1);
