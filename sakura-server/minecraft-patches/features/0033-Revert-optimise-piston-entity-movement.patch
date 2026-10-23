@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samsuik <kfian294ma4@gmail.com>
+Date: Fri, 23 Oct 2026 19:43:33 +0100
+Subject: [PATCH] Revert optimise piston entity movement
+
+
+diff --git a/me/samsuik/sakura/mechanics/PistonBehaviour.java b/me/samsuik/sakura/mechanics/PistonBehaviour.java
+index 3976a9cfd23480317abbcf1f184d06aae60dcc7a..d59354aa49a58ca3d2753a094e4e09f7d5649c5b 100644
+--- a/me/samsuik/sakura/mechanics/PistonBehaviour.java
++++ b/me/samsuik/sakura/mechanics/PistonBehaviour.java
+@@ -7,6 +7,7 @@ import net.minecraft.world.entity.MoverType;
+ import net.minecraft.world.level.BlockGetter;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.piston.PistonMath;
+ import net.minecraft.world.level.block.piston.PistonMovingBlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.AABB;
+@@ -85,7 +86,7 @@ public final class PistonBehaviour {
+         final boolean pushingSlime,
+         final PistonMovingBlockEntity self
+     ) {
+-        for (final Entity entity : self.getEntities(level, movingBlockBox, null)) {
++        for (final Entity entity : level.getEntities(null, movingBlockBox)) {
+             if (pushingSlime) {
+                 final Vec3 movement = entity.getDeltaMovement();
+                 double moveX = movement.x;
+diff --git a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+index 69cb060c62ba33916e1975ef7b6c81554d9ccd83..0602f999599d92fe5674346df98fdcafbd0c75ee 100644
+--- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
++++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
+@@ -183,7 +183,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
+         VoxelShape shape = self.getCollisionRelatedBlockState().getCollisionShape(level, pos);
+         if (!shape.isEmpty()) {
+             AABB aabb = moveByPositionAndProgress(pos, shape.bounds(), self);
+-            List<Entity> entities = self.getEntities(level, PistonMath.getMovementArea(aabb, movement, deltaProgress).minmax(aabb), null); // Sakura - optimise piston entity movement
++            List<Entity> entities = level.getEntities(null, PistonMath.getMovementArea(aabb, movement, deltaProgress).minmax(aabb));
+             if (!entities.isEmpty()) {
+                 List<AABB> shapeAabbs = shape.toAabbs();
+                 boolean causeBounce = self.movedState.is(Blocks.SLIME_BLOCK);
+@@ -277,7 +277,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
+                 AABB aabb = moveByPositionAndProgress(pos, new AABB(0.0, stickyTop, 0.0, 1.0, 1.5000010000000001, 1.0), self);
+                 double deltaProgress = newProgress - self.progress;
+ 
+-                for (Entity entity : self.getEntities(level, aabb, entityx -> matchesStickyCritera(aabb, entityx, pos))) { // Sakura - optimise piston entity movement
++                for (Entity entity : level.getEntities((Entity)null, aabb, entityx -> matchesStickyCritera(aabb, entityx, pos))) {
+                     moveEntityByPiston(movement, entity, deltaProgress, movement);
+                 }
+             }
