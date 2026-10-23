@@ -34,10 +34,10 @@ index f7820568b78f630e4d234d3dfb36c2167149777a..8cbc8dcf7c1d8e5b6e6373744131285e
  
 diff --git a/me/samsuik/sakura/redstone/RedstoneBlockUtil.java b/me/samsuik/sakura/redstone/RedstoneBlockUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1c7924b476f71da6daab5e20c64447df290ba164
+index 0000000000000000000000000000000000000000..ecdf5f5be68448785febf0bbc6de304ff2e13cc7
 --- /dev/null
 +++ b/me/samsuik/sakura/redstone/RedstoneBlockUtil.java
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,22 @@
 +package me.samsuik.sakura.redstone;
 +
 +import net.minecraft.world.level.block.Block;
@@ -50,9 +50,7 @@ index 0000000000000000000000000000000000000000..1c7924b476f71da6daab5e20c64447df
 +@NullMarked
 +public final class RedstoneBlockUtil {
 +    public static boolean needsRedstoneUpdate(final BlockState state) {
-+        return state.isAir()
-+            || state.liquid()
-+            || !state.isSpecialBlock();
++        return !state.isAir() && state.isSpecialBlock();
 +    }
 +
 +    public static boolean needsShapeUpdate(final BlockState state, final Block block) {
@@ -152,7 +150,7 @@ index 0000000000000000000000000000000000000000..462a5ed29f949fd574bebd67bd376150
 +}
 diff --git a/me/samsuik/sakura/redstone/TrackedRedstoneChanges.java b/me/samsuik/sakura/redstone/TrackedRedstoneChanges.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..11e07fea2a5eb114cd7cf9e57c53ae7c00424cf7
+index 0000000000000000000000000000000000000000..43a89714d707935140bc19f497af0aac62597c38
 --- /dev/null
 +++ b/me/samsuik/sakura/redstone/TrackedRedstoneChanges.java
 @@ -0,0 +1,145 @@
@@ -193,9 +191,9 @@ index 0000000000000000000000000000000000000000..11e07fea2a5eb114cd7cf9e57c53ae7c
 +        this.sourceKey = sourceKey;
 +    }
 +
-+    public void addWireUpdate(final BlockPos redstoneWirePos, final int oldPower, final int newPower) {
++    public void addWireUpdate(final BlockPos wirePos, final int oldPower, final int newPower) {
 +        final RedstoneWireState redstoneWireState = new RedstoneWireState(
-+            redstoneWirePos,
++            wirePos,
 +            oldPower,
 +            newPower,
 +            false,
@@ -203,7 +201,7 @@ index 0000000000000000000000000000000000000000..11e07fea2a5eb114cd7cf9e57c53ae7c
 +            this.neighborUpdates.size()
 +        );
 +
-+        this.redstoneChanges.compute(redstoneWirePos, (p, state) -> {
++        this.redstoneChanges.compute(wirePos, (_, state) -> {
 +            if (state == null) {
 +                return redstoneWireState;
 +            }
@@ -231,7 +229,7 @@ index 0000000000000000000000000000000000000000..11e07fea2a5eb114cd7cf9e57c53ae7c
 +
 +    public @Nullable RedstoneNetwork createNetwork() {
 +        final Level level = this.level;
-+        final boolean skipWireUpdates = this.sourceKey.isVanilla();
++        final boolean fullDeduplication = this.sourceKey.deduplicate();
 +
 +        final List<RedstoneWireState> redstoneUpdates = this.redstoneUpdates;
 +        final Object2IntOpenHashMap<BlockPos> wireIndexes = new Object2IntOpenHashMap<>();
@@ -247,8 +245,8 @@ index 0000000000000000000000000000000000000000..11e07fea2a5eb114cd7cf9e57c53ae7c
 +                return null;
 +            }
 +
-+            // Filter out wires updates that are not the first and last update when using the vanilla algorithm
-+            if (skipWireUpdates && redstoneUpdate.isRedundantWireUpdate(this.redstoneChanges.get(wirePos))) {
++            // Filter out wires updates that are not the first and last update
++            if (fullDeduplication && redstoneUpdate.isRedundantWireUpdate(this.redstoneChanges.get(wirePos))) {
 +                redstoneUpdates.set(wireIndex, redstoneUpdate.skip(true));
 +            }
 +
@@ -264,17 +262,17 @@ index 0000000000000000000000000000000000000000..11e07fea2a5eb114cd7cf9e57c53ae7c
 +            final Block block = state.getBlock();
 +
 +            // Filter out redundant neighbor updates
-+            if (RedstoneBlockUtil.needsRedstoneUpdate(state)) {
++            if (!RedstoneBlockUtil.needsRedstoneUpdate(state)) {
 +                redundantUpdates.set(updateIndex);
 +            }
 +
-+            // Never apply updates to redstone wires
-+            if (state.is(Blocks.REDSTONE_WIRE)) {
++            // Never update redstone wires tracked by the network
++            if (state.is(Blocks.REDSTONE_WIRE) && wireIndexes.containsKey(updatePos)) {
 +                neighborUpdates.set(updateIndex, null);
 +                continue;
 +            }
 +
-+            // Look for blocks that actually need updateShapes updates
++            // Look for blocks that actually need shape updates
 +            if (RedstoneBlockUtil.needsShapeUpdate(state, block)) {
 +                for (final Direction direction : NeighborUpdater.UPDATE_ORDER) {
 +                    final int neighborWireIndex = wireIndexes.getInt(updatePos.relative(direction));
@@ -288,8 +286,8 @@ index 0000000000000000000000000000000000000000..11e07fea2a5eb114cd7cf9e57c53ae7c
 +            }
 +        }
 +
-+        if (this.sourceKey.deduplicate()) {
-+            final LongOpenHashSet updates = new LongOpenHashSet();
++        if (fullDeduplication) {
++            final LongOpenHashSet updates = new LongOpenHashSet(wireIndexes.size() * 4);
 +            for (int updateIndex = neighborUpdates.size() - 1; updateIndex >= 0; --updateIndex) {
 +                final BlockPos updatePos = neighborUpdates.get(updateIndex);
 +                if (updatePos != null && !updates.add(updatePos.asLong())) {
@@ -457,10 +455,10 @@ index 0000000000000000000000000000000000000000..01d6b02a399bd9252445f5c7cef7aa5f
 +}
 diff --git a/me/samsuik/sakura/redstone/network/RedstoneSourceKey.java b/me/samsuik/sakura/redstone/network/RedstoneSourceKey.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1549b47227a47d1de96af9bdcc6b1fc39834ee88
+index 0000000000000000000000000000000000000000..2a3624d6268cc7368dab25a85f272d563cc7425d
 --- /dev/null
 +++ b/me/samsuik/sakura/redstone/network/RedstoneSourceKey.java
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,19 @@
 +package me.samsuik.sakura.redstone.network;
 +
 +import io.papermc.paper.configuration.WorldConfiguration;
@@ -479,9 +477,6 @@ index 0000000000000000000000000000000000000000..1549b47227a47d1de96af9bdcc6b1fc3
 +    int newPower,
 +    boolean deduplicate
 +) {
-+    public boolean isVanilla() {
-+        return this.redstoneImplementation == WorldConfiguration.Misc.RedstoneImplementation.VANILLA;
-+    }
 +}
 diff --git a/me/samsuik/sakura/redstone/network/RedstoneWireState.java b/me/samsuik/sakura/redstone/network/RedstoneWireState.java
 new file mode 100644
