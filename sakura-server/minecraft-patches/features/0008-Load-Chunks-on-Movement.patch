@@ -5,7 +5,7 @@ Subject: [PATCH] Load Chunks on Movement
 
 
 diff --git a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
-index ea7d73c9e02329f86a931078528f4d1b3e459376..cbc89218e747c3383390866831625e606f736ff8 100644
+index a85c98a2c421e5e68cc58c308b35cf8416e0f15c..b8c272381a79e8b461f3efc432a53d8648b32e27 100644
 --- a/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 +++ b/ca/spottedleaf/moonrise/patches/collisions/CollisionUtil.java
 @@ -1904,6 +1904,7 @@ public final class CollisionUtil {
@@ -62,10 +62,10 @@ index fed2a68bf1a9e9a169c0235e129346b9b624170b..b4361dd056b9b8cc94d39e681206081b
      private static TicketType register(final String name, final long timeout, final @TicketType.Flags int flags) {
          return Registry.register(BuiltInRegistries.TICKET_TYPE, name, new TicketType(timeout, flags));
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index a9e24f2472709382e55790a8cb787a4f42901695..1b2bc561b8f1a4a419a6fa2809d2f1da3335c4be 100644
+index ee733d198bcf130dd84d8d2ffd6e931bea4509d8..af60d1ba0620001a184ded9d60269a50ed8b9140 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -568,6 +568,19 @@ public abstract class Entity
+@@ -579,6 +579,19 @@ public abstract class Entity
          return this.mechanicsTarget;
      }
      // Sakura end - configure server mechanics
@@ -85,7 +85,7 @@ index a9e24f2472709382e55790a8cb787a4f42901695..1b2bc561b8f1a4a419a6fa2809d2f1da
  
      public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -1758,7 +1771,7 @@ public abstract class Entity
+@@ -1769,7 +1782,7 @@ public abstract class Entity
              collisionBox,
              collisionsVoxel,
              collisionsBB,
@@ -94,7 +94,7 @@ index a9e24f2472709382e55790a8cb787a4f42901695..1b2bc561b8f1a4a419a6fa2809d2f1da
              null
          );
  
-@@ -1842,7 +1855,7 @@ public abstract class Entity
+@@ -1853,7 +1866,7 @@ public abstract class Entity
  
          ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder(
              this.level, (Entity)(Object)this, initialCollisionBox, potentialCollisionsVoxel, potentialCollisionsBB,
@@ -103,7 +103,7 @@ index a9e24f2472709382e55790a8cb787a4f42901695..1b2bc561b8f1a4a419a6fa2809d2f1da
          );
          potentialCollisionsBB.addAll(entityAABBs);
          final Vec3 collided = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.performCollisions(movement, currentBox, potentialCollisionsVoxel, potentialCollisionsBB, this.mechanicsTarget); // Sakura - configure server mechanics
-@@ -5477,13 +5490,14 @@ public abstract class Entity
+@@ -5488,13 +5501,14 @@ public abstract class Entity
      @Override
      public boolean shouldBeSaved() {
          return (this.removalReason == null || this.removalReason.shouldSave())
@@ -120,7 +120,7 @@ index a9e24f2472709382e55790a8cb787a4f42901695..1b2bc561b8f1a4a419a6fa2809d2f1da
  
      public boolean mayInteract(final ServerLevel level, final BlockPos pos) {
 diff --git a/net/minecraft/world/entity/item/FallingBlockEntity.java b/net/minecraft/world/entity/item/FallingBlockEntity.java
-index 52743ffcf99d0f94c600593dbde60d5d2b465451..913fd9bfdc73fee0980602c3982aba8adea026ee 100644
+index 22cdebc4ebca40747ee8e1ed80a34b68168733fd..6852c50f9aa4630f512fb8e8f56284d62b302d69 100644
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -204,6 +204,7 @@ public class FallingBlockEntity extends Entity implements me.samsuik.sakura.enti
@@ -132,7 +132,7 @@ index 52743ffcf99d0f94c600593dbde60d5d2b465451..913fd9bfdc73fee0980602c3982aba8a
  
      public FallingBlockEntity(final Level level, final double x, final double y, final double z, final BlockState blockState) {
 diff --git a/net/minecraft/world/entity/item/PrimedTnt.java b/net/minecraft/world/entity/item/PrimedTnt.java
-index 67b62583f16c3fb6b40ac1d7f17d857fb6ddd19a..2fb054c206beee6a4d46a7c0059b81882e0805d2 100644
+index e8ec67f150050e78ce04d0ceeb1c53b6a0e47383..90f247d35cd33c42e264f9efeef7ce1105af4b3b 100644
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -162,6 +162,7 @@ public class PrimedTnt extends Entity implements TraceableEntity, me.samsuik.sak
