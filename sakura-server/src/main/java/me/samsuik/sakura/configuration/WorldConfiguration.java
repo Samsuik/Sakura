@@ -4,7 +4,7 @@ import io.papermc.paper.configuration.Configuration;
 import io.papermc.paper.configuration.ConfigurationPart;
 import io.papermc.paper.configuration.NestedSetting;
 import io.papermc.paper.configuration.PaperConfigurations;
-import io.papermc.paper.configuration.type.Duration;
+import io.papermc.paper.configuration.type.time.Duration;
 import io.papermc.paper.configuration.type.number.DoubleOr;
 import io.papermc.paper.configuration.type.number.IntOr;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;

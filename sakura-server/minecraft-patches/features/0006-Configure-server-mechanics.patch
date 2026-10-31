@@ -1302,7 +1302,7 @@ index c86ff7140402b407e04f456b73f8f0586ce72a57..fe1294fa83e1a3c42cbbd762d531b18b
      }
  }
 diff --git a/net/minecraft/core/dispenser/DispenseItemBehavior.java b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index c650f26d3ecdeb94a4d0f40637c07c59a6cbdfa6..ff0e4028457a09bf5010a339117312abc4e0603b 100644
+index 04593896b7c54d63fa4f97f58010aabce58dee1d..61182251ef66798ec22e6c22a245581ae4c2c892 100644
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
 @@ -376,6 +376,22 @@ public interface DispenseItemBehavior {
@@ -1329,7 +1329,7 @@ index c650f26d3ecdeb94a4d0f40637c07c59a6cbdfa6..ff0e4028457a09bf5010a339117312ab
                  PrimedTnt tnt = new PrimedTnt(level, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), null); // CraftBukkit
                  level.addFreshEntity(tnt);
 diff --git a/net/minecraft/world/entity/Entity.java b/net/minecraft/world/entity/Entity.java
-index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3fbfe52dd 100644
+index ceb9b62eed334eb0eba8437f68ff0c2151d8c836..1ae67eaa47ab6af5d9acc95b03c6efb4b5cccc5e 100644
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
 @@ -577,6 +577,13 @@ public abstract class Entity
@@ -1346,7 +1346,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
  
      public Entity(final EntityType<?> type, final Level level) {
          this.type = type;
-@@ -1144,7 +1151,7 @@ public abstract class Entity
+@@ -1145,7 +1152,7 @@ public abstract class Entity
      }
  
      protected void checkSupportingBlock(final boolean onGround, final @Nullable Vec3 movement) {
@@ -1355,7 +1355,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
              AABB boundingBox = this.getBoundingBox();
              AABB testArea = new AABB(boundingBox.minX, boundingBox.minY - 1.0E-6, boundingBox.minZ, boundingBox.maxX, boundingBox.minY, boundingBox.maxZ);
              Optional<BlockPos> supportingBlock = this.level.findSupportingBlock(this, testArea);
-@@ -1205,7 +1212,10 @@ public abstract class Entity
+@@ -1206,7 +1213,10 @@ public abstract class Entity
              this.verticalCollisionBelow = false;
              this.minorHorizontalCollision = false;
          } else {
@@ -1367,7 +1367,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
                  delta = this.limitPistonMovement(delta);
                  // Paper start - EAR 2
                  this.activatedTick = Math.max(this.activatedTick, net.minecraft.server.MinecraftServer.currentTick + 20);
-@@ -1219,7 +1229,7 @@ public abstract class Entity
+@@ -1220,7 +1230,7 @@ public abstract class Entity
              ProfilerFiller profiler = Profiler.get();
              profiler.push("move");
              if (this.stuckSpeedMultiplier.lengthSqr() > 1.0E-7) {
@@ -1376,7 +1376,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
                      delta = delta.multiply(this.stuckSpeedMultiplier);
                  }
  
-@@ -1237,10 +1247,22 @@ public abstract class Entity
+@@ -1238,10 +1248,22 @@ public abstract class Entity
              delta = this.maybeBackOffFromEdge(delta, moverType);
              Vec3 movement = this.collide(delta);
              double movementLength = movement.lengthSqr();
@@ -1403,7 +1403,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
                      BlockHitResult hitResult = this.level()
                          .clip(new ClipContext(this.position(), checkTo, ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
                      if (hitResult.getType() != HitResult.Type.MISS) {
-@@ -1249,9 +1271,15 @@ public abstract class Entity
+@@ -1250,9 +1272,15 @@ public abstract class Entity
                  }
  
                  Vec3 pos = this.position();
@@ -1422,7 +1422,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
                  this.recordMovement(moverType, movement);
              }
  
-@@ -1282,9 +1310,17 @@ public abstract class Entity
+@@ -1283,9 +1311,17 @@ public abstract class Entity
              if (this.isRemoved()) {
                  profiler.pop();
              } else {
@@ -1442,7 +1442,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
                  // CraftBukkit start
                  if (this.horizontalCollision && this.getBukkitEntity() instanceof org.bukkit.entity.Vehicle) {
                      org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
-@@ -1446,7 +1482,7 @@ public abstract class Entity
+@@ -1447,7 +1483,7 @@ public abstract class Entity
          this.finalMovementsThisTick.clear();
          this.finalMovementsThisTick.addAll(this.movementThisTick);
          this.movementThisTick.clear();
@@ -1451,7 +1451,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
              this.finalMovementsThisTick.add(new Entity.Movement(this.oldPosition(), this.position()));
          } else if (this.finalMovementsThisTick.getLast().to.distanceToSqr(this.position()) > 9.9999994E-11F) {
              this.finalMovementsThisTick.add(new Entity.Movement(this.finalMovementsThisTick.getLast().to, this.position()));
-@@ -1728,7 +1764,7 @@ public abstract class Entity
+@@ -1729,7 +1765,7 @@ public abstract class Entity
          double y = movement.y;
          double z = movement.z;
  
@@ -1460,7 +1460,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
          if (y != 0.0) {
              y = this.scanY(currentBox, y, collisionsVoxel, collisionsBB);
              if (y != 0.0) {
-@@ -1862,7 +1898,7 @@ public abstract class Entity
+@@ -1863,7 +1899,7 @@ public abstract class Entity
              ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER, null
          );
          potentialCollisionsBB.addAll(entityAABBs);
@@ -1469,7 +1469,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
  
          final boolean collidedX = collided.x != movement.x;
          final boolean collidedY = collided.y != movement.y;
-@@ -2010,25 +2046,37 @@ public abstract class Entity
+@@ -2011,25 +2047,37 @@ public abstract class Entity
      private void checkInsideBlocks(final List<Entity.Movement> movements, final InsideBlockEffectApplier.StepBasedCollector effectCollector) {
          if (this.isAffectedByBlocks()) {
              LongSet visitedBlocks = this.visitedBlocks;
@@ -1512,7 +1512,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
                      this.checkInsideBlocks(movement.to(), movement.to(), effectCollector, visitedBlocks, 1);
                  }
              }
-@@ -2044,8 +2092,20 @@ public abstract class Entity
+@@ -2045,8 +2093,20 @@ public abstract class Entity
          final LongSet visitedBlocks,
          final int maxMovementIterations
      ) {
@@ -1535,7 +1535,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
          boolean debugEntityBlockIntersections = this.level instanceof ServerLevel serverLevel
              && serverLevel.getServer().debugSubscribers().hasAnySubscriberFor(DebugSubscriptions.ENTITY_BLOCK_INTERSECTIONS);
          AtomicInteger iterations = new AtomicInteger();
-@@ -2053,6 +2113,7 @@ public abstract class Entity
+@@ -2054,6 +2114,7 @@ public abstract class Entity
              from,
              to,
              deflatedBoundingBoxAtTarget,
@@ -1543,7 +1543,7 @@ index 5c76e2517537bb6e0a4903cbadca6bb6be0a3520..843ca2164352bc2f5a3f8796d36c57f3
              (blockIntersection, iteration) -> {
                  if (!this.isAlive()) {
                      return false;
-@@ -2075,7 +2136,7 @@ public abstract class Entity
+@@ -2076,7 +2137,7 @@ public abstract class Entity
                      boolean insideBlock = intersectShape == Shapes.block()
                          || this.collidedWithShapeMovingFrom(from, to, intersectShape.move(new Vec3(blockIntersection)).toAabbs());
                      boolean insideFluid = this.collidedWithFluid(state.getFluidState(), blockIntersection, from, to);
